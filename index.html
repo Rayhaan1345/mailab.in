@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mumbai AI Lab</title>
+<meta name="description" content="Mumbai AI Lab is a student-run programme in Navi Mumbai that teaches school students to use AI as a tutor that asks them questions. Home of the Socratic Tutor plugin for Claude.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mumbai AI Lab">
+<meta property="og:description" content="A student-run programme in Navi Mumbai that teaches school students to use AI as a tutor that asks them questions.">
+<meta property="og:url" content="https://mailab.in/">
+<meta property="og:image" content="https://mailab.in/assets/img/socratic-tutor-icon.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wdth,wght@75..100,400..800&family=Anek+Devanagari:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/mailab.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap bar">
+    <a class="mark" href="#top" aria-label="Mumbai AI Lab, home">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="5" y="8" width="54" height="40" rx="11" fill="#fff"/><path d="M14 44 L10 58 L28 47 Z" fill="#fff"/><text x="32" y="39" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="31" fill="#e8743b">?</text></svg>
+      <span>MAiL</span>
+    </a>
+    <ul class="nav">
+      <li><a href="#why">Why</a></li>
+      <li><a href="#method">Method</a></li>
+      <li><a href="#sessions">Sessions</a></li>
+      <li><a href="#updates">Updates</a></li>
+      <li><a href="#plugin">Plugin</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </div>
+
+  <div class="wrap hero" id="top">
+    <div>
+      <p class="eyebrow">Navi Mumbai &middot; since 2025</p>
+      <h1 class="display"><span>Mumbai</span><span>AI Lab</span></h1>
+      <p class="deva-name deva" lang="hi">मुंबई एआई लैब</p>
+      <p class="lede">A student-run programme for school students. We teach students to use AI as a tutor that asks them questions, so they keep doing the reasoning themselves.</p>
+      <p class="jump"><a href="#method">See the method &darr;</a><a href="https://github.com/Rayhaan1345/socratic-tutor">Socratic Tutor on GitHub &#8599;</a></p>
+    </div>
+    <figure class="dialogue" aria-label="Example exchange">
+      <p class="label">How the tutor replies</p>
+      <dl>
+        <dt class="student">Student</dt><dd>Can you solve 2x&sup2; &minus; 5x &minus; 3 = 0 for me?</dd>
+        <dt class="tutor">Tutor</dt><dd class="tutor">Let's work through it. What have you tried so far?</dd>
+        <dt class="student">Student</dt><dd>I tried to factorise it but couldn't find the factors.</dd>
+        <dt class="tutor">Tutor</dt><dd class="tutor">Which two numbers multiply to &minus;6 and add to &minus;5?</dd>
+      </dl>
+      <p class="note">An example exchange with our Socratic Tutor plugin. The student still finds the factors.</p>
+    </figure>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+<section id="why" aria-labelledby="why-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="why-h">Why the lab exists</h2>
+      <p class="sub">What studies show about learning with chatbots.</p>
+    </div>
+    <div class="body">
+      <p class="big">A chatbot can answer most school homework in seconds. A student who copies the answer skips the practice that builds the skill. Recent studies measure the cost, and they also show a better way to use the same tools.</p>
+      <div class="stats">
+        <div class="stat">
+          <div class="n display">17%</div>
+          <p>Lower scores on a later exam for high school students who practised maths with an unrestricted chatbot, compared with students who never had one. A version that gave hints instead of answers removed most of that loss.</p>
+          <cite><a href="https://papers.ssrn.com/abstract=4895486">Bastani et al., PNAS, 2025</a></cite>
+        </div>
+        <div class="stat">
+          <div class="n display">2&times;</div>
+          <p>More than double the learning gains of an in-class active-learning lesson, for students in a Harvard physics course who used an AI tutor built on active learning.</p>
+          <cite><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12179260/">Kestin et al., Scientific Reports, 2025</a></cite>
+        </div>
+      </div>
+      <p>The same tool can harm learning or help it, depending on how it is used. We teach the helpful way. The student does the reasoning, and the AI asks questions, checks steps and quizzes recall.</p>
+      <p>Recalling an answer strengthens memory more than rereading it (Roediger and Karpicke, Psychological Science, 2006). For that reason our sessions end with students answering questions.</p>
+    </div>
+  </div>
+</section>
+
+<section id="method" aria-labelledby="method-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="method-h">The method</h2>
+      <p class="sub">One question at a time. Try the hint ladder below.</p>
+    </div>
+    <div class="body">
+      <ol class="rules">
+        <li><b>Ask what the student has tried.</b> The tutor starts from the student's own attempt.</li>
+        <li><b>Find the one thing that blocks them.</b> Then ask a single question about it.</li>
+        <li><b>Raise the help only when the student stalls.</b> A nudge, then the concept, then a worked step, then the full answer.</li>
+        <li><b>Fade the hints.</b> As the student gets steps right alone, the tutor says less.</li>
+        <li><b>Answer when asked.</b> "Just tell me" gets the full answer, followed by one question on the key step.</li>
+        <li><b>End with recall.</b> A short quiz, or a summary in the student's own words.</li>
+      </ol>
+
+      <div class="ladder" id="ladder">
+        <div class="rail">
+          <h3 class="display">Hint ladder</h3>
+          <ol class="rungs" aria-label="Hint levels">
+            <li data-rung="1"><span>1</span><span>Nudge</span></li>
+            <li data-rung="2"><span>2</span><span>Concept</span></li>
+            <li data-rung="3"><span>3</span><span>Worked step</span></li>
+            <li data-rung="4"><span>4</span><span>Full answer</span></li>
+          </ol>
+          <p class="count" id="hint-count" aria-live="polite">Hints used: 0 of 4</p>
+        </div>
+        <div class="stage">
+          <p class="problem">Problem <b>Solve 2x&sup2; &minus; 5x &minus; 3 = 0</b></p>
+          <ol class="turns" id="turns" aria-live="polite">
+            <li class="tutor"><span class="who">Tutor</span><span class="say">What have you tried so far?</span></li>
+            <li class="student"><span class="who">Student</span><span class="say">I know it is a quadratic. I tried to factorise it, but I can't find the factors.</span></li>
+          </ol>
+          <div class="controls">
+            <button type="button" class="primary" id="hint-next">Give me a hint</button>
+            <button type="button" id="hint-tell">Just tell me</button>
+            <button type="button" id="hint-reset">Start again</button>
+          </div>
+        </div>
+      </div>
+      <p class="ladder-foot">A scripted demonstration of the ladder. With the plugin, Claude follows the same steps on any subject. Facts, definitions and syntax get plain answers, because the questioning is for reasoning.</p>
+    </div>
+  </div>
+</section>
+
+<section id="sessions" aria-labelledby="sessions-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="sessions-h">Sessions</h2>
+      <p class="sub">Run by students, for students.</p>
+    </div>
+    <div class="body">
+      <dl class="facts">
+        <div><dt>When</dt><dd>Alternate Sundays</dd></div>
+        <div><dt>Levels</dt><dd>Three</dd></div>
+        <div><dt>Based in</dt><dd>Navi Mumbai</dd></div>
+        <div><dt>Led by</dt><dd>Rayhaan Khan, founder</dd></div>
+      </dl>
+      <p>Sessions teach the method above with the subjects students study at school. They draw on studies of AI tutoring and retrieval practice. To join, <a href="#contact">write to us</a>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="updates" aria-labelledby="updates-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="updates-h">Updates</h2>
+      <p class="sub">News from the lab, newest first.</p>
+    </div>
+    <div class="body">
+      <ol class="updates">
+        <li class="update">
+          <time datetime="2026-10-23"><span class="d">23</span><span class="my">Oct 2026</span></time>
+          <div>
+            <p class="kind">Open source</p>
+            <h3 class="display">Socratic Tutor, our plugin for Claude</h3>
+            <p>Our first open-source release makes Claude tutor by asking. It has two skills. The socratic-tutor skill guides homework, proofs, code and essays, and quiz-me runs recall practice. The plugin collects no data.</p>
+            <a class="claude-badge" href="#plugin">
+              <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#claude-mark"/></svg>
+              <strong>Coming soon to the Claude plugin directory</strong>
+              <small>Submitted to Anthropic for review</small>
+            </a>
+            <p class="go"><a href="https://github.com/Rayhaan1345/socratic-tutor">Read the code &#8599;</a><a href="#plugin">Install it now &darr;</a></p>
+          </div>
+        </li>
+        <li class="update">
+          <time datetime="2026-10-19"><span class="d">19</span><span class="my">Oct 2026</span></time>
+          <div>
+            <p class="kind">Research</p>
+            <h3 class="display">A controlled study of In-Place Test-Time Training</h3>
+            <p>Rayhaan Khan trained Qwen3-4B with and without In-Place TTT on identical data, then switched the test-time update off to measure what it adds. Up to 64k tokens, the update changes the RULER long-context score by at most 0.4 points. The reported gains come from training with the module. Code, configurations and the report are public.</p>
+            <p class="go"><a href="https://github.com/Rayhaan1345/inplace-ttt-study/blob/main/paper/main.pdf">Report (PDF) &#8599;</a><a href="https://github.com/Rayhaan1345/inplace-ttt-study">Code &#8599;</a></p>
+          </div>
+        </li>
+        <li class="update">
+          <time datetime="2025-11"><span class="d">Nov</span><span class="my">2025</span></time>
+          <div>
+            <p class="kind">The lab</p>
+            <h3 class="display">Mumbai AI Lab opens</h3>
+            <p>Rayhaan Khan started the lab to help school students prepare for a future with AI. Learning to study with AI comes first.</p>
+          </div>
+        </li>
+      </ol>
+      <div class="origins">
+        <h3 class="display">Before the lab</h3>
+        <ul>
+          <li><b>2024</b><span>The STEM Club at Podar International School ran peer sessions on training a first model, and talks on AI for grade 3 classes.</span></li>
+          <li><b>2025</b><span>Rayhaan mentored the school's grade 9 team at the IIT Bombay National Robotics League. With Arduino control and a small vision model for obstacle avoidance, the team placed first among 68 schools.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="plugin" aria-labelledby="plugin-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="plugin-h">The plugin</h2>
+      <p class="sub">Open source under the MIT licence.</p>
+    </div>
+    <div class="body">
+      <div class="plugin">
+        <img src="assets/img/socratic-tutor-icon.png" alt="Socratic Tutor icon: an orange question mark in a white speech bubble on navy" width="128" height="128">
+        <div>
+          <h3 class="display">Socratic Tutor</h3>
+          <p class="by">by Mumbai AI Lab &middot; version 1.0.0</p>
+          <p>The plugin turns Claude into a tutor that teaches by asking. It finds out what the student has tried, asks the question that leads to the next step and gives the answer once the student has tried or asks for it.</p>
+          <p>It is instructions only. It runs no code, connects to no server and keeps no record of the student between conversations.</p>
+          <a class="claude-badge" href="https://github.com/Rayhaan1345/socratic-tutor">
+            <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#claude-mark"/></svg>
+            <strong>Coming soon to the Claude plugin directory</strong>
+            <small>Until it is listed, install it from GitHub</small>
+          </a>
+          <div class="install">
+            <div>
+              <h4>Claude Code</h4>
+              <pre><code>/plugin marketplace add Rayhaan1345/socratic-tutor
+/plugin install mailab-socratic-tutor@mumbai-ai-lab</code></pre>
+            </div>
+            <div>
+              <h4>Claude desktop app and claude.ai</h4>
+              <p>Open Customize, then Plugins. Choose Add, then Add marketplace, paste <code>https://github.com/Rayhaan1345/socratic-tutor</code> and install Socratic Tutor by Mumbai AI Lab.</p>
+            </div>
+            <div>
+              <h4>Try it</h4>
+              <p>"I have to solve 2x&sup2; &minus; 5x &minus; 3 = 0 for homework. Can you help?" or "Quiz me on Newton's laws, five questions."</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="people" aria-labelledby="people-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="people-h">Founder</h2>
+    </div>
+    <div class="body">
+      <div class="person">
+        <img src="assets/img/rayhaan.jpg" alt="Portrait of Rayhaan Khan" width="150" height="152">
+        <div>
+          <h3 class="display">Rayhaan Khan</h3>
+          <p class="role">Founder, Mumbai AI Lab</p>
+          <p>Rayhaan is in the final year of Cambridge A Levels at Podar International School in Navi Mumbai. He works on machine learning research, with a first-author manuscript under review at TMLR and a research internship at MBZUAI. He started the lab after founding the STEM Club at his school.</p>
+          <p><a href="https://rayhaan1345.github.io">rayhaan1345.github.io &#8599;</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="contact" aria-labelledby="contact-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="contact-h">Contact</h2>
+    </div>
+    <div class="body">
+      <p class="big">To join a session, write to <a href="mailto:rayhaankhan1345@gmail.com">rayhaankhan1345@gmail.com</a>.</p>
+      <p>For problems or ideas about the plugin, <a href="https://github.com/Rayhaan1345/socratic-tutor/issues">open an issue on GitHub</a>.</p>
+    </div>
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div>
+      <p class="name display">Mumbai AI Lab<span class="deva" lang="hi">मुंबई एआई लैब</span></p>
+      <p>Navi Mumbai, India</p>
+    </div>
+    <p><a href="https://github.com/Rayhaan1345/socratic-tutor">GitHub</a> &middot; <a href="mailto:rayhaankhan1345@gmail.com">Email</a></p>
+    <p class="legal">Claude is a trademark of Anthropic. Mumbai AI Lab is an independent student programme and is not affiliated with Anthropic. &copy; 2026 Mumbai AI Lab.</p>
+  </div>
+</footer>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><path id="claude-mark" d="m19.6 66.5 19.7-11 .3-1-.3-.5h-1l-3.3-.2-11.2-.3L14 53l-9.5-.5-2.4-.5L0 49l.2-1.5 2-1.3 2.9.2 6.3.5 9.5.6 6.9.4L38 49.1h1.6l.2-.7-.5-.4-.4-.4L29 41l-10.6-7-5.6-4.1-3-2-1.5-2-.6-4.2 2.7-3 3.7.3.9.2 3.7 2.9 8 6.1L37 36l1.5 1.2.6-.4.1-.3-.7-1.1L33 25l-6-10.4-2.7-4.3-.7-2.6c-.3-1-.4-2-.4-3l3-4.2L28 0l4.2.6L33.8 2l2.6 6 4.1 9.3L47 29.9l2 3.8 1 3.4.3 1h.7v-.5l.5-7.2 1-8.7 1-11.2.3-3.2 1.6-3.8 3-2L61 2.6l2 2.9-.3 1.8-1.1 7.7L59 27.1l-1.5 8.2h.9l1-1.1 4.1-5.4 6.9-8.6 3-3.5L77 13l2.3-1.8h4.3l3.1 4.7-1.4 4.9-4.4 5.6-3.7 4.7-5.3 7.1-3.2 5.7.3.4h.7l12-2.6 6.4-1.1 7.6-1.3 3.5 1.6.4 1.6-1.4 3.4-8.2 2-9.6 2-14.3 3.3-.2.1.2.3 6.4.6 2.8.2h6.8l12.6 1 3.3 2 1.9 2.7-.3 2-5.1 2.6-6.8-1.6-16-3.8-5.4-1.3h-.8v.4l4.6 4.5 8.3 7.5L89 80.1l.5 2.4-1.3 2-1.4-.2-9.2-7-3.6-3-8-6.8h-.5v.7l1.8 2.7 9.8 14.7.5 4.5-.7 1.4-2.6 1-2.7-.6-5.8-8-6-9-4.7-8.2-.5.4-2.9 30.2-1.3 1.5-3 1.2-2.5-2-1.4-3 1.4-6.2 1.6-8 1.3-6.4 1.2-7.9.7-2.6v-.2H49L43 72l-9 12.3-7.2 7.6-1.7.7-3-1.5.3-2.8L24 86l10-12.8 6-7.9 4-4.6-.1-.5h-.3L17.2 77.4l-4.7.6-2-2 .2-3 1-1 8-5.5Z"/></defs></svg>
+<script src="assets/mailab.js" defer></script>
+</body>
+</html>
