@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Practice set: toolkit | How AI Learns</title>
+<meta name="description" content="Twenty-five practice questions across the toolkit chapters: algebra, discrete maths, vectors, gradients, probability, charts, Python and algorithms, and two logic puzzles. Scored in your browser, with links to the sections to revise.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Practice set 0.P. Colours come from the site tokens, so the page follows light and dark mode. */
+.pset section { margin-top: 44px; scroll-margin-top: 64px; }
+.pset section > p, .pset section > ul { max-width: 46em; }
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+[hidden] { display: none !important; }
+
+/* Timer and progress bar, stuck to the top of the screen while you work. */
+.pbar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 26px 0 0; padding: 8px 12px; background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07); }
+.pb-time { min-width: 3.6em; font-family: "Spectral SC", Georgia, serif; font-size: 25px; line-height: 1.1; letter-spacing: 0.02em; color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.pb-time.over { color: var(--coral); }
+.pb-prog { color: var(--ink-2); font-size: 15px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.pb-prog b { color: var(--ink); }
+.pb-jump { margin-left: auto; font-size: 15px; }
+.pbar .btn { font-size: 14.5px; }
+.btn-main { border-color: var(--teal); color: var(--ink); background: var(--mark); padding: 6px 18px; font-size: 16px; }
+.btn-main:hover { background: var(--teal); color: var(--bg); }
+.btn[disabled] { opacity: 0.45; cursor: default; }
+
+/* A question. */
+.pq { max-width: 46em; margin: 16px 0 0; padding: 14px 16px 12px; border: 1px solid var(--rule); border-left-width: 4px; border-radius: 8px; background: var(--paper); scroll-margin-top: 76px; }
+.pq.right { border-left-color: var(--teal); }
+.pq.missed { border-left-color: var(--coral); }
+.pq-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 14px; margin: 0 0 8px; font-family: "Spectral SC", Georgia, serif; font-size: 16px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink); }
+.pq-tag { font-size: 14px; font-weight: 500; color: var(--muted); }
+.pq-st { margin-left: 8px; font-weight: 600; }
+.pq.right .pq-st { color: var(--link-hover); }
+.pq.missed .pq-st { color: var(--coral); }
+.pq-t { margin: 0 0 10px; color: var(--ink); }
+.pq-t.tight { margin-bottom: 4px; }
+.pq ul.stm { margin: 0 0 10px; padding-left: 1.3em; color: var(--ink); }
+.pq ul.stm li { margin: 2px 0; }
+.opts { min-width: 0; margin: 8px 0 0; padding: 0; border: 0; display: grid; gap: 6px; }
+.opt { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: start; gap: 8px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.opt:hover { border-color: var(--teal); }
+.opt.on { border-color: var(--teal); background: var(--mark); }
+.pq.missed .opt.on { border-color: var(--coral); background: var(--bg); }
+.opt b { min-width: 1.1em; font-family: "Spectral SC", Georgia, serif; font-weight: 600; color: var(--muted); }
+.opt input { margin: 5px 0 0; accent-color: var(--teal); }
+.opt span { min-width: 0; overflow-wrap: anywhere; }
+.opt .katex-display { margin: 0; }
+.pq-num { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 0; color: var(--ink-2); }
+.pq-num input { width: 9em; max-width: 100%; padding: 6px 10px; font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.pq-num input:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+.pq-num input:disabled, .opt input:disabled + b { opacity: 0.7; }
+.pq-num .u { color: var(--muted); }
+.revise { margin: 10px 0 0; padding-top: 8px; border-top: 1px dashed var(--rule); font-size: 15px; color: var(--ink-2); }
+.pq pre.pq-code { max-width: 100%; margin: 4px 0 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); overflow-x: auto; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5; }
+
+/* Figures. */
+.pfig { margin: 6px 0 10px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.pfig .fcap { margin: 0 0 4px; font-size: 14.5px; color: var(--ink-2); }
+.pfig svg { display: block; width: 100%; height: auto; max-width: 420px; margin: 0 auto; }
+.pfig .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+.pfig .pair svg { max-width: 330px; }
+.fg text { font-family: "Spectral", Georgia, serif; font-size: 13px; fill: var(--ink-2); }
+.fg .tk { font-size: 11.5px; fill: var(--muted); }
+.fg .nm { font-size: 14px; font-style: italic; fill: var(--ink); }
+.fg .ax { stroke: var(--muted); stroke-width: 1.3; fill: none; }
+.fg .gl { stroke: var(--rule); stroke-width: 1; }
+.fg .gm { stroke: var(--rule); stroke-width: 0.6; opacity: 0.7; }
+.fg .l1 { stroke: var(--navy); stroke-width: 2.4; fill: none; stroke-linejoin: round; }
+.fg .l2 { stroke: var(--coral); stroke-width: 2.4; fill: none; }
+.fg .d1 { fill: var(--navy); }
+.fg .d2 { fill: var(--coral); }
+.fg .b1 { fill: var(--navy); }
+.fg .vl { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.fg .nd { fill: var(--bg); stroke: var(--navy); stroke-width: 1.8; }
+.fg .nt { font-size: 14px; fill: var(--ink); text-anchor: middle; }
+.fg .ar { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+.tscroll { overflow-x: auto; margin: 4px 0 8px; }
+.ptable { border-collapse: collapse; width: 100%; max-width: 30em; margin: 0 auto 0 0; font-size: 15px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.ptable.cmx { max-width: 24em; }
+.ptable.cmx th, .ptable.cmx td { text-align: center; }
+.ptable.cmx th:first-child, .ptable.cmx td:first-child { text-align: left; }
+.ptable caption { padding: 0 0 6px; text-align: left; font-size: 14.5px; color: var(--ink-2); caption-side: top; }
+.ptable th, .ptable td { padding: 5px 9px; text-align: right; border-bottom: 1px solid var(--rule); color: var(--ink-2); }
+.ptable th:first-child, .ptable td:first-child { text-align: left; }
+.ptable thead th { font-size: 13.5px; font-weight: 500; color: var(--muted); }
+.ptable thead th.grp { text-align: center; border-bottom: 1px solid var(--rule); }
+.ptable td.dg { background: var(--mark); color: var(--ink); font-weight: 600; }
+.ptable tbody th { font-weight: 500; color: var(--ink); }
+
+/* Score and results. */
+.res { margin-top: 18px; max-width: 46em; }
+.res h3 { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
+.res .big { margin: 0 0 4px; color: var(--ink); font-size: 18px; }
+.res .big b { font-size: 46px; font-weight: 600; line-height: 1.1; font-feature-settings: "tnum" 1, "lnum" 1; }
+.res .sub { margin: 0 0 10px; color: var(--ink-2); font-size: 15.5px; }
+.arow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--rule); }
+.arow .an { color: var(--ink); font-weight: 600; }
+.arow .as { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.arow .meter { grid-column: 1 / -1; height: 9px; border-radius: 5px; background: var(--rule); overflow: hidden; }
+.arow .meter i { display: block; height: 100%; background: var(--teal); }
+.arow .ar-rev { grid-column: 1 / -1; font-size: 15px; color: var(--ink-2); }
+.res ol.miss { margin: 6px 0 0; padding-left: 1.3em; color: var(--ink-2); font-size: 15.5px; }
+.res ol.miss li { margin: 5px 0; }
+.res .acts { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 16px 0 0; }
+.res h4 { margin: 18px 0 2px; font-family: "Spectral SC", Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+.area-badge { margin-left: 10px; padding: 0 10px; border-radius: 999px; background: var(--mark); color: var(--ink); font-size: 14px; font-weight: 500; vertical-align: 3px; }
+
+@media (max-width: 760px) {
+  .pset section { margin-top: 36px; }
+  .pbar { margin-top: 20px; padding: 6px 10px; gap: 4px 10px; }
+  .pb-time { font-size: 22px; }
+  .pq { padding: 12px 12px 10px; margin-left: -4px; margin-right: -4px; }
+  .pfig .pair { grid-template-columns: minmax(0, 1fr); }
+  .pb-prog .wide { display: none; }
+  .ptable { font-size: 14px; }
+  .ptable th, .ptable td { padding: 5px 5px; }
+  .res .big b { font-size: 40px; }
+}
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="p0">
+<main class="proj pset">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Toolkit</span><span>Practice set 0.P</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part 0 &middot; Practice set</p>
+  <h1>Practice set: toolkit</h1>
+  <p class="subtitle">Twenty-five questions across the eight toolkit chapters, to attempt without notes</p>
+</header>
+
+<div class="tldr">
+  <p>This practice set mixes algebra and functions, discrete maths and logic, vectors and matrices, slopes and gradients, probability and statistics, charts and tables, Python and algorithms, and two logic puzzles. Attempt it without notes and with the chapters closed. A timer is there if you want the pressure of a clock, and about 45 minutes is a fair target.</p>
+  <p>When you press Score my answers at the end, the page shows your score by area and the questions you missed, with links to the sections to revise. It does not show the correct answers. Revise the sections the score points to, try the missed questions again, and attempt the whole set again after a week.</p>
+</div>
+<p class="youneed"><b>You will need:</b> a pen, paper and a calculator, and what the toolkit chapters teach: <a href="../t1-python/">0.1 Python</a>, <a href="../t2-algorithms/">0.2 Algorithms</a>, <a href="../t3-algebra-functions/">0.3 Algebra and functions</a>, <a href="../t4-discrete-maths/">0.4 Discrete maths and logic</a>, <a href="../t5-vectors-matrices/">0.5 Vectors and matrices</a>, <a href="../t6-gradients/">0.6 Slopes and gradients</a>, <a href="../t7-probability/">0.7 Probability and statistics</a> and <a href="../t8-charts/">0.8 Reading charts and tables</a>.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#howto">How to use this set</a></li>
+    <li><a href="#algebra">Algebra and functions</a></li>
+    <li><a href="#discrete">Discrete maths and logic</a></li>
+    <li><a href="#vectors">Vectors and matrices</a></li>
+    <li><a href="#slopes">Slopes and gradients</a></li>
+    <li><a href="#prob">Probability and statistics</a></li>
+    <li><a href="#charts">Reading charts and tables</a></li>
+    <li><a href="#python">Python and algorithms</a></li>
+    <li><a href="#puzzles">Logic puzzles</a></li>
+    <li><a href="#score">Finish and score</a></li>
+  </ol>
+</nav>
+
+<div class="pbar" id="pbar" role="group" aria-label="Timer and progress">
+  <span class="pb-time" id="pb-time" role="timer">45:00</span>
+  <button type="button" class="btn" id="pb-go">Start timer</button>
+  <span class="pb-prog"><b id="pb-n">0</b> of 25<span class="wide"> answered</span></span>
+  <a class="pb-jump" href="#score" aria-label="Go to the score section">Score</a>
+</div>
+<noscript><p class="note">This practice set needs JavaScript to save your answers and to score them.</p></noscript>
+
+<section id="howto" aria-labelledby="howto-h">
+  <h2 id="howto-h">How to use this set</h2>
+  <ul class="plain">
+    <li>Close the chapters. Keep a pen, paper and a calculator beside you.</li>
+    <li>Choose a time and press Start timer when you begin. Pause it when you leave. The clock counts down, then goes on counting past zero so that you can see how long you took. The timer is optional.</li>
+    <li>Skip a question and return to it if you like. Your answers are saved in this browser as you type.</li>
+    <li>Press Score my answers at the end. The set is scored only then.</li>
+  </ul>
+  <div class="card">
+    <div class="bar"><span class="label">Time allowed</span><div id="tm-chips"></div><button type="button" class="btn" id="tm-reset">Reset timer</button></div>
+    <p class="note" id="store-note">Your answers and the timer are saved in this browser only. No data is sent anywhere.</p>
+  </div>
+</section>
+
+<section id="algebra" aria-labelledby="algebra-h">
+  <h2 id="algebra-h">Algebra and functions</h2>
+
+  <article class="pq" id="q1" data-q="q01" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 1<span class="pq-st" hidden></span></span><span class="pq-tag">Algebra and functions</span></h3>
+    <p class="pq-t">In murky water off Juhu, the light at a depth of \(d\) metres is \(0.7^{d}\) times the light at the surface. These numbers are made up. What is the smallest whole number of metres at which less than 10% of the surface light is left?</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 1, in metres"><span class="u">metres</span></label>
+    <p class="revise" hidden>Revise <a href="../t3-algebra-functions/#logs">0.3 Logarithms</a> and <a href="../t3-algebra-functions/#exponents">0.3 Exponents</a>.</p>
+  </article>
+
+  <article class="pq" id="q2" data-q="q02" data-kind="mc">
+    <h3 class="pq-h"><span>Question 2<span class="pq-st" hidden></span></span><span class="pq-tag">Algebra and functions</span></h3>
+    <p class="pq-t tight">The left graph shows a function \(f\) and the right graph shows a function \(g\). The dots mark whole-number inputs. What is \(g(f(0))\)?</p>
+    <div class="pfig"><div class="pair">
+<svg class="fg" viewBox="0 0 300 236" role="img" aria-label="Graph of f, a line made of straight pieces through the points (0, 3), (1, 2), (2, 1), (3, 2) and (4, 3)">
+<line class="gl" x1="46.0" y1="192" x2="46.0" y2="28"/>
+<line class="gl" x1="105.0" y1="192" x2="105.0" y2="28"/>
+<line class="gl" x1="164.0" y1="192" x2="164.0" y2="28"/>
+<line class="gl" x1="223.0" y1="192" x2="223.0" y2="28"/>
+<line class="gl" x1="282.0" y1="192" x2="282.0" y2="28"/>
+<line class="gl" x1="46" y1="192.0" x2="282" y2="192.0"/>
+<line class="gl" x1="46" y1="151.0" x2="282" y2="151.0"/>
+<line class="gl" x1="46" y1="110.0" x2="282" y2="110.0"/>
+<line class="gl" x1="46" y1="69.0" x2="282" y2="69.0"/>
+<line class="gl" x1="46" y1="28.0" x2="282" y2="28.0"/>
+<line class="ax" x1="46" y1="192" x2="288" y2="192"/><line class="ax" x1="46" y1="192" x2="46" y2="22"/>
+<text class="tk" x="46.0" y="208" text-anchor="middle">0</text>
+<text class="tk" x="105.0" y="208" text-anchor="middle">1</text>
+<text class="tk" x="164.0" y="208" text-anchor="middle">2</text>
+<text class="tk" x="223.0" y="208" text-anchor="middle">3</text>
+<text class="tk" x="282.0" y="208" text-anchor="middle">4</text>
+<text class="tk" x="38" y="196.0" text-anchor="end">0</text>
+<text class="tk" x="38" y="155.0" text-anchor="end">1</text>
+<text class="tk" x="38" y="114.0" text-anchor="end">2</text>
+<text class="tk" x="38" y="73.0" text-anchor="end">3</text>
+<text class="tk" x="38" y="32.0" text-anchor="end">4</text>
+<path class="l1" d="M46.0,69.0 L105.0,110.0 L164.0,151.0 L223.0,110.0 L282.0,69.0"/>
+<circle class="d1" cx="46.0" cy="69.0" r="4.6"/>
+<circle class="d1" cx="105.0" cy="110.0" r="4.6"/>
+<circle class="d1" cx="164.0" cy="151.0" r="4.6"/>
+<circle class="d1" cx="223.0" cy="110.0" r="4.6"/>
+<circle class="d1" cx="282.0" cy="69.0" r="4.6"/>
+<text class="nm" x="164" y="18" text-anchor="middle">f</text>
+<text class="tk" x="164" y="230" text-anchor="middle">input</text>
+</svg>
+<svg class="fg" viewBox="0 0 300 236" role="img" aria-label="Graph of g, a rising curve through the points (0, 1), (1, 2), (2, 4), (3, 8) and (4, 16)">
+<line class="gl" x1="46.0" y1="192" x2="46.0" y2="28"/>
+<line class="gl" x1="105.0" y1="192" x2="105.0" y2="28"/>
+<line class="gl" x1="164.0" y1="192" x2="164.0" y2="28"/>
+<line class="gl" x1="223.0" y1="192" x2="223.0" y2="28"/>
+<line class="gl" x1="282.0" y1="192" x2="282.0" y2="28"/>
+<line class="gm" x1="46" y1="171.5" x2="282" y2="171.5"/>
+<line class="gm" x1="46" y1="130.5" x2="282" y2="130.5"/>
+<line class="gm" x1="46" y1="89.5" x2="282" y2="89.5"/>
+<line class="gm" x1="46" y1="48.5" x2="282" y2="48.5"/>
+<line class="gl" x1="46" y1="192.0" x2="282" y2="192.0"/>
+<line class="gl" x1="46" y1="151.0" x2="282" y2="151.0"/>
+<line class="gl" x1="46" y1="110.0" x2="282" y2="110.0"/>
+<line class="gl" x1="46" y1="69.0" x2="282" y2="69.0"/>
+<line class="gl" x1="46" y1="28.0" x2="282" y2="28.0"/>
+<line class="ax" x1="46" y1="192" x2="288" y2="192"/><line class="ax" x1="46" y1="192" x2="46" y2="22"/>
+<text class="tk" x="46.0" y="208" text-anchor="middle">0</text>
+<text class="tk" x="105.0" y="208" text-anchor="middle">1</text>
+<text class="tk" x="164.0" y="208" text-anchor="middle">2</text>
+<text class="tk" x="223.0" y="208" text-anchor="middle">3</text>
+<text class="tk" x="282.0" y="208" text-anchor="middle">4</text>
+<text class="tk" x="38" y="196.0" text-anchor="end">0</text>
+<text class="tk" x="38" y="155.0" text-anchor="end">4</text>
+<text class="tk" x="38" y="114.0" text-anchor="end">8</text>
+<text class="tk" x="38" y="73.0" text-anchor="end">12</text>
+<text class="tk" x="38" y="32.0" text-anchor="end">16</text>
+<path class="l2" d="M46.0,181.8 L49.0,181.4 L51.9,181.0 L54.9,180.6 L57.8,180.2 L60.8,179.8 L63.7,179.4 L66.7,178.9 L69.6,178.5 L72.5,178.0 L75.5,177.5 L78.5,177.0 L81.4,176.5 L84.3,175.9 L87.3,175.3 L90.2,174.8 L93.2,174.2 L96.2,173.5 L99.1,172.9 L102.0,172.2 L105.0,171.5 L108.0,170.8 L110.9,170.0 L113.8,169.3 L116.8,168.5 L119.8,167.6 L122.7,166.8 L125.7,165.9 L128.6,165.0 L131.6,164.0 L134.5,163.0 L137.4,162.0 L140.4,160.9 L143.3,159.8 L146.3,158.7 L149.2,157.5 L152.2,156.3 L155.2,155.0 L158.1,153.7 L161.1,152.4 L164.0,151.0 L166.9,149.6 L169.9,148.1 L172.8,146.5 L175.8,144.9 L178.8,143.2 L181.7,141.5 L184.7,139.7 L187.6,137.9 L190.6,136.0 L193.5,134.0 L196.4,132.0 L199.4,129.9 L202.3,127.7 L205.3,125.4 L208.2,123.0 L211.2,120.6 L214.2,118.1 L217.1,115.5 L220.1,112.8 L223.0,110.0 L225.9,107.1 L228.9,104.1 L231.8,101.0 L234.8,97.8 L237.8,94.5 L240.7,91.0 L243.7,87.5 L246.6,83.8 L249.6,80.0 L252.5,76.0 L255.4,71.9 L258.4,67.7 L261.4,63.3 L264.3,58.8 L267.2,54.1 L270.2,49.2 L273.1,44.2 L276.1,39.0 L279.1,33.6 L282.0,28.0"/>
+<circle class="d2" cx="46.0" cy="181.8" r="4.6"/>
+<circle class="d2" cx="105.0" cy="171.5" r="4.6"/>
+<circle class="d2" cx="164.0" cy="151.0" r="4.6"/>
+<circle class="d2" cx="223.0" cy="110.0" r="4.6"/>
+<circle class="d2" cx="282.0" cy="28.0" r="4.6"/>
+<text class="nm" x="164" y="18" text-anchor="middle">g</text>
+<text class="tk" x="164" y="230" text-anchor="middle">input</text>
+</svg>
+</div></div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q02" value="0"><b>A</b><span>2</span></label>
+      <label class="opt"><input type="radio" name="q02" value="1"><b>B</b><span>3</span></label>
+      <label class="opt"><input type="radio" name="q02" value="2"><b>C</b><span>8</span></label>
+      <label class="opt"><input type="radio" name="q02" value="3"><b>D</b><span>16</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../t3-algebra-functions/#composition">0.3 Composition</a> and <a href="../t3-algebra-functions/#machines">0.3 Functions as machines</a>.</p>
+  </article>
+</section>
+
+<section id="discrete" aria-labelledby="discrete-h">
+  <h2 id="discrete-h">Discrete maths and logic</h2>
+
+  <article class="pq" id="q3" data-q="q03" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 3<span class="pq-st" hidden></span></span><span class="pq-tag">Discrete maths and logic</span></h3>
+    <p class="pq-t">Mumbai AI Lab sends a team of three to the Juhu rock pool, chosen from 8 students. One of the three is the diver. The other two are note-takers, who do the same job, so their order does not matter. In how many different ways can the team be chosen?</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 3, number of ways"><span class="u">ways</span></label>
+    <p class="revise" hidden>Revise <a href="../t4-discrete-maths/#counting">0.4 Counting orders and groups</a>.</p>
+  </article>
+
+  <article class="pq" id="q4" data-q="q04" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 4<span class="pq-st" hidden></span></span><span class="pq-tag">Discrete maths and logic</span></h3>
+    <p class="pq-t">A dive log has 60 frames (made-up numbers). A bamboo shark appears in 25 frames and a hammerhead appears in 18 frames. Both appear together in 9 frames. In how many frames does neither shark appear?</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 4, number of frames"><span class="u">frames</span></label>
+    <p class="revise" hidden>Revise <a href="../t4-discrete-maths/#sets">0.4 Sets and Venn diagrams</a>.</p>
+  </article>
+
+  <article class="pq" id="q5" data-q="q05" data-kind="mc">
+    <h3 class="pq-h"><span>Question 5<span class="pq-st" hidden></span></span><span class="pq-tag">Discrete maths and logic</span></h3>
+    <p class="pq-t">The SharkCam alarm rings when a fin is seen (\(A\)). It also rings when a ping is heard (\(B\)) and the battery is not low (\(C\) is false). In symbols the rule is \(A\) OR (\(B\) AND NOT \(C\)). The three inputs can be true or false, which gives 8 rows in the truth table. For how many of the 8 rows does the alarm ring?</p>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q05" value="0"><b>A</b><span>4</span></label>
+      <label class="opt"><input type="radio" name="q05" value="1"><b>B</b><span>5</span></label>
+      <label class="opt"><input type="radio" name="q05" value="2"><b>C</b><span>6</span></label>
+      <label class="opt"><input type="radio" name="q05" value="3"><b>D</b><span>7</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../t4-discrete-maths/#logic">0.4 Logic and truth tables</a>.</p>
+  </article>
+</section>
+
+<section id="vectors" aria-labelledby="vectors-h">
+  <h2 id="vectors-h">Vectors and matrices</h2>
+
+  <article class="pq" id="q6" data-q="q06" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 6<span class="pq-st" hidden></span></span><span class="pq-tag">Vectors and matrices</span></h3>
+    <p class="pq-t">Two readings from the SharkCam sensor are the vectors \(\mathbf{u} = (3,\ k,\ -2)\) and \(\mathbf{v} = (4,\ 5,\ k)\). For which value of \(k\) are \(\mathbf{u}\) and \(\mathbf{v}\) perpendicular?</p>
+    <label class="pq-num"><span>Your answer, \(k =\)</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 6, the value of k"></label>
+    <p class="revise" hidden>Revise <a href="../t5-vectors-matrices/#cosine">0.5 Length, angle and cosine similarity</a> and <a href="../t5-vectors-matrices/#dot">0.5 The dot product</a>.</p>
+  </article>
+
+  <article class="pq" id="q7" data-q="q07" data-kind="mc">
+    <h3 class="pq-h"><span>Question 7<span class="pq-st" hidden></span></span><span class="pq-tag">Vectors and matrices</span></h3>
+    <p class="pq-t">Let \(A = \begin{pmatrix}1&amp;0&amp;2\\0&amp;3&amp;1\end{pmatrix}\) and \(B = \begin{pmatrix}1&amp;2\\0&amp;1\\3&amp;0\end{pmatrix}\). Which of these is the matrix product \(AB\)?</p>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q07" value="0"><b>A</b><span>\(\begin{pmatrix}7&amp;3\\2&amp;3\end{pmatrix}\)</span></label>
+      <label class="opt"><input type="radio" name="q07" value="1"><b>B</b><span>\(\begin{pmatrix}1&amp;6&amp;4\\0&amp;3&amp;1\\3&amp;0&amp;6\end{pmatrix}\)</span></label>
+      <label class="opt"><input type="radio" name="q07" value="2"><b>C</b><span>\(AB\) is not defined, because the sizes do not match.</span></label>
+      <label class="opt"><input type="radio" name="q07" value="3"><b>D</b><span>\(\begin{pmatrix}7&amp;2\\3&amp;3\end{pmatrix}\)</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../t5-vectors-matrices/#products">0.5 Matrix products and transposes</a>.</p>
+  </article>
+
+  <article class="pq" id="q8" data-q="q08" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 8<span class="pq-st" hidden></span></span><span class="pq-tag">Vectors and matrices</span></h3>
+    <p class="pq-t">The matrix \(M = \begin{pmatrix}2&amp;3\\4&amp;1\end{pmatrix}\) moves all points of the plane. A triangle of area 5 is moved with them. What is the area of the new triangle?</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 8, the new area"></label>
+    <p class="revise" hidden>Revise <a href="../t5-vectors-matrices/#grid">0.5 A matrix bends the plane</a>.</p>
+  </article>
+
+  <article class="pq" id="q9" data-q="q09" data-kind="mc">
+    <h3 class="pq-h"><span>Question 9<span class="pq-st" hidden></span></span><span class="pq-tag">Vectors and matrices</span></h3>
+    <p class="pq-t">Let \(A = \begin{pmatrix}5&amp;2\\2&amp;2\end{pmatrix}\). Which of these vectors is stretched by \(A\) without being turned, so that \(A\mathbf{v}\) lies along \(\mathbf{v}\)?</p>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q09" value="0"><b>A</b><span>\((2,\ 1)\)</span></label>
+      <label class="opt"><input type="radio" name="q09" value="1"><b>B</b><span>\((1,\ 1)\)</span></label>
+      <label class="opt"><input type="radio" name="q09" value="2"><b>C</b><span>\((1,\ 2)\)</span></label>
+      <label class="opt"><input type="radio" name="q09" value="3"><b>D</b><span>\((1,\ 0)\)</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../t5-vectors-matrices/#eigen">0.5 Eigenvectors</a>.</p>
+  </article>
+</section>
+
+<section id="slopes" aria-labelledby="slopes-h">
+  <h2 id="slopes-h">Slopes and gradients</h2>
+
+  <article class="pq" id="q10" data-q="q10" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 10<span class="pq-st" hidden></span></span><span class="pq-tag">Slopes and gradients</span></h3>
+    <p class="pq-t">During training, a loss is \(L(w) = 3w^{2} - \ln w\) for \(w &gt; 0\). What is the slope of \(L\) at \(w = 0.25\)?</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 10, the slope"></label>
+    <p class="revise" hidden>Revise <a href="../t6-gradients/#rules">0.6 The slopes this primer uses</a> and <a href="../t6-gradients/#slope">0.6 Slope as sensitivity</a>.</p>
+  </article>
+
+  <article class="pq" id="q11" data-q="q11" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 11<span class="pq-st" hidden></span></span><span class="pq-tag">Slopes and gradients</span></h3>
+    <p class="pq-t">A SharkCam neuron turns a measurement \(x\) into a score \(z = 0.4x - 2\). It then turns the score into an output \(a = \sigma(z)\), with \(\sigma(z) = 1/(1+e^{-z})\). The loss is \(\ell = (a-1)^2\). What is \(d\ell/dx\) at \(x = 5\)?</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 11, the slope of the loss with respect to x"></label>
+    <p class="revise" hidden>Revise <a href="../t6-gradients/#chain">0.6 The chain rule</a> and <a href="../t6-gradients/#rules">0.6 The slopes this primer uses</a>.</p>
+  </article>
+
+  <article class="pq" id="q12" data-q="q12" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 12<span class="pq-st" hidden></span></span><span class="pq-tag">Slopes and gradients</span></h3>
+    <p class="pq-t">A loss depends on two weights: \(L(w_1, w_2) = w_1^{2} + 3w_1w_2 + 2w_2^{2}\). Gradient descent starts at \((w_1, w_2) = (1, 2)\) with learning rate \(\eta = 0.1\). After one step, what is the new value of \(w_2\)?</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 12, the new value of w2"></label>
+    <p class="revise" hidden>Revise <a href="../t6-gradients/#gradient">0.6 The gradient</a> and <a href="../t6-gradients/#partial">0.6 Partial derivatives</a>.</p>
+  </article>
+</section>
+
+<section id="prob" aria-labelledby="prob-h">
+  <h2 id="prob-h">Probability and statistics</h2>
+
+  <article class="pq" id="q13" data-q="q13" data-kind="num" data-dp="0" data-pct="1">
+    <h3 class="pq-h"><span>Question 13<span class="pq-st" hidden></span></span><span class="pq-tag">Probability and statistics</span></h3>
+    <p class="pq-t">A clinic in Mumbai screens women for a condition that 2% of them have. The numbers are invented for this question. The screening test flags 95% of the women who have the condition. It also flags 10% of the women who do not have it. Of the women the test flags, about what percentage actually have the condition? Give a whole number.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 13, in per cent"><span class="u">%</span></label>
+    <p class="revise" hidden>Revise <a href="../t7-probability/#bayes">0.7 Base rates and Bayes' rule</a>.</p>
+  </article>
+
+  <article class="pq" id="q14" data-q="q14" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 14<span class="pq-st" hidden></span></span><span class="pq-tag">Probability and statistics</span></h3>
+    <p class="pq-t">Five spadenose sharks measure 34, 38, 40, 42 and 46 cm (made-up lengths). Find the standard deviation of the five lengths, dividing the sum of the squared deviations by 5.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 14, in centimetres"><span class="u">cm</span></label>
+    <p class="revise" hidden>Revise <a href="../t7-probability/#spread">0.7 Mean and spread</a>.</p>
+  </article>
+
+  <article class="pq" id="q15" data-q="q15" data-kind="mc">
+    <h3 class="pq-h"><span>Question 15<span class="pq-st" hidden></span></span><span class="pq-tag">Probability and statistics</span></h3>
+    <p class="pq-t">SharkCam's detector B scores higher than detector A on the same 200 held-out frames. A paired comparison of the two gives a p-value of 0.03. Which statement is correct?</p>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q15" value="0"><b>A</b><span>There is a 97% probability that B is better than A.</span></label>
+      <label class="opt"><input type="radio" name="q15" value="1"><b>B</b><span>B's accuracy is 3 percentage points higher than A's.</span></label>
+      <label class="opt"><input type="radio" name="q15" value="2"><b>C</b><span>If the two detectors were equally good, a gap at least this large would turn up by luck about 3% of the time.</span></label>
+      <label class="opt"><input type="radio" name="q15" value="3"><b>D</b><span>There is a 3% probability that the two detectors are equally good.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../t7-probability/#test">0.7 Is model B better than model A?</a>.</p>
+  </article>
+
+  <article class="pq" id="q16" data-q="q16" data-kind="mc">
+    <h3 class="pq-h"><span>Question 16<span class="pq-st" hidden></span></span><span class="pq-tag">Probability and statistics</span></h3>
+    <p class="pq-t">Across 30 Mumbai beaches, the beaches with more lifeguards also report more shark sightings (correlation \(r = 0.7\); made-up numbers). A councillor proposes removing lifeguards to cut sightings. Which is the strongest reason the plan may fail?</p>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q16" value="0"><b>A</b><span>Because \(r = 0.7\) is below 1, the link is too weak to mean anything.</span></label>
+      <label class="opt"><input type="radio" name="q16" value="1"><b>B</b><span>Busy beaches may need more lifeguards and also have more people to spot and report sharks, so crowds could drive both numbers.</span></label>
+      <label class="opt"><input type="radio" name="q16" value="2"><b>C</b><span>A correlation can never be used to predict anything.</span></label>
+      <label class="opt"><input type="radio" name="q16" value="3"><b>D</b><span>Thirty beaches are too few to calculate a correlation.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../t7-probability/#cause">0.7 Correlation and causation</a>.</p>
+  </article>
+</section>
+
+<section id="charts" aria-labelledby="charts-h">
+  <h2 id="charts-h">Reading charts and tables</h2>
+
+  <article class="pq" id="q17" data-q="q17" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 17<span class="pq-st" hidden></span></span><span class="pq-tag">Reading charts and tables</span></h3>
+    <p class="pq-t tight">The chart shows the number of records for October and November in the made-up catch table. Take the effect of a change to be (second &minus; first) / first. The lie factor is the effect shown by the bar heights as drawn, divided by the effect in the data. What is the lie factor of this chart?</p>
+    <div class="pfig">
+<svg class="fg" viewBox="0 0 350 244" role="img" aria-label="Bar chart of records in October (86) and November (88). The value axis runs from 84 to 90 in steps of 2.">
+<line class="gl" x1="62" y1="190.0" x2="330" y2="190.0"/>
+<text class="tk" x="54" y="194.0" text-anchor="end">84</text>
+<line class="gl" x1="62" y1="136.7" x2="330" y2="136.7"/>
+<text class="tk" x="54" y="140.7" text-anchor="end">86</text>
+<line class="gl" x1="62" y1="83.3" x2="330" y2="83.3"/>
+<text class="tk" x="54" y="87.3" text-anchor="end">88</text>
+<line class="gl" x1="62" y1="30.0" x2="330" y2="30.0"/>
+<text class="tk" x="54" y="34.0" text-anchor="end">90</text>
+<line class="ax" x1="62" y1="190" x2="330" y2="190"/><line class="ax" x1="62" y1="190" x2="62" y2="24"/>
+<rect class="b1" x="96" y="136.7" width="84" height="53.3"/>
+<text class="vl" x="138" y="129.7" text-anchor="middle">86</text>
+<text class="tk" x="138" y="208" text-anchor="middle">October</text>
+<rect class="b1" x="210" y="83.3" width="84" height="106.7"/>
+<text class="vl" x="252" y="76.3" text-anchor="middle">88</text>
+<text class="tk" x="252" y="208" text-anchor="middle">November</text>
+<text class="tk" x="196" y="238" text-anchor="middle">records landed (made-up catch table)</text>
+</svg>
+</div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 17, the lie factor"></label>
+    <p class="revise" hidden>Revise <a href="../t8-charts/#misleading">0.8 Five misleading charts</a>.</p>
+  </article>
+
+  <article class="pq" id="q18" data-q="q18" data-kind="num" data-dp="0" data-pct="1">
+    <h3 class="pq-h"><span>Question 18<span class="pq-st" hidden></span></span><span class="pq-tag">Reading charts and tables</span></h3>
+    <p class="pq-t tight">A decision tree of depth 2 reads a shark's length and names its species. The table counts its predictions on the 540 spadenose, milk and bamboo records of the made-up catch table, from five-fold cross-validation. Of the sharks the tree labelled spadenose, what percentage truly were spadenose? Give a whole number.</p>
+    <div class="pfig">
+      <div class="tscroll"><table class="ptable cmx" aria-label="Confusion matrix with true species in the rows and the tree's labels in the columns">
+        <thead>
+          <tr><th></th><th class="grp" colspan="3">The tree said</th></tr>
+          <tr><th>True species</th><th>spadenose</th><th>milk</th><th>bamboo</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>spadenose</th><td class="dg">252</td><td>16</td><td>0</td></tr>
+          <tr><th>milk</th><td>16</td><td class="dg">184</td><td>0</td></tr>
+          <tr><th>bamboo</th><td>55</td><td>17</td><td class="dg">0</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 18, in per cent"><span class="u">%</span></label>
+    <p class="revise" hidden>Revise <a href="../t8-charts/#matrix">0.8 Reading a confusion matrix</a>.</p>
+  </article>
+
+  <article class="pq" id="q19" data-q="q19" data-kind="mc">
+    <h3 class="pq-h"><span>Question 19<span class="pq-st" hidden></span></span><span class="pq-tag">Reading charts and tables</span></h3>
+    <p class="pq-t tight">A student fits models that say from its length whether a spadenose shark in the made-up catch table is mature. The table gives accuracy in per cent: the score on the training records, and the score on new records as a mean and standard deviation over five random splits. Which statement does the table support?</p>
+    <div class="pfig">
+      <div class="tscroll"><table class="ptable" aria-label="Results table with training and new-record accuracy for five models">
+        <thead>
+          <tr><th>Model</th><th>Training</th><th>New, mean</th><th>New, SD</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Always says mature</th><td>67.5</td><td>67.5</td><td>0.0</td></tr>
+          <tr><th>Logistic regression</th><td>90.2</td><td>89.9</td><td>0.4</td></tr>
+          <tr><th>Tree, depth 1</th><td>90.5</td><td>88.3</td><td>0.6</td></tr>
+          <tr><th>Tree, depth 3</th><td>91.4</td><td>87.5</td><td>0.9</td></tr>
+          <tr><th>Tree, no depth limit</th><td>94.8</td><td>83.7</td><td>1.3</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q19" value="0"><b>A</b><span>The tree with no depth limit is the best model, because it has the highest training score.</span></label>
+      <label class="opt"><input type="radio" name="q19" value="1"><b>B</b><span>All the models beat the baseline by more than 20 points on new records.</span></label>
+      <label class="opt"><input type="radio" name="q19" value="2"><b>C</b><span>The SD column shows how far the models are from the baseline.</span></label>
+      <label class="opt"><input type="radio" name="q19" value="3"><b>D</b><span>Deeper trees score higher on the records they learned from and lower on new records.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../t8-charts/#tables">0.8 Reading a results table</a>.</p>
+  </article>
+</section>
+
+<section id="python" aria-labelledby="python-h">
+  <h2 id="python-h">Python and algorithms</h2>
+
+  <article class="pq" id="q20" data-q="q20" data-kind="mc">
+    <h3 class="pq-h"><span>Question 20<span class="pq-st" hidden></span></span><span class="pq-tag">Python and algorithms</span></h3>
+    <p class="pq-t tight">What does this program print?</p>
+<pre class="pq-code">dives = [4, 1, 3]
+same = dives
+same.append(dives[0] + dives[2])
+r = {}
+for n in same:
+    r[n % 3] = r.get(n % 3, 0) + n
+print(len(dives), r[1])</pre>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q20" value="0"><b>A</b><span><code>4 12</code></span></label>
+      <label class="opt"><input type="radio" name="q20" value="1"><b>B</b><span><code>3 5</code></span></label>
+      <label class="opt"><input type="radio" name="q20" value="2"><b>C</b><span><code>4 5</code></span></label>
+      <label class="opt"><input type="radio" name="q20" value="3"><b>D</b><span><code>3 12</code></span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../t1-python/#lists">0.1 Lists and loops</a>, <a href="../t1-python/#containers">0.1 Dictionaries, tuples and sets</a> and <a href="../t2-algorithms/#tracing">0.2 Tracing code by hand</a>.</p>
+  </article>
+
+  <article class="pq" id="q21" data-q="q21" data-kind="mc">
+    <h3 class="pq-h"><span>Question 21<span class="pq-st" hidden></span></span><span class="pq-tag">Python and algorithms</span></h3>
+    <p class="pq-t tight">This code counts the pairs of frames that look alike. With \(n = 1{,}000\) frames it takes 3 seconds. About how long will it take with \(n = 2{,}000\) frames?</p>
+<pre class="pq-code">close = 0
+for i in range(n):
+    for j in range(i + 1, n):
+        if dist(f[i], f[j]) &lt; 5:
+            close += 1</pre>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q21" value="0"><b>A</b><span>6 seconds</span></label>
+      <label class="opt"><input type="radio" name="q21" value="1"><b>B</b><span>12 seconds</span></label>
+      <label class="opt"><input type="radio" name="q21" value="2"><b>C</b><span>24 seconds</span></label>
+      <label class="opt"><input type="radio" name="q21" value="3"><b>D</b><span>48 seconds</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../t2-algorithms/#bigo">0.2 Big-O: steps against size</a>.</p>
+  </article>
+
+  <article class="pq" id="q22" data-q="q22" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 22<span class="pq-st" hidden></span></span><span class="pq-tag">Python and algorithms</span></h3>
+    <p class="pq-t tight">Trace this binary search by hand. What does the program print?</p>
+<pre class="pq-code">lengths = [18, 24, 29, 33, 38, 41,
+           45, 47, 52, 58, 63]
+lo, hi, steps = 0, 10, 0
+while lo &lt;= hi:
+    mid = (lo + hi) // 2
+    steps += 1
+    if lengths[mid] == 47:
+        break
+    elif lengths[mid] &lt; 47:
+        lo = mid + 1
+    else:
+        hi = mid - 1
+print(steps)</pre>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 22, the printed value"></label>
+    <p class="revise" hidden>Revise <a href="../t2-algorithms/#search">0.2 Linear and binary search</a> and <a href="../t2-algorithms/#tracing">0.2 Tracing code by hand</a>.</p>
+  </article>
+
+  <article class="pq" id="q23" data-q="q23" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 23<span class="pq-st" hidden></span></span><span class="pq-tag">Python and algorithms</span></h3>
+    <p class="pq-t tight">This insertion sort counts its comparisons. What does the program print?</p>
+<pre class="pq-code">a = [52, 38, 61, 29, 44]
+count = 0
+for i in range(1, len(a)):
+    j = i
+    while j &gt; 0:
+        count += 1
+        if a[j - 1] &gt; a[j]:
+            t = a[j]
+            a[j] = a[j - 1]
+            a[j - 1] = t
+            j -= 1
+        else:
+            break
+print(count)</pre>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 23, the printed value"></label>
+    <p class="revise" hidden>Revise <a href="../t2-algorithms/#sorting">0.2 Sorting: insertion and merge</a> and <a href="../t2-algorithms/#tracing">0.2 Tracing code by hand</a>.</p>
+  </article>
+</section>
+
+<section id="puzzles" aria-labelledby="puzzles-h">
+  <h2 id="puzzles-h">Logic puzzles</h2>
+
+  <article class="pq" id="q24" data-q="q24" data-kind="mc">
+    <h3 class="pq-h"><span>Question 24<span class="pq-st" hidden></span></span><span class="pq-tag">Logic puzzles</span></h3>
+    <p class="pq-t tight">Four students, Asha, Bilal, Chitra and Dev, were at Juhu. Someone left the lens cap on SharkCam, and the dive footage came out black. Only one of the four did it. They said:</p>
+    <ul class="stm">
+      <li>Asha: &ldquo;Bilal did it.&rdquo;</li>
+      <li>Bilal: &ldquo;Dev did it.&rdquo;</li>
+      <li>Chitra: &ldquo;I did not do it.&rdquo;</li>
+      <li>Dev: &ldquo;Bilal is wrong.&rdquo;</li>
+    </ul>
+    <p class="pq-t">Only one of the four statements is true. Who left the lens cap on?</p>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q24" value="0"><b>A</b><span>Asha</span></label>
+      <label class="opt"><input type="radio" name="q24" value="1"><b>B</b><span>Bilal</span></label>
+      <label class="opt"><input type="radio" name="q24" value="2"><b>C</b><span>Chitra</span></label>
+      <label class="opt"><input type="radio" name="q24" value="3"><b>D</b><span>Dev</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../t4-discrete-maths/#logic">0.4 Logic and truth tables</a>.</p>
+  </article>
+
+  <article class="pq" id="q25" data-q="q25" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 25<span class="pq-st" hidden></span></span><span class="pq-tag">Logic puzzles</span></h3>
+    <p class="pq-t tight">Before a dive, six jobs are done one at a time. An arrow from one job to another means the first must be finished before the second can start. The jobs are charge the battery, seal the housing, set the clock, launch, sync the depth log and record. In how many different orders can the six jobs be done?</p>
+    <div class="pfig">
+<svg class="fg" viewBox="0 0 360 256" role="img" aria-label="Six jobs as boxes joined by arrows. Charge and Seal point to Launch. Clock points to Sync. Launch and Sync point to Record.">
+<defs><marker id="pf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" style="fill:var(--muted)"/></marker></defs>
+<line class="ar" x1="104" y1="44" x2="134" y2="76" marker-end="url(#pf-arrow)"/>
+<line class="ar" x1="104" y1="124" x2="134" y2="92" marker-end="url(#pf-arrow)"/>
+<line class="ar" x1="104" y1="210" x2="134" y2="210" marker-end="url(#pf-arrow)"/>
+<line class="ar" x1="222" y1="84" x2="252" y2="140" marker-end="url(#pf-arrow)"/>
+<line class="ar" x1="222" y1="210" x2="252" y2="156" marker-end="url(#pf-arrow)"/>
+<rect class="nd" x="20" y="27" width="84" height="34" rx="7"/>
+<text class="nt" x="62" y="49">Charge</text>
+<rect class="nd" x="20" y="107" width="84" height="34" rx="7"/>
+<text class="nt" x="62" y="129">Seal</text>
+<rect class="nd" x="20" y="193" width="84" height="34" rx="7"/>
+<text class="nt" x="62" y="215">Clock</text>
+<rect class="nd" x="138" y="67" width="84" height="34" rx="7"/>
+<text class="nt" x="180" y="89">Launch</text>
+<rect class="nd" x="138" y="193" width="84" height="34" rx="7"/>
+<text class="nt" x="180" y="215">Sync</text>
+<rect class="nd" x="256" y="131" width="84" height="34" rx="7"/>
+<text class="nt" x="298" y="153">Record</text>
+</svg>
+</div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 25, the number of orders"><span class="u">orders</span></label>
+    <p class="revise" hidden>Revise <a href="../t4-discrete-maths/#graphs">0.4 Graphs, trees and DAGs</a> and <a href="../t4-discrete-maths/#counting">0.4 Counting orders and groups</a>.</p>
+  </article>
+</section>
+
+<section id="score" aria-labelledby="score-h">
+  <h2 id="score-h">Finish and score</h2>
+  <p>Press the button when you are done. Blank answers count as missed. The page then locks your answers, shows your score by area and links to the sections to revise. It does not show the correct answers.</p>
+  <div class="bar"><button type="button" class="btn btn-main" id="btn-score">Score my answers</button><span class="status" id="score-note" aria-live="polite"></span></div>
+  <div class="card res" id="results" tabindex="-1" hidden></div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Where the numbers come from</h2>
+  <ol>
+    <li>Questions 17, 18 and 19 use the made-up SharkCam catch table: 600 records generated from published length-weight relationships, not field data (<code>primer/data/sharks/catch.csv</code>). The monthly counts in question 17 are from the table. The table in question 18 comes from a decision tree of depth 2 on length, scored with five-fold cross-validation (shuffled folds, seed 4127). The table in question 19 comes from spadenose records only, five-fold cross-validation repeated with seeds 1 to 5, using scikit-learn. The script is <code>data/make_tables.py</code>.</li>
+    <li>The numbers in the other questions, including the clinic, the beaches and the dive log, are invented for practice.</li>
+    <li>The ideas come from the toolkit chapters listed at the top of this page. The lie factor in question 17 is the one defined in <a href="../t8-charts/#misleading">0.8</a>, after Edward Tufte.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="p0-practice.js?v=1" defer></script>
+</body>
+</html>

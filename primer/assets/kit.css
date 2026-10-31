@@ -1,0 +1,95 @@
+/* How AI Learns: primer kit. Loaded after site.css, project.css and components.css. */
+
+/* Top bar: Lab name, primer name, part. */
+.topbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; align-items: baseline; margin: 0 0 30px; font-family: "Spectral SC", Georgia, serif; font-size: 15px; letter-spacing: 0.02em; color: var(--muted); }
+.topbar a { color: var(--muted); }
+.topbar a:hover { color: var(--link-hover); }
+.kicker { margin: 0 0 6px; font-family: "Spectral SC", Georgia, serif; font-size: 16px; letter-spacing: 0.04em; color: var(--sand); text-align: center; }
+
+/* "You will need" and "In this chapter" boxes. */
+.youneed { max-width: 46em; margin: 22px auto 0; padding: 10px 16px; border: 1px dashed var(--rule); border-radius: 6px; font-size: 15.5px; color: var(--ink-2); }
+.youneed b { color: var(--ink); }
+
+/* Plotly and D3 figure areas inside a .card. */
+.plot { width: 100%; min-height: 320px; }
+.plot.tall { min-height: 440px; }
+.plot.short { min-height: 220px; }
+.card .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; margin: 4px 0 12px; }
+.card .controls label { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; font-size: 14.5px; color: var(--ink-2); }
+.card .controls label input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--teal); }
+.card .controls output { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.card .controls select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.split2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 22px; align-items: start; }
+.readout { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0 0; font-size: 15px; color: var(--ink-2); }
+.readout b { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+
+/* Debug tip. */
+.debug { max-width: 46em; margin: 16px 0; padding: 8px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--navy); border-radius: 0 6px 6px 0; }
+.debug p { margin: 5px 0; color: var(--ink-2); }
+.debug b { color: var(--ink); }
+
+/* Typeset maths (KaTeX) blocks with annotations underneath. */
+.math { max-width: 46em; margin: 8px 0 6px; overflow-x: auto; overflow-y: hidden; color: var(--ink); }
+.math-notes { max-width: 46em; margin: 0 0 16px; padding: 0; list-style: none; font-size: 15px; color: var(--ink-2); }
+.math-notes li { margin: 3px 0; }
+.math-notes b { color: var(--ink); }
+.katex { font-size: 1.08em; }
+
+/* Code: Andrew Ng style short blocks, output below. */
+pre.code, pre.out { max-width: 46em; margin: 10px 0 0; padding: 12px 14px; border-radius: 6px; overflow-x: auto; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 14px; line-height: 1.5; }
+pre.code { position: relative; background: var(--paper); border: 1px solid var(--rule); color: var(--ink); }
+pre.out { margin: 0 0 16px; border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 6px 6px; background: var(--bg); color: var(--ink-2); }
+pre.out::before { content: "output"; display: block; margin-bottom: 4px; font-family: "Spectral SC", Georgia, serif; font-size: 13px; letter-spacing: 0.04em; color: var(--muted); }
+pre.code + pre.out { margin-top: 0; }
+pre.code:has(+ pre.out) { border-radius: 6px 6px 0 0; }
+pre.code .kit-copy, pre.code .kit-run { position: absolute; top: 8px; font: 13px "Spectral", Georgia, serif; padding: 1px 9px; border: 1px solid var(--rule); border-radius: 999px; background: var(--bg); color: var(--muted); cursor: pointer; }
+pre.code .kit-copy { right: 8px; }
+pre.code .kit-run { right: 64px; }
+pre.code .kit-copy:hover, pre.code .kit-run:hover { color: var(--link-hover); border-color: var(--teal); }
+code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
+
+/* Exercises: theory, practice, think deeper. Hints only; solutions are kept off the page. */
+.exercises { max-width: 46em; }
+.exercises h3 { margin: 26px 0 8px; font-size: 19px; font-weight: 600; }
+.exercises ol { margin: 0; padding-left: 1.4em; }
+.exercises li { margin: 0 0 14px; color: var(--ink-2); }
+.exercises li > p { margin: 0 0 6px; }
+.exercises .hint summary { cursor: pointer; color: var(--link); font-size: 15px; }
+.exercises .hint p { margin: 6px 0 0; }
+.ex-tag { display: inline-block; margin-right: 6px; padding: 0 8px; border-radius: 999px; background: var(--mark); color: var(--ink); font-size: 13px; }
+
+/* References. */
+.refs { max-width: 46em; font-size: 15px; color: var(--ink-2); }
+.refs ol { padding-left: 1.4em; }
+.refs li { margin: 6px 0; }
+
+/* Previous and next chapter. */
+.chap-nav { display: flex; justify-content: space-between; gap: 16px; margin: 70px 0 0; padding: 16px 0 0; border-top: 1px solid var(--rule); font-size: 16px; }
+.chap-nav a { max-width: 48%; }
+.chap-nav .next { margin-left: auto; text-align: right; }
+.chap-nav small { display: block; font-family: "Spectral SC", Georgia, serif; color: var(--muted); letter-spacing: 0.03em; }
+
+/* Primer index. */
+.part { margin-top: 48px; }
+.part h2 { margin-bottom: 6px; }
+.part > p { max-width: 46em; color: var(--ink-2); }
+.chapter-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px 16px; }
+.chapter-list a { display: block; height: 100%; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); }
+.chapter-list a:hover { border-color: var(--teal); }
+.chapter-list .num { font-family: "Spectral SC", Georgia, serif; color: var(--sand); letter-spacing: 0.04em; margin-right: 6px; }
+.chapter-list .blurb { display: block; margin-top: 4px; font-size: 14.5px; color: var(--ink-2); }
+.chapter-list .soon { opacity: 0.55; pointer-events: none; }
+
+@media (max-width: 760px) {
+  .split2 { grid-template-columns: minmax(0, 1fr); }
+  .plot { min-height: 280px; }
+  pre.code, pre.out { font-size: 13px; }
+}
+
+/* "Used in" line at the end of a teaching section (p.used), shared by the toolkit chapters. Added in the wave 1 edit. */
+p.used { max-width: 46em; margin: 8px 0 18px; padding: 6px 12px; border-left: 3px solid var(--sand); font-size: 15px; color: var(--ink-2); }
+p.used b { color: var(--ink); }
+
+/* Links to chapters that are not published yet. */
+a.soon-link { color: var(--muted); text-decoration: underline dotted; cursor: default; }
+a.soon-link::after { content: " (coming soon)"; font-size: 0.85em; }

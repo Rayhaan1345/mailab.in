@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading charts and tables | How AI Learns</title>
+<meta name="description" content="Which chart answers which question, how axes and log scales change what you see, five misleading charts with fair twins, and how to read a confusion matrix and a results table.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Chapter 0.8 figures. Colours come from the site tokens. */
+.tscroll { overflow-x: auto; margin: 10px 0 0; }
+.qline { margin: 0 0 8px; font-style: italic; color: var(--ink-2); }
+.headline { margin: 4px 0 8px; font-family: "Spectral SC", Georgia, serif; font-size: 18px; letter-spacing: 0.02em; color: var(--ink); }
+.explain { margin: 12px 0 0; padding: 8px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--navy); border-radius: 0 6px 6px 0; color: var(--ink-2); font-size: 15px; }
+.explain p { margin: 4px 0; }
+.explain b { color: var(--ink); }
+#mg-svg { display: none; width: 100%; height: auto; min-height: 220px; }
+#mg .quiz { margin: 0 0 10px; }
+#mg .quiz fieldset { margin: 0; }
+.cmwrap { overflow-x: auto; margin: 6px 0 0; }
+.cmtable { border-collapse: separate; border-spacing: 3px; font-feature-settings: "tnum" 1, "lnum" 1; font-size: 15px; }
+.cmtable th { font-weight: 500; color: var(--muted); padding: 3px 6px; font-size: 13.5px; text-align: center; }
+.cmtable th.rowh { text-align: right; padding-right: 10px; white-space: nowrap; color: var(--ink-2); }
+.cmtable td { min-width: 62px; height: 40px; text-align: center; border-radius: 5px; border: 1.5px solid var(--rule); background: var(--bg); color: var(--ink); cursor: pointer; position: relative; }
+.cmtable td.diag { border-color: var(--teal); }
+.cmtable td.sel { box-shadow: 0 0 0 2.5px var(--coral); }
+.cmtable td.tot { background: none; border-color: transparent; color: var(--muted); cursor: default; }
+.cmtable td.zero { color: var(--muted); }
+.cmtable .corner { font-size: 12.5px; color: var(--muted); text-align: right; }
+.rtable { border-collapse: collapse; font-size: 14.5px; min-width: 100%; font-feature-settings: "tnum" 1, "lnum" 1; }
+.rtable th, .rtable td { padding: 6px 10px; border-bottom: 1px solid var(--rule); text-align: right; color: var(--ink-2); white-space: nowrap; }
+.rtable th:first-child, .rtable td:first-child { text-align: left; white-space: normal; min-width: 11em; }
+.rtable th { color: var(--muted); font-weight: 500; font-size: 13.5px; cursor: pointer; }
+.rtable th:hover { color: var(--link-hover); }
+.rtable tr.base td { font-style: italic; }
+.rtable td.best { color: var(--link-hover); font-weight: 600; }
+.rtable td.warn { color: var(--coral); font-weight: 600; }
+.rtable td small { color: var(--muted); }
+@media (max-width: 760px) {
+  .rtable { font-size: 12.5px; }
+  .rtable th, .rtable td { white-space: normal; padding: 5px 4px; }
+  .rtable th { font-size: 11.5px; }
+  .rtable th:first-child, .rtable td:first-child { min-width: 0; }
+  .cmtable { border-spacing: 2px; }
+  .cmtable td { min-width: 28px; height: 32px; font-size: 13px; }
+  .cmtable th { font-size: 10px; padding: 2px 0; }
+  .cmtable th.rowh { padding-right: 3px; font-size: 10.5px; }
+  .cmtable .corner { max-width: 5.5em; }
+  .headline { font-size: 16px; }
+}
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="t8">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part 0, Toolkit</span><span>Chapter 0.8</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part 0 &middot; Toolkit &middot; Chapter 0.8</p>
+  <h1>Reading charts and tables</h1>
+  <p class="subtitle">Say what a chart shows, then check whether it deserves to be believed</p>
+</header>
+
+<div class="tldr">
+  <p>Models are judged through charts and tables, so reading them well is a skill you will use in the later chapters. This chapter shows which chart answers which question and how axes and log scales change what you see. It then covers five ways a chart can mislead, and how to read a confusion matrix and a results table.</p>
+  <p>The five misleading charts have fair twins that you can switch to. Say what is wrong with the chart before you switch. All the data comes from the SharkCam catch table: 600 made-up shark records generated from published length-weight relationships, not field data.</p>
+</div>
+<p class="youneed"><b>You will need:</b> no earlier chapter. The code blocks use a little <a href="../t1-python/">Python</a>. Logarithms are explained in <a href="../t3-algebra-functions/#logs">0.3</a>, the mean and the spread in <a href="../t7-probability/#spread">0.7</a>, and the grading of models in <a href="../a4-grading-models/">A4</a>.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#types">Which chart for which question</a></li>
+    <li><a href="#scales">Axes and log scales</a></li>
+    <li><a href="#misleading">Five misleading charts</a></li>
+    <li><a href="#matrix">Reading a confusion matrix</a></li>
+    <li><a href="#tables">Reading a results table</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+  </ol>
+</nav>
+
+<!-- ============ 1. chart types ============ -->
+<section id="types" aria-labelledby="types-h">
+  <h2 id="types-h">Which chart for which question</h2>
+  <p class="ask"><b>Guess first.</b> The made-up catch table has 600 shark lengths, from 18 to 242 cm. Picture a histogram of all 600. Does it have one hump or more than one?</p>
+  <dl class="terms">
+    <div><dt>bar chart</dt><dd>one bar for a category; its length shows a count or an average</dd></div>
+    <div><dt>histogram</dt><dd>counts of one number, in bins of equal width; the bars touch</dd></div>
+    <div><dt>box plot</dt><dd>the middle half of the values as a box, the median as a line, far-out values as dots</dd></div>
+    <div><dt>scatter plot</dt><dd>one dot per item, placed by two numbers</dd></div>
+    <div><dt>median</dt><dd>the middle value when the values are put in order (a reminder; <a href="../t7-probability/#spread">0.7</a> defines it)</dd></div>
+  </dl>
+  <p class="claim">Pick the chart by the question. A bar chart compares categories, a histogram shows how values are spread, a box plot compares spreads, and a scatter plot relates two numbers.</p>
+  <div class="card" id="ty">
+    <div class="bar" id="ty-bar"></div>
+    <div class="controls" id="ty-controls"></div>
+    <p class="qline" id="ty-q"></p>
+    <div class="plot tall" id="ty-plot" role="img" aria-label="The 600 shark records drawn as a histogram, a box plot, a scatter plot or a bar chart"></div>
+    <div class="readout" id="ty-read"></div>
+  </div>
+  <p class="cap"><b>The same 600 records answer four different questions, and narrow bins reveal humps that wide bins hide.</b> Slide the bin width from 40 cm down to 2 cm and watch the histogram change character. The records are made up.</p>
+  <p>With 40 cm bins the lengths look like one tall hump. With 5 cm bins there are humps near 35 cm and 65 cm, because the table contains several species of different sizes. Switch on the colours to see which species make which hump. Neither bin width is wrong. A histogram always involves a choice of bins, so state it when you share one.</p>
+  <p>A box plot throws away the detail of a histogram and keeps what is easy to compare. The line in the box is the median, and half of the values lie inside the box. The dots are values far from the middle, and for Ganges sharks all the dots are far from the others, because there are only three of them. A scatter plot, finally, shows two numbers per shark at once. Dots that run up and to the right say that heavier sharks are longer.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+# lengths in cm of 16 records from the made-up catch table
+lengths = np.array([42.4, 45.1, 74.5, 41.0, 36.1, 44.0, 64.3, 46.0,
+                    82.0, 28.5, 87.2, 42.4, 75.0, 62.2, 54.4, 52.0])
+print(np.percentile(lengths, [25, 50, 75]))       # box: lower edge, median, upper edge
+for width in (40, 20, 10):
+    edges = np.arange(0, 100 + width, width)
+    counts, _ = np.histogram(lengths, bins=edges)
+    print(width, counts)</code></pre>
+  <pre class="out">[42.4  49.   66.85]
+40 [ 2 12  2]
+20 [0 2 8 4 2]
+10 [0 0 1 1 6 2 2 2 2 0]</pre>
+  <div class="break">
+    <p><b>Common belief.</b> A bar chart and a histogram are the same thing.</p>
+    <p><b>Why it fails.</b> The bars of a bar chart are separate categories, and you may reorder them. The bars of a histogram are ranges of one number, they touch, and their order is fixed. Moving a bin edge moves records from one bar to another.</p>
+    <p><b>Better account.</b> A bar chart answers "how many of this kind?". A histogram answers "how are the values spread?".</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If your histogram does not match someone else's, compare the bin widths and the bin edges before you suspect the data.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The median length is 50.4 cm and the mean is 54.0 cm. What does the gap tell you about the lengths?</summary><p>A few very long sharks, such as the Ganges sharks, pull the mean up more than the median. The median is the middle record and does not move when the largest value grows. The mean adds the values up (<a href="../t7-probability/">0.7</a>).</p></details>
+    <details><summary>You want to compare the typical length of five species. Which chart do you use?</summary><p>A box plot with one box per species. It shows the median and the spread side by side. A histogram of all sharks would blend the species.</p></details>
+  </div>
+</section>
+
+<!-- ============ 2. scales ============ -->
+<section id="scales" aria-labelledby="scales-h">
+  <h2 id="scales-h">Axes and log scales</h2>
+  <p class="ask"><b>Guess first.</b> Weight against length curves upward on ordinary axes. If you put both axes on a log scale, what do the dots look like?</p>
+  <dl class="terms">
+    <div><dt>linear scale</dt><dd>equal steps along the axis are equal differences, such as 20, 40, 60</dd></div>
+    <div><dt>log scale</dt><dd>equal steps along the axis are equal ratios, such as 1, 10, 100 (a reminder; <a href="../t3-algebra-functions/#logs">0.3</a> defines logarithms)</dd></div>
+    <div><dt>log-log plot</dt><dd>both axes are log scales</dd></div>
+    <div><dt>exponent</dt><dd>the power \(b\) in \(W = aL^b\) (<a href="../t3-algebra-functions/#exponents">0.3</a>); on a log-log plot it is the slope of the line</dd></div>
+  </dl>
+  <p class="claim">On a log axis equal distances mean equal ratios, so a power law \(W = aL^b\) appears as a straight line whose slope is the exponent \(b\).</p>
+  <div class="card" id="sc">
+    <div class="bar" id="sc-bar"></div>
+    <div class="plot tall" id="sc-plot" role="img" aria-label="Weight against length for 600 made-up sharks, with axes that can be linear or logarithmic"></div>
+    <div class="eqn" id="sc-eqn" role="img" aria-label="The exponent fitted on the log-log plot and its quality"></div>
+  </div>
+  <p class="cap"><b>The curve on linear axes becomes a straight line on log-log axes, and its slope is a little above 3.</b> The slope is fitted to the 600 made-up records of all species together.</p>
+  <p>Weight grows like length cubed because a shark that is twice as long is also taller and wider. On linear axes the small sharks are crushed into one corner, and the few large ones decide the picture. On a log-log plot a shark ten times heavier is the same distance to the right wherever it starts. The slope of the line is the exponent, about 3.2 here, because the species differ in size and in build. The next chapters use this to fit weight from length (<a href="../a2-linear-regression/">A2</a>).</p>
+  <p class="math">\[ W = aL^{b} \quad\Longrightarrow\quad \log W = \log a + b\,\log L \]</p>
+  <ul class="math-notes">
+    <li><b>\(W\)</b> is the weight in kg and <b>\(L\)</b> the length in cm. <b>\(a\)</b> and <b>\(b\)</b> are constants of the species.</li>
+    <li>The right side is a straight line in \(\log L\) with intercept \(\log a\) and slope \(b\). That is why the dots line up on log-log axes.</li>
+  </ul>
+  <p>A second use of a log axis is for quantities that span many powers of ten. Compare two gaps: from 1 to 10, and from 100 to 1,000. On a linear axis the second gap is 100 times longer than the first. On a log axis the two gaps are the same length, because both are a factor of 10.</p>
+  <div class="card" id="lg">
+    <div class="bar" id="lg-bar"></div>
+    <div class="plot short" id="lg-plot" role="img" aria-label="Four values 1, 10, 100 and 1000 on a number line that can be linear or logarithmic"></div>
+  </div>
+  <p class="cap"><b>The same four values are far apart on a linear axis and evenly spaced on a log axis.</b> Neither picture is wrong, but they answer different questions: how much more, or how many times more.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+# length (cm) and weight (kg) of 16 records of the made-up catch table
+L = np.array([42.4, 45.1, 74.5, 41.0, 36.1, 44.0, 64.3, 46.0,
+              82.0, 28.5, 87.2, 42.4, 75.0, 62.2, 54.4, 52.0])
+W = np.array([0.267, 0.242, 2.128, 0.228, 0.164, 0.281, 1.175, 0.303,
+              2.610, 0.091, 2.461, 0.157, 1.691, 0.908, 0.703, 0.432])
+b, log_a = np.polyfit(np.log(L), np.log(W), 1)   # a straight line in the logs
+print(round(b, 2))                               # the slope is the exponent</code></pre>
+  <pre class="out">3.36</pre>
+  <div class="break">
+    <p><b>Common belief.</b> A straight line on a chart means that one thing grows in steady steps with the other.</p>
+    <p><b>Why it fails.</b> On a log-log plot a straight line means a power law, and the dots may be curving upward on the ordinary axes. Steady steps along a log axis are steady ratios.</p>
+    <p><b>Better account.</b> Read the tick labels first. Then say what the line means on that scale.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> A log axis cannot show 0 or a negative number, because the log of zero does not exist. If points are missing from a log plot, check for zeros in the data. Also avoid bars on a log axis: a bar's length means something only when its base is zero.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A line on a log-log plot has slope 2. If x doubles, by what factor does y change?</summary><p>By a factor of 4, since \(y \propto x^2\) and \(2^2 = 4\).</p></details>
+    <details><summary>The gridlines of a log axis are labelled 1, 10, 100. What is the value halfway along the axis between 10 and 100?</summary><p>About 32, not 55. Halfway in distance means halfway in the ratio, so the value is the square root of \(10 \times 100\), which is 31.6.</p></details>
+  </div>
+</section>
+
+<!-- ============ 3. misleading ============ -->
+<section id="misleading" aria-labelledby="misleading-h">
+  <h2 id="misleading-h">Five misleading charts</h2>
+  <p class="ask"><b>Guess first.</b> A bar chart shows male milk sharks at 67.9 cm on average and females at 65.8 cm. The male bar looks more than twice as tall. Can the true difference in the table be that large?</p>
+  <dl class="terms">
+    <div><dt>truncated axis</dt><dd>a value axis that does not start at zero</dd></div>
+    <div><dt>lie factor</dt><dd>the size of the effect shown in the picture divided by the size of the effect in the data</dd></div>
+    <div><dt>pictogram</dt><dd>a chart that uses pictures of different sizes for different values</dd></div>
+    <div><dt>cherry-picking</dt><dd>showing only the stretch of data that supports a claim</dd></div>
+    <div><dt>dual axis</dt><dd>two different value axes on one chart</dd></div>
+  </dl>
+  <p class="claim">A chart can be correct in all its numbers and still mislead. The tools are the axis range, the size of marks, the type of scale, the window of data and the use of two axes.</p>
+  <div class="card" id="mg">
+    <div class="bar" id="mg-tabs"></div>
+    <p class="headline" id="mg-head"></p>
+    <div class="quiz" id="mg-quiz"></div>
+    <div class="bar" id="mg-views"><span class="label">Version</span></div>
+    <div class="controls" id="mg-controls"></div>
+    <div class="plot tall" id="mg-plot" role="img" aria-label="A chart from the made-up catch table that can be shown in its misleading or its fair version"></div>
+    <svg id="mg-svg" role="img" aria-label="A pictogram of two fins"></svg>
+    <div class="readout" id="mg-read"></div>
+    <div class="explain" id="mg-explain"></div>
+  </div>
+  <p class="cap"><b>A chart tells a different story in its misleading and in its fair version, and the numbers in both are the same.</b> On all five tabs, name the problem before you look at the fair version. The records are made up.</p>
+  <p>Edward Tufte named one measure that checks a chart: the lie factor. A chart that shows the data faithfully has a lie factor of 1. Above 1 it exaggerates the change, and below 1 it hides some of it. For the first tab the factor is easy to compute, and the figure computes it live.</p>
+  <div class="eqn" id="mg-eqn" role="img" aria-label="Worked lie factor for the truncated bar chart"></div>
+  <p class="math">\[ \text{lie factor} = \frac{\text{size of the effect shown in the graphic}}{\text{size of the effect in the data}}, \qquad \text{effect} = \frac{\text{second} - \text{first}}{\text{first}} \]</p>
+  <ul class="math-notes">
+    <li><b>"effect"</b> is the relative change from the first value to the second, as a fraction.</li>
+    <li>For a bar chart the "size shown" is the relative change in the bar heights measured from the axis start. For a pictogram it is the relative change in the area drawn.</li>
+  </ul>
+  <pre class="code" data-run><code>def lie_factor(shown_first, shown_second, true_first, true_second):
+    shown = abs(shown_second - shown_first) / shown_first
+    true = abs(true_second - true_first) / true_first
+    return shown / true
+
+female, male = 65.77, 67.92         # mean lengths of milk sharks, cm (made-up table)
+axis_start = 64                      # the axis of the misleading chart
+print(round(lie_factor(female - axis_start, male - axis_start, female, male), 1))
+print(round(lie_factor(female - 0, male - 0, female, male), 1))</code></pre>
+  <pre class="out">37.2
+1.0</pre>
+  <p>The five tools have a common test: ask what you would see if the chart were drawn the other way. Start the axis at zero, scale an icon by its area, label the log axis, show the full year, or draw two panels. If the story changes, the drawing made the story. The differences in this table are also small for a reason. Milk shark lengths vary by many centimetres from shark to shark, so a gap of two centimetres between averages of 116 and 84 sharks is not a strong finding.</p>
+    <div class="break">
+    <p><b>Common belief.</b> If the numbers printed on a chart are correct, the chart shows the data fairly.</p>
+    <p><b>Why it fails.</b> The numbers can be right while the axis start, the icon sizes, the window of months or the second axis make the difference look larger or smaller than it is. The truncated chart above prints 65.8 and 67.9 correctly and still looks like a doubling.</p>
+    <p><b>Better account.</b> Check the drawing against the numbers. Compute the size of the effect in the picture and the size of the effect in the data, which is the lie factor.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Before you trust a chart, run five checks. Where does the axis start? Are marks scaled by area or by height? Is a scale logarithmic, and are its ticks labelled? Which months or items are missing? How many axes are there?</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A bar chart with an axis starting at 98 shows 99 and 100. The second bar is twice as tall. What is the lie factor?</summary><p>The bars measure 1 and 2 above the axis, so the shown effect is 1 (a 100% rise). The data rose from 99 to 100, which is 1.01%. The lie factor is about 99.</p></details>
+    <details><summary>Why is a dual-axis chart easy to bend into any story?</summary><p>The reader compares the height of two lines, and the heights depend on two axis ranges that the author picks. Changing either range moves one line past the other without changing a single number.</p></details>
+  </div>
+</section>
+
+<!-- ============ 4. confusion matrix ============ -->
+<section id="matrix" aria-labelledby="matrix-h">
+  <h2 id="matrix-h">Reading a confusion matrix</h2>
+  <p class="ask"><b>Guess first.</b> A model sorts 600 records into five species. A confusion matrix shows 261 in its top-left cell. Is 261 the number the model got right, the number it got wrong, or the number of spadenose sharks?</p>
+  <dl class="terms">
+    <div><dt>confusion matrix</dt><dd>a table of counts: true class in the rows, predicted class in the columns (A4 grades models with it)</dd></div>
+    <div><dt>diagonal</dt><dd>the cells where the true and the predicted class agree</dd></div>
+    <div><dt>recall</dt><dd>of the animals of one true class, the share the model found (A4)</dd></div>
+    <div><dt>precision</dt><dd>of the animals the model gave one label, the share that is labelled correctly (A4)</dd></div>
+  </dl>
+  <p class="claim">Read a row to see what happened to one true class, read a column to see what the model's label contained, and read the diagonal for what went right.</p>
+  <div class="card" id="cm">
+    <div class="bar" id="cm-bar"></div>
+    <div class="bar" id="cm-view"><span class="label">Show</span></div>
+    <div class="cmwrap"><table id="cm-table" class="cmtable" role="grid" aria-label="Confusion matrix of true species against predicted species"></table></div>
+    <div class="eqn" id="cm-eqn" role="img" aria-label="Accuracy as correct predictions over all predictions"></div>
+    <p class="status" id="cm-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>The depth-3 tree is right about 80% of the time and never finds a Ganges shark. The boosted model has about the same accuracy and finds two of the three.</b> Click a cell to hear it read aloud. The matrices come from a five-fold cross-validation on the made-up catch table.</p>
+  <p>Read the figure in this order. First the row labels: the rows are the true species and the columns are the model's answers. The number in brackets beside a row name is the row total, the number of true sharks of that species. The totals are 268 spadenose, 200 milk, 72 bamboo, 57 hammerhead and 3 Ganges. The diagonal contains the correct answers. Accuracy is the sum of the diagonal divided by 600. Then look at the rows with small totals. The Ganges row has three sharks, so a model can miss all of them and lose only half a percent of accuracy.</p>
+  <p>Switch the view to the share of the row. The diagonal then shows recall, the share of a true class that was found. Switch to the share of the column and the diagonal shows precision, the share of a label that was right. A column that sums to zero, such as the Ganges column of the always-spadenose model, has no precision at all, because the model never uses that label. The tree uses the label Ganges once, wrongly, so its precision for Ganges is 0 of 1.</p>
+  <p>A worked example with the bamboo row of the depth-3 tree:</p>
+  <div class="eqn" aria-hidden="false" role="img" aria-label="Worked example: recall for bamboo of the depth-3 tree"><span class="t c-teal"><b>23</b><i>bamboo found</i></span><span class="op">&divide;</span><span class="t c-navy"><b>72</b><i>true bamboo, the row total</i></span><span class="op">=</span><span class="t c-coral"><b>32%</b><i>recall for bamboo, depth-3 tree</i></span></div>
+  <pre class="code" data-run><code>import numpy as np
+
+# rows: true class, columns: predicted class
+# classes: spadenose, milk, bamboo, hammerhead, ganges (depth-3 tree, made-up table)
+cm = np.array([[261,   7,  0,  0, 0],
+               [ 11, 181,  0,  8, 0],
+               [ 37,  12, 23,  0, 0],
+               [  5,  35,  0, 16, 1],
+               [  0,   0,  0,  3, 0]])
+print(round(np.trace(cm) / cm.sum(), 3))          # accuracy
+print(np.round(cm.diagonal() / cm.sum(axis=1), 3))  # recall: diagonal over row totals
+print(np.round(cm.diagonal() / cm.sum(axis=0), 3))  # precision: diagonal over column totals</code></pre>
+  <pre class="out">0.802
+[0.974 0.905 0.319 0.281 0.   ]
+[0.831 0.77  1.    0.593 0.   ]</pre>
+  <div class="debug">
+    <p><b>Debug tip.</b> Tools disagree on the orientation. Scikit-learn puts the true class in the rows and the predicted class in the columns. Some textbooks swap them. Read the axis titles whenever you meet a matrix, because a swapped matrix turns recall into precision.</p>
+  </div>
+  <div class="break">
+    <p><b>Common belief.</b> High accuracy means the model is good at all the classes.</p>
+    <p><b>Why it fails.</b> Accuracy adds up the diagonal, so large classes dominate it. A model that never finds the rarest class loses very little.</p>
+    <p><b>Better account.</b> Look at the row of the classes that matter to you. For a rare class the row, and not the overall accuracy, tells you whether the model is useful. <a href="../a4-grading-models/">A4</a> develops the scores.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>In the depth-3 tree, 35 hammerheads were labelled milk. In which row and column is that count?</summary><p>Row hammerhead (true class), column milk (predicted class).</p></details>
+    <details><summary>The lazy model always says "spadenose". What is its accuracy on these 600 records, and what is its recall for the Ganges shark?</summary><p>It gets 268 of 600, which is 44.7%, and its recall for the Ganges shark is 0. Its whole matrix is the first column.</p></details>
+  </div>
+</section>
+
+<!-- ============ 5. results table ============ -->
+<section id="tables" aria-labelledby="tables-h">
+  <h2 id="tables-h">Reading a results table</h2>
+  <p class="ask"><b>Guess first.</b> Two models score 79.8% and 80.2% in a table. Is the second one better?</p>
+  <dl class="terms">
+    <div><dt>baseline</dt><dd>a simple model used as a reference, such as always guessing the most common class (see <a href="../a1-what-is-a-model/">A1</a>)</dd></div>
+    <div><dt>train and test score</dt><dd>accuracy on the data the model learned from and on data it has not seen (see <a href="../a4-grading-models/">A4</a>)</dd></div>
+    <div><dt>run</dt><dd>one complete training and scoring with one random seed (<a href="../t1-python/#random">0.1</a>)</dd></div>
+    <div><dt>spread</dt><dd>how far the scores of different runs lie from their mean (<a href="../t7-probability/">0.7</a>)</dd></div>
+  </dl>
+  <p class="claim">A results table is a claim with its evidence in the columns. Read the baseline row, the split behind a score, the number of runs and the spread before you read the best number.</p>
+  <div class="card" id="rt">
+    <div class="bar" id="rt-bar"></div>
+    <div class="tscroll"><table id="rt-table" class="rtable"></table></div>
+    <div class="plot short" id="rt-plot" role="img" aria-label="Cross-validated accuracy of five models for five random seeds"></div>
+    <p class="status" id="rt-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>The depth-3 tree and the boosted model differ by 0.4 points on one seed, but the boosted model alone moves by 2.7 points across five seeds.</b> Switch the seed: the logistic model and the boosted model swap places on seed 4. The models are trained on the made-up catch table to name the species.</p>
+  <p>Start with the first row, the baseline. Always guessing spadenose is right 44.7% of the time, so a model that scores 50% has learned little. Next compare the train and test columns. The tree with no depth limit scores 100% on the data it learned from and about 72% on new data. It memorised the table. The boosted model also scores 100% on its training data but about 79% on new data. A big gap between the two columns means the training score is not worth reporting alone.</p>
+  <p>Then read the spread. The five runs differ only in the shuffling of the table before it is cut into folds. The depth-3 tree moves by less than a point and boosting by more than two, so a gap of 0.4 points between them tells you little. Finally read the column that matches your question. If a Ganges shark matters, the overall accuracy is the wrong column.</p>
+  <div class="eqn" id="rt-eqn" role="img" aria-label="Mean and spread of the five runs of two models"></div>
+  <p class="math">\[ \bar{x} = \frac{1}{m}\sum_{i=1}^{m} x_i, \qquad s = \sqrt{\frac{1}{m-1}\sum_{i=1}^{m}(x_i - \bar{x})^2} \]</p>
+  <ul class="math-notes">
+    <li><b>\(x_i\)</b> is the score of run \(i\), and <b>\(m\)</b> is the number of runs, here 5.</li>
+    <li><b>\(\bar{x}\)</b> is the mean score and <b>\(s\)</b> the sample standard deviation: a typical distance of a run from the mean. The chapter on probability (<a href="../t7-probability/">0.7</a>) explains both.</li>
+  </ul>
+  <pre class="code" data-run><code>import numpy as np
+
+tree = np.array([0.8017, 0.8050, 0.8017, 0.8033, 0.8033])    # accuracy for five seeds, made-up table
+boost = np.array([0.7983, 0.8000, 0.7867, 0.8033, 0.7767])
+for name, x in (("tree", tree), ("boost", boost)):
+    print(name, round(x.mean(), 4), round(x.std(ddof=1), 4), x.min(), x.max())
+print(round(tree.mean() - boost.mean(), 4))</code></pre>
+  <pre class="out">tree 0.803 0.0014 0.8017 0.805
+boost 0.793 0.0111 0.7767 0.8033
+0.01</pre>
+  <div class="debug">
+    <p><b>Debug tip.</b> When two scores are close, repeat the experiment with other seeds before you pick a winner. If the gap is smaller than the spread between runs, report both models as equal on that measure.</p>
+  </div>
+  <div class="break">
+    <p><b>Common belief.</b> The model with the highest number in the table is the best model.</p>
+    <p><b>Why it fails.</b> The number belongs to one split, one seed and one column. Another seed can reorder close models, and the column may not measure what you care about.</p>
+    <p><b>Better account.</b> The best model for a purpose is the one that wins on the measure for that purpose, by more than the spread between runs.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Model A scores 0.84 and model B scores 0.82, both averaged over five runs with a spread of 0.03. Can you say A is better?</summary><p>No. The gap of 0.02 is smaller than the typical spread of 0.03 between runs of one model, so a few more runs could reverse the order.</p></details>
+    <details><summary>A table lists only training accuracy. What is missing?</summary><p>The test or validation score. Training accuracy can reach 100% for a model that has memorised the table, as the tree with no depth limit shows.</p></details>
+  </div>
+</section>
+
+<!-- ============ exercises ============ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> A bar chart shows two values, 50 and 52, on an axis that starts at 48. Compute the heights of the bars above the axis, the effect shown, the effect in the data, and the lie factor. What does the lie factor become if the axis starts at 0?</p></li>
+      <li><p><span class="ex-tag">theory</span> Three points are marked at 3, 30 and 300 on a log axis. How far apart are the first two compared with the last two? What value lies midway between 30 and 300? A line on a log-log plot passes through (10, 5) and (1,000, 500). What is its slope, and what does that say about y and x?</p>
+        <details class="hint"><summary>Hint</summary><p>Slope on a log-log plot is the change in \(\log y\) divided by the change in \(\log x\). Use logs of base 10.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> A model sorts 150 photos into three species. Rows are true species, columns are predictions: spadenose 46, 3, 1; milk 6, 38, 6; bamboo 2, 5, 43. Compute the accuracy, the recall of milk and the precision of milk. Which cell counts milk sharks that were called spadenose?</p></li>
+      <li><p><span class="ex-tag">theory</span> Model A scores 0.84, 0.86, 0.81, 0.85 and 0.83 on five seeds. Model B scores 0.83, 0.84, 0.85, 0.82 and 0.84. Compute the mean and the standard deviation of both. Can you say that A is better than B? What further evidence would help?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Load <code>../data/sharks/catch.csv</code> with pandas. Draw histograms of <code>length_cm</code> with bin widths 2, 5 and 20 cm using matplotlib. Describe in one sentence what the three show. Then draw the box plot of length by species.</p></li>
+      <li><p><span class="ex-tag">practice</span> For the four larger species, fit the exponent \(b\) with <code>np.polyfit</code> on the logs of length and weight. Compare your values with the all-species slope of the chapter. Why is the all-species slope larger than the slopes of the single species?</p>
+        <details class="hint"><summary>Hint</summary><p>Look at how the species differ in length. Which species lie to the right of the others, and what happens to a single straight line through all of them?</p></details></li>
+      <li><p><span class="ex-tag">practice</span> Draw the bar chart of the mean length of male and female milk sharks twice with matplotlib: once with <code>ax.set_ylim(64, 68.5)</code> and once from 0. Compute the lie factor of the first one in code.</p></li>
+      <li><p><span class="ex-tag">practice</span> Train a decision tree of depth 3 and a boosted model on the species data with five-fold cross-validation for three seeds. Make your own results table with the mean, the spread and the recall of the Ganges shark. Which column would you put first for SharkCam?</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> A dashboard for the SharkCam species model shows one number, overall accuracy. List three more things you would show and say what it protects against.</p></li>
+      <li><p><span class="ex-tag">open</span> A friend wants a chart for the claim "landings are rising". Use the monthly counts of the made-up table and describe one fair chart and one that would flatter the claim. What claim can the data actually support, and what would you need to ask before saying why landings change?</p></li>
+      <li><p><span class="ex-tag">open</span> Choose a chart from a news site or a paper. Write a short audit: the claim, the axes and scales, what is left out, and how you would redraw it. Design a checklist of five questions that you could use on any chart, and test it on two charts of your own.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Answer after two days, and again after a week, without scrolling up.</p>
+  <div class="recall comeback">
+    <details><summary>A pandas column <code>df["length_cm"] &gt; 60</code> gives True or False per row. Which chart type would you draw to see how many records pass that test, split by species?</summary><p>A bar chart of counts per species, drawn from <code>df[df["length_cm"] &gt; 60].groupby("species").size()</code>. The mask from <a href="../t1-python/#files">0.1</a> picks the rows, and grouping counts them.</p></details>
+    <details><summary>A chart shows the cost of a model against the number of tokens and the curve bends upward. On a log-log plot, what slope tells you the cost grows like \(n^2\)?</summary><p>A slope of 2. A power law \(n^b\) is a straight line of slope \(b\) on log-log axes, and the cost of attention grows like \(n^2\) (<a href="../t2-algorithms/#bigo">0.2</a>).</p></details>
+    <details><summary>A results table shows a model at 99.5% accuracy on a test set where 0.5% of the records are Ganges sharks. What do you ask for next?</summary><p>The confusion matrix, or at least the recall for the Ganges class. A model that never says "Ganges" gets 99.5% on such data, so the overall number cannot show whether the rare class is found.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>"Misleading graph", Wikipedia: truncated axes, improper pictogram scaling, multiple y-axes, misused logarithmic scales and omitted data. It also gives the lie factor, a measure of how much a graph exaggerates a change. <a href="https://en.wikipedia.org/wiki/Misleading_graph">en.wikipedia.org/wiki/Misleading_graph</a></li>
+    <li>Bentley, E. and Levin Schtulberg, E. "New: Dual-axis charts in Datawrapper", Datawrapper blog: dual-axis charts are easily misread and can suggest misleading correlations. <a href="https://www.datawrapper.de/blog/dual-axis-charts">datawrapper.de/blog/dual-axis-charts</a></li>
+    <li>scikit-learn developers. <code>sklearn.metrics.confusion_matrix</code>: entry (i, j) counts observations known to be in group i and predicted to be in group j. <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html">scikit-learn.org</a></li>
+    <li>Further reading, not opened and not used for numbers on this page: Tufte, E. R. (1983), <i>The Visual Display of Quantitative Information</i>, Graphics Press, where the lie factor was introduced. Cairo, A. (2019), <i>How Charts Lie: Getting Smarter about Visual Information</i>, W. W. Norton. Huff, D. (1954), <i>How to Lie with Statistics</i>, W. W. Norton.</li>
+    <li>The SharkCam catch table and its reference model results: <code>primer/data/sharks/catch.csv</code> and <code>summary.json</code> of this primer (made-up records generated from published length-weight relationships; not field data).</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="t8-charts.js?v=1" defer></script>
+</body>
+</html>
