@@ -98,7 +98,7 @@
    "title": "What a model is",
    "blurb": "Inputs, outputs, parameters and the lazy baseline.",
    "part": "A",
-   "live": false
+   "live": true
   },
   {
    "id": "a2",
@@ -107,7 +107,7 @@
    "title": "Linear regression",
    "blurb": "Predicting a shark's weight from its length.",
    "part": "A",
-   "live": false
+   "live": true
   },
   {
    "id": "a3",
@@ -116,7 +116,7 @@
    "title": "Logistic regression and softmax",
    "blurb": "Juvenile or adult, and which species.",
    "part": "A",
-   "live": false
+   "live": true
   },
   {
    "id": "a4",
@@ -125,7 +125,7 @@
    "title": "Grading a model fairly",
    "blurb": "Splits, leakage, precision, recall, ROC and subgroups.",
    "part": "A",
-   "live": false
+   "live": true
   },
   {
    "id": "a5",
@@ -134,7 +134,7 @@
    "title": "Decision trees",
    "blurb": "Questions in a chain, chosen by the data.",
    "part": "A",
-   "live": false
+   "live": true
   },
   {
    "id": "a6",
@@ -143,7 +143,7 @@
    "title": "Ensembles and boosting",
    "blurb": "Many small trees, XGBoost and feature importance.",
    "part": "A",
-   "live": false
+   "live": true
   },
   {
    "id": "pa",
