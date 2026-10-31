@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backpropagation | How AI Learns</title>
+<meta name="description" content="Run a tiny network forward and backward on one shark, step by step, then check the slopes with finite differences and write the same thing in NumPy and PyTorch.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Local additions for this chapter only. */
+.card .bar { row-gap: 8px; }
+.card .controls label { min-width: 0; }
+.card .controls select { min-width: 0; max-width: 100%; }
+.card .bar .btn[disabled] { opacity: 0.4; }
+.eqs { margin: 10px 0 0; display: grid; gap: 4px; }
+.eqs .eqn { margin: 0; }
+.card .controls.edit { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.ly-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; }
+.ly-col { display: grid; gap: 4px; justify-items: center; }
+.ly-h { font-size: 13px; color: var(--muted); text-align: center; max-width: 12em; }
+.ly-op { font-size: 20px; color: var(--ink-2); }
+.ly-mat { border-collapse: separate; border-spacing: 3px; }
+.ly-mat td { min-width: 3.2em; padding: 6px 8px; text-align: center; border-radius: 5px; font-size: 15px; font-feature-settings: "tnum" 1, "lnum" 1; color: var(--ink); }
+.ck-table { width: 100%; max-width: 46em; border-collapse: collapse; margin: 12px 0 0; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.ck-table th, .ck-table td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: right; color: var(--ink-2); }
+.ck-table th:first-child, .ck-table td:first-child { text-align: left; }
+.ck-table th { font-weight: 500; color: var(--muted); }
+@media (max-width: 760px) { .ly-mat td { min-width: 2.6em; padding: 5px 5px; font-size: 14px; } }
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="b4">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part B, Neural networks</span><span>Chapter B4</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part B &middot; Chapter B4</p>
+  <h1>Backpropagation</h1>
+  <p class="subtitle">How a network finds the slope of its loss for all of its weights in one backward sweep</p>
+</header>
+
+<div class="tldr">
+  <p>A network's loss depends on all of its weights. To improve them, training needs the slope of the loss with respect to a weight. Backpropagation computes all of those slopes in one pass from the loss back to the inputs, by applying the chain rule one node at a time.</p>
+  <p>This chapter runs it by hand on a tiny network that reads one shark. You step through the forward and backward passes, take one gradient step and watch the loss fall. Then you test the slopes with finite differences, see why long chains of small slopes cause trouble, and write the same network in NumPy and in PyTorch. The sharks are made up: records generated from published length-weight relationships, not field data.</p>
+</div>
+<p class="youneed"><b>You will need:</b> the <a href="../t6-gradients/#chain">chain rule</a> (0.6), <a href="../t4-discrete-maths/#graphs">graphs and DAGs</a> (0.4), the <a href="../t5-vectors-matrices/#outer">outer product</a> (0.5), a neuron with an activation (<a href="../b1-one-neuron/#neuron">B1</a>) and a loss with gradient descent (<a href="../b3-loss-gradient-descent/#landscape">B3</a>).</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#graph">The network as a graph</a></li>
+    <li><a href="#backward">Sending the slopes back</a></li>
+    <li><a href="#paths">A value used twice</a></li>
+    <li><a href="#layers">Whole layers at once</a></li>
+    <li><a href="#vanish">Long chains of small slopes</a></li>
+    <li><a href="#check">Gradient checking</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. graph ============================ -->
+<section id="graph" aria-labelledby="graph-h">
+  <h2 id="graph-h">The network as a graph</h2>
+  <p class="ask"><b>Guess first.</b> The network below reads the scaled length and girth of Tag 3305, a mature spadenose shark, so the right answer is "adult". Its nine weights are made-up starting values. Look at the weights and the output bias before you press anything. Will the network give the shark a chance of being adult above 50% or below 50%?</p>
+  <dl class="terms">
+    <div><dt>computation graph</dt><dd>a diagram of values, where a node is computed by one simple step from the nodes before it (a DAG, as in <a href="../t4-discrete-maths/#graphs">0.4</a>)</dd></div>
+    <div><dt>forward pass</dt><dd>computing the nodes in order, from the inputs to the loss</dd></div>
+    <div><dt>hidden unit</dt><dd>a neuron between the inputs and the output (<a href="../b2-non-linearity/#bend">B2</a>); here it computes a weighted sum, then tanh</dd></div>
+    <div><dt>loss \(L\)</dt><dd>one number for how wrong the output is; here the log loss of one shark (<a href="../a3-logistic-regression/#logloss">A3</a>, <a href="../b3-loss-gradient-descent/#cost">B3</a>)</dd></div>
+  </dl>
+  <p class="claim">A network is a chain of simple steps, and running it forward means filling in one node at a time.</p>
+  <div class="card" id="g1">
+    <div class="bar" id="g1-bar"></div>
+    <svg id="g1-svg" role="img" aria-label="Computation graph of a tiny network"></svg>
+    <p class="status" id="g1-status" aria-live="polite"></p>
+    <div class="eqs" id="g1-eqs"></div>
+    <div class="controls edit" id="g1-edit"></div>
+    <div class="readout" id="g1-read"></div>
+  </div>
+  <p class="cap"><b>The starting weights give Tag 3305 a 34% chance of being adult, so the loss is 1.07.</b> The shark is an adult, so the network starts out wrong: the output bias \(c\) pulls the score below zero.</p>
+  <p>Press Forward, or press Step to move one node at a time. A dashed box has no value yet. A step fills one box, and the equation boxes underneath show the sum that made the value. Click an input or a weight to select it, then change it with the slider and run the network again. The two inputs are the length (41.0 cm) and girth (11.5 cm) of Tag 3305. They are standardised with the spadenose mean and spread from <a href="../a3-logistic-regression/#train">A3</a> (<a href="../t7-probability/#normal">0.7</a>), so they read 0.22 and 0.21 spreads above the average. The label \(y = 1\) means adult.</p>
+  <p>A node needs only the nodes before it. The backward pass will use that order in reverse. The output \(p\) is the network's chance that the shark is an adult, and the loss is large when \(p\) is far from the label. The same steps in symbols:</p>
+  <p class="math">\[ \mathbf{z}^{[1]} = W^{[1]}\mathbf{x} + \mathbf{b}^{[1]},\qquad \mathbf{h} = g(\mathbf{z}^{[1]}),\qquad z_o = \mathbf{v}\cdot\mathbf{h} + c,\qquad p = \sigma(z_o) \]</p>
+  <p class="math">\[ \ell = -y\ln p - (1-y)\ln(1-p) \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{x}\)</b> is the list of two scaled inputs, and <b>\(W^{[1]}\)</b> is the 2 by 2 matrix of first-layer weights \(w_{ji}\) (row \(j\) is a hidden unit, column \(i\) an input). <b>\(\mathbf{b}^{[1]}\)</b> is the list of biases \(b_1, b_2\).</li>
+    <li><b>\(g\)</b> is the hidden activation (tanh to start with) and <b>\(\mathbf{h}\)</b> the two hidden values \(h_1, h_2\).</li>
+    <li><b>\(\mathbf{v}\)</b> is the row of two output weights \(v_1, v_2\) (the matrix \(W^{[2]}\)), <b>\(c\)</b> the output bias (\(\mathbf{b}^{[2]}\)) and <b>\(z_o\)</b> the output score.</li>
+    <li><b>\(\sigma(z_o)\)</b> is the sigmoid of the score. <b>\(\ell\)</b> is the log loss of this one shark; for a batch, \(L\) is the average of the \(\ell\) values (<a href="../b3-loss-gradient-descent/#cost">B3</a>).</li>
+  </ul>
+  <p>The figure shows \(z_1\) for Tag 3305. Here is the second hidden unit by hand, with the same weights. The sum node adds two products and the bias, then tanh squeezes the result.</p>
+  <div class="eqn" role="img" aria-label="z2 equals minus 0.4 times 0.22 plus 0.7 times 0.21 plus minus 0.2, which is minus 0.141, and tanh of that is minus 0.140"><span class="t c-navy"><b>&minus;0.4</b><i>w<sub>21</sub></i></span><span class="op">&times;</span><span class="t c-navy"><b>0.22</b><i>x<sub>1</sub></i></span><span class="op">+</span><span class="t c-navy"><b>0.7</b><i>w<sub>22</sub></i></span><span class="op">&times;</span><span class="t c-navy"><b>0.21</b><i>x<sub>2</sub></i></span><span class="op">+</span><span class="t c-navy"><b>&minus;0.2</b><i>b<sub>2</sub></i></span><span class="op">=</span><span class="t c-teal"><b>&minus;0.141</b><i>z<sub>2</sub></i></span><span class="op">&rarr; tanh &rarr;</span><span class="t c-teal"><b>&minus;0.140</b><i>h<sub>2</sub></i></span></div>
+  <p>Now a second shark, to see the same graph give a different answer. Tag 4127 is a juvenile grey bamboo shark, so its label is \(y = 0\). Standardised with the spadenose numbers (44.0 cm and 12.4 cm) it reads 0.56 and 0.57. That scaling is only a convenient way to feed the network a second input, because a bamboo shark has its own average and spread. The forward pass gives \(z_1 = 0.208\), \(z_2 = -0.025\), \(h = (0.205, -0.025)\), \(z_o = -0.696\) and \(p = 0.333\). For \(y = 0\) the loss is \(-\ln(1 - 0.333) = 0.405\). The network happens to be right about this shark, so its loss is small.</p>
+  <p>Why can we run the nodes in any order that respects the arrows? Because the graph has no loops (a DAG, <a href="../t4-discrete-maths/#graphs">0.4</a>), so a node never waits on itself. If a graph had a loop, one pass would not be enough to fill it. This chapter's graphs have none.</p>
+  <p><b>A practical check.</b> A network that has learned no pattern yet about a yes-or-no label should give \(p\) near 0.5, which makes the loss \(\ln 2 \approx 0.69\). Here the first loss is 1.07 because the made-up output bias is \(-0.9\). When you build your own network, compute the loss on the first batch before any training. If it is far from 0.69, look for a mistake in the inputs, the labels or the output layer (<a href="../b8-debugging/">B8</a>). Keep inputs near 0 with a spread of about 1, as in <a href="../a2-linear-regression/#scaling">A2</a>. Large inputs push tanh into its flat tails from the first step.</p>
+  <div class="break">
+    <p><b>Analogy.</b> The graph is a spreadsheet. A cell is a formula of the cells before it, and you fill the cells in from the top.</p>
+    <p><b>Where it breaks.</b> In a spreadsheet you type the numbers and leave them alone. In a network the weights are numbers that training will change, and the backward pass answers how the last cell, the loss, reacts when you change one of them. A spreadsheet has no step that runs backward.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>In what order must the nodes be computed, and why?</summary><p>Any order in which a node comes after all the nodes it uses. In this graph that means the inputs, then the hidden sums and activations, then the output score, then \(p\), then the loss.</p></details>
+    <details><summary>Switch the label to y = 0 and press Forward. Why does the loss go down?</summary><p>The network gives the shark only a 34% chance of being adult, which is a good call for a juvenile. The loss becomes \(-\ln(1-p) = -\ln(0.658) = 0.42\).</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. backward ============================ -->
+<section id="backward" aria-labelledby="backward-h">
+  <h2 id="backward-h">Sending the slopes back</h2>
+  <p class="ask"><b>Guess first.</b> The slope of the loss with respect to a weight says how fast the loss changes when that weight goes up by a small amount. The network has nine weights and biases. Which one do you expect to have the largest slope at the starting values: an output weight (\(v_1\) or \(v_2\)), the output bias \(c\), or a first-layer weight such as \(w_{11}\)? Write down your pick, then run the backward pass.</p>
+  <dl class="terms">
+    <div><dt>backward pass</dt><dd>going from the loss back to the inputs and writing a slope on all nodes and weights</dd></div>
+    <div><dt>upstream slope</dt><dd>the slope of the loss with respect to a node, already known because it came from the nodes after it; written \(\partial L/\partial\text{node}\)</dd></div>
+    <div><dt>local slope</dt><dd>the slope of a node's value with respect to one of its inputs; it needs only the forward values (<a href="../t6-gradients/#chain">0.6</a>)</dd></div>
+    <div><dt>backpropagation</dt><dd>a forward pass, then a backward pass that multiplies upstream and local slopes at all steps</dd></div>
+  </dl>
+  <p class="claim">Backpropagation gives the slope of the loss for all nine numbers in one backward sweep, because a step multiplies one local slope into the slope that has just arrived.</p>
+  <div class="card" id="g2">
+    <div class="bar" id="g2-bar"></div>
+    <svg id="g2-svg" role="img" aria-label="Computation graph of a tiny network with slopes"></svg>
+    <p class="status" id="g2-status" aria-live="polite"></p>
+    <div class="eqs" id="g2-eqs"></div>
+    <div class="controls edit" id="g2-edit"></div>
+    <div class="readout" id="g2-read"></div>
+    <div class="plot short" id="g2-hist" role="img" aria-label="Loss after each update"></div>
+  </div>
+  <p class="cap"><b>At the starting values the largest slope belongs to the output bias \(c\) (−0.66), and its sign says that raising \(c\) lowers the loss.</b> One Update with \(\eta = 0.3\) moves all nine numbers against their slopes and takes the loss from 1.07 to 0.77.</p>
+  <p>Press Backward and read the equation boxes. In any step, a coral box is the upstream slope that has arrived, a navy box is a local slope read off the forward values. Their product (coral again) is written on the node or weight one step back. Three rules cover the whole graph. A sum node passes the slope through unchanged. A product node such as \(v_1 h_1\) sends the slope times the <em>other</em> factor to both sides. An activation multiplies by its own slope, which is \(1 - h^2\) for tanh (<a href="../t6-gradients/#rules">0.6</a>).</p>
+  <p>Look at step 2. The local slopes \(-1/p\) and \(p(1-p)\) multiply to \(p - y\), the slope that <a href="../a3-logistic-regression/#train">A3</a> derived for log loss. Look at steps 8 and 11. The input \(x_1\) feeds both hidden units, so it gets one slope from either of two paths, and the two add. The next section explains that sum.</p>
+  <p>Press Update to apply one gradient step. All weights move by \(-\eta\) times their slopes, the network is rerun, and the new loss appears in the history plot. Press Backward and Update again a few times. The loss falls quickly at first and then more slowly, as in <a href="../a2-linear-regression/#descent">A2</a>.</p>
+  <p>The simplification in step 2 takes a few short lines. First, the sigmoid's own slope. Write \(\sigma(z) = (1 + e^{-z})^{-1}\). The chain rule gives \(\sigma'(z) = e^{-z}(1+e^{-z})^{-2}\). Split the fraction as \(\tfrac{1}{1+e^{-z}}\cdot\tfrac{e^{-z}}{1+e^{-z}}\), and the second factor equals \(1 - \sigma(z)\). So \(\sigma' = \sigma(1-\sigma)\), which is the number \(p(1-p) = 0.225\) in the figure. Then multiply by the slope of the log loss:</p>
+  <p class="math">\[ \frac{\partial \ell}{\partial z_o} = \Big(-\frac{y}{p} + \frac{1-y}{1-p}\Big)\,p(1-p) = -y(1-p) + (1-y)\,p = p - y \]</p>
+  <ul class="math-notes">
+    <li>The bracket is \(\partial\ell/\partial p\), the slope of the log loss. The second factor is the sigmoid's slope.</li>
+    <li>Multiplying out, the terms \(-yp\) and \(+yp\) cancel, which leaves \(p - y\). For \(y = 1\) it is \(p - 1\), always negative, so the score is always pushed up.</li>
+  </ul>
+  <p>Now a second shark through the same steps. Tag 4127 (label \(y = 0\), \(p = 0.333\), inputs 0.564 and 0.573 before rounding) gives \(\partial\ell/\partial z_o = p - y = +0.333\), a positive slope, so the update will lower the score. Going back, \(\partial\ell/\partial h = 0.333 \times (0.9, -0.8) = (0.299, -0.266)\). Times the tanh slopes \((0.958, 1.000)\) this gives \(\partial\ell/\partial z = (0.287, -0.266)\). The weight \(w_{11}\) finally gets its slope:</p>
+  <div class="eqn" role="img" aria-label="Slope of w11 for Tag 4127 equals 0.287 times 0.564, which is 0.162"><span class="t c-coral"><b>0.287</b><i>upstream &part;L/&part;z<sub>1</sub></i></span><span class="op">&times;</span><span class="t c-navy"><b>0.564</b><i>local: input x<sub>1</sub></i></span><span class="op">=</span><span class="t c-coral"><b>0.162</b><i>&part;L/&part;w<sub>11</sub> for Tag 4127</i></span></div>
+  <p>The sign is the opposite of the \(w_{11}\) slope for Tag 3305 (\(-0.127\)). A juvenile pulls the score down and an adult pulls it up. With many sharks in a batch, the slopes of all of them are averaged (<a href="../b3-loss-gradient-descent/#batches">B3</a>).</p>
+  <p><b>Why it works, and where it stops.</b> The chain rule is a statement about small nudges. A local slope describes a node near its current value, and the product tells you what a small nudge of a weight does to the loss. It breaks where a node has no usable slope. ReLU has a corner at 0 (libraries pick 0 or 1 there). Rounding, a hard threshold or an argmax has a slope of 0 at nearly all points, so no slope reaches the weights behind it. That is why the step activation was replaced by a smooth one (<a href="../b1-one-neuron/#activations">B1</a>).</p>
+  <p><b>Cost in practice.</b> The backward pass needs the forward values, so a framework stores them. Memory grows with the number of nodes and with the batch size, and the backward pass costs a small multiple of the forward pass. Typical plain-SGD learning rates for networks like this one are 0.01 to 0.1 on standardised inputs. The Update button's \(\eta\) goes up to 2 so that you can watch a step overshoot.</p>
+  <p class="task"><b>Try it.</b> Switch the activation to ReLU, press Forward, then Backward. One hidden unit has a negative sum and gives 0. What happens to the slopes of its weights and bias?</p>
+  <details class="task-a"><summary>Answer</summary><p>They are all 0. The ReLU slope is 0 for a negative score, so the product at that step is 0 and no slope flows back to \(w_{21}\), \(w_{22}\) or \(b_2\). A unit stuck like this learns no more until something else moves its score (<a href="../b8-debugging/">B8</a> shows how to spot dead units).</p></details>
+  <div class="eqn" role="img" aria-label="Upstream slope times local slope equals the slope of the node before"><span class="t c-coral"><b>&minus;0.658</b><i>upstream slope &part;L/&part;z<sub>o</sub></i></span><span class="op">&times;</span><span class="t c-navy"><b>0.900</b><i>local slope &part;z<sub>o</sub>/&part;h<sub>1</sub> = v<sub>1</sub></i></span><span class="op">=</span><span class="t c-coral"><b>&minus;0.592</b><i>slope of h<sub>1</sub></i></span></div>
+  <p class="math">\[ \frac{\partial L}{\partial a} \;=\; \sum_{k}\frac{\partial L}{\partial b_k}\,\frac{\partial b_k}{\partial a} \qquad\qquad w \;\leftarrow\; w - \eta\,\frac{\partial L}{\partial w} \]</p>
+  <ul class="math-notes">
+    <li><b>\(a\)</b> is any node or weight, and <b>\(b_k\)</b> are the nodes that use \(a\) as an input. If only one node uses \(a\), the sum has one term.</li>
+    <li><b>\(\partial L/\partial b_k\)</b> is the upstream slope from node \(b_k\), and <b>\(\partial b_k/\partial a\)</b> is the local slope of that one step.</li>
+    <li>The right-hand rule is the gradient step of <a href="../a2-linear-regression/#descent">A2</a>: <b>\(\eta\)</b> is the learning rate and the arrow means "replace".</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> Backpropagation is the way a network learns.</p>
+    <p><b>Why it fails.</b> Backpropagation only computes slopes. Press Backward and look at the weights: none has changed. Learning happens when something uses the slopes to move the weights.</p>
+    <p><b>Better account.</b> Backpropagation answers "which way and how steeply, for all weights". An optimiser answers "how far". Plain gradient descent is the simplest optimiser (<a href="../b3-loss-gradient-descent/#landscape">B3</a>), and momentum and Adam are next (<a href="../b5-optimisers/#momentum">B5</a>).</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If the loss goes up after an Update, the step size \(\eta\) is probably too large for the curvature (<a href="../t6-gradients/#curvature">0.6</a>). Halve it and try again. If the loss rises whatever \(\eta\) is, suspect a wrong sign or a wrong local slope in the backward code, and run the gradient check at the end of this chapter.</p>
+    <p>A common mistake in PyTorch is calling <code>loss.backward()</code> again without clearing the stored slopes first. The new slopes are added to the old ones, so the step is too big and points the wrong way (<a href="../b8-debugging/">B8</a> lists the other usual suspects).</p>
+  </div>
+  <p class="used"><b>Used in:</b> the optimisers of <a href="../b5-optimisers/#sgd">B5</a> take these slopes as input. The slope of the loss with respect to an <em>input</em> (the \(\partial L/\partial x_1\) box) is the raw material of the saliency maps in <a href="../b9-explaining/">B9</a>.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The slope arriving at the output score is −0.658. The weight \(v_1\) multiplies \(h_1 = 0.149\). What is the slope of \(v_1\)?</summary><p>\(-0.658 \times 0.149 = -0.098\). The product node sends the slope times the other factor, and the other factor of \(v_1\) is \(h_1\).</p></details>
+    <details><summary>Why does the backward pass need the values from the forward pass?</summary><p>Local slopes depend on them. The slope of \(v_1\) is \(h_1\), the slope of tanh is \(1-h^2\), and the slope of the sigmoid is \(p(1-p)\). The forward pass has to keep those values until the backward pass uses them.</p></details>
+    <details><summary>Which nodes in the graph receive a slope from two paths?</summary><p>The inputs \(x_1\) and \(x_2\), because both of them feed both hidden units. The weights, the hidden values and the output nodes feed a single later node apiece.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. paths ============================ -->
+<section id="paths" aria-labelledby="paths-h">
+  <h2 id="paths-h">A value used twice</h2>
+  <p class="ask"><b>Guess first.</b> At \(x = 3\), two nodes use \(x\): \(p = 2x\) and \(q = x^2\). Then \(y = p \times q\). Nudge \(x\) up by 0.01. Does \(y\) rise by about 0.18, 0.36 or 0.54?</p>
+  <dl class="terms">
+    <div><dt>path</dt><dd>a route along edges from a node to the loss</dd></div>
+    <div><dt>fan-out</dt><dd>one node feeding several later nodes</dd></div>
+    <div><dt>accumulate</dt><dd>add the slope from a new path to the total so far</dd></div>
+  </dl>
+  <p class="claim">A node that feeds several later nodes receives the sum of the slopes along all of its paths.</p>
+  <div class="card" id="pa">
+    <div class="bar" id="pa-bar"></div>
+    <div class="controls" id="pa-controls"></div>
+    <svg id="pa-svg" role="img" aria-label="A small graph with two paths from x to y"></svg>
+    <div class="eqn" id="pa-eqn"></div>
+    <div class="eqn" id="pa-check"></div>
+  </div>
+  <p class="cap"><b>At \(x = 3\) the path through \(p\) gives 18 and the path through \(q\) gives 36. Together they make 54, so a nudge of 0.01 raises \(y\) by about 0.54.</b> Either path alone gives the wrong answer.</p>
+  <p>Choose one path, then both. Along a path the slope is a product of local slopes, as in the last section. The two path totals add because a nudge of \(x\) reaches \(y\) in both ways at once. Written out, a nudge \(dx\) changes \(p\) by \(dp = 2\,dx\) and \(q\) by \(dq = 2x\,dx\). The product \(y = pq\) then changes by \(dy = q\,dp + p\,dq\). Dividing by \(dx\) gives \(dy/dx = q \cdot 2 + p \cdot 2x = 9 \cdot 2 + 6 \cdot 6 = 54\). This is the chain rule written as a sum over the nodes that use \(a\), in the box of the last section. The result agrees with \(6x^2\), the slope of \(y = 2x^3\).</p>
+  <p class="math">\[ \frac{dy}{dx} = \underbrace{q\,\frac{dp}{dx}}_{\text{path through }p} + \underbrace{p\,\frac{dq}{dx}}_{\text{path through }q} = 9\cdot 2 + 6\cdot 6 = 54 \]</p>
+  <ul class="math-notes">
+    <li><b>\(x\)</b> is the value used twice. <b>\(p = 2x\)</b> and <b>\(q = x^2\)</b> are the two nodes that use it, and <b>\(y = pq\)</b> is the node that uses both.</li>
+    <li>At \(x = 3\): \(p = 6\), \(q = 9\), \(dp/dx = 2\) and \(dq/dx = 2x = 6\). A path contributes its local slope times the other factor, and the paths add.</li>
+  </ul>
+  <p>The nudge estimate 54.18 differs a little from 54 because the nudge is finite and the curve bends. The slopes of this section describe the curve at one point. They match the curve for an infinitely small nudge and only approximate it for a finite one.</p>
+  <p>The shark network has the same structure. The input \(x_1\) feeds both \(z_1\) and \(z_2\), so \(\partial L/\partial x_1\) has two terms (steps 8 and 11 of the figure above). With the starting weights the slopes arriving at \(z_1\) and \(z_2\) are \(-0.579\) and \(+0.516\):</p>
+  <div class="eqn" role="img" aria-label="Slope of x1 equals minus 0.579 times 0.8 plus 0.516 times minus 0.4, which is minus 0.670"><span class="t c-coral"><b>&minus;0.463</b><i>path through z<sub>1</sub> (&minus;0.579 &times; 0.8)</i></span><span class="op">+</span><span class="t c-coral"><b>&minus;0.206</b><i>path through z<sub>2</sub> (0.516 &times; &minus;0.4)</i></span><span class="op">=</span><span class="t c-teal"><b>&minus;0.670</b><i>&part;L/&part;x<sub>1</sub></i></span></div>
+  <p>For \(x_2\) the two paths are \(+0.347\) and \(+0.361\), which total \(+0.709\). For \(x_1\) the paths have the same sign and add up. When they have opposite signs they partly cancel, so an input can matter a lot along both paths and little in total.</p>
+  <p> In code, a library adds a new contribution into the slope it has stored for a node. That is why PyTorch asks you to clear the stored slopes with <code>zero_grad()</code> before the next batch (<a href="../t1-python/#torch">0.1</a>). Used on purpose, the same addition is called gradient accumulation. To imitate a batch that does not fit in memory, practitioners run 4 to 16 smaller batches and call <code>backward()</code> on all of them before one optimiser step. Divide the loss of a small batch by the number of small batches, so that the sum matches the average of the big one.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A value that is used twice gets the average of the slopes along its two paths.</p>
+    <p><b>Why it fails.</b> A nudge of \(x\) travels along both paths at once, and the loss feels both effects. The average of 18 and 36 is 27, and the true slope is 54.</p>
+    <p><b>Better account.</b> Add the paths. An average does come later, over the examples of a batch (<a href="../b3-loss-gradient-descent/#batches">B3</a>).</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> A classic bug in hand-written backward code is writing <code>=</code> where <code>+=</code> belongs for a node with two children. The result looks plausible, because it contains one of the two paths. The gradient check at the end of this chapter finds it.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A node \(u\) is used twice: \(s = u\,v + u\). The slope arriving at \(s\) is 5, with \(u = 2\) and \(v = 3\). What slope reaches \(u\)?</summary><p>Two paths. Through the product: \(5 \times v = 15\). Through the plain \(+u\): \(5 \times 1 = 5\). Total 20.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. layers ============================ -->
+<section id="layers" aria-labelledby="layers-h">
+  <h2 id="layers-h">Whole layers at once</h2>
+  <p class="ask"><b>Guess first.</b> A layer reads three inputs \(\mathbf{h} = (1.0,\, 2.0,\, 0.0)\) and has two neurons. The slopes arriving at the neurons are \(\boldsymbol\delta = (-0.5,\, 0.2)\). How many numbers does the slope of the weight matrix \(W\) have, and what is the entry for neuron 1 and input 2?</p>
+  <dl class="terms">
+    <div><dt>\(\boldsymbol\delta\) (delta)</dt><dd>the slopes of the loss with respect to a layer's scores \(\mathbf{z}\): one number per neuron</dd></div>
+    <div><dt>outer product</dt><dd>the table of all products \(\delta_i h_j\) of two vectors (<a href="../t5-vectors-matrices/#outer">0.5</a>)</dd></div>
+    <div><dt>transpose \(W^\top\)</dt><dd>the matrix \(W\) with rows and columns swapped (<a href="../t5-vectors-matrices/#products">0.5</a>)</dd></div>
+    <div><dt>batch average</dt><dd>the slope for a batch is the average of the slopes of its examples (<a href="../b3-loss-gradient-descent/#batches">B3</a>)</dd></div>
+  </dl>
+  <p class="claim">For a layer \(\mathbf{z} = W\mathbf{h} + \mathbf{b}\), the slope of \(W\) is the outer product of \(\boldsymbol\delta\) and \(\mathbf{h}\), the slope of \(\mathbf{b}\) is \(\boldsymbol\delta\), and the slope sent to the inputs is \(W^\top\boldsymbol\delta\).</p>
+  <div class="card" id="ly">
+    <div class="bar" id="ly-bar"></div>
+    <div class="controls" id="ly-controls"></div>
+    <div id="ly-out" role="group" aria-label="Matrices for a layer with three inputs and two neurons"></div>
+    <div class="eqn" id="ly-eqn"></div>
+  </div>
+  <p class="cap"><b>The weight slope is a 2 by 3 table with six numbers. Its entry for neuron 1 and input 2 is \(-0.5 \times 2.0 = -1.0\).</b> An input that is 0 gives its weights a slope of 0, and a large input gives its weights a large slope.</p>
+  <p>The tiny network had one example and a few weights, so we could walk its graph node by node. Layers in a working model have thousands of neurons, and the same three rules are applied to whole vectors at once. The weight slope is an outer product because a weight \(W_{ij}\) is one product \(W_{ij}h_j\) inside neuron \(i\), and its slope is the slope arriving at that neuron times the input. Switch to three sharks to see a batch. The slopes of the examples are averaged, and in code that average is one matrix product, \(\Delta^\top H\) divided by the batch size (<a href="../t5-vectors-matrices/#products">0.5</a>).</p>
+  <p>A large input gives large weight slopes, which is one reason <a href="../a2-linear-regression/#scaling">A2</a> rescales features before training.</p>
+  <p>Where do the two formulas come from? A neuron's score is \(z_i = \sum_j W_{ij}h_j + b_i\). Only the score \(z_i\) of neuron \(i\) uses the weight \(W_{ij}\), and the nudge rule gives \(\partial z_i/\partial W_{ij} = h_j\). So \(\partial L/\partial W_{ij} = (\partial L/\partial z_i)\,h_j = \delta_i h_j\). An input \(h_j\) is used by all the neurons, so by the rule of the last section its slope is a sum: \(\partial L/\partial h_j = \sum_i \delta_i W_{ij}\). That sum is the \(j\)th entry of \(W^\top\boldsymbol\delta\).</p>
+  <p>Now the tiny network in this form, with the numbers of the first figure. Its output layer has \(\delta^{[2]} = p - y = -0.658\). The slope sent back to \(\mathbf{h}\) is \(W^{[2]\top}\delta^{[2]} = (0.9, -0.8) \times (-0.658) = (-0.592, 0.526)\). Multiplying entry by entry with the tanh slopes \((0.978, 0.980)\) gives \(\boldsymbol\delta^{[1]} = (-0.579, 0.516)\). Then \(\partial L/\partial W^{[1]}\) is the outer product of \(\boldsymbol\delta^{[1]}\) and \(\mathbf{x} = (0.22, 0.21)\). It is the 2 by 2 table \(\begin{pmatrix} -0.127 & -0.122\\ 0.114 & 0.108 \end{pmatrix}\), the same four slopes the graph found.</p>
+  <p><b>A practical note on batches.</b> With \(m\) examples, the slope of the average loss is the average of the per-example slopes, so \(\partial L/\partial W = \tfrac{1}{m}\Delta^\top H\). If you sum instead of averaging, all slopes are \(m\) times larger and the same \(\eta\) acts like a step \(m\) times bigger. Forgetting the \(1/m\) is a common reason why a network works at batch size 1 and diverges at batch size 64. Layers in working models have hundreds or thousands of neurons, but the three formulas are the same.</p>
+  <div class="eqn" role="img" aria-label="Slope of W entry equals delta times h"><span class="t c-coral"><b>&minus;0.5</b><i>&delta;<sub>1</sub></i></span><span class="op">&times;</span><span class="t c-navy"><b>2.0</b><i>h<sub>2</sub></i></span><span class="op">=</span><span class="t c-coral"><b>&minus;1.0</b><i>&part;L/&part;W<sub>12</sub></i></span></div>
+  <p class="math">\[ \boldsymbol\delta^{[l]} = \Big(W^{[l+1]\top}\boldsymbol\delta^{[l+1]}\Big)\odot g'\big(\mathbf{z}^{[l]}\big),\qquad \frac{\partial L}{\partial W^{[l]}} = \boldsymbol\delta^{[l]}\,\mathbf{h}^{[l-1]\top},\qquad \frac{\partial L}{\partial \mathbf{b}^{[l]}} = \boldsymbol\delta^{[l]} \]</p>
+  <ul class="math-notes">
+    <li><b>\([l]\)</b> is the layer number. \(\mathbf{h}^{[l-1]}\) is the layer's input, and \(\mathbf{h}^{[0]} = \mathbf{x}\).</li>
+    <li><b>\(\boldsymbol\delta^{[l]}\)</b> is the slope of the loss with respect to \(\mathbf{z}^{[l]}\). The first formula sends it backward one layer: multiply by \(W^\top\), then by the activation's slope.</li>
+    <li><b>\(\odot\)</b> multiplies two vectors entry by entry. <b>\(g'\)</b> is the slope of the activation, for example \(1 - \tanh^2 z\).</li>
+    <li>The slope of \(W\) is the outer product of \(\boldsymbol\delta^{[l]}\) and the input \(\mathbf{h}^{[l-1]}\); the slope of \(\mathbf{b}\) is \(\boldsymbol\delta^{[l]}\) itself.</li>
+  </ul>
+  <p>Here is the tiny network with arrays. The first block writes the forward pass and the backward pass by hand. It prints the same slopes that the graph showed.</p>
+<pre class="code" data-run><code>import numpy as np
+
+x = np.array([0.22, 0.21]); y = 1.0            # Tag 3305, scaled; label: adult
+W1 = np.array([[0.8, -0.6], [-0.4, 0.7]]); b1 = np.array([0.1, -0.2])
+W2 = np.array([0.9, -0.8]);                 b2 = -0.9
+
+def forward(W1, b1, W2, b2):
+    z1 = W1 @ x + b1;  h = np.tanh(z1)
+    z2 = W2 @ h + b2;  p = 1 / (1 + np.exp(-z2))
+    return z1, h, p, -np.log(p)                  # y = 1, so the loss is -ln p
+
+z1, h, p, loss = forward(W1, b1, W2, b2)
+d2 = p - y                      # slope at the output score
+dW2, db2 = d2 * h, d2           # product node: the slope of W2 uses h
+dh = d2 * W2                    # and the slope of h uses W2
+d1 = dh * (1 - h ** 2)          # through tanh
+dW1, db1 = np.outer(d1, x), d1  # outer product of slope and input
+
+print("p =", round(p, 4), " loss =", round(loss, 4))
+print("dW1 =", dW1.round(4).tolist())
+print("db1 =", db1.round(4).tolist(), " dW2 =", dW2.round(4).tolist(), " db2 =", round(db2, 4))</code></pre>
+<pre class="out">p = 0.3421  loss = 1.0726
+dW1 = [[-0.1274, -0.1216], [0.1135, 0.1084]]
+db1 = [-0.579, 0.516]  dW2 = [-0.098, 0.0922]  db2 = -0.6579</pre>
+  <p>PyTorch builds the graph while the forward pass runs, and <code>loss.backward()</code> walks it backward. This is automatic differentiation: the library applies the rules of this chapter for you (<a href="../t1-python/#torch">0.1</a>). The numbers match the hand-written version.</p>
+<pre class="code"><code>import numpy as np, torch
+
+x = torch.tensor([0.22, 0.21], dtype=torch.float64); y = 1.0
+W1 = torch.tensor([[0.8, -0.6], [-0.4, 0.7]], dtype=torch.float64, requires_grad=True)
+b1 = torch.tensor([0.1, -0.2], dtype=torch.float64, requires_grad=True)
+W2 = torch.tensor([0.9, -0.8], dtype=torch.float64, requires_grad=True)
+b2 = torch.tensor(-0.9, dtype=torch.float64, requires_grad=True)
+
+h = torch.tanh(W1 @ x + b1)
+p = torch.sigmoid(W2 @ h + b2)
+loss = -torch.log(p)            # y = 1
+loss.backward()                 # one backward pass fills every .grad
+
+print("loss =", round(loss.item(), 4))
+print("W1.grad =", W1.grad.numpy().round(4).tolist())
+print("b1.grad =", b1.grad.numpy().round(4).tolist(), " W2.grad =", W2.grad.numpy().round(4).tolist(), " b2.grad =", round(b2.grad.item(), 4))</code></pre>
+<pre class="out">loss = 1.0726
+W1.grad = [[-0.1274, -0.1216], [0.1135, 0.1084]]
+b1.grad = [-0.579, 0.516]  W2.grad = [-0.098, 0.0922]  b2.grad = -0.6579</pre>
+  <div class="break">
+    <p><b>Common belief.</b> The slope that goes back through a layer uses the same matrix \(W\) as the forward pass.</p>
+    <p><b>Why it fails.</b> Going forward, a neuron sums over its inputs, so \(W\) turns three inputs into two scores. Going back, an input collects slopes from all the neurons that read it, so the map turns two slopes into three. The 2 by 3 matrix \(W\) cannot multiply a list of 2 slopes. The 3 by 2 matrix \(W^\top\) can.</p>
+    <p><b>Better account.</b> The forward pass uses \(W\) and the backward pass uses \(W^\top\). The numbers are the same, read down the columns instead of along the rows.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> The slope of an array must have the same size as the array. If <code>dW1</code> comes out with a different size from <code>W1</code>, a transpose or an outer product is wrong. The update <code>W1 -= eta * dW1</code> will then either fail or quietly broadcast. Print the sizes of all arrays once.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A layer has 100 inputs and 50 neurons. What are the sizes of \(W\), \(\boldsymbol\delta\) and the slope of \(W\)?</summary><p>\(W\) is 50 by 100, \(\boldsymbol\delta\) has 50 entries and the slope of \(W\) is 50 by 100, the outer product of a 50-vector and a 100-vector. The slope sent to the inputs, \(W^\top\boldsymbol\delta\), has 100 entries.</p></details>
+    <details><summary>Why does a hidden unit with a zero input value give its weight a zero slope?</summary><p>The weight slope is \(\delta_i h_j\), and \(h_j = 0\) makes the product 0 whatever the arriving slope is.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. vanish ============================ -->
+<section id="vanish" aria-labelledby="vanish-h">
+  <h2 id="vanish-h">Long chains of small slopes</h2>
+  <p class="ask"><b>Guess first.</b> Take a chain of 12 layers with one sigmoid neuron, all with weights equal to 1. The output layer starts with a slope of 1. About how much slope reaches layer 1: close to 1, about 0.01, or less than 0.0000001?</p>
+  <dl class="terms">
+    <div><dt>vanishing gradient</dt><dd>the slope shrinks layer after layer on the way back, so early layers barely learn</dd></div>
+    <div><dt>exploding gradient</dt><dd>the slope grows layer after layer, so one step throws the early weights far away</dd></div>
+    <div><dt>saturated</dt><dd>stuck in a flat tail of an activation, where its slope is close to 0 (<a href="../t6-gradients/#rules">0.6</a>)</dd></div>
+  </dl>
+  <p class="claim">The slope that reaches layer \(k\) is a product with one factor per layer in between, so it shrinks or grows exponentially with depth.</p>
+  <div class="card" id="vn">
+    <div class="bar" id="vn-bar"></div>
+    <div class="controls" id="vn-controls"></div>
+    <div class="plot" id="vn-plot" role="img" aria-label="Slope arriving at each layer of a chain"></div>
+    <div class="eqn" id="vn-eqn"></div>
+    <p class="status" id="vn-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>With sigmoid units and weights of 1, the factor per layer is about 0.22, so layer 1 receives less than a ten-millionth of the output layer's slope.</b> That answers the guess.</p>
+  <p>The product is easy to write out. Layer \(j\) computes \(z_j = w\,h_{j-1}\) and \(h_j = g(z_j)\). The slope that arrives at layer \(k\) is \(s_k = \partial h_N/\partial h_k\). The chain rule gives \(s_k = s_{k+1}\cdot w\,g'(z_{k+1})\), and \(s_N = 1\), so \(s_k = \prod_{j=k+1}^{N} w\,g'(z_j)\). If the factor \(f = w\,g'\) were the same in all layers, then \(s_1 = f^{N-1}\). With \(f = 0.227\) and \(N = 12\), \(0.227^{11} \approx 8\times10^{-8}\). The figure shows \(7.5\times10^{-8}\), because the factor drifts a little from layer to layer.</p>
+  <p class="math">\[ s_k = \prod_{j=k+1}^{N} w\,g'(z_j) \qquad s_1 = f^{\,N-1}\ \text{when the factor } f = w\,g' \text{ is the same in all layers} \]</p>
+  <ul class="math-notes">
+    <li><b>\(s_k\)</b> is the slope that arrives at layer \(k\), starting from \(s_N = 1\) at the output. <b>\(w\)</b> is the weight of the chain and <b>\(g'(z_j)\)</b> the slope of the activation in layer \(j\).</li>
+    <li>A factor below 1 shrinks the slope exponentially with depth, and a factor above 1 grows it. The sigmoid's slope is at most 0.25, so with \(w = 1\) the factor is at most 0.25.</li>
+  </ul>
+  <div class="eqn" role="img" aria-label="Factor 1.2 to the power 29 is about 198; factor 0.8 to the power 29 is about 0.0015"><span class="t c-navy"><b>f = 1.2</b><i>factor, ReLU on</i></span><span class="op">&rarr; 30 layers &rarr;</span><span class="t c-sand"><b>1.2<sup>29</sup> &asymp; 198</b><i>slope at layer 1 (explodes)</i></span><span class="op">|</span><span class="t c-navy"><b>f = 0.8</b><i>factor</i></span><span class="op">&rarr; 30 layers &rarr;</span><span class="t c-coral"><b>0.8<sup>29</sup> &asymp; 0.0015</b><i>slope at layer 1 (vanishes)</i></span></div>
+  <p>This second example uses ReLU and 30 layers and shows how thin the balance is. A weight of 1.2 makes the slope 198 times larger at layer 1. A weight of 0.8 makes it about 0.0015 times as large. A change of 20% in either direction pushes the chain out of balance.</p>
+  <p>A layer in the chain multiplies the arriving slope by its weight and by its activation's slope. The sigmoid's slope never exceeds 0.25 (<a href="../t6-gradients/#rules">0.6</a>), so a chain of sigmoids needs weights above 4 to keep the slope alive. Switch to ReLU. Its slope is 1 while the unit is on, so the factor is just the weight. A weight below 1 makes the slope vanish, and a weight above 1 makes it explode. Tanh lies between the two, and its slope also falls when the unit saturates.</p>
+  <p><b>Where this picture is too simple.</b> A layer in a working network has many units, and its factor is the size of a whole matrix times the activation slopes. What matters is how much that matrix stretches the slope vector on average. Some directions can shrink while others grow, so the pattern in a deep network is rougher than a clean power of one number. <b>In practice</b>, a deep sigmoid network trains badly with plain random weights, and the trouble grows with depth. Exploding slopes show up as a loss that jumps to a huge value or to NaN. The usual remedies are a better weight scale and normalisation (<a href="../b6-deep-networks/#xavier">B6</a>) and, for explosions, a clip on the size of the slope (<a href="../b8-debugging/">B8</a>). A common mistake is to swap sigmoid for ReLU and assume the problem is gone. ReLU gives a slope of 1 only while the unit is on, and a unit that is off passes no slope back.</p>
+  <p>This chapter only shows the arithmetic. <a href="../b6-deep-networks/#signal">B6</a> measures it layer by layer in a deep network and shows the three fixes: a good starting scale for the weights, normalisation layers and residual connections. <a href="../b8-debugging/">B8</a> shows how to detect the problem by printing gradient sizes per layer.</p>
+  <div class="break">
+    <p><b>Analogy.</b> A message whispered down a line of people, where a person repeats it at 22% of the volume they heard.</p>
+    <p><b>Where it breaks.</b> The people in a line only lose volume. A network layer also mixes many inputs, so some paths can stay strong while others fade. A weight above 1 turns the line into a chain of people who shout. The analogy has no way to show the shouting case.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If the weights of the first layers barely change while the last layers' weights move a lot, print the size of the slope per layer. A drop of a factor of 10 per layer is a vanishing gradient.</p>
+  </div>
+  <p class="used"><b>Used in:</b> <a href="../b6-deep-networks/#signal">B6</a> (initialisation, normalisation, residual connections) and <a href="../b8-debugging/">B8</a> (gradient norms per layer, clipping).</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Weights are 1 and the activation is ReLU with the unit on. What is the factor per layer?</summary><p>\(1 \times 1 = 1\): the weight times the ReLU slope. The slope neither vanishes nor explodes, until a unit goes off and its slope becomes 0.</p></details>
+    <details><summary>With sigmoids and weights of 1, about how many layers does it take for the slope to fall below one in a million?</summary><p>The factor is about 0.22, and \(0.22^{9} \approx 1 \times 10^{-6}\), so about 9 to 10 layers.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 6. check ============================ -->
+<section id="check" aria-labelledby="check-h">
+  <h2 id="check-h">Gradient checking</h2>
+  <p class="ask"><b>Guess first.</b> You can test a slope by nudging a weight up and down by a small \(h\), running the network at both nudges, and comparing the two losses. Which \(h\) gives the best estimate: 0.1, 0.00001 or \(10^{-15}\), the smallest number you can think of? And how many extra runs of the network does the test need for all nine numbers?</p>
+  <dl class="terms">
+    <div><dt>finite difference</dt><dd>a slope estimated from two nearby points instead of a formula</dd></div>
+    <div><dt>central difference</dt><dd>the slope estimated from \(w + h\) and \(w - h\); more accurate than nudging in one direction only</dd></div>
+    <div><dt>relative error</dt><dd>the gap between two numbers divided by their sizes, so it does not depend on the units</dd></div>
+    <div><dt>gradient checking</dt><dd>comparing the backprop slopes with finite differences to find mistakes in the backward code</dd></div>
+  </dl>
+  <p class="claim">A nudge that is too large and a nudge that is too small both give a wrong slope, and the best size lies in between.</p>
+  <div class="card" id="ck">
+    <div class="bar" id="ck-bar"></div>
+    <div class="controls" id="ck-controls"></div>
+    <div class="plot" id="ck-plot" role="img" aria-label="Relative error against nudge size"></div>
+    <div class="eqn" id="ck-eqn"></div>
+    <p class="status" id="ck-status" aria-live="polite"></p>
+    <table class="ck-table"><thead><tr><th>parameter</th><th>backprop</th><th>nudging</th><th>relative error</th><th>verdict</th></tr></thead><tbody id="ck-tbody"></tbody></table>
+    <div class="readout" id="ck-cost"></div>
+  </div>
+  <p class="cap"><b>The central-difference error falls to about \(10^{-11}\) near \(h = 10^{-5}\) and then rises again on both sides. A bug in the backward code keeps the error large for all \(h\).</b> The check needs 18 runs of the network for nine numbers.</p>
+  <p>Here is one slope by hand. Take \(w_{11} = 0.8\) and \(h = 0.01\). Rerunning the network with \(w_{11} = 0.81\) gives \(L = 1.071376\), and with \(w_{11} = 0.79\) gives \(L = 1.073924\).</p>
+  <div class="eqn" role="img" aria-label="Central difference of the loss for w11 equals minus 0.002548 divided by 0.02, which is minus 0.12738, matching backprop minus 0.12738"><span class="t c-navy"><b>L = 1.071376</b><i>at w + h</i></span><span class="op">&minus;</span><span class="t c-navy"><b>L = 1.073924</b><i>at w &minus; h</i></span><span class="op">=</span><span class="t"><b>&minus;0.002548</b><i>difference</i></span><span class="op">&divide;</span><span class="t"><b>0.02</b><i>2h</i></span><span class="op">=</span><span class="t c-teal"><b>&minus;0.12738</b><i>central estimate</i></span><span class="op">vs</span><span class="t c-coral"><b>&minus;0.12738</b><i>backprop</i></span></div>
+  <p>The one-sided estimate at the same \(h\) is \((1.071376 - 1.072649)/0.01 = -0.12729\), off in the fourth digit. The central estimate agrees to six digits. Why? Write the loss near \(w\) as a polynomial in \(h\), the Taylor series:</p>
+  <p class="math">\[ L(w \pm h) = L \pm h\,L_1 + \tfrac12 h^2 L_2 \pm \tfrac16 h^3 L_3 + \dots \]</p>
+  <ul class="math-notes">
+    <li>Here \(L_1\) is the slope \(\partial L/\partial w\), \(L_2\) the curvature and \(L_3\) the next derivative of the loss along this one weight, all taken at \(w\).</li>
+    <li>Subtract \(L\) and divide by \(h\): the forward estimate is \(L_1 + \tfrac12 hL_2 + \dots\), so its error is about \(\tfrac12 hL_2\).</li>
+    <li>Subtract the two lines and divide by \(2h\): the even terms cancel and the central estimate is \(L_1 + \tfrac16 h^2 L_3 + \dots\), so its error is about \(\tfrac16 h^2 L_3\).</li>
+  </ul>
+  <p>Round-off adds a second error. A computer stores a number with a relative accuracy of about \(\varepsilon \approx 2\times10^{-16}\) in float64. A computed loss is off by about \(\varepsilon L\), so the difference divided by \(2h\) is off by about \(\varepsilon L/h\). The total error is about \(\tfrac16 h^2 L_3 + \varepsilon L/h\). It is smallest when \(h\) is near \(\varepsilon^{1/3} \approx 6\times10^{-6}\), up to the sizes of \(L\) and \(L_3\). That matches the dip of the curve in the figure. In float32 (\(\varepsilon \approx 10^{-7}\)) the best \(h\) is near 0.005 and the best error is only about three or four digits, so checks are done in float64.</p>
+  <p>The check uses the network of the last figure, with its current weights (change them in the graph above). Drag \(h\) from large to small and watch the error curve. For a large \(h\), the loss curve bends between \(w - h\) and \(w + h\), and the straight line through the two points no longer matches the slope. For a tiny \(h\), the two losses agree in their first 15 or so digits, and the computer keeps only about 16, so subtracting them leaves noise. The central difference beats the one-sided version at the same \(h\) because its bending error cancels to first order.</p>
+  <p>Then switch on a bug. The error jumps to 0.01 or more and stays there however you move \(h\). That is the signal gradient checking gives: correct slopes agree to many digits at a good \(h\), while a wrong formula disagrees at the first or second digit.</p>
+  <p><b>In practice.</b> For a large model you do not check all weights. Pick a few random weights from the layers and compare those. Use relative error, not the plain gap, because slopes in different layers have very different sizes. Typical readings in float64 are \(10^{-8}\) to \(10^{-11}\) for correct code and \(10^{-2}\) or worse for a wrong formula. Common mistakes are running the check in float32, leaving dropout on so that the loss changes between runs, and checking after an optimiser step instead of at the same weights.</p>
+  <p>The check is far too slow for training. It needs two runs of the whole network per weight, so GPT-2 Small (124 million weights) would need about 248 million runs for one step. Backpropagation needs one forward pass and one backward pass, whatever the number of weights. Use the check once, on a small network and one example, whenever you write new backward code.</p>
+  <p class="math">\[ \frac{L(w+h)-L(w)}{h}\;\;\text{(forward)}\qquad \frac{L(w+h)-L(w-h)}{2h}\;\;\text{(central)}\qquad \text{error} = \frac{\lVert \mathbf{a}-\mathbf{b}\rVert}{\lVert \mathbf{a}\rVert + \lVert \mathbf{b}\rVert} \]</p>
+  <ul class="math-notes">
+    <li><b>\(h\)</b> is the nudge and <b>\(L(w+h)\)</b> the loss with that one weight raised by \(h\). The first two formulas are estimates of \(\partial L/\partial w\).</li>
+    <li>The forward estimate is off by an amount that grows in proportion to \(h\); the central estimate is off by an amount that grows like \(h^2\). Round-off adds an error that grows like \(1/h\).</li>
+    <li><b>\(\mathbf{a}\)</b> is the vector of backprop slopes and <b>\(\mathbf{b}\)</b> the vector of nudge estimates. Rules of thumb vary. For smooth networks in float64, an error near \(10^{-7}\) or below is a good sign, and an error of \(10^{-3}\) or more points to a bug.</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> A slope is the limit as \(h\) goes to 0, so the smaller the \(h\), the better the estimate.</p>
+    <p><b>Why it fails.</b> A computer stores about 16 digits. With \(h = 10^{-15}\), \(L(w+h)\) and \(L(w-h)\) are equal in nearly all of them, and their difference is mostly rounding noise.</p>
+    <p><b>Better account.</b> Pick an \(h\) near \(10^{-5}\) in float64 and use the central difference. In float32 (about 7 digits) the best \(h\) is much larger, which is why gradient checks are run in double precision. PyTorch's <code>gradcheck</code> expects double inputs and uses a nudge of \(10^{-6}\) by default.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Check one small network and one example. Switch off dropout and any random augmentation (the loss must be the same on a second run), and use float64. A ReLU unit whose score is within \(h\) of 0 can make the check disagree even when the code is right, because the nudge crosses the corner.</p>
+  </div>
+<pre class="code" data-run><code>import numpy as np
+
+x = np.array([0.22, 0.21])
+theta = np.array([0.8, -0.6, -0.4, 0.7, 0.1, -0.2, 0.9, -0.8, -0.9])   # W1 (4), b1 (2), W2 (2), b2
+
+def loss_and_grad(t):
+    W1, b1, W2, b2 = t[:4].reshape(2, 2), t[4:6], t[6:8], t[8]
+    h = np.tanh(W1 @ x + b1)
+    p = 1 / (1 + np.exp(-(W2 @ h + b2)))
+    d2 = p - 1.0
+    d1 = d2 * W2 * (1 - h ** 2)
+    return -np.log(p), np.concatenate([np.outer(d1, x).ravel(), d1, d2 * h, [d2]])
+
+_, g = loss_and_grad(theta)
+for h in [1e-1, 1e-3, 1e-5, 1e-8, 1e-12, 1e-15]:
+    est = np.zeros(9)
+    for i in range(9):
+        up, dn = theta.copy(), theta.copy()
+        up[i] += h; dn[i] -= h
+        est[i] = (loss_and_grad(up)[0] - loss_and_grad(dn)[0]) / (2 * h)
+    err = np.linalg.norm(g - est) / (np.linalg.norm(g) + np.linalg.norm(est))
+    print(f"h = {h:.0e}  relative error = {err:.1e}")</code></pre>
+<pre class="out">h = 1e-01  relative error = 1.0e-03
+h = 1e-03  relative error = 1.0e-07
+h = 1e-05  relative error = 8.2e-12
+h = 1e-08  relative error = 9.0e-09
+h = 1e-12  relative error = 1.1e-04
+h = 1e-15  relative error = 1.1e-01</pre>
+  <p class="used"><b>Used in:</b> any new layer or loss you write by hand (this is the first test to run), and <a href="../b8-debugging/">B8</a>, where gradient checking joins the other debugging steps.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The backprop slope is −0.1274 and the nudge estimate is −0.1273. Is the code probably right?</summary><p>The relative error is \(0.0001/0.2547 \approx 4\times10^{-4}\). That is in the grey zone between a good sign and a bug, so look closer: try a smaller \(h\) and the central difference first. A correct backward pass reaches \(10^{-7}\) or better at a good \(h\).</p></details>
+    <details><summary>Why does the central difference need two runs per weight, and is that worth it?</summary><p>It evaluates the loss at \(w + h\) and \(w - h\). Its error shrinks like \(h^2\) instead of \(h\), so it reaches a much lower error at the same \(h\), which is worth the extra run in a test you only run once.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> A node computes \(s = u\,v + u\). At \(u = 2\), \(v = 3\), find \(\partial s/\partial u\) and \(\partial s/\partial v\). If the slope arriving at \(s\) is 5, what slope reaches \(u\) and what slope reaches \(v\)? Why does \(u\) get contributions from two places?</p>
+        <details class="hint"><summary>Hint</summary><p>Write the two terms of \(s\) separately and give \(u\) a slope from both.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> Show that for a sigmoid output \(p = \sigma(z_o)\) and log loss, the slope \(\partial\ell/\partial z_o\) equals \(p - y\) both for \(y = 1\) and for \(y = 0\). Evaluate it for the starting network (\(p = 0.342\)) with either label.</p>
+        <details class="hint"><summary>Hint</summary><p>For \(y=1\): \(\ell = -\ln p\), so \(\partial\ell/\partial p = -1/p\). Multiply by \(p(1-p)\). For \(y=0\), \(\ell = -\ln(1-p)\).</p></details></li>
+      <li><p><span class="ex-tag">theory</span> One run of a network takes 50 ms. How long does a central-difference check of all the weights take for the nine-weight network, and for GPT-2 Small with 124 million weights? Compare with backprop, which costs about three runs in total.</p></li>
+      <li><p><span class="ex-tag">theory</span> In a chain of sigmoid layers with weights 1, a layer multiplies the slope by at most 0.25. How many layers can the slope cross before it is below \(10^{-6}\) in the best case? Why does the slope usually fall below that level sooner?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Load the 268 spadenose records from the made-up catch table. Standardise length and girth, and train the two-layer tanh network of this chapter (two hidden units, label: mature) by full-batch gradient descent with your own NumPy backprop. Report the log loss and accuracy after 2,000 steps with \(\eta = 0.5\), and compare with the logistic regression of <a href="../a3-logistic-regression/#train">A3</a> (log loss 0.2318).</p></li>
+      <li><p><span class="ex-tag">practice</span> Take the gradient-check code above and break the backward pass on purpose in three different ways. Drop the tanh slope, flip a sign, and pick one more yourself. For any bug, print the relative error per parameter and say which parameters the check blames.</p></li>
+      <li><p><span class="ex-tag">practice</span> Rebuild the network in PyTorch in float64 and train it for 20 steps with <code>torch.optim.SGD</code>. Check that the weights after the first step agree with your NumPy update to 10 decimals.</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> Your gradient check passes on a tiny network at random weights, but training the big network diverges. List three reasons the check can pass while training fails, and say how you would test it.</p></li>
+      <li><p><span class="ex-tag">open</span> The backward pass needs the forward values, so a very deep network must keep all of them in memory. Suggest ways to trade memory for extra computation, and say when it would be worth it.</p></li>
+      <li><p><span class="ex-tag">open</span> At the starting weights, the slope of the loss with respect to the two inputs is about \(-0.67\) and \(+0.71\). A reader says "so a longer shark looks less adult to this network and a wider one more adult". What would you check before trusting that sentence? (<a href="../b9-explaining/">B9</a> returns to input slopes.)</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Try these after two days and again after a week, before you open the answers.</p>
+  <div class="recall comeback">
+    <details><summary>Log loss with a sigmoid output has slope \(p - y\) at the score (<a href="../a3-logistic-regression/#train">A3</a>). A shark is an adult, \(y = 1\), and the network says \(p = 0.9\). What is the slope, and what does its sign say about the score?</summary><p>\(0.9 - 1 = -0.1\). A negative slope means that raising the score lowers the loss, so the update pushes the score up, but gently because \(p\) is already close to 1.</p></details>
+    <details><summary>A weight's slope is \(\delta_i h_j\). Why did <a href="../a2-linear-regression/#scaling">A2</a> rescale the length column before gradient descent, and how does this chapter's formula show the problem?</summary><p>A column in centimetres has large values, so the weight attached to it gets slopes that are large compared with the slopes of the bias. The valley of the loss becomes long and narrow, and one learning rate suits neither direction. Standardised columns make the slopes comparable.</p></details>
+    <details><summary>The local slopes along a chain are 3, 0.5 and 0.1 (<a href="../t6-gradients/#chain">0.6</a>). What slope arrives at the start? What if the last local slope were a ReLU's 0?</summary><p>\(3 \times 0.5 \times 0.1 = 0.15\). With a 0 anywhere in the chain the product is 0, so no slope arrives and the weights upstream get none at all.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Karpathy, A. <i>micrograd</i>, a tiny scalar-valued autograd engine and neural network library (about 100 and 50 lines). The style of the step-through figure follows it. <a href="https://github.com/karpathy/micrograd">github.com/karpathy/micrograd</a></li>
+    <li>PyTorch documentation. <i>torch.autograd.gradcheck</i>: compares finite-difference and analytical gradients; the defaults (eps 1e-6, atol 1e-5, rtol 1e-3) are designed for double-precision inputs. <a href="https://docs.pytorch.org/docs/stable/generated/torch.autograd.gradcheck.gradcheck.html">docs.pytorch.org</a></li>
+    <li>Rayhaan's optimizer-state primer gives the size of GPT-2 Small (124 million weights). <a href="https://rayhaan1345.github.io/projects/optimizer-state/primer/">rayhaan1345.github.io/projects/optimizer-state/primer/</a></li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="b4-backpropagation.js?v=1" defer></script>
+</body>
+</html>

@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why non-linearity matters | How AI Learns</title>
+<meta name="description" content="One neuron cuts the plane with a straight line, so it fails on XOR and on a disc inside a ring. Lift the circles into 3D, see why stacked layers collapse without a bend, and train a small network in your browser.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Local additions for this chapter only. */
+ol.steps { max-width: 46em; margin: 0 0 14px; padding-left: 1.4em; color: var(--ink-2); }
+ol.steps li { margin: 6px 0; }
+.mxrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; margin: 12px 0 0; }
+.mxrow .op { font-size: 19px; color: var(--ink-2); }
+.mxt { flex: 0 0 100%; font-family: "Spectral SC", Georgia, serif; font-size: 13.5px; letter-spacing: 0.04em; color: var(--muted); margin-bottom: -2px; }
+.mxg { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.mxl { font-size: 12.5px; color: var(--muted); }
+table.mx { border-collapse: collapse; border-left: 2px solid var(--ink-2); border-right: 2px solid var(--ink-2); border-radius: 4px; margin: 0; font-feature-settings: "tnum" 1, "lnum" 1; }
+table.mx td { padding: 2px 5px; text-align: right; font-size: 15.5px; color: var(--ink); min-width: 2.3em; }
+.mxg.hi table.mx { border-color: var(--teal); }
+.mxg.hi table.mx td { color: var(--link-hover); font-weight: 600; }
+input.mi { width: 3.6em; font: inherit; font-size: 15px; padding: 2px 4px; text-align: right; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+#bd-map { display: block; border-radius: 4px; max-width: 100%; }
+.pl-main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px 22px; align-items: start; margin-top: 8px; }
+.pl-net { position: relative; width: 100%; }
+.pl-node { position: absolute; border-radius: 3px; }
+.pl-ct { position: absolute; top: 0; text-align: center; font-family: "Spectral SC", Georgia, serif; font-size: 12.5px; letter-spacing: 0.03em; color: var(--muted); }
+.pl-nl { position: absolute; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+#pl-map { display: block; border-radius: 4px; max-width: 100%; }
+.pl-out p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.pl-sub { margin: 14px 0 4px; font-size: 14px; color: var(--ink-2); }
+.pl-sub b { color: var(--ink); }
+@media (max-width: 760px) { .pl-main { grid-template-columns: minmax(0, 1fr); } }
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="b2">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part B, Neural networks</span><span>Chapter B2</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part B &middot; Chapter B2</p>
+  <h1>Why non-linearity matters</h1>
+  <p class="subtitle">One neuron draws one straight line. Lift the inputs into a new dimension, or stack neurons with a bend between them, and the line becomes a curve.</p>
+</header>
+
+<div class="tldr">
+  <p>A single neuron can only cut the plane with a straight line, so it fails on XOR and on a disc inside a ring. This chapter shows two ways out. The first lifts the circles into 3D, where a flat plane separates them. The second stacks neurons into hidden layers, which learn such lifts by themselves. It also shows why the stack needs a bend, a non-linear activation: without one, any number of layers collapses into a single layer. You train a small network in your browser and watch what its hidden units learn.</p>
+  <p>The points in the figures are toy points made up for this chapter. The sharks return in the code, where a small network sorts milk sharks from bamboo sharks.</p>
+</div>
+<p class="youneed"><b>You will need:</b> <a href="../b1-one-neuron/#neuron">B1</a> (the neuron and its activations), the <a href="../t4-discrete-maths/#logic">XOR truth table</a>, the <a href="../t5-vectors-matrices/#products">matrix product</a>, and the <a href="../a3-logistic-regression/#boundary">decision boundary</a> of A3.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#one">One neuron is not enough</a></li>
+    <li><a href="#lift">Lift the circles</a></li>
+    <li><a href="#bend">Two layers need a bend</a></li>
+    <li><a href="#play">A network that learns its own features</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. one neuron is not enough ============================ -->
+<section id="one" aria-labelledby="one-h">
+  <h2 id="one-h">One neuron is not enough</h2>
+  <p class="ask"><b>Guess first.</b> In <a href="../t4-discrete-maths/#logic">0.4</a> the best straight line for the four XOR corners got 3 of 4 right. Here are three sets of 200 made-up points: two blobs, the XOR pattern, and a disc inside a ring. What share of the points would you expect the best straight line to get right in the three sets? Would ten times more training time change the answer?</p>
+  <dl class="terms">
+    <div><dt>linearly separable</dt><dd>some straight line puts the two classes on opposite sides</dd></div>
+    <div><dt>XOR</dt><dd>1 when the two inputs differ (<a href="../t4-discrete-maths/#logic">0.4</a>); here, a point is class 1 when \(x\) and \(y\) have different signs</dd></div>
+    <div><dt>concentric circles</dt><dd>a disc and a ring around it, with the same centre</dd></div>
+    <div><dt>non-linear</dt><dd>not a straight line or a flat plane: a rule whose boundary bends</dd></div>
+  </dl>
+  <p class="claim">A neuron cuts the plane with one straight line. Where no straight line can separate the classes, as in XOR and in a disc inside a ring, the neuron fails whatever its activation and however long it trains.</p>
+  <div class="card" id="on">
+    <div class="bar"><span class="label">Points</span><div id="on-kind"></div></div>
+    <div class="controls" id="on-controls"></div>
+    <div class="bar" id="on-bar"></div>
+    <div class="plot tall" id="on-plot" role="img" aria-label="Made-up points of two classes on a plane, with a movable straight line and the side it calls class 1 shaded. For two blobs a line separates them; for XOR and for circles no line does"></div>
+    <div class="eqn" aria-live="polite">
+      <span class="t c-coral"><b id="on-w1">0</b><i>weight \(w_1\)</i></span><span class="op">&times;</span><span class="t c-navy"><b>x</b><i>input</i></span><span class="op">+</span>
+      <span class="t c-coral"><b id="on-w2">0</b><i>weight \(w_2\)</i></span><span class="op">&times;</span><span class="t c-navy"><b>y</b><i>input</i></span><span class="op">+</span>
+      <span class="t c-sand"><b id="on-b">0</b><i>bias \(b\)</i></span><span class="op">&ge; 0 &rarr; call 1</span>
+    </div>
+    <div class="readout"><span>Right: <b id="on-acc">0</b></span><span>Wrong: <b id="on-wrong">0</b></span><span>Best any straight line can do here: <b id="on-best">0</b></span></div>
+    <p class="status" id="on-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>The best straight line gets 100% of the two blobs, about 75% to 80% of the XOR points (which random points you draw changes it a little) and about 70% of the circles.</b></p>
+  <p>Navy circles are class 0 and coral diamonds are class 1. The two sliders place a line, and the coral shading is the side that the neuron calls 1. A dark ring marks a point called wrong. Press "Find the best line" and the computer tries 360 directions, and for any direction it picks the best position of the cut. The boxes under the plot give the dials of the neuron that draws your line. The line \(\cos\theta\; x + \sin\theta\; y = c\) is where \(z = 0\), for the weights \((\cos\theta, \sin\theta)\) and the bias \(-c\). So all you see here is one neuron, with the activation left out because it does not move the line (<a href="../b1-one-neuron/#neuron">B1</a>).</p>
+  <p class="math">\[ z = w_1 x + w_2 y + b \qquad \text{call 1 when } z \ge 0 \qquad (w_1, w_2, b) = (\cos\theta,\ \sin\theta,\ -c) \]</p>
+  <ul class="math-notes">
+    <li><b>\(x, y\)</b> are the two inputs of a point, <b>\(w_1, w_2\)</b> the weights and <b>\(b\)</b> the bias of the neuron (<a href="../b1-one-neuron/#neuron">B1</a>).</li>
+    <li><b>\(\theta\)</b> is the direction of the line (the first slider) and <b>\(c\)</b> its position (the second slider). The line is where \(z = 0\).</li>
+  </ul>
+  <p>Why can no line work for XOR? Write the four corners as inputs \((x_1, x_2)\). Ask for \(z = w_1 x_1 + w_2 x_2 + b\) to be negative for class 0 and zero or positive for class 1. The four demands contradict one another:</p>
+  <ol class="steps">
+    <li>The corner \((0,0)\) is class 0, so \(b < 0\).</li>
+    <li>The corners \((1,0)\) and \((0,1)\) are class 1, so \(w_1 + b \ge 0\) and \(w_2 + b \ge 0\). Add them: \(w_1 + w_2 + 2b \ge 0\).</li>
+    <li>The corner \((1,1)\) is class 0, so \(w_1 + w_2 + b < 0\). Add \(b < 0\) from step 1: \(w_1 + w_2 + 2b < 0\).</li>
+    <li>Steps 2 and 3 say that one number is both at least 0 and below 0. No weights and bias exist.</li>
+  </ol>
+  <p>Minsky and Papert analysed this limit of single-layer perceptrons in their 1969 book <i>Perceptrons</i>, and XOR is the smallest example. The circles have the same flaw, seen as a picture. Take two ring points on opposite sides, such as \((0.8, 0)\) and \((-0.8, 0)\). If one side of a line contains both, it also contains all the points between them, because a straight line cannot bend away from the segment. The midpoint \((0, 0)\) is in the disc, which is class 0. So no side of any line contains all the ring points and none of the disc points. The XOR proof and the circle argument both use one fact: a flat side contains the middle of any two of its points.</p>
+  <div class="break">
+    <p><b>Common belief.</b> If a neuron scores badly, give it more data or train it for longer.</p>
+    <p><b>Why it fails.</b> Training only searches over lines. The best line is already in the search, and the search finds it quickly. After that the score cannot rise, and 75% for XOR is the ceiling.</p>
+    <p><b>Better account.</b> Change what the model can express: add an input that bends the problem (next section), or add more neurons with a bend between them (the last two sections).</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If training accuracy stalls at a number that is not close to 100% and does not move when you train longer, ask whether any straight line could do better. Plot the two classes. Corners, rings and spirals are the usual reasons.</p>
+  </div>
+  <p class="used"><b>In practice:</b> a straight-line model is the first baseline to try (<a href="../a1-what-is-a-model/#lazy">A1</a>, <a href="../a3-logistic-regression/#train">A3</a>). If it already scores near 100%, a network adds cost and no benefit. If it stalls well below, the data has a bend in it. The brute-force search below is a quick way to learn a line's ceiling.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+rng = np.random.default_rng(1)
+x = rng.uniform(-1, 1, size=(200, 2))                # 200 made-up points
+y = (x[:, 0] * x[:, 1] < 0).astype(int)              # XOR: class 1 when the signs differ
+
+angles = rng.uniform(0, np.pi, 20000)                # 20,000 random lines
+cuts = rng.uniform(-1, 1, 20000)
+best = 0.0
+for a, c in zip(angles, cuts):
+    side = x @ np.array([np.cos(a), np.sin(a)]) >= c
+    acc = max(np.mean(side == y), np.mean(side != y))    # allow either side to be class 1
+    best = max(best, acc)
+print(f"best of 20,000 lines on XOR: {best:.3f}")</code></pre>
+  <pre class="out">best of 20,000 lines on XOR: 0.730</pre>
+  <p>The best of 20,000 random lines scores 0.73. The ceiling is about 0.75: a line can get three of the four corner regions right, and the random scatter moves the score a little either way.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A friend trains a sigmoid neuron on the circles for a million steps and gets 70%. What would a billion steps give?</summary><p>About 70% again. The best line is already found, so the score is capped by the model and not by training time.</p></details>
+    <details><summary>Which points do the circles and XOR arguments both use to show that no line works?</summary><p>The midpoint of two points on the same side. In XOR it is \((0.5, 0.5)\) between the two class 1 corners, and for the circles it is the centre between two ring points. The midpoint lies on the same side as both, but belongs to the other class.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. lift ============================ -->
+<section id="lift" aria-labelledby="lift-h">
+  <h2 id="lift-h">Lift the circles</h2>
+  <p class="ask"><b>Guess first.</b> The disc and the ring lie flat on a table. Now lift the points to heights equal to their squared distance from the centre. The centre stays low and the ring rises. Can a flat sheet of paper, held level, now separate the two classes? Where would you place it, and what curve is the cut when seen from above?</p>
+  <dl class="terms">
+    <div><dt>feature</dt><dd>a number computed from the inputs (<a href="../a1-what-is-a-model/#supervised">A1</a>)</dd></div>
+    <div><dt>lifting</dt><dd>adding a new coordinate computed from the old ones, so the points live in a higher dimension</dd></div>
+    <div><dt>plane \(z = c\)</dt><dd>a flat sheet held level at height \(c\)</dd></div>
+    <div><dt>radius</dt><dd>the distance from the centre, \(\sqrt{x^2 + y^2}\)</dd></div>
+  </dl>
+  <p class="claim">The feature \(z = x^2 + y^2\) turns a disc inside a ring into two layers at different heights. A flat plane separates them, and seen from above the cut is a circle.</p>
+  <div class="card" id="lf">
+    <div class="controls" id="lf-controls"></div>
+    <div class="bar" id="lf-bar"></div>
+    <div class="split2">
+      <div class="plot tall" id="lf-3d" role="img" aria-label="The 200 circle points in 3D, raised by their squared distance from the centre, with a teal plane that can be raised and lowered. Drag to rotate"></div>
+      <div class="plot tall" id="lf-2d" role="img" aria-label="The same points seen from above, with a dashed circle where the plane cuts the lifted sheet"></div>
+    </div>
+    <div class="plot short" id="lf-strip" role="img" aria-label="The heights of the points along one line, navy inner points low and coral ring points high, with the plane as a vertical line"></div>
+    <div class="eqn" aria-live="polite">
+      <span class="t c-navy"><b>A</b><i>inner point</i></span><span class="op">: x =</span><span class="t"><b id="lf-a-x">0</b><i>x</i></span><span class="op">y =</span><span class="t"><b id="lf-a-y">0</b><i>y</i></span><span class="op">&rarr; z =</span><span class="t c-teal"><b id="lf-a-z">0</b><i>height</i></span><span class="op">vs plane</span><span class="t c-sand"><b id="lf-eq-c">0</b><i>plane \(c\)</i></span><span class="op">&rarr;</span><span class="t"><b id="lf-a-call">0</b><i>call</i></span>
+    </div>
+    <div class="eqn" aria-live="polite">
+      <span class="t c-coral"><b>B</b><i>ring point</i></span><span class="op">: x =</span><span class="t"><b id="lf-b-x">0</b><i>x</i></span><span class="op">y =</span><span class="t"><b id="lf-b-y">0</b><i>y</i></span><span class="op">&rarr; z =</span><span class="t c-teal"><b id="lf-b-z">0</b><i>height</i></span><span class="op">vs plane</span><span class="t c-sand"><b id="lf-eq-c2">0</b><i>plane \(c\)</i></span><span class="op">&rarr;</span><span class="t"><b id="lf-b-call">0</b><i>call</i></span>
+    </div>
+    <div class="readout"><span>Right: <b id="lf-acc">0</b></span><span>Wrong: <b id="lf-wrong">0</b></span><span>Radius of the cut seen from above: <b id="lf-rad">0</b></span></div>
+    <p class="status" id="lf-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>At full lift all the inner points are lower than 0.19 and all the ring points are higher than 0.40. A plane at \(c = 0.30\) separates all 200 points, and from above the cut is a circle of radius \(\sqrt{0.30} = 0.55\).</b></p>
+  <p>Press "Lift the points" and watch the ring rise out of the disc. Then drag the 3D view to rotate it: from the side the two classes form two clear layers. The strip under the plots is the same picture with all the points projected onto the height axis, which is all the plane cares about. Move "plane height" between the layers and the score reaches 100%. The dashed circle on the 2D plot is the cut. Points A and B are two marked examples with their heights worked out in the boxes. Try a lift of 50%: the layers are closer, and the plane needs to be lower.</p>
+  <p>Now the maths, one step at a time. The lifted feature is the squared distance from the centre. A neuron that reads the three coordinates \((x, y, z)\) computes \(s = w_1 x + w_2 y + w_3 z + b\). Choose \(w_1 = w_2 = 0\), \(w_3 = 1\) and \(b = -c\). Then \(s = z - c\), which is positive above the plane. Replace \(z\) by its definition and the same rule reads \(x^2 + y^2 - c > 0\): outside the circle of radius \(\sqrt{c}\). A flat cut in 3D is a curved cut in 2D.</p>
+  <p class="math">\[ z = x^2 + y^2 \qquad s = w_1 x + w_2 y + w_3 z + b \qquad (w_1, w_2, w_3, b) = (0,\,0,\,1,\,-c) \;\Rightarrow\; s = x^2 + y^2 - c \]</p>
+  <ul class="math-notes">
+    <li><b>\(x, y\)</b> are the two inputs and <b>\(z\)</b> is the new feature. A neuron on \((x, y, z)\) is the same neuron as in <a href="../b1-one-neuron/#neuron">B1</a> with one more input.</li>
+    <li><b>\(c\)</b> is the height of the plane. The radius of the cut is \(\sqrt{c}\). With the points of this figure, any \(c\) between 0.19 and 0.41 works, so the best choice is the middle, 0.30.</li>
+    <li>For point A = (0.30, 0.20): \(z = 0.09 + 0.04 = 0.13\), below 0.30, so class 0. For point B = (0.80, \(-0.50\)): \(z = 0.64 + 0.25 = 0.89\), above 0.30, so class 1.</li>
+  </ul>
+  <p>The same trick works on XOR. Give the four corners the coordinates \((\pm 1, \pm 1)\) and add the product \(z = x\,y\) as a feature. The corners \((1,1)\) and \((-1,-1)\) get \(z = +1\), and \((1,-1)\) and \((-1,1)\) get \(z = -1\). The classes are now two layers: class 1 is the lower layer, \(z = -1\). The neuron with weights \((0, 0, -1)\) and bias 0 separates them, since \(s = -x\,y\) is positive where the signs differ. The inputs "x, y, x², y², xy" in the playground of the last section try this on a network.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Lifting adds information, so the new dimension makes the problem easier because it contains more data.</p>
+    <p><b>Why it fails.</b> The new feature is computed from \(x\) and \(y\), so it brings no new measurement. It helps because it puts the information in a form that a straight cut can use.</p>
+    <p><b>Better account.</b> A feature is a better view of the same data. The risk is the other side: an added feature is another number to fit, and with few points it can fit noise (<a href="../a4-grading-models/#overfit">A4</a>).</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Scale a lifted feature like any input. The values of \(x^2 + y^2\) run from 0 to 1, but a squared length in centimetres can reach thousands, and a neuron that reads it saturates (<a href="../a2-linear-regression/#scaling">A2</a>).</p>
+  </div>
+  <p class="used"><b>In practice:</b> you have lifted before. In <a href="../a2-linear-regression/#loglog">A2</a>, taking the log of both length and weight turned a curve into a straight line: log length is a feature. Engineers add features when they know the physics, such as a squared distance, a ratio or a log. Add one at a time and check them on held-out data. When the right feature is not obvious, as for photos or words, the network has to find it, which is the last section.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+rng = np.random.default_rng(5)
+n = 200
+radius = np.r_[np.sqrt(rng.uniform(0, 1, n // 2)) * 0.42, rng.uniform(0.65, 0.95, n // 2)]   # disc, then ring
+angle = rng.uniform(0, 2 * np.pi, n)
+X = np.c_[radius * np.cos(angle), radius * np.sin(angle)]
+y = np.r_[np.zeros(n // 2), np.ones(n // 2)]
+
+def fit(F, steps=3000, eta=0.5):                      # logistic regression, as in A3
+    F = (F - F.mean(axis=0)) / F.std(axis=0)
+    w, b = np.zeros(F.shape[1]), 0.0
+    for _ in range(steps):
+        p = 1 / (1 + np.exp(-(F @ w + b)))
+        w -= eta * F.T @ (p - y) / n
+        b -= eta * (p - y).mean()
+    return np.mean((F @ w + b > 0) == y)
+
+lifted = np.c_[X, (X ** 2).sum(axis=1)]               # add z = x^2 + y^2
+print("one neuron on (x, y):        ", round(fit(X), 3))
+print("one neuron on (x, y, x^2+y^2):", round(fit(lifted), 3))</code></pre>
+  <pre class="out">one neuron on (x, y):         0.545
+one neuron on (x, y, x^2+y^2): 1.0</pre>
+  <p>One neuron on the plain inputs gets 54.5%, little better than a guess. With the single added feature it gets all 200 right. The second line of code shows the whole idea: the new column is the only change.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>At full lift, a ring point has \(x = 0.6\) and \(y = -0.7\). What is its height, and is it above a plane at \(c = 0.30\)?</summary><p>\(z = 0.36 + 0.49 = 0.85\). It is above 0.30, so it is called class 1 (ring).</p></details>
+    <details><summary>The plane is at \(c = 0.49\). What is the radius of the cut seen from above, and which ring points does the neuron get wrong?</summary><p>The radius is \(\sqrt{0.49} = 0.70\). A ring point with radius under 0.70 has a height under 0.49 and is called inner, so it is wrong. In this figure, the points of the ring that lie closer than 0.70 to the centre are the errors.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. bend ============================ -->
+<section id="bend" aria-labelledby="bend-h">
+  <h2 id="bend-h">Two layers need a bend</h2>
+  <p class="ask"><b>Guess first.</b> A network has two layers of neurons and no activation function between them. The input has 2 numbers, the hidden layer has 2 units and the output has 1. Can it draw anything a single neuron cannot?</p>
+  <dl class="terms">
+    <div><dt>hidden layer</dt><dd>a layer between the inputs and the output; its outputs are not shown to the user</dd></div>
+    <div><dt>hidden unit</dt><dd>one neuron in a hidden layer</dd></div>
+    <div><dt>non-linearity</dt><dd>an activation whose graph is not a straight line, such as ReLU or tanh (<a href="../b1-one-neuron/#activations">B1</a>)</dd></div>
+    <div><dt>collapse</dt><dd>when two or more layers are equal to one layer</dd></div>
+  </dl>
+  <p class="claim">Two layers with no bend between them are one layer, with the product of the two weight matrices as its weights. A bend between the layers stops the collapse, and XOR becomes possible with two hidden units.</p>
+  <div class="card" id="bd">
+    <div class="bar"><span class="label">Between the layers</span><div id="bd-act"></div></div>
+    <div class="controls" id="bd-controls"></div>
+    <div class="bar"><span class="label">Input at a corner</span><div id="bd-corners"></div></div>
+    <div id="bd-mat" aria-live="polite"></div>
+    <div class="bar" id="bd-bar" style="margin-top:12px"></div>
+    <div class="split2">
+      <div><canvas id="bd-map" role="img" aria-label="The network's output over the unit square, with the four XOR corners marked 0 or 1 and the current input as a teal dot"></canvas></div>
+      <div class="plot" id="bd-hid" role="img" aria-label="The four corners as the hidden layer sees them, with the line where the output is one half"></div>
+    </div>
+    <div class="readout"><span>XOR corners called right: <b id="bd-right">0 of 4</b></span></div>
+    <p class="status" id="bd-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>With the numbers that solve XOR, the two layers with ReLU give 0, 1, 1, 0 at the four corners. Without the bend they give 2, 1, 1, 0, and the single layer \(y = 2 - x_1 - x_2\) is the same plane.</b></p>
+  <p>The boxes are a complete network. Layer 1 turns the input \((x_1, x_2)\) into two hidden sums. The switch decides whether ReLU is applied. Layer 2 turns the two hidden values into one output. The last row of boxes is the single layer that should be the same network: it uses the matrix \(W^{[2]}W^{[1]}\). With "no bend" the two outputs always agree, and you can change any number to check. Click the corner chips with ReLU on. The left map is the output over the square, and the right plot is where the hidden layer sends the four corners. In the right plot the dashed line is where the output is 0.5.</p>
+  <p>The right plot shows what the hidden layer does. Without a bend, the four corners fall on one straight line in the hidden plane, in the order class 0, 1, 0, and no line can separate that order. With ReLU, the corner \((0,0)\) moves from \((0,-1)\) to \((0,0)\), the corner \((1,1)\) stays at \((2,1)\), and the two class 1 corners are both at \((1,0)\), with or without ReLU. Now one line separates them: it is the dashed line. The hidden layer has changed the points into a form that a single neuron can read.</p>
+  <p>The algebra of the collapse takes three lines. Write the two layers, put the first into the second, and multiply out:</p>
+  <p class="math">\[ \mathbf{y} = W^{[2]}\bigl(W^{[1]}\mathbf{x} + \mathbf{b}^{[1]}\bigr) + \mathbf{b}^{[2]} = \underbrace{W^{[2]}W^{[1]}}_{W}\;\mathbf{x} + \underbrace{W^{[2]}\mathbf{b}^{[1]} + \mathbf{b}^{[2]}}_{\mathbf{b}} \]</p>
+  <ul class="math-notes">
+    <li><b>\(W^{[1]}\)</b> and <b>\(\mathbf{b}^{[1]}\)</b> are the weights and biases of layer 1, and <b>\(W^{[2]}\)</b> and <b>\(\mathbf{b}^{[2]}\)</b> those of layer 2 (<a href="../t5-vectors-matrices/#products">0.5</a>).</li>
+    <li>The result has the form \(W\mathbf{x} + \mathbf{b}\), which is one layer with no bend. Any number of layers collapse the same way, because a product of matrices is a matrix.</li>
+    <li>With ReLU in between, the hidden vector is \(\max(0, W^{[1]}\mathbf{x} + \mathbf{b}^{[1]})\), and the step that multiplies the two matrices is not allowed, since the maximum is in the way.</li>
+  </ul>
+  <p>The numbers in the boxes show it. Here \(W^{[1]} = \begin{pmatrix}1&1\\1&1\end{pmatrix}\), \(\mathbf{b}^{[1]} = (0, -1)\), \(W^{[2]} = (1, -2)\) and \(b^{[2]} = 0\). The product is \(W^{[2]}W^{[1]} = (1\cdot 1 + (-2)\cdot 1,\; 1\cdot 1 + (-2)\cdot 1) = (-1, -1)\). The new bias is \(W^{[2]}\mathbf{b}^{[1]} + b^{[2]} = 1\cdot 0 + (-2)\cdot(-1) + 0 = 2\). So the whole network is \(y = -x_1 - x_2 + 2\), as the caption says. A bigger case: a network with 6 inputs, two hidden layers of 10 and one output has \((6\cdot 10 + 10) + (10 \cdot 10 + 10) + (10 + 1) = 191\) numbers. With no bend between the layers, the 191 numbers do the work of 7: six weights and a bias.</p>
+  <p>These numbers are the standard XOR network from Goodfellow, Bengio and Courville's book on deep learning. With ReLU the first hidden unit computes \(\max(0, x_1 + x_2)\) and the second \(\max(0, x_1 + x_2 - 1)\). The output subtracts the second unit twice from the first. The result is a tent: it rises from 0 to 1 as \(x_1 + x_2\) goes from 0 to 1, then falls back to 0 at 2. Class 1 is the band where the tent is above 0.5, between two parallel lines. XOR needed two lines, in two steps, which is what <a href="../t4-discrete-maths/#logic">0.4</a> said it would take.</p>
+  <div class="break">
+    <p><b>Common belief.</b> More layers mean a more powerful network.</p>
+    <p><b>Why it fails.</b> With no bend between them, extra layers add numbers and add no power: the 191 numbers above do the work of 7. Even with a bend, a layer helps only if the problem has a layered structure to find.</p>
+    <p><b>Better account.</b> Power comes from the bends between layers. Depth multiplies what bends can do, and all the layers need their bends.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a network scores the same as a linear model, check the bends first. A forgotten activation is a classic bug: the code runs, the loss falls, and the answer is a straight line. Train a linear model beside the network. A tie is a warning.</p>
+  </div>
+  <p class="used"><b>In practice:</b> hidden layers all have an activation, usually ReLU or GELU, and the last layer has none for a number, a sigmoid for a probability, or softmax for classes. Two linear layers are sometimes used on purpose, to save numbers. A \(1000 \times 1000\) matrix has a million numbers. The product of a \(1000 \times 10\) and a \(10 \times 1000\) matrix has 20,000 numbers and a rank of at most 10. That trick is called a low-rank layer.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+W1 = np.array([[1.0, 1.0], [1.0, 1.0]])    # layer 1: two hidden units, one row each
+b1 = np.array([0.0, -1.0])
+W2 = np.array([[1.0, -2.0]])               # layer 2: one output unit
+b2 = np.array([0.0])
+
+X = np.array([[0, 0], [1, 0], [0, 1], [1, 1]], dtype=float)   # the four XOR corners, one per row
+
+def forward(X, bend):
+    z1 = X @ W1.T + b1                       # hidden sums
+    h = np.maximum(0, z1) if bend else z1    # ReLU between the layers, or no bend
+    return (h @ W2.T + b2).ravel()
+
+print("with ReLU:    ", forward(X, True))
+print("without bend: ", forward(X, False))
+print("W2 @ W1 =", W2 @ W1, "  W2 @ b1 + b2 =", W2 @ b1 + b2)</code></pre>
+  <pre class="out">with ReLU:     [0. 1. 1. 0.]
+without bend:  [2. 1. 1. 0.]
+W2 @ W1 = [[-1. -1.]]   W2 @ b1 + b2 = [2.]</pre>
+  <p>The first output row is XOR. The second is the plane \(2 - x_1 - x_2\), and the last line gives its two numbers, the weights \((-1, -1)\) and the bias 2.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A layer has weights \(W^{[1]} = \begin{pmatrix}2&0\\0&3\end{pmatrix}\), no bias, and no activation. The next layer has \(W^{[2]} = (1, 1)\). What single layer is it?</summary><p>\(W^{[2]}W^{[1]} = (1\cdot 2 + 1\cdot 0,\; 1\cdot 0 + 1\cdot 3) = (2, 3)\). The network is \(y = 2x_1 + 3x_2\).</p></details>
+    <details><summary>Why can ReLU between the layers not be folded into the matrix product?</summary><p>The product rule needs a linear map between the matrices. ReLU keeps positive values and cuts negative ones, so what reaches layer 2 depends on the signs of the hidden sums, and no single matrix does that for all inputs.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. play ============================ -->
+<section id="play" aria-labelledby="play-h">
+  <h2 id="play-h">A network that learns its own features</h2>
+  <p class="ask"><b>Guess first.</b> The circles needed the feature \(x^2 + y^2\), and you built it by hand. The network below gets only \(x\) and \(y\), and has to find what it needs. How many hidden units does it take to enclose a disc: 1, 2, 3 or 4? And what do you expect from a spiral?</p>
+  <dl class="terms">
+    <div><dt>hidden unit</dt><dd>a neuron whose output feeds the next layer; its map shows the cut it makes</dd></div>
+    <div><dt>decision map</dt><dd>the plane coloured by the network's output at a place (<a href="../a3-logistic-regression/#boundary">A3</a>)</dd></div>
+    <div><dt>pass</dt><dd>one trip through all 200 points in small batches; the word for it is epoch (<a href="../b3-loss-gradient-descent/#batches">B3</a>)</dd></div>
+    <div><dt>learning rate \(\eta\)</dt><dd>the size of one update (<a href="../a2-linear-regression/#descent">A2</a>)</dd></div>
+  </dl>
+  <p class="claim">A hidden layer learns its own lifts. The hidden units cut the plane with lines, and the output unit combines the cuts into regions that no single line can make.</p>
+  <div class="card" id="pl">
+    <div class="bar"><span class="label">Points</span><div id="pl-kind"></div></div>
+    <div class="bar"><span class="label">Inputs</span><div id="pl-feat"></div><span class="label">Layers</span><div id="pl-layers"></div></div>
+    <div class="controls" id="pl-controls"></div>
+    <div class="bar" id="pl-bar"></div>
+    <div class="pl-main">
+      <div class="pl-net" id="pl-net" role="img" aria-label="The network drawn as columns of small maps. Lines between the maps show the weights: navy for positive, dashed coral for negative, thicker for larger"></div>
+      <div class="pl-out">
+        <canvas id="pl-map" role="img" aria-label="The decision map of the network over the square from minus 1.1 to 1.1, with the 200 training points drawn on it"></canvas>
+        <p>The decision map: navy is class 0, coral is class 1.</p>
+      </div>
+    </div>
+    <div class="eqn" id="pl-eqn" aria-live="polite" style="margin-top:12px"></div>
+    <div class="readout"><span>Passes: <b id="pl-epoch">0</b></span><span>Loss: <b id="pl-loss-now">0</b></span><span>Right: <b id="pl-acc">0</b></span></div>
+    <div class="split2" style="margin-top:12px">
+      <div><p class="pl-sub"><b>The loss falls as the network learns.</b> The dotted line is the loss of a coin flip.</p><div class="plot short" id="pl-loss" role="img" aria-label="The training loss against the number of passes"></div></div>
+      <div><p class="pl-sub"><b>The data as the last hidden layer sees it.</b></p><div class="controls" id="pl-hidctl" style="margin:0"></div><div class="plot short" id="pl-hid" role="img" aria-label="The training points plotted by the outputs of two units of the last hidden layer"></div></div>
+    </div>
+    <p class="status" id="pl-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>On the circles, 4 tanh units reach 100% in 60 to 100 passes from all four starts tried here. Three units usually do, 2 units stop near 83% and 1 unit near 65%. The spiral needs two layers of 8 units and 400 to 2,000 passes, and some starts never succeed. With the activation set to none, no network gets past about 60%.</b></p>
+  <p>Choose a dataset and press Train. The big square is the network's answer at all places. The small squares on the left are the network drawn out: inputs on the left, then the hidden layers, then the output. A small square is the map of one unit, so you see the cut that a hidden unit makes. A line between two squares is a weight: navy and solid for a positive weight, coral and dashed for a negative one, thicker for a larger size. The two plots at the bottom show the loss falling and, on the right, the points as the last hidden layer sees them. That is the lifting of the second section, learned. With two units in the last hidden layer the right plot is a map where the classes should pull apart, and the output unit draws a line through it.</p>
+  <p class="task"><b>Try this.</b> (1) Circles, one hidden layer, tanh: set 1, 2 and 3 units and train them one by one from a fresh start. (2) XOR with ReLU and 2 units: press "Restart with new weights" five times and train. (3) Circles with the activation set to "none" and two layers of 8 units. Predict the outcome of the three before you run them.</p>
+  <details class="task-a"><summary>Check your predictions</summary>
+    <p>(1) One unit makes one cut and stays near 65%. Two units make two cuts, which can make a band but not a closed ring, about 83%. Three cuts make a triangle around the disc, and the score usually goes to 100%. (2) In the test runs, XOR with two ReLU units reached between 72% and 90% and never 100%. A hidden unit can be dead, or the two cuts begin parallel, and the loss stays on a plateau. With 4 units most starts reach 99% or more. (3) The layers collapse into one line (section 3): the loss stays at 0.69 and the accuracy near 60%.</p>
+  </details>
+  <p>Write what the figure computes. The input vector \(\mathbf{x}\) goes through a layer, a bend, and a second layer. The output is a sigmoid, so it is a probability of class 1, and training lowers the cross-entropy of <a href="../a3-logistic-regression/#logloss">A3</a>. The boxes under the diagram count the numbers for your choices. A network with 2 inputs, 4 hidden units and 1 output has \((2 \times 4 + 4) + (4 \times 1 + 1) = 17\) numbers. Add a second hidden layer of 4 units and it has \(12 + 20 + 5 = 37\).</p>
+  <p class="math">\[ \mathbf{h} = g\bigl(W^{[1]}\mathbf{x} + \mathbf{b}^{[1]}\bigr) \qquad \hat{y} = \sigma\bigl(W^{[2]}\mathbf{h} + b^{[2]}\bigr) \qquad \text{numbers} = \sum_{l}\,(n_{l-1} + 1)\,n_l \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{x}\)</b> is the input vector, <b>\(\mathbf{h}\)</b> the vector of hidden outputs, <b>\(g\)</b> the activation you chose and <b>\(\hat{y}\)</b> the probability of class 1.</li>
+    <li><b>\(n_l\)</b> is the number of units in layer \(l\), with \(n_0\) the number of inputs. A layer has \(n_l\) rows of weights, with rows of length \(n_{l-1}\), plus \(n_l\) biases.</li>
+    <li>The update is mini-batch gradient descent. The gradients come from backpropagation, which <a href="../b4-backpropagation/#backward">B4</a> explains. Here it runs as a black box.</li>
+  </ul>
+  <p>Why does it work? A hidden unit with tanh or sigmoid is a soft step across a line, and with ReLU it is a ramp. The output unit adds a weighted sum of these steps or ramps. Three steps placed around the disc make a bump with three sides, and more units make the bump rounder. A known theorem of the 1980s says that one hidden layer with enough units can approximate any continuous function on a bounded region (Cybenko, 1989, for sigmoid units). It does not say how many units are enough or how to find the weights. Training does that, and it can fail, as the XOR starts show.</p>
+  <div class="break">
+    <p><b>Common belief.</b> The network has learned what a circle is.</p>
+    <p><b>Why it fails.</b> Look at the hidden maps. They are straight stripes or bent sheets, and the ring is built from a few of them, so the boundary is a polygon with rounded corners. Outside the data, where the network never saw points, the stripes keep going in straight lines, and the map there is a guess with no support.</p>
+    <p><b>Better account.</b> The network has learned a patchwork of simple cuts that fits the points it saw. It may not describe the world beyond them (<a href="../a4-grading-models/#overfit">A4</a>).</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> A loss that stays near \(\ln 2 = 0.69\) means the network is guessing. The usual causes are a learning rate that is too small, hidden units that are dead (ReLU), a missing bend (activation "none"), or a start that is stuck. A loss that jumps up and down points to a learning rate that is too high: set it lower. Perfect scores on training points do not show the network will do well on new points (<a href="../a4-grading-models/#splits">A4</a>).</p>
+  </div>
+  <p class="used"><b>In practice:</b> start with a small network and grow it only while the training loss stays high. Widths of 4 to 64 units are common for small tables of numbers, and learning rates between 0.001 and 0.1 are typical. Extra input features can make a small network succeed where a plain one needs many units. On the spiral, the "x, y, sin 3x, sin 3y" inputs cut the time from about a thousand passes to 150 to 450, from all six starts tried here. That is why people spend time on features.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+# a small network trained on the milk and bamboo sharks (weights rounded to two decimals)
+mean, spread = np.array([61.571, 25.191]), np.array([12.151, 13.246])   # length (cm), depth (m)
+W1 = np.array([[2.49, 1.73], [2.83, -0.16], [1.52, 0.37]])               # 3 hidden units
+b1 = np.array([-2.18, -1.75, 2.0])
+W2 = np.array([[-2.58, -1.94, -3.72]])                                   # 1 output unit
+b2 = np.array([-2.22])
+
+sharks = {"Tag 4127 (bamboo)": (44.0, 0.4), "Tag 1224 (milk)": (67.8, 39.4)}
+for name, (length, depth) in sharks.items():
+    x = (np.array([length, depth]) - mean) / spread     # scale the inputs
+    h = np.tanh(W1 @ x + b1)                            # layer 1: three tanh units
+    p = 1 / (1 + np.exp(-(W2 @ h + b2)))                # layer 2: sigmoid output = chance of bamboo
+    print(f"{name}: hidden = {np.round(h, 2)}, chance of bamboo = {p[0]:.3f}")
+print("numbers in the network:", W1.size + b1.size + W2.size + b2.size)</code></pre>
+  <pre class="out">Tag 4127 (bamboo): hidden = [-1.   -1.   -0.71], chance of bamboo = 0.993
+Tag 1224 (milk): hidden = [ 0.74 -0.44  1.  ], chance of bamboo = 0.001
+numbers in the network: 13</pre>
+  <p>This is a two-layer forward pass: scale, one matrix product, tanh, a second matrix product, sigmoid. The weights come from training offline on the 272 made-up milk and bamboo sharks. The network gets 90.4% right. The single neuron of <a href="../b1-one-neuron/#fit">B1</a> got 91.5%. When one line is nearly enough, the extra units add numbers to fit and no gain.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A network has 2 inputs, hidden layers of 5 and 3, and 1 output. How many numbers does it have?</summary><p>\((2 \cdot 5 + 5) + (5 \cdot 3 + 3) + (3 \cdot 1 + 1) = 15 + 18 + 4 = 37\).</p></details>
+    <details><summary>You see a loss stuck at 0.69 on circles with one hidden layer of 4 ReLU units. Name two things to try.</summary><p>Press "Restart with new weights", since some starts leave units dead. Or raise the learning rate a little, or switch the units to tanh. If the activation were "none", the fix would be to put a bend back.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> Show with four inequalities that one step neuron can compute OR on the corners \((0,0), (1,0), (0,1), (1,1)\), by finding weights and a bias. Then say which of the four inequalities of the XOR proof fails for OR.</p>
+        <details class="hint"><summary>Hint</summary><p>OR is 1 on the last three corners. Try \(w_1 = w_2 = 1\) and a bias between \(-1\) and 0.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> The inner disc has radius at most 0.45 and the ring has radius at least 0.65. In the lifted picture, choose the plane height \(c\) that is farthest from both layers. What is the radius of the cut seen from above?</p></li>
+      <li><p><span class="ex-tag">theory</span> Two layers with no bend: \(W^{[1]} = \begin{pmatrix}1&2\\0&1\end{pmatrix}\), \(\mathbf{b}^{[1]} = (1, 0)\), \(W^{[2]} = (3, -1)\), \(b^{[2]} = 2\). Find the single layer \(W\mathbf{x} + b\) that gives the same output. Check it on \(\mathbf{x} = (1, 1)\) by running the two layers.</p></li>
+      <li><p><span class="ex-tag">theory</span> A network has 4 inputs, hidden layers of 16 and 8, and 3 outputs. Count its numbers. If the activations were all removed, how many numbers would the equivalent single layer have?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Build the XOR network of section 3 in NumPy, then change \(\mathbf{b}^{[1]}\) to \((0, 0)\). Print the output at the four corners. Explain what the network now computes.</p></li>
+      <li><p><span class="ex-tag">practice</span> Lift the milk and bamboo sharks with the feature (length) times (depth), after scaling. Fit a logistic neuron on the three inputs and compare its score with the 91.5% of <a href="../b1-one-neuron/#fit">B1</a>. Did the feature help?</p></li>
+      <li><p><span class="ex-tag">practice</span> Use the playground on the XOR data. Find the smallest number of hidden units in one layer that reaches 100% from five different starts. Do this once with tanh and once with ReLU, and write down a small table.</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> A ring needs three cuts. A disc inside a ring inside another ring needs more. Sketch how the number of hidden units you need grows as the pattern gets more complex. What does this say about choosing the size of a network?</p></li>
+      <li><p><span class="ex-tag">open</span> A friend's network on shark data scores the same as logistic regression. List four possible reasons, and say how you would check them.</p></li>
+      <li><p><span class="ex-tag">open</span> For SharkCam, when would you add a hand-made feature such as log length, and when would you trust hidden layers to find it? Think about what you know about the problem, how much data you have, and how you would test the choices.</p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================ come back ============================ -->
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Try these after two days and again after a week, before you open the answers.</p>
+  <div class="recall comeback">
+    <details><summary>In A3 the decision boundary of logistic regression was a straight line. Why is it always straight, whatever the weights? (<a href="../a3-logistic-regression/#boundary">A3</a>)</summary><p>The boundary is where the score \(z = w_1 x_1 + w_2 x_2 + b\) is 0. That is one linear equation in \(x_1\) and \(x_2\), and its solutions form a straight line. The sigmoid only reads \(z\), so it cannot bend the line.</p></details>
+    <details><summary>A ReLU hidden unit has a negative weighted sum for all 200 training points. What happens to its weights during training, and what does the playground show? (<a href="../b1-one-neuron/#activations">B1</a>)</summary><p>Its slope is 0 for all points, so no update reaches its weights. It stays dead. In the playground its map is a flat navy or neutral square, and the loss may stay on a plateau.</p></details>
+    <details><summary>In A2 you took logs of length and weight and got a straight line. In the language of this chapter, what was that step? (<a href="../a2-linear-regression/#loglog">A2</a>)</summary><p>A feature lift. Log length is a new coordinate computed from the old one. In it the relation became a straight line, which a linear model can fit.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Smilkov, D., Carter, S., Sculley, D., Vi&eacute;gas, F. B. and Wattenberg, M. (2017). Direct-manipulation visualization of deep networks. arXiv:1708.03788. <a href="https://arxiv.org/abs/1708.03788">arxiv.org/abs/1708.03788</a>. The paper behind TensorFlow Playground, the model for the last figure. The playground itself is at <a href="https://playground.tensorflow.org/">playground.tensorflow.org</a>.</li>
+    <li>Goodfellow, I., Bengio, Y. and Courville, A. (2016). <i>Deep Learning</i>. MIT Press. Chapter 6, section 6.1, "Example: Learning XOR", for the two-unit ReLU network. <a href="https://www.deeplearningbook.org/contents/mlp.html">deeplearningbook.org/contents/mlp.html</a>. The weights in section 3 are the ones printed there (equations 6.4 to 6.6), and the book also shows the two class 1 corners meeting at one point of the hidden space.</li>
+    <li>Olah, C. (2014). Neural networks, manifolds, and topology. <a href="https://colah.github.io/posts/2014-03-NN-Manifolds-Topology/">colah.github.io</a>. Hidden layers reshape the data until a line can separate it.</li>
+    <li>Cybenko, G. (1989). Approximation by superpositions of a sigmoidal function. <i>Mathematics of Control, Signals, and Systems</i>, 2(4), 303&ndash;314. <a href="https://doi.org/10.1007/BF02551274">doi:10.1007/BF02551274</a>. One hidden layer of sigmoid units can approximate any continuous function on a bounded region (the paper states it for the unit cube). Only the abstract was read, and the bibliographic details were checked in Crossref.</li>
+    <li>Minsky, M. and Papert, S. (1969). <i>Perceptrons: An Introduction to Computational Geometry</i>. MIT Press. The analysis of what single-layer perceptrons cannot compute, with XOR as the smallest example. Publication details checked in Open Library; the book itself was not opened.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="b2-non-linearity.js?v=1" defer></script>
+</body>
+</html>

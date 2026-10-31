@@ -161,7 +161,7 @@
    "title": "One neuron",
    "blurb": "Weighted sums and activation functions.",
    "part": "B",
-   "live": false
+   "live": true
   },
   {
    "id": "b2",
@@ -170,7 +170,7 @@
    "title": "Why non-linearity matters",
    "blurb": "XOR, circles lifted into 3D, and hidden layers.",
    "part": "B",
-   "live": false
+   "live": true
   },
   {
    "id": "b3",
@@ -179,7 +179,7 @@
    "title": "Loss and gradient descent",
    "blurb": "How a network measures and reduces its error.",
    "part": "B",
-   "live": false
+   "live": true
   },
   {
    "id": "b4",
@@ -188,7 +188,7 @@
    "title": "Backpropagation",
    "blurb": "The chain rule, run backwards through a network.",
    "part": "B",
-   "live": false
+   "live": true
   },
   {
    "id": "b5",
@@ -197,7 +197,7 @@
    "title": "Optimisers",
    "blurb": "SGD, momentum, Adam and warm-up.",
    "part": "B",
-   "live": false
+   "live": true
   },
   {
    "id": "b6",
@@ -206,7 +206,7 @@
    "title": "Making deep networks trainable",
    "blurb": "Initialisation, normalisation and residual connections.",
    "part": "B",
-   "live": false
+   "live": true
   },
   {
    "id": "b7",
