@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Practice set: learning from data | How AI Learns</title>
+<meta name="description" content="Twenty-five practice questions on Part A: models and baselines, linear regression, logistic regression, grading a model, decision trees and boosting. Scored in your browser, with links to the sections to revise.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Practice set A.P. Colours come from the site tokens, so the page follows light and dark mode. */
+.pset section { margin-top: 44px; scroll-margin-top: 64px; }
+.pset section > p, .pset section > ul { max-width: 46em; }
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+[hidden] { display: none !important; }
+
+/* Timer and progress bar, stuck to the top of the screen while you work. */
+.pbar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 26px 0 0; padding: 8px 12px; background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07); }
+.pb-time { min-width: 3.6em; font-family: "Spectral SC", Georgia, serif; font-size: 25px; line-height: 1.1; letter-spacing: 0.02em; color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.pb-time.over { color: var(--coral); }
+.pb-prog { color: var(--ink-2); font-size: 15px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.pb-prog b { color: var(--ink); }
+.pb-jump { margin-left: auto; font-size: 15px; }
+.pbar .btn { font-size: 14.5px; }
+.btn-main { border-color: var(--teal); color: var(--ink); background: var(--mark); padding: 6px 18px; font-size: 16px; }
+.btn-main:hover { background: var(--teal); color: var(--bg); }
+.btn[disabled] { opacity: 0.45; cursor: default; }
+
+/* A question. */
+.pq { max-width: 46em; margin: 16px 0 0; padding: 14px 16px 12px; border: 1px solid var(--rule); border-left-width: 4px; border-radius: 8px; background: var(--paper); scroll-margin-top: 76px; }
+.pq.right { border-left-color: var(--teal); }
+.pq.missed { border-left-color: var(--coral); }
+.pq-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 14px; margin: 0 0 8px; font-family: "Spectral SC", Georgia, serif; font-size: 16px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink); }
+.pq-tag { font-size: 14px; font-weight: 500; color: var(--muted); }
+.pq-st { margin-left: 8px; font-weight: 600; }
+.pq.right .pq-st { color: var(--link-hover); }
+.pq.missed .pq-st { color: var(--coral); }
+.pq-t { margin: 0 0 10px; color: var(--ink); }
+.pq-t.tight { margin-bottom: 4px; }
+.pq ul.stm { margin: 0 0 10px; padding-left: 1.3em; color: var(--ink); }
+.pq ul.stm li { margin: 2px 0; }
+.opts { min-width: 0; margin: 8px 0 0; padding: 0; border: 0; display: grid; gap: 6px; }
+.opt { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: start; gap: 8px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.opt:hover { border-color: var(--teal); }
+.opt.on { border-color: var(--teal); background: var(--mark); }
+.pq.missed .opt.on { border-color: var(--coral); background: var(--bg); }
+.opt b { min-width: 1.1em; font-family: "Spectral SC", Georgia, serif; font-weight: 600; color: var(--muted); }
+.opt input { margin: 5px 0 0; accent-color: var(--teal); }
+.opt span { min-width: 0; overflow-wrap: anywhere; }
+.opt .katex-display { margin: 0; }
+.pq-num { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 0; color: var(--ink-2); }
+.pq-num input { width: 9em; max-width: 100%; padding: 6px 10px; font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.pq-num input:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+.pq-num input:disabled, .opt input:disabled + b { opacity: 0.7; }
+.pq-num .u { color: var(--muted); }
+.revise { margin: 10px 0 0; padding-top: 8px; border-top: 1px dashed var(--rule); font-size: 15px; color: var(--ink-2); }
+.pq pre.pq-code { max-width: 100%; margin: 4px 0 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); overflow-x: auto; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5; }
+
+/* Figures. */
+.pfig { margin: 6px 0 10px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.pfig .fcap { margin: 0 0 4px; font-size: 14.5px; color: var(--ink-2); }
+.pfig svg { display: block; width: 100%; height: auto; max-width: 420px; margin: 0 auto; }
+.pfig .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+.pfig .pair svg { max-width: 330px; }
+.fg text { font-family: "Spectral", Georgia, serif; font-size: 13px; fill: var(--ink-2); }
+.fg .tk { font-size: 11.5px; fill: var(--muted); }
+.fg .nm { font-size: 14px; font-style: italic; fill: var(--ink); }
+.fg .ax { stroke: var(--muted); stroke-width: 1.3; fill: none; }
+.fg .gl { stroke: var(--rule); stroke-width: 1; }
+.fg .gm { stroke: var(--rule); stroke-width: 0.6; opacity: 0.7; }
+.fg .l1 { stroke: var(--navy); stroke-width: 2.4; fill: none; stroke-linejoin: round; }
+.fg .l2 { stroke: var(--coral); stroke-width: 2.4; fill: none; }
+.fg .d1 { fill: var(--navy); }
+.fg .d2 { fill: var(--coral); }
+.fg .b1 { fill: var(--navy); }
+.fg .vl { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.fg .nd { fill: var(--bg); stroke: var(--navy); stroke-width: 1.8; }
+.fg .nt { font-size: 14px; fill: var(--ink); text-anchor: middle; }
+.fg .ar { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+.fg .pt { fill: none; stroke: var(--navy); stroke-linecap: round; opacity: 0.5; }
+.fg .pt2 { fill: var(--coral); opacity: 0.8; }
+.fg .ptx { fill: none; stroke: var(--navy); stroke-linecap: round; }
+.fg .pt2x { fill: var(--coral); }
+.fg .l3 { stroke: var(--teal); stroke-width: 2.4; fill: none; }
+.fg .pm { fill: var(--bg); stroke: var(--teal); stroke-width: 2.4; }
+.fg .ring { fill: none; stroke: var(--coral); stroke-width: 2.2; }
+.fg .ring2 { fill: var(--bg); stroke: var(--ink); stroke-width: 1.8; }
+.fg .lb, .fg .lbc, .fg .lbm, .fg .lbx { font-size: 12.5px; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
+.fg .lbc { fill: var(--coral); }
+.fg .lbm { fill: var(--ink-2); font-size: 12px; }
+.fg .lbx { font-size: 15px; font-weight: 700; }
+.fg .at { font-size: 12.5px; fill: var(--ink-2); }
+.fg .s1 { stroke: var(--navy); stroke-width: 2.4; fill: none; }
+.fg .s2 { stroke: var(--coral); stroke-width: 2.4; fill: none; }
+.fg .s3 { stroke: var(--teal); stroke-width: 2.4; fill: none; stroke-dasharray: 7 4; }
+.fg .s4 { stroke: var(--ink-2); stroke-width: 2.4; fill: none; stroke-dasharray: 10 3 2 3; }
+.fg .dgn { stroke: var(--muted); stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
+.fg .dv { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+.fg .bp { fill: var(--coral); opacity: 0.85; }
+.fg .bn { fill: var(--navy); opacity: 0.85; }
+.fg .cn { stroke: var(--muted); stroke-width: 1; }
+.fg .nd.lf { stroke: var(--teal); }
+.fg .ld { stroke: var(--coral); stroke-width: 1.2; }
+.tscroll { overflow-x: auto; margin: 4px 0 8px; }
+.ptable { border-collapse: collapse; width: 100%; max-width: 30em; margin: 0 auto 0 0; font-size: 15px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.ptable.cmx { max-width: 24em; }
+.ptable.cmx th, .ptable.cmx td { text-align: center; }
+.ptable.cmx th:first-child, .ptable.cmx td:first-child { text-align: left; }
+.ptable caption { padding: 0 0 6px; text-align: left; font-size: 14.5px; color: var(--ink-2); caption-side: top; }
+.ptable th, .ptable td { padding: 5px 9px; text-align: right; border-bottom: 1px solid var(--rule); color: var(--ink-2); }
+.ptable th:first-child, .ptable td:first-child { text-align: left; }
+.ptable thead th { font-size: 13.5px; font-weight: 500; color: var(--muted); }
+.ptable thead th.grp { text-align: center; border-bottom: 1px solid var(--rule); }
+.ptable td.dg { background: var(--mark); color: var(--ink); font-weight: 600; }
+.ptable tbody th { font-weight: 500; color: var(--ink); }
+
+/* Score and results. */
+.res { margin-top: 18px; max-width: 46em; }
+.res h3 { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
+.res .big { margin: 0 0 4px; color: var(--ink); font-size: 18px; }
+.res .big b { font-size: 46px; font-weight: 600; line-height: 1.1; font-feature-settings: "tnum" 1, "lnum" 1; }
+.res .sub { margin: 0 0 10px; color: var(--ink-2); font-size: 15.5px; }
+.arow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--rule); }
+.arow .an { color: var(--ink); font-weight: 600; }
+.arow .as { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.arow .meter { grid-column: 1 / -1; height: 9px; border-radius: 5px; background: var(--rule); overflow: hidden; }
+.arow .meter i { display: block; height: 100%; background: var(--teal); }
+.arow .ar-rev { grid-column: 1 / -1; font-size: 15px; color: var(--ink-2); }
+.res ol.miss { margin: 6px 0 0; padding-left: 1.3em; color: var(--ink-2); font-size: 15.5px; }
+.res ol.miss li { margin: 5px 0; }
+.res .acts { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 16px 0 0; }
+.res h4 { margin: 18px 0 2px; font-family: "Spectral SC", Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+.area-badge { margin-left: 10px; padding: 0 10px; border-radius: 999px; background: var(--mark); color: var(--ink); font-size: 14px; font-weight: 500; vertical-align: 3px; }
+
+@media (max-width: 760px) {
+  .pset section { margin-top: 36px; }
+  .pbar { margin-top: 20px; padding: 6px 10px; gap: 4px 10px; }
+  .pb-time { font-size: 22px; }
+  .pq { padding: 12px 12px 10px; margin-left: -4px; margin-right: -4px; }
+  .pfig .pair { grid-template-columns: minmax(0, 1fr); }
+  .pb-prog .wide { display: none; }
+  .ptable { font-size: 14px; }
+  .ptable th, .ptable td { padding: 5px 5px; }
+  .res .big b { font-size: 40px; }
+}
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="pa">
+<main class="proj pset">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Learning from data</span><span>Practice set A.P</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part A &middot; Practice set</p>
+  <h1>Practice set: learning from data</h1>
+  <p class="subtitle">Twenty-five questions on the six chapters of Part A, to attempt without notes</p>
+</header>
+
+<div class="tldr">
+  <p>This practice set covers Part A: what a model is, linear regression, logistic regression, grading a model, decision trees and boosting. It mixes calculations, charts and tables drawn from the catch records and the clinic data, and statements to judge. Attempt it without notes and with the chapters closed. A timer is there if you want the pressure of a clock, and about an hour is a fair target.</p>
+  <p>When you press Score my answers at the end, the page shows your score by area and the questions you missed, with links to the sections to revise. It does not show the correct answers. Revise the sections the score points to, try the missed questions again, and attempt the whole set again after a week.</p>
+</div>
+<p class="youneed"><b>You will need:</b> a pen, paper and a calculator, and what Part A teaches: <a href="../a1-what-is-a-model/">A1 What a model is</a>, <a href="../a2-linear-regression/">A2 Linear regression</a>, <a href="../a3-logistic-regression/">A3 Logistic regression and softmax</a>, <a href="../a4-grading-models/">A4 Grading a model fairly</a>, <a href="../a5-decision-trees/">A5 Decision trees</a> and <a href="../a6-boosting/">A6 Ensembles and boosting</a>. Some calculations use the logarithms of <a href="../t3-algebra-functions/">0.3</a> and the probability of <a href="../t7-probability/">0.7</a>.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#howto">How to use this set</a></li>
+    <li><a href="#models">Models and baselines</a></li>
+    <li><a href="#linear">Linear regression</a></li>
+    <li><a href="#logistic">Logistic regression</a></li>
+    <li><a href="#grading">Grading a model</a></li>
+    <li><a href="#trees">Decision trees</a></li>
+    <li><a href="#boosting">Boosting</a></li>
+    <li><a href="#score">Finish and score</a></li>
+  </ol>
+</nav>
+
+<div class="pbar" id="pbar" role="group" aria-label="Timer and progress">
+  <span class="pb-time" id="pb-time" role="timer">60:00</span>
+  <button type="button" class="btn" id="pb-go">Start timer</button>
+  <span class="pb-prog"><b id="pb-n">0</b> of 25<span class="wide"> answered</span></span>
+  <a class="pb-jump" href="#score" aria-label="Go to the score section">Score</a>
+</div>
+<noscript><p class="note">This practice set needs JavaScript to save your answers and to score them.</p></noscript>
+
+<section id="howto" aria-labelledby="howto-h">
+  <h2 id="howto-h">How to use this set</h2>
+  <ul class="plain">
+    <li>Close the chapters. Keep a pen, paper and a calculator beside you.</li>
+    <li>Choose a time and press Start timer when you begin. Pause it when you leave. The clock counts down, then goes on counting past zero so that you can see how long you took. The timer is optional.</li>
+    <li>Skip a question and return to it if you like. Your answers are saved in this browser as you type.</li>
+    <li>Press Score my answers at the end. The set is scored only then.</li>
+  </ul>
+  <div class="card">
+    <div class="bar"><span class="label">Time allowed</span><div id="tm-chips"></div><button type="button" class="btn" id="tm-reset">Reset timer</button></div>
+    <p class="note" id="store-note">Your answers and the timer are saved in this browser only. No data is sent anywhere.</p>
+  </div>
+</section>
+
+<section id="models" aria-labelledby="models-h">
+  <h2 id="models-h">Models and baselines</h2>
+
+  <article class="pq" id="q1" data-q="q01" data-kind="num" data-dp="1">
+    <h3 class="pq-h"><span>Question 1<span class="pq-st" hidden></span></span><span class="pq-tag">Models and baselines</span></h3>
+    <p class="pq-t">SharkCam predicts a shark's weight from six measurements. The rule is \(\hat y = w_1x_1 + w_2x_2 + w_3x_3 + w_4x_4 + w_5x_5 + w_6x_6 + b\). A student looks for good dials by brute force. She picks 10 settings per dial and tests all combinations of settings. Her laptop tests 1,000 combinations per second. How many hours does the full search take? Give one decimal place.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 1, in hours"><span class="u">hours</span></label>
+    <p class="revise" hidden>Revise <a href="../a1-what-is-a-model/#model">A1 A model is a rule with dials</a> and <a href="../a1-what-is-a-model/#search">A1 Learning as a search for good dials</a>.</p>
+  </article>
+
+  <article class="pq" id="q2" data-q="q02" data-kind="mc">
+    <h3 class="pq-h"><span>Question 2<span class="pq-st" hidden></span></span><span class="pq-tag">Models and baselines</span></h3>
+    <p class="pq-t tight">The table counts the made-up catch records by species and by how they were measured. A student trains a species model on all 600 records. On the 58 dive records it names the species correctly for 52% of the sharks (an invented score). Which statement is correct?</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Counts of made-up catch records by species for landings and dives">
+    <thead>
+    <tr><th>Species</th><th>Landing records</th><th>Dive records</th></tr></thead><tbody>
+    <tr><th>Spadenose</th><td>259</td><td>9</td></tr>
+    <tr><th>Milk</th><td>196</td><td>4</td></tr>
+    <tr><th>Bamboo</th><td>40</td><td>32</td></tr>
+    <tr><th>Hammerhead</th><td>44</td><td>13</td></tr>
+    <tr><th>Ganges</th><td>3</td><td>0</td></tr>
+    <tr><th>All records</th><td>542</td><td>58</td></tr>
+    </tbody></table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q02" value="0"><b>A</b><span>The model beats the lazy model, because 52% is higher than the 44.7% that the lazy model scores on all 600 records.</span></label>
+      <label class="opt"><input type="radio" name="q02" value="1"><b>B</b><span>On the dive records the lazy model always says bamboo and scores 55%, so the model does worse than the lazy model there.</span></label>
+      <label class="opt"><input type="radio" name="q02" value="2"><b>C</b><span>On the dive records the lazy model always says spadenose, the commonest species overall, and scores 16%, so the model beats it.</span></label>
+      <label class="opt"><input type="radio" name="q02" value="3"><b>D</b><span>The lazy model cannot be scored on the dive records, because the model was trained on records that include them.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../a1-what-is-a-model/#lazy">A1 The lazy model</a>.</p>
+  </article>
+</section>
+
+<section id="linear" aria-labelledby="linear-h">
+  <h2 id="linear-h">Linear regression</h2>
+
+  <article class="pq" id="q3" data-q="q03" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 3<span class="pq-st" hidden></span></span><span class="pq-tag">Linear regression</span></h3>
+    <p class="pq-t tight">The chart shows 268 made-up spadenose records and a fitted line. The line passes through the marked points A and B. The residual of a shark is its true weight minus the line's prediction. What is the residual of the ringed shark, Tag 1079, in kg? Give two decimal places, with a minus sign if the residual is negative.</p>
+    <div class="pfig">
+    <svg class="fg" viewBox="0 0 360 280" role="img" aria-label="Weight against length for 268 made-up spadenose sharks with a fitted straight line. The line passes through A at 30 cm and 0.085 kg and B at 50 cm and 0.395 kg. Tag 1079, 44.4 cm and 0.369 kg, is ringed and lies above the line.">
+    <line class="gm" x1="85.5" y1="234.0" x2="85.5" y2="14.0"/>
+    <line class="gm" x1="160.5" y1="234.0" x2="160.5" y2="14.0"/>
+    <line class="gm" x1="235.5" y1="234.0" x2="235.5" y2="14.0"/>
+    <line class="gm" x1="310.5" y1="234.0" x2="310.5" y2="14.0"/>
+    <line class="gm" x1="48.0" y1="206.5" x2="348.0" y2="206.5"/>
+    <line class="gm" x1="48.0" y1="151.5" x2="348.0" y2="151.5"/>
+    <line class="gm" x1="48.0" y1="96.5" x2="348.0" y2="96.5"/>
+    <line class="gm" x1="48.0" y1="41.5" x2="348.0" y2="41.5"/>
+    <line class="gl" x1="48.0" y1="234.0" x2="48.0" y2="14.0"/>
+    <line class="gl" x1="123.0" y1="234.0" x2="123.0" y2="14.0"/>
+    <line class="gl" x1="198.0" y1="234.0" x2="198.0" y2="14.0"/>
+    <line class="gl" x1="273.0" y1="234.0" x2="273.0" y2="14.0"/>
+    <line class="gl" x1="348.0" y1="234.0" x2="348.0" y2="14.0"/>
+    <line class="gl" x1="48.0" y1="234.0" x2="348.0" y2="234.0"/>
+    <line class="gl" x1="48.0" y1="179.0" x2="348.0" y2="179.0"/>
+    <line class="gl" x1="48.0" y1="124.0" x2="348.0" y2="124.0"/>
+    <line class="gl" x1="48.0" y1="69.0" x2="348.0" y2="69.0"/>
+    <line class="gl" x1="48.0" y1="14.0" x2="348.0" y2="14.0"/>
+    <line class="ax" x1="48.0" y1="234.0" x2="352.0" y2="234.0"/><line class="ax" x1="48.0" y1="234.0" x2="48.0" y2="10.0"/>
+    <text class="tk" x="48.0" y="249.0" text-anchor="middle">20</text>
+    <text class="tk" x="123.0" y="249.0" text-anchor="middle">30</text>
+    <text class="tk" x="198.0" y="249.0" text-anchor="middle">40</text>
+    <text class="tk" x="273.0" y="249.0" text-anchor="middle">50</text>
+    <text class="tk" x="348.0" y="249.0" text-anchor="middle">60</text>
+    <text class="tk" x="41.0" y="238.0" text-anchor="end">0</text>
+    <text class="tk" x="41.0" y="183.0" text-anchor="end">0.2</text>
+    <text class="tk" x="41.0" y="128.0" text-anchor="end">0.4</text>
+    <text class="tk" x="41.0" y="73.0" text-anchor="end">0.6</text>
+    <text class="tk" x="41.0" y="18.0" text-anchor="end">0.8</text>
+    <path class="pt" d="M168.0 201.6h0 M155.2 198.2h0 M231.0 132.5h0 M240.8 174.1h0 M216.0 160.6h0 M255.8 129.5h0 M203.3 164.2h0 M161.2 190.6h0 M204.8 169.1h0 M225.0 163.6h0 M342.0 49.8h0 M101.3 216.4h0 M96.8 218.1h0 M126.0 209.8h0 M260.2 147.1h0 M249.8 108.6h0 M160.5 185.6h0 M195.0 178.2h0 M93.8 212.8h0 M236.2 167.5h0 M285.8 142.4h0 M235.5 143.8h0 M248.3 138.0h0 M261.8 105.6h0 M216.8 168.0h0 M184.5 186.4h0 M303.0 108.0h0 M246.0 152.3h0 M212.2 173.2h0 M97.5 217.8h0 M216.8 145.2h0 M168.0 184.2h0 M147.0 199.6h0 M114.7 215.8h0 M226.5 141.1h0 M180.8 178.2h0 M268.5 126.8h0 M181.5 181.5h0 M204.8 167.7h0 M138.8 202.4h0 M65.2 224.9h0 M120.8 212.6h0 M270.8 141.9h0 M226.5 175.7h0 M194.2 176.8h0 M239.2 148.5h0 M258.8 128.1h0 M179.2 171.8h0 M76.5 220.5h0 M171.8 188.9h0 M152.2 196.9h0 M221.2 180.7h0 M197.2 154.5h0 M219.0 160.3h0 M254.2 156.2h0 M185.2 179.8h0 M255.8 118.5h0 M252.0 116.9h0 M189.8 187.5h0 M226.5 164.2h0 M148.5 201.6h0 M143.3 199.1h0 M111.0 209.2h0 M282.0 130.1h0 M123.0 205.4h0 M162.0 193.0h0 M141.8 202.1h0 M297.8 89.1h0 M299.2 109.1h0 M205.5 171.3h0 M154.5 199.9h0 M168.8 188.9h0 M89.2 217.2h0 M243.0 148.2h0 M133.5 204.0h0 M147.0 198.8h0 M151.5 201.6h0 M210.0 167.7h0 M231.8 153.4h0 M155.2 196.1h0 M182.2 177.1h0 M104.2 208.2h0 M334.5 53.9h0 M336.8 52.8h0 M249.0 154.8h0 M273.8 115.8h0 M225.8 160.0h0 M165.8 194.7h0 M187.5 182.0h0 M276.8 113.3h0 M188.3 184.5h0 M199.5 177.6h0 M121.5 211.2h0 M177.7 180.7h0 M273.0 146.3h0 M144.8 205.1h0 M143.3 206.2h0 M303.0 88.8h0 M252.7 144.6h0 M258.0 151.5h0 M119.2 206.5h0 M243.0 147.7h0 M86.3 218.6h0 M334.5 67.4h0 M194.2 181.5h0 M101.3 215.6h0 M209.2 153.4h0 M99.0 215.6h0 M120.0 207.9h0 M96.0 220.8h0 M217.5 154.5h0 M186.8 174.9h0 M194.2 172.4h0 M117.0 215.8h0 M217.5 176.2h0 M135.0 202.9h0 M130.5 210.1h0 M201.8 168.6h0 M92.2 218.3h0 M180.0 181.2h0 M258.8 115.5h0 M159.8 198.2h0 M268.5 143.8h0 M232.5 160.0h0 M135.8 204.6h0 M221.2 154.5h0 M289.5 118.8h0 M166.5 193.9h0 M243.0 150.7h0 M171.8 187.5h0 M180.0 187.5h0 M104.2 212.6h0 M153.0 189.7h0 M174.0 181.2h0 M171.8 188.9h0 M155.2 199.6h0 M257.2 122.1h0 M275.2 135.8h0 M157.5 195.8h0 M131.2 204.8h0 M142.5 205.4h0 M129.8 207.1h0 M129.0 199.6h0 M111.8 209.0h0 M166.5 180.9h0 M92.2 212.8h0 M185.2 188.1h0 M132.8 206.5h0 M154.5 194.7h0 M130.5 205.1h0 M71.3 223.0h0 M240.8 139.1h0 M163.5 194.4h0 M183.8 179.8h0 M231.8 168.0h0 M241.5 147.4h0 M163.5 195.8h0 M282.8 120.4h0 M184.5 174.3h0 M127.5 204.8h0 M199.5 182.6h0 M67.5 221.6h0 M106.5 217.8h0 M174.0 191.1h0 M99.7 216.4h0 M88.5 217.2h0 M97.5 218.3h0 M233.3 145.4h0 M202.5 179.3h0 M281.2 110.0h0 M248.3 128.4h0 M146.2 204.8h0 M194.2 180.4h0 M156.0 199.9h0 M150.0 206.5h0 M180.8 181.2h0 M152.2 187.5h0 M270.0 113.8h0 M175.5 191.9h0 M147.0 198.8h0 M308.2 96.0h0 M102.0 204.8h0 M34.5 229.1h0 M198.8 188.6h0 M222.7 162.8h0 M243.0 143.8h0 M114.7 205.7h0 M165.0 196.3h0 M174.8 194.1h0 M250.5 109.7h0 M162.0 193.9h0 M102.0 209.5h0 M136.5 205.7h0 M65.2 224.9h0 M269.2 119.1h0 M104.2 216.1h0 M325.5 76.2h0 M237.0 145.7h0 M191.2 177.6h0 M247.5 114.7h0 M53.2 227.9h0 M239.2 149.9h0 M245.2 144.4h0 M221.2 166.4h0 M125.2 207.9h0 M152.2 200.4h0 M142.5 202.4h0 M161.2 181.5h0 M239.2 152.1h0 M259.5 119.6h0 M326.2 85.8h0 M225.0 161.4h0 M237.0 139.7h0 M174.8 179.0h0 M346.5 20.9h0 M156.0 197.2h0 M180.0 186.7h0 M201.8 170.5h0 M181.5 198.2h0 M219.0 155.1h0 M126.0 211.2h0 M177.7 194.1h0 M330.0 82.5h0 M99.0 221.9h0 M279.8 106.7h0 M204.0 181.8h0 M193.5 188.1h0 M152.2 204.8h0 M287.2 128.1h0 M283.5 110.0h0 M201.0 174.3h0 M221.2 153.4h0 M292.5 115.5h0 M210.8 170.8h0 M126.0 193.9h0 M143.3 206.2h0 M106.5 215.3h0 M193.5 181.2h0 M184.5 180.9h0 M165.0 190.3h0 M207.0 191.7h0 M37.5 227.9h0 M266.2 80.3h0 M251.2 137.5h0 M270.0 152.3h0 M228.8 143.0h0 M306.0 103.9h0 M201.0 179.8h0 M221.2 167.7h0 M310.5 107.0h0 M93.8 216.7h0 M204.0 165.8h0 M130.5 211.2h0 M273.8 120.7h0 M191.2 182.3h0 M185.2 181.2h0 M216.0 169.9h0 M127.5 204.8h0 M313.5 75.1h0 M186.8 186.2h0 M204.8 175.2h0 M161.2 196.6h0 M237.7 167.5h0 M182.2 191.1h0 M197.2 171.0h0 M128.2 209.2h0 M299.2 121.3h0 M148.5 201.0h0" style="stroke-width:4.4"/>
+    <path class="l3" d="M81.9,234.0 L348.0,82.8"/>
+    <circle class="pm" cx="123.0" cy="210.6" r="4.6"/>
+    <circle class="pm" cx="273.0" cy="125.4" r="4.6"/>
+    <text class="lb" x="134.2" y="225.8" text-anchor="start">A: 30 cm, 0.085 kg</text>
+    <text class="lb" x="346.5" y="169.4" text-anchor="end">B: 50 cm, 0.395 kg</text>
+    <circle class="ring" cx="231.0" cy="132.5" r="8.5"/>
+    <text class="lbc" x="89.2" y="74.5" text-anchor="start">Tag 1079: 44.4 cm, 0.369 kg</text>
+    <line class="ld" x1="174.0" y1="78.6" x2="226.0" y2="125.5"/>
+    <text class="at" x="198.0" y="274" text-anchor="middle">length, cm</text>
+    <text class="at" transform="translate(11 124.0) rotate(-90)" text-anchor="middle">weight, kg</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 3, the residual in kilograms"><span class="u">kg</span></label>
+    <p class="revise" hidden>Revise <a href="../a2-linear-regression/#line">A2 A line with two dials</a> and <a href="../a2-linear-regression/#residuals">A2 Look at the leftovers</a>.</p>
+  </article>
+
+  <article class="pq" id="q4" data-q="q04" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 4<span class="pq-st" hidden></span></span><span class="pq-tag">Linear regression</span></h3>
+    <p class="pq-t tight">A fitted line predicts a spadenose shark's weight in grams as \(15.5 \times \text{length} - 380\), with the length in cm. The table lists five made-up sharks, with the line's prediction rounded to whole grams. What is the mean squared error (MSE) of the line on these five sharks, in \(\mathrm{g}^2\)? Give a whole number.</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Five made-up sharks with true weight and the line's prediction">
+    <thead>
+    <tr><th>Tag</th><th>Length, cm</th><th>True weight, g</th><th>Line's prediction, g</th></tr></thead><tbody>
+    <tr><th>1419</th><td>27.1</td><td>64</td><td>40</td></tr>
+    <tr><th>5787</th><td>30.8</td><td>125</td><td>97</td></tr>
+    <tr><th>3526</th><td>41.6</td><td>241</td><td>265</td></tr>
+    <tr><th>6101</th><td>45.7</td><td>345</td><td>328</td></tr>
+    <tr><th>5524</th><td>47.9</td><td>407</td><td>362</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 4, the MSE in grams squared"><span class="u">\(\mathrm{g}^2\)</span></label>
+    <p class="revise" hidden>Revise <a href="../a2-linear-regression/#line">A2 A line with two dials</a>.</p>
+  </article>
+
+  <article class="pq" id="q5" data-q="q05" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 5<span class="pq-st" hidden></span></span><span class="pq-tag">Linear regression</span></h3>
+    <p class="pq-t tight">A line \(\hat y = wx + b\) predicts a made-up spadenose shark's weight in kg. The input is \(x = (\text{length} - 40)/5\), so \(x\) counts steps of 5 cm from 40 cm. Gradient descent on the mean squared error starts at \(w = 0\) and \(b = 0.2\) with learning rate \(\eta = 0.1\). The table lists the four sharks. After one step, what is the new value of \(w\)? Give three decimal places.</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Four made-up sharks with length, x and weight">
+    <thead>
+    <tr><th>Tag</th><th>Length, cm</th><th>x</th><th>Weight y, kg</th></tr></thead><tbody>
+    <tr><th>3232</th><td>30</td><td>−2</td><td>0.104</td></tr>
+    <tr><th>1534</th><td>35</td><td>−1</td><td>0.176</td></tr>
+    <tr><th>1714</th><td>45</td><td>1</td><td>0.328</td></tr>
+    <tr><th>4006</th><td>50</td><td>2</td><td>0.319</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 5, the new value of w"></label>
+    <p class="revise" hidden>Revise <a href="../a2-linear-regression/#descent">A2 Gradient descent</a>.</p>
+  </article>
+
+  <article class="pq" id="q6" data-q="q06" data-kind="mc">
+    <h3 class="pq-h"><span>Question 6<span class="pq-st" hidden></span></span><span class="pq-tag">Linear regression</span></h3>
+    <p class="pq-t tight">The chart shows the loss during gradient descent for four runs on the same made-up spadenose data, with the length standardised and the same start. The learning rates were 0.02, 0.3, 0.9 and 1.05, in some order. Which run used \(\eta = 0.9\)?</p>
+    <div class="pfig">
+    <svg class="fg" viewBox="0 0 360 280" role="img" aria-label="Loss against step on a log scale for four runs. Run P falls fastest and flattens after about five steps. Run S falls more slowly and flattens after about fifteen steps. Run R is still falling slowly at step 20. Run Q rises.">
+    <line class="gl" x1="52.0" y1="234.0" x2="52.0" y2="14.0"/>
+    <line class="gl" x1="124.0" y1="234.0" x2="124.0" y2="14.0"/>
+    <line class="gl" x1="196.0" y1="234.0" x2="196.0" y2="14.0"/>
+    <line class="gl" x1="268.0" y1="234.0" x2="268.0" y2="14.0"/>
+    <line class="gl" x1="340.0" y1="234.0" x2="340.0" y2="14.0"/>
+    <line class="gl" x1="52.0" y1="234.0" x2="340.0" y2="234.0"/>
+    <line class="gl" x1="52.0" y1="179.0" x2="340.0" y2="179.0"/>
+    <line class="gl" x1="52.0" y1="124.0" x2="340.0" y2="124.0"/>
+    <line class="gl" x1="52.0" y1="69.0" x2="340.0" y2="69.0"/>
+    <line class="gl" x1="52.0" y1="14.0" x2="340.0" y2="14.0"/>
+    <line class="ax" x1="52.0" y1="234.0" x2="344.0" y2="234.0"/><line class="ax" x1="52.0" y1="234.0" x2="52.0" y2="10.0"/>
+    <text class="tk" x="52.0" y="249.0" text-anchor="middle">0</text>
+    <text class="tk" x="124.0" y="249.0" text-anchor="middle">5</text>
+    <text class="tk" x="196.0" y="249.0" text-anchor="middle">10</text>
+    <text class="tk" x="268.0" y="249.0" text-anchor="middle">15</text>
+    <text class="tk" x="340.0" y="249.0" text-anchor="middle">20</text>
+    <text class="tk" x="45.0" y="238.0" text-anchor="end">0.001</text>
+    <text class="tk" x="45.0" y="183.0" text-anchor="end">0.01</text>
+    <text class="tk" x="45.0" y="128.0" text-anchor="end">0.1</text>
+    <text class="tk" x="45.0" y="73.0" text-anchor="end">1</text>
+    <text class="tk" x="45.0" y="18.0" text-anchor="end">10</text>
+    <path class="s1" d="M52.0,118.7 L66.4,160.3 L80.8,194.0 L95.2,210.4 L109.6,214.5 L124.0,215.2 L138.4,215.3 L152.8,215.3 L167.2,215.3 L181.6,215.3 L196.0,215.3 L210.4,215.3 L224.8,215.3 L239.2,215.3 L253.6,215.3 L268.0,215.3 L282.4,215.3 L296.8,215.3 L311.2,215.3 L325.6,215.3 L340.0,215.3"/>
+    <text class="lbx" x="106.2" y="202.4" text-anchor="middle">P</text>
+    <path class="s2" d="M52.0,118.7 L66.4,114.2 L80.8,109.7 L95.2,105.2 L109.6,100.7 L124.0,96.2 L138.4,91.6 L152.8,87.1 L167.2,82.6 L181.6,78.0 L196.0,73.5 L210.4,69.0 L224.8,64.4 L239.2,59.9 L253.6,55.3 L268.0,50.8 L282.4,46.2 L296.8,41.7 L311.2,37.1 L325.6,32.6 L340.0,28.0"/>
+    <text class="lbx" x="106.2" y="97.2" text-anchor="middle">Q</text>
+    <path class="s3" d="M52.0,118.7 L66.4,120.6 L80.8,122.5 L95.2,124.4 L109.6,126.3 L124.0,128.2 L138.4,130.1 L152.8,132.0 L167.2,133.9 L181.6,135.8 L196.0,137.7 L210.4,139.5 L224.8,141.4 L239.2,143.2 L253.6,145.1 L268.0,146.9 L282.4,148.8 L296.8,150.6 L311.2,152.4 L325.6,154.2 L340.0,156.0"/>
+    <text class="lbx" x="106.2" y="116.4" text-anchor="middle">R</text>
+    <path class="s4" d="M52.0,118.7 L66.4,129.1 L80.8,139.4 L95.2,149.5 L109.6,159.3 L124.0,168.7 L138.4,177.6 L152.8,185.6 L167.2,192.7 L181.6,198.6 L196.0,203.4 L210.4,207.0 L224.8,209.7 L239.2,211.6 L253.6,212.9 L268.0,213.7 L282.4,214.3 L296.8,214.7 L311.2,214.9 L325.6,215.1 L340.0,215.2"/>
+    <text class="lbx" x="106.2" y="141.5" text-anchor="middle">S</text>
+    <text class="at" x="196.0" y="274" text-anchor="middle">step</text>
+    <text class="at" transform="translate(11 124.0) rotate(-90)" text-anchor="middle">loss (log scale)</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q06" value="0"><b>A</b><span>Run P</span></label>
+      <label class="opt"><input type="radio" name="q06" value="1"><b>B</b><span>Run Q</span></label>
+      <label class="opt"><input type="radio" name="q06" value="2"><b>C</b><span>Run R</span></label>
+      <label class="opt"><input type="radio" name="q06" value="3"><b>D</b><span>Run S</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../a2-linear-regression/#rate">A2 The learning rate</a> and <a href="../a2-linear-regression/#scaling">A2 Feature scaling</a>.</p>
+  </article>
+
+  <article class="pq" id="q7" data-q="q07" data-kind="num" data-dp="1">
+    <h3 class="pq-h"><span>Question 7<span class="pq-st" hidden></span></span><span class="pq-tag">Linear regression</span></h3>
+    <p class="pq-t tight">The chart has a logarithmic length axis and a logarithmic weight axis. The dots are 268 made-up spadenose records. The line is a fitted power law and it passes through the marked points A and B. If the same line continued, what weight would it give a 100 cm shark? Give kg to one decimal place.</p>
+    <div class="pfig">
+    <svg class="fg" viewBox="0 0 360 290" role="img" aria-label="Weight against length on logarithmic axes for 268 made-up spadenose sharks. The dots follow a straight line that passes through A at 25 cm and 0.053 kg and B at 50 cm and 0.40 kg.">
+    <line class="gl" x1="96.5" y1="244.0" x2="96.5" y2="14.0"/>
+    <line class="gl" x1="177.2" y1="244.0" x2="177.2" y2="14.0"/>
+    <line class="gl" x1="234.5" y1="244.0" x2="234.5" y2="14.0"/>
+    <line class="gl" x1="279.0" y1="244.0" x2="279.0" y2="14.0"/>
+    <line class="gl" x1="315.3" y1="244.0" x2="315.3" y2="14.0"/>
+    <line class="gl" x1="52.0" y1="244.0" x2="346.0" y2="244.0"/>
+    <line class="gl" x1="52.0" y1="209.4" x2="346.0" y2="209.4"/>
+    <line class="gl" x1="52.0" y1="163.6" x2="346.0" y2="163.6"/>
+    <line class="gl" x1="52.0" y1="129.0" x2="346.0" y2="129.0"/>
+    <line class="gl" x1="52.0" y1="94.4" x2="346.0" y2="94.4"/>
+    <line class="gl" x1="52.0" y1="48.6" x2="346.0" y2="48.6"/>
+    <line class="gl" x1="52.0" y1="14.0" x2="346.0" y2="14.0"/>
+    <line class="ax" x1="52.0" y1="244.0" x2="350.0" y2="244.0"/><line class="ax" x1="52.0" y1="244.0" x2="52.0" y2="10.0"/>
+    <text class="tk" x="96.5" y="259.0" text-anchor="middle">20</text>
+    <text class="tk" x="177.2" y="259.0" text-anchor="middle">30</text>
+    <text class="tk" x="234.5" y="259.0" text-anchor="middle">40</text>
+    <text class="tk" x="279.0" y="259.0" text-anchor="middle">50</text>
+    <text class="tk" x="315.3" y="259.0" text-anchor="middle">60</text>
+    <text class="tk" x="45.0" y="248.0" text-anchor="end">0.01</text>
+    <text class="tk" x="45.0" y="213.4" text-anchor="end">0.02</text>
+    <text class="tk" x="45.0" y="167.6" text-anchor="end">0.05</text>
+    <text class="tk" x="45.0" y="133.0" text-anchor="end">0.1</text>
+    <text class="tk" x="45.0" y="98.4" text-anchor="end">0.2</text>
+    <text class="tk" x="45.0" y="52.6" text-anchor="end">0.5</text>
+    <text class="tk" x="45.0" y="18.0" text-anchor="end">1</text>
+    <path class="pt" d="M213.5 120.7h0 M203.9 115.9h0 M255.3 63.8h0 M261.1 90.1h0 M246.1 80.0h0 M269.6 62.3h0 M238.0 82.4h0 M208.5 106.2h0 M239.0 86.1h0 M251.7 82.1h0 M312.6 34.0h0 M157.0 151.3h0 M152.5 156.2h0 M179.9 135.4h0 M272.1 71.5h0 M266.2 53.2h0 M207.9 100.8h0 M232.5 93.6h0 M149.5 142.1h0 M258.4 84.9h0 M285.6 68.9h0 M258.0 69.7h0 M265.4 66.6h0 M272.9 52.0h0 M246.6 85.3h0 M225.4 101.6h0 M294.3 53.0h0 M264.1 74.6h0 M243.8 89.4h0 M153.3 155.4h0 M246.6 70.4h0 M213.5 99.4h0 M197.4 117.9h0 M169.8 149.8h0 M252.6 68.2h0 M222.7 93.6h0 M276.6 61.0h0 M223.3 96.7h0 M239.0 85.1h0 M190.7 122.0h0 M118.1 184.4h0 M175.2 141.4h0 M277.8 68.6h0 M252.6 91.5h0 M232.0 92.4h0 M260.2 72.3h0 M271.3 61.7h0 M221.7 88.3h0 M131.1 164.6h0 M216.3 104.3h0 M201.6 114.0h0 M249.4 95.9h0 M234.0 76.0h0 M248.0 79.8h0 M268.8 77.0h0 M225.9 95.1h0 M269.6 57.3h0 M267.5 56.6h0 M229.0 102.8h0 M252.6 82.4h0 M198.6 120.7h0 M194.4 117.1h0 M166.3 134.3h0 M283.7 62.6h0 M177.2 127.0h0 M209.1 109.1h0 M193.2 121.6h0 M291.7 46.0h0 M292.5 53.4h0 M239.4 87.8h0 M203.3 118.3h0 M214.1 104.3h0 M144.8 153.7h0 M262.4 72.2h0 M186.3 124.7h0 M197.4 116.7h0 M201.0 120.7h0 M242.3 85.1h0 M255.8 75.3h0 M203.9 112.9h0 M223.8 92.7h0 M159.9 132.1h0 M309.2 35.1h0 M310.2 34.8h0 M265.8 76.2h0 M279.4 56.2h0 M252.1 79.6h0 M211.9 111.1h0 M227.4 97.2h0 M281.0 55.1h0 M227.9 99.6h0 M235.5 93.1h0 M175.9 138.3h0 M220.6 95.9h0 M279.0 71.1h0 M195.6 126.6h0 M194.4 128.5h0 M294.3 45.9h0 M267.9 70.1h0 M270.8 74.1h0 M173.9 129.0h0 M262.4 71.9h0 M141.7 158.0h0 M309.2 39.0h0 M232.0 96.7h0 M157.0 149.0h0 M241.9 75.3h0 M154.7 149.0h0 M174.5 131.6h0 M151.8 165.7h0 M247.1 76.0h0 M226.9 90.8h0 M232.0 88.7h0 M171.8 149.8h0 M247.1 91.9h0 M187.6 122.9h0 M183.8 136.0h0 M237.0 85.7h0 M147.9 157.1h0 M222.2 96.4h0 M271.3 56.0h0 M207.4 115.9h0 M276.6 69.7h0 M256.2 79.6h0 M188.2 125.6h0 M249.4 76.0h0 M287.6 57.4h0 M212.4 110.1h0 M262.4 73.6h0 M216.3 102.8h0 M222.2 102.8h0 M159.9 141.4h0 M202.2 105.2h0 M217.9 96.4h0 M216.3 104.3h0 M203.9 117.9h0 M270.4 58.9h0 M280.2 65.4h0 M205.6 112.6h0 M184.4 126.1h0 M193.8 127.0h0 M183.1 130.0h0 M182.5 117.9h0 M167.0 133.7h0 M212.4 96.2h0 M147.9 142.1h0 M225.9 103.4h0 M185.7 129.0h0 M203.3 111.1h0 M183.8 126.6h0 M125.2 174.8h0 M261.1 67.2h0 M210.2 110.8h0 M224.8 95.1h0 M255.8 85.3h0 M261.5 71.7h0 M210.2 112.6h0 M284.1 58.2h0 M225.4 90.3h0 M181.2 126.1h0 M235.5 97.7h0 M120.8 168.9h0 M162.0 155.4h0 M217.9 106.8h0 M155.5 151.3h0 M144.1 153.7h0 M153.3 157.1h0 M256.7 70.6h0 M237.5 94.6h0 M283.3 53.8h0 M265.4 61.8h0 M196.8 126.1h0 M232.0 95.6h0 M204.5 118.3h0 M199.8 129.0h0 M222.7 96.4h0 M201.6 102.8h0 M277.4 55.3h0 M219.0 107.8h0 M197.4 116.7h0 M296.9 48.4h0 M157.7 126.1h0 M77.7 214.6h0 M235.0 104.0h0 M250.3 81.5h0 M262.4 69.7h0 M169.8 127.5h0 M211.3 113.3h0 M218.5 110.4h0 M266.6 53.7h0 M209.1 110.1h0 M157.7 134.8h0 M188.8 127.5h0 M118.1 184.4h0 M277.0 57.6h0 M159.9 150.5h0 M305.1 41.7h0 M258.9 70.8h0 M230.0 93.1h0 M264.9 55.7h0 M103.3 204.6h0 M260.2 73.1h0 M263.7 70.0h0 M249.4 84.0h0 M179.2 131.6h0 M201.6 119.1h0 M193.8 122.0h0 M208.5 96.7h0 M260.2 74.5h0 M271.7 57.8h0 M305.4 44.9h0 M251.7 80.5h0 M258.9 67.4h0 M218.5 94.4h0 M314.6 26.7h0 M204.5 114.4h0 M222.2 101.9h0 M237.0 87.2h0 M223.3 115.9h0 M248.0 76.3h0 M179.9 138.3h0 M220.6 110.4h0 M307.2 43.8h0 M154.7 170.0h0 M282.5 52.5h0 M238.5 96.9h0 M231.5 103.4h0 M201.6 126.1h0 M286.4 61.7h0 M284.5 53.8h0 M236.5 90.3h0 M249.4 75.3h0 M289.1 56.0h0 M242.8 87.4h0 M179.9 110.1h0 M194.4 128.5h0 M162.0 148.3h0 M231.5 96.4h0 M225.4 96.2h0 M211.3 105.8h0 M240.4 107.4h0 M82.0 204.6h0 M275.4 43.0h0 M267.1 66.3h0 M277.4 74.6h0 M254.0 69.2h0 M295.8 51.4h0 M236.5 95.1h0 M249.4 85.1h0 M298.0 52.6h0 M149.5 152.1h0 M238.5 83.6h0 M183.8 138.3h0 M279.4 58.3h0 M230.0 97.5h0 M225.9 96.4h0 M246.1 86.8h0 M181.2 126.1h0 M299.4 41.4h0 M226.9 101.3h0 M239.0 91.0h0 M208.5 113.6h0 M259.3 84.9h0 M223.8 106.8h0 M234.0 87.6h0 M181.8 134.3h0 M292.5 58.5h0 M198.6 119.9h0" style="stroke-width:4.4"/>
+    <path class="l3" d="M69.9,212.2 L75.5,208.1 L80.9,204.1 L86.2,200.3 L91.4,196.5 L96.5,192.8 L101.4,189.2 L106.2,185.7 L110.9,182.3 L115.4,178.9 L119.9,175.6 L124.3,172.4 L128.6,169.3 L132.8,166.2 L136.9,163.2 L140.9,160.3 L144.8,157.4 L148.7,154.6 L152.5,151.8 L156.2,149.1 L159.9,146.4 L163.5,143.8 L167.0,141.2 L170.5,138.7 L173.9,136.2 L177.2,133.8 L180.5,131.3 L183.8,129.0 L186.9,126.6 L190.1,124.4 L193.2,122.1 L196.2,119.9 L199.2,117.7 L202.2,115.5 L205.1,113.4 L207.9,111.3 L210.8,109.2 L213.5,107.2 L216.3,105.2 L219.0,103.2 L221.7,101.3 L224.3,99.3 L226.9,97.4 L229.5,95.6 L232.0,93.7 L234.5,91.9 L237.0,90.1 L239.4,88.3 L241.9,86.5 L244.2,84.8 L246.6,83.0 L248.9,81.3 L251.2,79.7 L253.5,78.0 L255.8,76.3 L258.0,74.7 L260.2,73.1 L262.4,71.5 L264.5,69.9 L266.6,68.4 L268.8,66.8 L270.8,65.3 L272.9,63.8 L275.0,62.3 L277.0,60.8 L279.0,59.4 L281.0,57.9 L282.9,56.5 L284.9,55.1 L286.8,53.7 L288.7,52.3 L290.6,50.9 L292.5,49.5 L294.3,48.2 L296.1,46.8 L298.0,45.5 L299.8,44.2 L301.5,42.9 L303.3,41.6 L305.1,40.3 L306.8,39.0 L308.5,37.8 L310.2,36.5 L311.9,35.3 L313.6,34.0 L315.3,32.8 L316.9,31.6 L318.6,30.4 L320.2,29.2 L321.8,28.1"/>
+    <circle class="pm" cx="140.9" cy="160.7" r="4.6"/>
+    <circle class="pm" cx="279.0" cy="59.8" r="4.6"/>
+    <text class="lb" x="149.9" y="178.7" text-anchor="start">A: 25 cm, 0.053 kg</text>
+    <text class="lb" x="337.3" y="104.0" text-anchor="end">B: 50 cm, 0.40 kg</text>
+    <text class="at" x="199.0" y="284" text-anchor="middle">length, cm (log scale)</text>
+    <text class="at" transform="translate(11 129.0) rotate(-90)" text-anchor="middle">weight, kg (log scale)</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 7, the weight in kilograms"><span class="u">kg</span></label>
+    <p class="revise" hidden>Revise <a href="../a2-linear-regression/#loglog">A2 The cube law and the log-log line</a>.</p>
+  </article>
+</section>
+
+<section id="logistic" aria-labelledby="logistic-h">
+  <h2 id="logistic-h">Logistic regression</h2>
+
+  <article class="pq" id="q8" data-q="q08" data-kind="num" data-dp="0" data-pct>
+    <h3 class="pq-h"><span>Question 8<span class="pq-st" hidden></span></span><span class="pq-tag">Logistic regression</span></h3>
+    <p class="pq-t">For the made-up grey bamboo sharks, a logistic regression has the score \(z = 0.31\,(L - 53.0)\), where \(L\) is the length in cm. The model's probability of mature is \(\sigma(z)\). Tag 4127, the juvenile from the Juhu rock pool, is 44.0 cm long. What probability of mature does the model give it? Answer as a per cent, as a whole number.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 8, in per cent"><span class="u">%</span></label>
+    <p class="revise" hidden>Revise <a href="../a3-logistic-regression/#sigmoid">A3 From a score to a probability</a>.</p>
+  </article>
+
+  <article class="pq" id="q9" data-q="q09" data-kind="num" data-dp="1">
+    <h3 class="pq-h"><span>Question 9<span class="pq-st" hidden></span></span><span class="pq-tag">Logistic regression</span></h3>
+    <p class="pq-t tight">The Pima data are published records of 768 women of Pima heritage, measured in the United States. A logistic regression on the training women has the score \(z = 0.04 \times \text{glucose} + 0.09 \times \text{BMI} - 8.3\), with glucose in mg/dl. The decision boundary is where \(z = 0\). A woman on the boundary has glucose 130. What is her BMI? Give one decimal place.</p>
+    <div class="pfig"><p class="fcap">Training women of the Pima data (a few lie outside the frame). Coral diamonds have diabetes, navy dots do not.</p>
+    <svg class="fg" viewBox="0 0 360 300" role="img" aria-label="Scatter of glucose against BMI for training women of the Pima data. Women with diabetes are coral diamonds and women without are navy dots. A straight boundary line runs from about glucose 61 and BMI 65 down to glucose 174 and BMI 15.">
+    <line class="gl" x1="46.0" y1="254.0" x2="46.0" y2="14.0"/>
+    <line class="gl" x1="89.1" y1="254.0" x2="89.1" y2="14.0"/>
+    <line class="gl" x1="132.3" y1="254.0" x2="132.3" y2="14.0"/>
+    <line class="gl" x1="175.4" y1="254.0" x2="175.4" y2="14.0"/>
+    <line class="gl" x1="218.6" y1="254.0" x2="218.6" y2="14.0"/>
+    <line class="gl" x1="261.7" y1="254.0" x2="261.7" y2="14.0"/>
+    <line class="gl" x1="304.9" y1="254.0" x2="304.9" y2="14.0"/>
+    <line class="gl" x1="348.0" y1="254.0" x2="348.0" y2="14.0"/>
+    <line class="gl" x1="46.0" y1="230.0" x2="348.0" y2="230.0"/>
+    <line class="gl" x1="46.0" y1="182.0" x2="348.0" y2="182.0"/>
+    <line class="gl" x1="46.0" y1="134.0" x2="348.0" y2="134.0"/>
+    <line class="gl" x1="46.0" y1="86.0" x2="348.0" y2="86.0"/>
+    <line class="gl" x1="46.0" y1="38.0" x2="348.0" y2="38.0"/>
+    <line class="ax" x1="46.0" y1="254.0" x2="352.0" y2="254.0"/><line class="ax" x1="46.0" y1="254.0" x2="46.0" y2="10.0"/>
+    <text class="tk" x="46.0" y="269.0" text-anchor="middle">60</text>
+    <text class="tk" x="89.1" y="269.0" text-anchor="middle">80</text>
+    <text class="tk" x="132.3" y="269.0" text-anchor="middle">100</text>
+    <text class="tk" x="175.4" y="269.0" text-anchor="middle">120</text>
+    <text class="tk" x="218.6" y="269.0" text-anchor="middle">140</text>
+    <text class="tk" x="261.7" y="269.0" text-anchor="middle">160</text>
+    <text class="tk" x="304.9" y="269.0" text-anchor="middle">180</text>
+    <text class="tk" x="348.0" y="269.0" text-anchor="middle">200</text>
+    <text class="tk" x="39.0" y="234.0" text-anchor="end">20</text>
+    <text class="tk" x="39.0" y="186.0" text-anchor="end">30</text>
+    <text class="tk" x="39.0" y="138.0" text-anchor="end">40</text>
+    <text class="tk" x="39.0" y="90.0" text-anchor="end">50</text>
+    <text class="tk" x="39.0" y="42.0" text-anchor="end">60</text>
+    <path class="pt" d="M99.9 198.3h0 M108.6 191.1h0 M166.8 203.1h0 M216.4 195.9h0 M138.8 118.2h0 M188.4 137.4h0 M130.1 156.1h0 M125.8 214.6h0 M229.4 219.4h0 M169.0 162.3h0 M106.4 207.0h0 M179.7 193.5h0 M138.8 210.8h0 M214.3 166.6h0 M304.9 162.8h0 M203.5 133.0h0 M145.2 217.0h0 M259.6 194.5h0 M231.5 183.4h0 M69.7 191.6h0 M138.8 232.9h0 M134.4 209.8h0 M106.4 208.9h0 M132.3 101.4h0 M231.5 131.6h0 M143.1 126.8h0 M121.5 231.9h0 M231.5 187.3h0 M216.4 188.7h0 M194.8 157.5h0 M87.0 172.4h0 M160.3 218.5h0 M95.6 185.4h0 M134.4 207.9h0 M153.9 170.5h0 M132.3 141.2h0 M147.4 198.8h0 M89.1 234.3h0 M181.9 172.4h0 M91.3 101.8h0 M222.9 207.4h0 M227.2 163.3h0 M115.0 174.3h0 M117.2 188.2h0 M186.2 218.0h0 M91.3 198.3h0 M99.9 135.9h0 M188.4 188.2h0 M123.7 218.5h0 M227.2 184.4h0 M95.6 161.4h0 M108.6 176.2h0 M80.5 162.8h0 M84.8 164.2h0 M130.1 214.6h0 M156.0 161.8h0 M147.4 164.7h0 M201.3 197.4h0 M175.4 120.1h0 M171.1 166.2h0 M123.7 224.7h0 M186.2 163.8h0 M132.3 178.2h0 M194.8 176.2h0 M143.1 148.9h0 M192.7 224.7h0 M145.2 136.4h0 M149.5 170.0h0 M248.8 168.6h0 M145.2 179.6h0 M110.7 195.0h0 M209.9 146.5h0 M162.5 220.9h0 M246.6 131.1h0 M130.1 207.9h0 M151.7 205.0h0 M106.4 186.8h0 M242.3 183.4h0 M136.6 147.4h0 M162.5 113.8h0 M132.3 183.4h0 M235.8 170.0h0 M175.4 183.9h0 M156.0 189.7h0 M104.2 187.3h0 M87.0 117.2h0 M99.9 176.2h0 M225.0 110.0h0 M104.2 214.6h0 M74.0 197.4h0 M220.7 193.5h0 M156.0 217.5h0 M181.9 167.1h0 M99.9 208.9h0 M160.3 177.2h0 M214.3 133.5h0 M149.5 195.0h0 M130.1 228.1h0 M156.0 211.3h0 M186.2 182.0h0 M173.3 205.0h0 M222.9 187.8h0 M132.3 212.7h0 M104.2 159.9h0 M134.4 154.6h0 M341.5 149.8h0 M169.0 109.0h0 M87.0 204.1h0 M179.7 158.0h0 M112.9 185.8h0 M112.9 167.1h0 M179.7 176.2h0 M272.5 75.0h0 M184.1 156.1h0 M156.0 181.5h0 M194.8 191.6h0 M110.7 208.9h0 M102.1 154.2h0 M156.0 181.5h0 M162.5 188.2h0 M332.9 201.7h0 M328.6 177.7h0 M121.5 171.9h0 M222.9 170.5h0 M192.7 134.0h0 M136.6 205.5h0 M149.5 205.0h0 M179.7 215.6h0 M69.7 166.6h0 M145.2 161.8h0 M140.9 192.6h0 M162.5 206.5h0 M149.5 204.6h0 M203.5 170.5h0 M209.9 201.2h0 M250.9 140.2h0 M123.7 226.2h0 M149.5 152.7h0 M263.9 220.9h0 M242.3 155.6h0 M188.4 178.6h0 M82.7 154.2h0 M240.1 225.2h0 M175.4 135.4h0 M212.1 207.0h0 M89.1 200.2h0 M145.2 136.9h0 M160.3 184.4h0 M158.2 162.3h0 M130.1 233.4h0 M164.6 143.1h0 M194.8 194.0h0 M255.2 203.1h0 M302.7 157.5h0 M143.1 178.2h0 M171.1 215.1h0 M145.2 212.7h0 M121.5 211.3h0 M272.5 96.1h0 M197.0 201.7h0 M121.5 201.7h0 M179.7 159.4h0 M188.4 141.2h0 M216.4 188.2h0 M166.8 213.2h0 M130.1 221.4h0 M212.1 176.2h0 M48.2 160.9h0 M110.7 195.4h0 M110.7 121.0h0 M106.4 156.6h0 M233.7 158.5h0 M130.1 162.8h0 M134.4 225.2h0 M91.3 194.0h0 M97.8 154.2h0 M143.1 158.5h0 M179.7 152.2h0 M128.0 205.0h0 M104.2 147.4h0 M117.2 117.7h0 M147.4 178.2h0 M143.1 230.0h0 M186.2 209.4h0 M173.3 219.0h0 M132.3 174.3h0 M132.3 172.4h0 M199.2 212.2h0 M166.8 219.9h0 M190.5 193.0h0 M93.5 224.7h0 M212.1 209.8h0 M71.9 174.3h0 M134.4 220.9h0 M136.6 154.6h0 M225.0 122.5h0 M225.0 200.2h0 M125.8 195.4h0 M95.6 238.6h0 M173.3 108.6h0 M119.3 201.2h0 M136.6 131.1h0 M164.6 178.2h0 M130.1 219.4h0 M89.1 182.0h0 M110.7 208.4h0 M218.6 146.5h0 M233.7 182.5h0 M125.8 238.6h0 M147.4 149.4h0 M95.6 171.4h0 M169.0 166.6h0 M132.3 204.6h0 M121.5 150.8h0 M175.4 179.6h0 M93.5 224.2h0 M112.9 134.5h0 M173.3 231.9h0 M132.3 144.6h0 M205.6 201.7h0 M175.4 226.2h0 M69.7 221.4h0 M106.4 193.5h0 M164.6 210.8h0 M184.1 221.4h0 M76.2 192.6h0 M125.8 149.4h0 M248.8 104.7h0 M212.1 166.6h0 M173.3 139.8h0 M162.5 187.3h0 M212.1 195.0h0 M162.5 211.8h0 M188.4 201.7h0 M201.3 191.6h0 M181.9 157.0h0 M130.1 203.1h0 M335.1 200.7h0 M108.6 165.2h0 M130.1 168.6h0 M274.7 198.3h0 M153.9 201.2h0 M91.3 181.5h0 M248.8 185.4h0 M169.0 205.0h0 M119.3 166.2h0 M123.7 147.0h0 M78.4 166.2h0 M197.0 188.7h0 M97.8 180.1h0 M175.4 206.0h0 M130.1 203.1h0 M186.2 145.5h0 M80.5 168.6h0 M63.3 206.0h0 M184.1 166.6h0 M186.2 174.3h0 M104.2 221.4h0 M125.8 238.6h0 M166.8 199.8h0 M156.0 207.9h0 M179.7 183.0h0 M147.4 108.6h0 M102.1 127.8h0 M112.9 183.0h0 M143.1 183.9h0 M190.5 151.8h0 M97.8 136.4h0 M199.2 167.1h0 M166.8 194.5h0 M97.8 172.9h0 M162.5 192.6h0 M106.4 182.5h0 M97.8 148.9h0 M184.1 203.6h0 M125.8 143.1h0 M153.9 192.6h0 M138.8 104.2h0 M99.9 181.5h0 M104.2 145.5h0 M130.1 196.9h0 M112.9 170.5h0 M121.5 200.7h0 M130.1 140.7h0 M115.0 172.4h0 M84.8 170.0h0 M197.0 217.5h0 M156.0 184.4h0 M128.0 159.4h0 M225.0 181.5h0 M173.3 155.6h0 M149.5 210.8h0 M203.5 196.4h0 M132.3 140.2h0 M117.2 218.0h0 M74.0 224.7h0 M158.2 136.9h0 M93.5 189.2h0 M181.9 164.7h0 M61.1 108.6h0 M108.6 192.6h0 M151.7 215.1h0 M149.5 195.9h0 M123.7 212.2h0 M184.1 192.6h0 M115.0 232.4h0 M244.5 126.8h0 M156.0 210.8h0 M145.2 177.7h0 M143.1 170.0h0 M145.2 202.2h0 M169.0 188.2h0 M115.0 209.8h0 M311.3 130.2h0 M119.3 117.2h0 M110.7 145.0h0 M186.2 207.4h0 M201.3 170.5h0 M192.7 159.9h0 M136.6 160.4h0 M156.0 200.2h0 M192.7 194.0h0 M115.0 201.7h0 M119.3 174.3h0 M136.6 185.4h0 M192.7 161.4h0 M110.7 191.6h0 M138.8 193.5h0 M255.2 136.9h0 M147.4 199.3h0 M112.9 205.0h0 M169.0 163.8h0 M181.9 162.3h0 M175.4 197.4h0 M145.2 161.8h0 M134.4 221.4h0 M175.4 139.3h0 M190.5 138.8h0 M266.0 193.0h0 M158.2 159.0h0 M248.8 177.7h0 M272.5 164.7h0 M130.1 204.1h0 M63.3 155.6h0 M181.9 51.0h0 M112.9 155.1h0 M134.4 209.8h0 M121.5 111.9h0 M194.8 166.6h0 M197.0 215.1h0 M147.4 190.2h0 M218.6 210.3h0 M130.1 206.0h0 M190.5 160.4h0 M171.1 112.4h0 M179.7 153.7h0 M194.8 141.2h0 M153.9 189.7h0 M89.1 135.0h0 M190.5 160.9h0 M257.4 176.2h0 M188.4 183.9h0 M205.6 199.3h0 M119.3 215.1h0 M149.5 155.6h0 M162.5 143.1h0 M169.0 138.3h0 M156.0 168.6h0 M166.8 152.7h0 M220.7 170.5h0 M115.0 181.5h0 M145.2 186.8h0 M121.5 156.1h0 M188.4 194.5h0 M56.8 172.4h0 M130.1 150.3h0 M136.6 178.2h0 M151.7 189.2h0 M246.6 131.1h0 M132.3 182.0h0 M91.3 103.8h0 M177.6 138.8h0 M149.5 201.2h0 M212.1 172.4h0 M145.2 146.0h0 M108.6 218.0h0 M177.6 200.2h0 M117.2 180.1h0" style="stroke-width:4.2"/>
+    <path class="pt2" d="M235.8 161.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M212.1 116.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M84.8 174.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M341.5 176.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M279.0 140.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M324.3 178.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M274.7 199.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M132.3 179.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M171.1 103.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M147.4 180.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M164.6 156.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M339.4 132.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M225.0 147.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M186.2 173.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M233.7 133.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M136.6 165.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M110.7 139.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M285.4 105.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M304.9 121.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M138.8 135.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M296.2 161.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M320.0 142.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M203.5 165.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M162.5 165.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M132.3 165.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M209.9 144.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M205.6 208.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M179.7 84.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M268.2 135.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M285.4 163.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M250.9 159.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M261.7 176.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M231.5 173.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M184.1 159.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M160.3 163.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M106.4 59.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M169.0 157.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M143.1 189.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M289.8 180.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M179.7 163.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M283.3 157.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M149.5 167.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M253.1 158.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M322.1 93.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M268.2 126.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M199.2 171.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M140.9 179.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M136.6 175.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M205.6 153.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M302.7 166.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M197.0 135.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M335.1 150.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M307.0 178.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M192.7 169.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M151.7 189.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M216.4 171.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M257.4 133.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M147.4 213.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M151.7 156.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M339.4 143.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M266.0 142.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M158.2 158.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M151.7 151.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M158.2 141.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M257.4 171.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M222.9 111.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M205.6 101.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M285.4 113.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M307.0 150.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M302.7 111.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M270.3 175.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M216.4 200.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M173.3 192.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M313.5 179.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M160.3 161.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M220.7 179.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M181.9 169.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M214.3 148.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M231.5 191.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M134.4 104.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M145.2 195.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M231.5 141.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M263.9 177.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M149.5 193.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M173.3 104.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M147.4 147.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M192.7 115.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M192.7 128.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M132.3 147.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M227.2 171.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M164.6 69.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M263.9 200.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M192.7 176.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M250.9 195.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M309.2 176.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M335.1 210.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M158.2 171.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M184.1 191.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M244.5 194.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M179.7 154.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M304.9 115.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M164.6 173.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M300.5 131.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M194.8 131.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M339.4 147.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M324.3 173.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M184.1 190.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M203.5 165.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M289.8 138.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M253.1 91.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M166.8 168.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M143.1 115.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M227.2 169.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M274.7 103.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M199.2 158.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M332.9 155.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M121.5 169.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M209.9 155.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M164.6 184.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M341.5 198.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M214.3 156.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M289.8 151.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M227.2 138.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M194.8 196.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M242.3 117.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M307.0 159.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M121.5 155.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M220.7 119.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M324.3 158.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M149.5 176.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M169.0 180.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M304.9 37.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M294.1 161.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M235.8 142.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M143.1 161.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M257.4 152.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M229.4 110.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M207.8 120.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M186.2 184.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M337.2 202.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M304.9 147.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M97.8 180.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M268.2 171.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M197.0 158.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M201.3 165.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M194.8 148.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M132.3 133.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M192.7 167.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M110.7 155.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M317.8 157.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M320.0 113.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M186.2 160.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M343.7 124.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M177.6 158.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M171.1 117.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M242.3 120.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M184.1 185.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M225.0 155.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M296.2 163.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M156.0 98.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M201.3 157.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M322.1 169.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M289.8 146.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M291.9 165.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M279.0 139.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M214.3 149.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M158.2 187.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M173.3 167.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M162.5 191.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M125.8 126.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M233.7 181.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M276.8 210.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M302.7 141.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M250.9 137.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M345.8 117.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M229.4 141.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M164.6 161.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M229.4 167.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M337.2 174.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M253.1 204.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M177.6 150.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M266.0 84.9l3.0 3.0l-3.0 3.0l-3.0 -3.0z M186.2 168.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M227.2 101.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M194.8 138.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M222.9 177.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M281.1 179.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M186.2 190.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z M279.0 155.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M270.3 165.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M117.2 140.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M194.8 125.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M320.0 160.3l3.0 3.0l-3.0 3.0l-3.0 -3.0z M125.8 152.1l3.0 3.0l-3.0 3.0l-3.0 -3.0z M238.0 182.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M197.0 186.7l3.0 3.0l-3.0 3.0l-3.0 -3.0z M291.9 109.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M136.6 133.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M175.4 120.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M218.6 166.0l3.0 3.0l-3.0 3.0l-3.0 -3.0z M233.7 86.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M266.0 206.4l3.0 3.0l-3.0 3.0l-3.0 -3.0z M209.9 173.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M307.0 115.2l3.0 3.0l-3.0 3.0l-3.0 -3.0z M192.7 147.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M181.9 148.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M326.4 152.6l3.0 3.0l-3.0 3.0l-3.0 -3.0z M283.3 111.8l3.0 3.0l-3.0 3.0l-3.0 -3.0z M188.4 178.5l3.0 3.0l-3.0 3.0l-3.0 -3.0z"/>
+    <path class="l3" d="M48.7,14.0 L291.4,254.0"/>
+    <text class="lb" x="158.2" y="47.6" text-anchor="start">boundary: z = 0</text>
+    <text class="lbm" x="317.8" y="42.8" text-anchor="end">z &gt; 0</text>
+    <text class="lbm" x="67.6" y="230.0" text-anchor="start">z &lt; 0</text>
+    <text class="at" x="197.0" y="294" text-anchor="middle">glucose, mg/dl</text>
+    <text class="at" transform="translate(11 134.0) rotate(-90)" text-anchor="middle">BMI</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 9, the BMI"></label>
+    <p class="revise" hidden>Revise <a href="../a3-logistic-regression/#boundary">A3 Two inputs and a decision boundary</a>.</p>
+  </article>
+
+  <article class="pq" id="q10" data-q="q10" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 10<span class="pq-st" hidden></span></span><span class="pq-tag">Logistic regression</span></h3>
+    <p class="pq-t tight">A logistic regression gives the probability \(p\) that a made-up spadenose shark is an adult. The table lists four sharks, with label 1 for an adult and 0 for a juvenile. What is the mean log loss on the four sharks? Use natural logarithms and give two decimal places.</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Four made-up sharks with label and the model's probability of adult">
+    <thead>
+    <tr><th>Tag</th><th>Length, cm</th><th>Girth, cm</th><th>Label</th><th>p (adult)</th></tr></thead><tbody>
+    <tr><th>6297</th><td>35.4</td><td>9.9</td><td>0</td><td>0.62</td></tr>
+    <tr><th>9840</th><td>30.7</td><td>8.2</td><td>0</td><td>0.12</td></tr>
+    <tr><th>6406</th><td>30.6</td><td>8.8</td><td>1</td><td>0.11</td></tr>
+    <tr><th>5910</th><td>38.3</td><td>11.3</td><td>1</td><td>0.88</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 10, the mean log loss"></label>
+    <p class="revise" hidden>Revise <a href="../a3-logistic-regression/#logloss">A3 Log loss</a>.</p>
+  </article>
+
+  <article class="pq" id="q11" data-q="q11" data-kind="num" data-dp="0" data-pct>
+    <h3 class="pq-h"><span>Question 11<span class="pq-st" hidden></span></span><span class="pq-tag">Logistic regression</span></h3>
+    <p class="pq-t tight">A softmax classifier names a shark's species from its length and girth. The table gives its five class scores for Tag 3483, a made-up bamboo shark of 53.9 cm. What probability does the model give to the true species, bamboo? Answer as a per cent, as a whole number.</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Five class scores of Tag 3483">
+    <thead>
+    <tr><th>Species</th><th>Score z</th></tr></thead><tbody>
+    <tr><th>Spadenose</th><td>6.02</td></tr>
+    <tr><th>Milk</th><td>3.80</td></tr>
+    <tr><th>Bamboo</th><td>5.89</td></tr>
+    <tr><th>Hammerhead</th><td>−0.10</td></tr>
+    <tr><th>Ganges</th><td>−15.61</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 11, in per cent"><span class="u">%</span></label>
+    <p class="revise" hidden>Revise <a href="../a3-logistic-regression/#softmax">A3 Five species: softmax</a>.</p>
+  </article>
+</section>
+
+<section id="grading" aria-labelledby="grading-h">
+  <h2 id="grading-h">Grading a model</h2>
+
+  <article class="pq" id="q12" data-q="q12" data-kind="mc">
+    <h3 class="pq-h"><span>Question 12<span class="pq-st" hidden></span></span><span class="pq-tag">Grading a model</span></h3>
+    <p class="pq-t tight">The chart shows the RMSE of polynomial fits of weight on length, from degree 1 to degree 9. All fits use the same 15 made-up spadenose sharks. The test error uses the other 253 spadenose records. The vertical axis is logarithmic. Which statement does the chart support?</p>
+    <div class="pfig">
+    <svg class="fg" viewBox="0 0 360 280" role="img" aria-label="RMSE of polynomial fits of weight on length for degrees 1 to 9, on a log scale. Training error falls slowly from 0.045 to 0.024 kg. Test error is 0.059, 0.040 and 0.039 kg for degrees 1 to 3, then rises to 0.063, 0.44, 1.6, 6.8, 24 and 39 kg for degrees 4 to 9.">
+    <line class="gl" x1="62.2" y1="234.0" x2="62.2" y2="14.0"/>
+    <line class="gl" x1="96.1" y1="234.0" x2="96.1" y2="14.0"/>
+    <line class="gl" x1="130.1" y1="234.0" x2="130.1" y2="14.0"/>
+    <line class="gl" x1="164.0" y1="234.0" x2="164.0" y2="14.0"/>
+    <line class="gl" x1="198.0" y1="234.0" x2="198.0" y2="14.0"/>
+    <line class="gl" x1="232.0" y1="234.0" x2="232.0" y2="14.0"/>
+    <line class="gl" x1="265.9" y1="234.0" x2="265.9" y2="14.0"/>
+    <line class="gl" x1="299.9" y1="234.0" x2="299.9" y2="14.0"/>
+    <line class="gl" x1="333.8" y1="234.0" x2="333.8" y2="14.0"/>
+    <line class="gl" x1="52.0" y1="234.0" x2="344.0" y2="234.0"/>
+    <line class="gl" x1="52.0" y1="179.0" x2="344.0" y2="179.0"/>
+    <line class="gl" x1="52.0" y1="124.0" x2="344.0" y2="124.0"/>
+    <line class="gl" x1="52.0" y1="69.0" x2="344.0" y2="69.0"/>
+    <line class="gl" x1="52.0" y1="14.0" x2="344.0" y2="14.0"/>
+    <line class="ax" x1="52.0" y1="234.0" x2="348.0" y2="234.0"/><line class="ax" x1="52.0" y1="234.0" x2="52.0" y2="10.0"/>
+    <text class="tk" x="62.2" y="249.0" text-anchor="middle">1</text>
+    <text class="tk" x="96.1" y="249.0" text-anchor="middle">2</text>
+    <text class="tk" x="130.1" y="249.0" text-anchor="middle">3</text>
+    <text class="tk" x="164.0" y="249.0" text-anchor="middle">4</text>
+    <text class="tk" x="198.0" y="249.0" text-anchor="middle">5</text>
+    <text class="tk" x="232.0" y="249.0" text-anchor="middle">6</text>
+    <text class="tk" x="265.9" y="249.0" text-anchor="middle">7</text>
+    <text class="tk" x="299.9" y="249.0" text-anchor="middle">8</text>
+    <text class="tk" x="333.8" y="249.0" text-anchor="middle">9</text>
+    <text class="tk" x="45.0" y="238.0" text-anchor="end">0.01</text>
+    <text class="tk" x="45.0" y="183.0" text-anchor="end">0.1</text>
+    <text class="tk" x="45.0" y="128.0" text-anchor="end">1</text>
+    <text class="tk" x="45.0" y="73.0" text-anchor="end">10</text>
+    <text class="tk" x="45.0" y="18.0" text-anchor="end">100</text>
+    <path class="l1" d="M62.2,198.2 L96.1,201.6 L130.1,201.6 L164.0,202.3 L198.0,205.2 L232.0,207.4 L265.9,211.1 L299.9,213.0 L333.8,213.3"/>
+    <path class="l2" d="M62.2,191.6 L96.1,201.0 L130.1,201.7 L164.0,189.9 L198.0,143.7 L232.0,112.3 L265.9,78.3 L299.9,48.4 L333.8,36.6"/>
+    <circle class="d1" cx="62.2" cy="198.2" r="3.4"/>
+    <circle class="d1" cx="96.1" cy="201.6" r="3.4"/>
+    <circle class="d1" cx="130.1" cy="201.6" r="3.4"/>
+    <circle class="d1" cx="164.0" cy="202.3" r="3.4"/>
+    <circle class="d1" cx="198.0" cy="205.2" r="3.4"/>
+    <circle class="d1" cx="232.0" cy="207.4" r="3.4"/>
+    <circle class="d1" cx="265.9" cy="211.1" r="3.4"/>
+    <circle class="d1" cx="299.9" cy="213.0" r="3.4"/>
+    <circle class="d1" cx="333.8" cy="213.3" r="3.4"/>
+    <circle class="d2" cx="62.2" cy="191.6" r="3.4"/>
+    <circle class="d2" cx="96.1" cy="201.0" r="3.4"/>
+    <circle class="d2" cx="130.1" cy="201.7" r="3.4"/>
+    <circle class="d2" cx="164.0" cy="189.9" r="3.4"/>
+    <circle class="d2" cx="198.0" cy="143.7" r="3.4"/>
+    <circle class="d2" cx="232.0" cy="112.3" r="3.4"/>
+    <circle class="d2" cx="265.9" cy="78.3" r="3.4"/>
+    <circle class="d2" cx="299.9" cy="48.4" r="3.4"/>
+    <circle class="d2" cx="333.8" cy="36.6" r="3.4"/>
+    <text class="lb" x="340.6" y="185.9" text-anchor="end">training error (15 sharks)</text>
+    <text class="lbc" x="58.8" y="52.4" text-anchor="start">test error (253 other records)</text>
+    <text class="at" x="198.0" y="274" text-anchor="middle">degree of the polynomial</text>
+    <text class="at" transform="translate(11 124.0) rotate(-90)" text-anchor="middle">RMSE, kg (log scale)</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q12" value="0"><b>A</b><span>Degree 9 is the best model, because its training error is the lowest of the nine fits.</span></label>
+      <label class="opt"><input type="radio" name="q12" value="1"><b>B</b><span>The test error falls steadily as the degree rises, so a higher degree is the safer choice for new sharks.</span></label>
+      <label class="opt"><input type="radio" name="q12" value="2"><b>C</b><span>Past degree 3 the training error keeps falling while the test error climbs steeply, so the extra bends fit noise in the 15 sharks.</span></label>
+      <label class="opt"><input type="radio" name="q12" value="3"><b>D</b><span>Degree 1 is the best model, because it is the simplest and its two errors are the closest in size.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../a4-grading-models/#overfit">A4 Overfitting and underfitting</a>.</p>
+  </article>
+
+  <article class="pq" id="q13" data-q="q13" data-kind="mc">
+    <h3 class="pq-h"><span>Question 13<span class="pq-st" hidden></span></span><span class="pq-tag">Grading a model</span></h3>
+    <p class="pq-t">SharkCam's made-up dive log has 2,400 frames, one per second. A frame is labelled 1 when the detector reported a shark (199 frames). A tree predicts the label from depth, light, visibility and temperature. Cross-validation with five folds of shuffled frames gives 94.8% accuracy. Cross-validation with five consecutive blocks of the dive gives 85.3%. The lazy model, which always says no shark, scores 91.7%. Which statement is correct?</p>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q13" value="0"><b>A</b><span>The shuffled score is too high. Frames a second apart look almost the same, so a test frame has near copies in the training folds. The block score is the fairer guide, and it is below the lazy model.</span></label>
+      <label class="opt"><input type="radio" name="q13" value="1"><b>B</b><span>The shuffled score is the fair one, because the model never trains on the frame that it is scored on, so no frame is seen twice.</span></label>
+      <label class="opt"><input type="radio" name="q13" value="2"><b>C</b><span>The block score is lower only because the five blocks differ in size, so the two scores are equally trustworthy.</span></label>
+      <label class="opt"><input type="radio" name="q13" value="3"><b>D</b><span>The tree underfits in the block folds, so a deeper tree would raise the block score above the shuffled score.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../a4-grading-models/#leak">A4 Leakage</a> and <a href="../a4-grading-models/#splits">A4 Training, validation and test sets</a>.</p>
+  </article>
+
+  <article class="pq" id="q14" data-q="q14" data-kind="num" data-dp="0" data-pct>
+    <h3 class="pq-h"><span>Question 14<span class="pq-st" hidden></span></span><span class="pq-tag">Grading a model</span></h3>
+    <p class="pq-t tight">SharkCam's hammerhead detector is run at a threshold of 0.5 on the 600 made-up catch records, with scores from cross-validation. The table counts the results. What is the F1 score? Answer as a per cent, as a whole number.</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable cmx" aria-label="Confusion matrix of the hammerhead detector at threshold 0.5">
+    <thead>
+    <tr><th></th><th class="grp" colspan="2">The detector said</th></tr>
+    <tr><th>True class</th><th>Not flagged</th><th>Flagged</th></tr></thead><tbody>
+    <tr><th>Other shark</th><td class="dg">531</td><td>12</td></tr>
+    <tr><th>Hammerhead</th><td>38</td><td class="dg">19</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 14, the F1 score in per cent"><span class="u">%</span></label>
+    <p class="revise" hidden>Revise <a href="../a4-grading-models/#matrix">A4 The confusion matrix and its scores</a> and <a href="../a4-grading-models/#rare">A4 Rare classes</a>.</p>
+  </article>
+
+  <article class="pq" id="q15" data-q="q15" data-kind="num" data-dp="0" data-pct>
+    <h3 class="pq-h"><span>Question 15<span class="pq-st" hidden></span></span><span class="pq-tag">Grading a model</span></h3>
+    <p class="pq-t tight">A detector gives scores to four hammerheads and six other sharks from the made-up catch table. The staircase is its ROC curve. Taking the scores from the highest to the lowest, the path steps up for a hammerhead and steps right for another shark. The dashed line marks chance. What is the AUC? Give a decimal between 0 and 1, to two decimal places.</p>
+    <div class="pfig">
+    <svg class="fg" viewBox="0 0 330 250" role="img" aria-label="A staircase on a grid of 6 columns and 4 rows. The path starts at the bottom left, goes up one, right one, up one, right one, up one, right two, up one, then right two to the top right corner. A dashed diagonal marks chance.">
+    <line class="gl" x1="58.0" y1="186.0" x2="58.0" y2="14.0"/>
+    <line class="gl" x1="101.0" y1="186.0" x2="101.0" y2="14.0"/>
+    <line class="gl" x1="144.0" y1="186.0" x2="144.0" y2="14.0"/>
+    <line class="gl" x1="187.0" y1="186.0" x2="187.0" y2="14.0"/>
+    <line class="gl" x1="230.0" y1="186.0" x2="230.0" y2="14.0"/>
+    <line class="gl" x1="273.0" y1="186.0" x2="273.0" y2="14.0"/>
+    <line class="gl" x1="316.0" y1="186.0" x2="316.0" y2="14.0"/>
+    <line class="gl" x1="58.0" y1="186.0" x2="316.0" y2="186.0"/>
+    <line class="gl" x1="58.0" y1="143.0" x2="316.0" y2="143.0"/>
+    <line class="gl" x1="58.0" y1="100.0" x2="316.0" y2="100.0"/>
+    <line class="gl" x1="58.0" y1="57.0" x2="316.0" y2="57.0"/>
+    <line class="gl" x1="58.0" y1="14.0" x2="316.0" y2="14.0"/>
+    <line class="ax" x1="58.0" y1="186.0" x2="320.0" y2="186.0"/><line class="ax" x1="58.0" y1="186.0" x2="58.0" y2="10.0"/>
+    <text class="tk" x="58.0" y="201.0" text-anchor="middle">0</text>
+    <text class="tk" x="101.0" y="201.0" text-anchor="middle">1</text>
+    <text class="tk" x="144.0" y="201.0" text-anchor="middle">2</text>
+    <text class="tk" x="187.0" y="201.0" text-anchor="middle">3</text>
+    <text class="tk" x="230.0" y="201.0" text-anchor="middle">4</text>
+    <text class="tk" x="273.0" y="201.0" text-anchor="middle">5</text>
+    <text class="tk" x="316.0" y="201.0" text-anchor="middle">6</text>
+    <text class="tk" x="51.0" y="190.0" text-anchor="end">0</text>
+    <text class="tk" x="51.0" y="147.0" text-anchor="end">1</text>
+    <text class="tk" x="51.0" y="104.0" text-anchor="end">2</text>
+    <text class="tk" x="51.0" y="61.0" text-anchor="end">3</text>
+    <text class="tk" x="51.0" y="18.0" text-anchor="end">4</text>
+    <path class="dgn" d="M58.0,186.0 L316.0,14.0"/>
+    <path class="l2" d="M58.0,186.0 L58.0,143.0 L101.0,143.0 L101.0,100.0 L144.0,100.0 L144.0,57.0 L187.0,57.0 L230.0,57.0 L230.0,14.0 L273.0,14.0 L316.0,14.0"/>
+    <text class="at" x="187.0" y="244" text-anchor="middle">other sharks flagged, out of 6</text>
+    <text class="at" transform="translate(12 100.0) rotate(-90)" text-anchor="middle">hammerheads found, out of 4</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 15, the AUC"></label>
+    <p class="revise" hidden>Revise <a href="../a4-grading-models/#roc">A4 The ROC curve and AUC</a>.</p>
+  </article>
+
+  <article class="pq" id="q16" data-q="q16" data-kind="mc">
+    <h3 class="pq-h"><span>Question 16<span class="pq-st" hidden></span></span><span class="pq-tag">Grading a model</span></h3>
+    <p class="pq-t tight">The table shows the hammerhead detector of the made-up catch table at four thresholds. A missed hammerhead is judged as bad as 10 false alarms, so the total cost is 10 times the misses plus the false alarms. Which statement is correct?</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="True positives, false positives and false negatives at four thresholds">
+    <thead>
+    <tr><th>Threshold</th><th>Hammerheads found</th><th>False alarms</th><th>Misses</th></tr></thead><tbody>
+    <tr><th>0.50</th><td>19</td><td>12</td><td>38</td></tr>
+    <tr><th>0.30</th><td>29</td><td>20</td><td>28</td></tr>
+    <tr><th>0.10</th><td>50</td><td>95</td><td>7</td></tr>
+    <tr><th>0.05</th><td>54</td><td>188</td><td>3</td></tr>
+    </tbody></table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q16" value="0"><b>A</b><span>Use 0.50, because it has the fewest false alarms and the highest precision of the four.</span></label>
+      <label class="opt"><input type="radio" name="q16" value="1"><b>B</b><span>Use 0.30, because its misses and its false alarms are the closest in number of the four.</span></label>
+      <label class="opt"><input type="radio" name="q16" value="2"><b>C</b><span>Use 0.10, because its total cost is the lowest of the four (165), even though only 34% of its flags are hammerheads.</span></label>
+      <label class="opt"><input type="radio" name="q16" value="3"><b>D</b><span>Use 0.05, because it finds 54 of the 57 hammerheads, more than any other threshold.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../a4-grading-models/#threshold">A4 Moving the threshold</a>.</p>
+  </article>
+
+  <article class="pq" id="q17" data-q="q17" data-kind="num" data-dp="0" data-pct>
+    <h3 class="pq-h"><span>Question 17<span class="pq-st" hidden></span></span><span class="pq-tag">Grading a model</span></h3>
+    <p class="pq-t tight">A logistic regression for diabetes was cross-validated on the 768 women of the Pima data (published records, measured in the United States) at a threshold of 0.3. The table gives the counts. A clinic in Mumbai (a story, not data) screens women among whom 8 in 100 have diabetes. Assume that the sensitivity and specificity from the table apply there. Of the women the model flags, about what per cent have diabetes? Answer as a whole number.</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable cmx" aria-label="Confusion matrix of the diabetes model on the Pima data at threshold 0.3">
+    <thead>
+    <tr><th></th><th class="grp" colspan="2">The model said</th></tr>
+    <tr><th>True class</th><th>Not flagged</th><th>Flagged</th></tr></thead><tbody>
+    <tr><th>No diabetes</th><td class="dg">355</td><td>145</td></tr>
+    <tr><th>Diabetes</th><td>57</td><td class="dg">211</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 17, in per cent"><span class="u">%</span></label>
+    <p class="revise" hidden>Revise <a href="../a4-grading-models/#screening">A4 Base rates in screening</a>.</p>
+  </article>
+
+  <article class="pq" id="q18" data-q="q18" data-kind="mc">
+    <h3 class="pq-h"><span>Question 18<span class="pq-st" hidden></span></span><span class="pq-tag">Grading a model</span></h3>
+    <p class="pq-t tight">A diabetes model is checked on the 154 held-out women of the Pima data (published records, measured in the United States) at one threshold. The table shows, by age group, how many women have diabetes and how many of them the model finds. Which statement is correct?</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Held-out women by age group with the number found and the sensitivity">
+    <thead>
+    <tr><th>Age group</th><th>Women</th><th>With diabetes</th><th>Found</th><th>Sensitivity</th></tr></thead><tbody>
+    <tr><th>21 to 29</th><td>77</td><td>18</td><td>7</td><td>39%</td></tr>
+    <tr><th>30 to 39</th><td>32</td><td>18</td><td>12</td><td>67%</td></tr>
+    <tr><th>40 to 49</th><td>20</td><td>12</td><td>8</td><td>67%</td></tr>
+    <tr><th>50 and over</th><td>25</td><td>7</td><td>7</td><td>100%</td></tr>
+    </tbody></table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q18" value="0"><b>A</b><span>The model works best for women aged 50 and over, because it found all of them.</span></label>
+      <label class="opt"><input type="radio" name="q18" value="1"><b>B</b><span>The 39% for women aged 21 to 29 shows that the model is biased against young women.</span></label>
+      <label class="opt"><input type="radio" name="q18" value="2"><b>C</b><span>The overall accuracy of the model is enough to show that it works for all four age groups.</span></label>
+      <label class="opt"><input type="radio" name="q18" value="3"><b>D</b><span>The 100% for women aged 50 and over comes from 7 women. Its interval, about 65% to 100%, overlaps the intervals of the 30 to 39 and 40 to 49 groups. The table does not show that the oldest group is served better.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../a4-grading-models/#subgroups">A4 Subgroup analysis</a>.</p>
+  </article>
+</section>
+
+<section id="trees" aria-labelledby="trees-h">
+  <h2 id="trees-h">Decision trees</h2>
+
+  <article class="pq" id="q19" data-q="q19" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 19<span class="pq-st" hidden></span></span><span class="pq-tag">Decision trees</span></h3>
+    <p class="pq-t tight">The strip shows 20 made-up training sharks, placed by length. The question 'length at most 41.5 cm?' splits them. Gini impurity is \(G = 1 - \sum_k p_k^2\), where \(p_k\) are the shares of the classes in a box. The weighted impurity after a split adds the \(G\) of the two sides, weighted by its share of the sharks. What is the drop, which is \(G\) before the split minus the weighted \(G\) after it? Give two decimal places.</p>
+    <div class="pfig"><p class="fcap">Twenty made-up training sharks from the catch table, placed by length.</p>
+    <svg class="fg" viewBox="0 0 420 190" role="img" aria-label="Twenty sharks placed by length in two rows. The top row has eleven spadenose sharks as coral diamonds and the bottom row has nine other sharks as navy dots. A dashed divider at 41.5 cm separates the shorter sharks on the yes side from the longer on the no side.">
+    <line class="gl" x1="99.4" y1="144.0" x2="99.4" y2="44.0"/>
+    <line class="gl" x1="176.6" y1="144.0" x2="176.6" y2="44.0"/>
+    <line class="gl" x1="253.7" y1="144.0" x2="253.7" y2="44.0"/>
+    <line class="gl" x1="330.9" y1="144.0" x2="330.9" y2="44.0"/>
+    <line class="gl" x1="408.0" y1="144.0" x2="408.0" y2="44.0"/>
+    <line class="ax" x1="84.0" y1="144.0" x2="412.0" y2="144.0"/><line class="ax" x1="84.0" y1="144.0" x2="84.0" y2="40.0"/>
+    <text class="tk" x="99.4" y="159.0" text-anchor="middle">30</text>
+    <text class="tk" x="176.6" y="159.0" text-anchor="middle">40</text>
+    <text class="tk" x="253.7" y="159.0" text-anchor="middle">50</text>
+    <text class="tk" x="330.9" y="159.0" text-anchor="middle">60</text>
+    <text class="tk" x="408.0" y="159.0" text-anchor="middle">70</text>
+    <line class="gl" x1="84.0" y1="69.0" x2="408.0" y2="69.0"/>
+    <line class="gl" x1="84.0" y1="119.0" x2="408.0" y2="119.0"/>
+    <line class="dv" x1="188.1" y1="146.0" x2="188.1" y2="38.0"/>
+    <path class="pt2x" d="M107.1 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z M120.3 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z M133.4 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z M146.5 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z M159.6 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z M172.7 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z M185.8 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z M204.3 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z M229.8 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z M257.6 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z M287.7 64.2l4.8 4.8l-4.8 4.8l-4.8 -4.8z"/>
+    <path class="ptx" d="M140.3 119.0h0 M207.4 119.0h0 M233.7 119.0h0 M262.2 119.0h0 M288.4 119.0h0 M317.0 119.0h0 M342.4 119.0h0 M369.4 119.0h0 M395.7 119.0h0" style="stroke-width:7.6"/>
+    <text class="lb" x="76.0" y="73.0" text-anchor="end">spadenose</text>
+    <text class="lb" x="76.0" y="123.0" text-anchor="end">other shark</text>
+    <text class="lb" x="188.1" y="32.0" text-anchor="middle">length ≤ 41.5 cm?</text>
+    <text class="lbm" x="180.1" y="140.0" text-anchor="end">yes</text>
+    <text class="lbm" x="196.1" y="140.0" text-anchor="start">no</text>
+    <text class="at" x="246.0" y="184" text-anchor="middle">length, cm</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 19, the drop in Gini impurity"></label>
+    <p class="revise" hidden>Revise <a href="../a5-decision-trees/#gini">A5 Scoring a question: Gini impurity</a>.</p>
+  </article>
+
+  <article class="pq" id="q20" data-q="q20" data-kind="num" data-dp="0" data-pct>
+    <h3 class="pq-h"><span>Question 20<span class="pq-st" hidden></span></span><span class="pq-tag">Decision trees</span></h3>
+    <p class="pq-t tight">The tree was grown on the 614 training women of the Pima data (published records, measured in the United States). Woman A has glucose 158 and BMI 31.6. Follow her down the tree. In the leaf where she ends, what share of the training women have diabetes? Answer as a per cent, as a whole number.</p>
+    <div class="pfig"><p class="fcap">A tree grown on 614 training women. A leaf shows how many of the training women who end there are without and with diabetes.</p>
+    <svg class="fg" viewBox="0 0 400 250" role="img" aria-label="A decision tree of depth 2. The root asks whether glucose is at most 127.5. On yes it asks whether BMI is at most 26.45. On no it asks whether BMI is at most 29.95. The four leaves hold the counts of training women without and with diabetes, in this order: 102 and 1, 212 and 75, 41 and 19, 46 and 118.">
+    <line class="ar" x1="200" y1="49" x2="104" y2="95"/>
+    <text class="lbm" x="146.0" y="70.0" text-anchor="end">yes</text>
+    <line class="ar" x1="200" y1="49" x2="296" y2="95"/>
+    <text class="lbm" x="254.0" y="70.0" text-anchor="start">no</text>
+    <line class="ar" x1="104" y1="129" x2="48" y2="169"/>
+    <text class="lbm" x="70.0" y="147.0" text-anchor="end">yes</text>
+    <line class="ar" x1="104" y1="129" x2="148" y2="169"/>
+    <text class="lbm" x="132.0" y="147.0" text-anchor="start">no</text>
+    <line class="ar" x1="296" y1="129" x2="252" y2="169"/>
+    <text class="lbm" x="268.0" y="147.0" text-anchor="end">yes</text>
+    <line class="ar" x1="296" y1="129" x2="352" y2="169"/>
+    <text class="lbm" x="330.0" y="147.0" text-anchor="start">no</text>
+    <rect class="nd" x="132.0" y="15.0" width="136" height="34" rx="7"/>
+    <text class="nt" x="200" y="36.0">glucose ≤ 127.5?</text>
+    <rect class="nd" x="42.0" y="95.0" width="124" height="34" rx="7"/>
+    <text class="nt" x="104" y="116.0">BMI ≤ 26.45?</text>
+    <rect class="nd" x="234.0" y="95.0" width="124" height="34" rx="7"/>
+    <text class="nt" x="296" y="116.0">BMI ≤ 29.95?</text>
+    <rect class="nd lf" x="5.0" y="173.0" width="86" height="46" rx="7"/>
+    <text class="nt" x="48" y="192.0">without 102</text>
+    <text class="nt" x="48" y="208.0">with 1</text>
+    <rect class="nd lf" x="105.0" y="173.0" width="86" height="46" rx="7"/>
+    <text class="nt" x="148" y="192.0">without 212</text>
+    <text class="nt" x="148" y="208.0">with 75</text>
+    <rect class="nd lf" x="209.0" y="173.0" width="86" height="46" rx="7"/>
+    <text class="nt" x="252" y="192.0">without 41</text>
+    <text class="nt" x="252" y="208.0">with 19</text>
+    <rect class="nd lf" x="309.0" y="173.0" width="86" height="46" rx="7"/>
+    <text class="nt" x="352" y="192.0">without 46</text>
+    <text class="nt" x="352" y="208.0">with 118</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 20, in per cent"><span class="u">%</span></label>
+    <p class="revise" hidden>Revise <a href="../a5-decision-trees/#read">A5 Reading a tree</a>.</p>
+  </article>
+
+  <article class="pq" id="q21" data-q="q21" data-kind="mc">
+    <h3 class="pq-h"><span>Question 21<span class="pq-st" hidden></span></span><span class="pq-tag">Decision trees</span></h3>
+    <p class="pq-t tight">The chart shows the accuracy of trees of depth 1 to 12 on glucose and BMI in the Pima data (training on 614 women, held out 154). A student picks depth 7 because it has the highest held-out accuracy, 81.2%. One standard error of a held-out accuracy near 77% on 154 women is about 3.4 points. Which comment is best?</p>
+    <div class="pfig">
+    <svg class="fg" viewBox="0 0 360 280" role="img" aria-label="Accuracy against tree depth from 1 to 12 for trees on glucose and BMI. Training accuracy rises from 73% to 91%. Held-out accuracy is between 73% and 81%, with its highest value of 81% at depth 7. A dashed line marks 64.3%, the accuracy of always saying no diabetes.">
+    <line class="gl" x1="55.7" y1="234.0" x2="55.7" y2="14.0"/>
+    <line class="gl" x1="81.4" y1="234.0" x2="81.4" y2="14.0"/>
+    <line class="gl" x1="107.1" y1="234.0" x2="107.1" y2="14.0"/>
+    <line class="gl" x1="132.8" y1="234.0" x2="132.8" y2="14.0"/>
+    <line class="gl" x1="158.5" y1="234.0" x2="158.5" y2="14.0"/>
+    <line class="gl" x1="184.2" y1="234.0" x2="184.2" y2="14.0"/>
+    <line class="gl" x1="209.8" y1="234.0" x2="209.8" y2="14.0"/>
+    <line class="gl" x1="235.5" y1="234.0" x2="235.5" y2="14.0"/>
+    <line class="gl" x1="261.2" y1="234.0" x2="261.2" y2="14.0"/>
+    <line class="gl" x1="286.9" y1="234.0" x2="286.9" y2="14.0"/>
+    <line class="gl" x1="312.6" y1="234.0" x2="312.6" y2="14.0"/>
+    <line class="gl" x1="338.3" y1="234.0" x2="338.3" y2="14.0"/>
+    <line class="gl" x1="48.0" y1="206.5" x2="346.0" y2="206.5"/>
+    <line class="gl" x1="48.0" y1="151.5" x2="346.0" y2="151.5"/>
+    <line class="gl" x1="48.0" y1="96.5" x2="346.0" y2="96.5"/>
+    <line class="gl" x1="48.0" y1="41.5" x2="346.0" y2="41.5"/>
+    <line class="ax" x1="48.0" y1="234.0" x2="350.0" y2="234.0"/><line class="ax" x1="48.0" y1="234.0" x2="48.0" y2="10.0"/>
+    <text class="tk" x="55.7" y="249.0" text-anchor="middle">1</text>
+    <text class="tk" x="81.4" y="249.0" text-anchor="middle">2</text>
+    <text class="tk" x="107.1" y="249.0" text-anchor="middle">3</text>
+    <text class="tk" x="132.8" y="249.0" text-anchor="middle">4</text>
+    <text class="tk" x="158.5" y="249.0" text-anchor="middle">5</text>
+    <text class="tk" x="184.2" y="249.0" text-anchor="middle">6</text>
+    <text class="tk" x="209.8" y="249.0" text-anchor="middle">7</text>
+    <text class="tk" x="235.5" y="249.0" text-anchor="middle">8</text>
+    <text class="tk" x="261.2" y="249.0" text-anchor="middle">9</text>
+    <text class="tk" x="286.9" y="249.0" text-anchor="middle">10</text>
+    <text class="tk" x="312.6" y="249.0" text-anchor="middle">11</text>
+    <text class="tk" x="338.3" y="249.0" text-anchor="middle">12</text>
+    <text class="tk" x="41.0" y="210.5" text-anchor="end">60%</text>
+    <text class="tk" x="41.0" y="155.5" text-anchor="end">70%</text>
+    <text class="tk" x="41.0" y="100.5" text-anchor="end">80%</text>
+    <text class="tk" x="41.0" y="45.5" text-anchor="end">90%</text>
+    <path class="dgn" d="M48.0,182.9 L346.0,182.9"/>
+    <path class="l1" d="M55.7,132.5 L81.4,112.8 L107.1,110.1 L132.8,101.2 L158.5,99.4 L184.2,92.2 L209.8,81.5 L235.5,75.2 L261.2,64.4 L286.9,54.6 L312.6,44.7 L338.3,34.9"/>
+    <path class="l2" d="M55.7,129.4 L81.4,111.5 L107.1,118.6 L132.8,118.6 L158.5,107.9 L184.2,100.8 L209.8,90.1 L235.5,111.5 L261.2,118.6 L286.9,111.5 L312.6,132.9 L338.3,136.5"/>
+    <circle class="d1" cx="55.7" cy="132.5" r="3.2"/>
+    <circle class="d2" cx="55.7" cy="129.4" r="3.2"/>
+    <circle class="d1" cx="81.4" cy="112.8" r="3.2"/>
+    <circle class="d2" cx="81.4" cy="111.5" r="3.2"/>
+    <circle class="d1" cx="107.1" cy="110.1" r="3.2"/>
+    <circle class="d2" cx="107.1" cy="118.6" r="3.2"/>
+    <circle class="d1" cx="132.8" cy="101.2" r="3.2"/>
+    <circle class="d2" cx="132.8" cy="118.6" r="3.2"/>
+    <circle class="d1" cx="158.5" cy="99.4" r="3.2"/>
+    <circle class="d2" cx="158.5" cy="107.9" r="3.2"/>
+    <circle class="d1" cx="184.2" cy="92.2" r="3.2"/>
+    <circle class="d2" cx="184.2" cy="100.8" r="3.2"/>
+    <circle class="d1" cx="209.8" cy="81.5" r="3.2"/>
+    <circle class="d2" cx="209.8" cy="90.1" r="3.2"/>
+    <circle class="d1" cx="235.5" cy="75.2" r="3.2"/>
+    <circle class="d2" cx="235.5" cy="111.5" r="3.2"/>
+    <circle class="d1" cx="261.2" cy="64.4" r="3.2"/>
+    <circle class="d2" cx="261.2" cy="118.6" r="3.2"/>
+    <circle class="d1" cx="286.9" cy="54.6" r="3.2"/>
+    <circle class="d2" cx="286.9" cy="111.5" r="3.2"/>
+    <circle class="d1" cx="312.6" cy="44.7" r="3.2"/>
+    <circle class="d2" cx="312.6" cy="132.9" r="3.2"/>
+    <circle class="d1" cx="338.3" cy="34.9" r="3.2"/>
+    <circle class="d2" cx="338.3" cy="136.5" r="3.2"/>
+    <text class="lbm" x="55.7" y="198.9" text-anchor="start">always says no diabetes: 64.3%</text>
+    <text class="lb" x="76.3" y="58.0" text-anchor="start">training accuracy</text>
+    <text class="lbc" x="240.7" y="154.3" text-anchor="start">held-out accuracy</text>
+    <text class="at" x="197.0" y="274" text-anchor="middle">tree depth</text>
+    <text class="at" transform="translate(11 124.0) rotate(-90)" text-anchor="middle">accuracy</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q21" value="0"><b>A</b><span>Good choice, because the best tree is the one with the highest held-out accuracy.</span></label>
+      <label class="opt"><input type="radio" name="q21" value="1"><b>B</b><span>Depth 7 is 3.9 points above depth 2, about one standard error, so the gain may be luck. Depth 2 has 4 leaves against 43, so it is the safer choice.</span></label>
+      <label class="opt"><input type="radio" name="q21" value="2"><b>C</b><span>Depth 12 is the better choice, because it has the highest training accuracy.</span></label>
+      <label class="opt"><input type="radio" name="q21" value="3"><b>D</b><span>No tree is worth using, because all of them score below the 64.3% of the lazy model.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../a5-decision-trees/#depth">A5 Depth, memorising and held-out accuracy</a>.</p>
+  </article>
+</section>
+
+<section id="boosting" aria-labelledby="boosting-h">
+  <h2 id="boosting-h">Boosting</h2>
+
+  <article class="pq" id="q22" data-q="q22" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 22<span class="pq-st" hidden></span></span><span class="pq-tag">Boosting</span></h3>
+    <p class="pq-t">Boosting predicts the weight of made-up spadenose sharks. The model starts at the average weight, \(F_0 = 0.219\) kg. Tree 1 is a stump. It answers \(+0.144\) kg for sharks longer than 42.15 cm and \(-0.080\) kg for the others. Tree 2 is a stump fitted to what is left. It answers \(+0.161\) kg for sharks longer than 46.15 cm and \(-0.041\) kg for the others. The learning rate \(\eta = 0.3\) scales a tree's answer before it is added. Tag 3305 is 41.0 cm long and weighs 0.228 kg. What is its leftover \(r = y - F_2\) after two trees? Give three decimal places.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 22, the leftover in kilograms"><span class="u">kg</span></label>
+    <p class="revise" hidden>Revise <a href="../a6-boosting/#boosting">A6 Boosting: a new tree fits what is left over</a>.</p>
+  </article>
+
+  <article class="pq" id="q23" data-q="q23" data-kind="mc">
+    <h3 class="pq-h"><span>Question 23<span class="pq-st" hidden></span></span><span class="pq-tag">Boosting</span></h3>
+    <p class="pq-t tight">The chart shows the held-out log loss of boosted trees of depth 3 on the Pima data (published records, measured in the United States) for three learning rates. Which statement does the chart support?</p>
+    <div class="pfig"><p class="fcap">Pima data, trees of depth 3. The ringed points are the lowest loss on the curves.</p>
+    <svg class="fg" viewBox="0 0 360 280" role="img" aria-label="Held-out log loss against the number of trees for three learning rates. With a learning rate of 0.3 the loss falls to about 0.48 at 9 trees and then climbs steeply. With 0.1 it reaches about 0.49 near 27 trees and then climbs. With 0.03 it reaches about 0.49 near 82 trees and then rises slowly.">
+    <line class="gl" x1="52.0" y1="234.0" x2="52.0" y2="14.0"/>
+    <line class="gl" x1="150.0" y1="234.0" x2="150.0" y2="14.0"/>
+    <line class="gl" x1="248.0" y1="234.0" x2="248.0" y2="14.0"/>
+    <line class="gl" x1="346.0" y1="234.0" x2="346.0" y2="14.0"/>
+    <line class="gl" x1="52.0" y1="202.6" x2="346.0" y2="202.6"/>
+    <line class="gl" x1="52.0" y1="139.7" x2="346.0" y2="139.7"/>
+    <line class="gl" x1="52.0" y1="76.9" x2="346.0" y2="76.9"/>
+    <line class="gl" x1="52.0" y1="14.0" x2="346.0" y2="14.0"/>
+    <line class="ax" x1="52.0" y1="234.0" x2="350.0" y2="234.0"/><line class="ax" x1="52.0" y1="234.0" x2="52.0" y2="10.0"/>
+    <text class="tk" x="52.0" y="249.0" text-anchor="middle">0</text>
+    <text class="tk" x="150.0" y="249.0" text-anchor="middle">50</text>
+    <text class="tk" x="248.0" y="249.0" text-anchor="middle">100</text>
+    <text class="tk" x="346.0" y="249.0" text-anchor="middle">150</text>
+    <text class="tk" x="45.0" y="206.6" text-anchor="end">0.5</text>
+    <text class="tk" x="45.0" y="143.7" text-anchor="end">0.6</text>
+    <text class="tk" x="45.0" y="80.9" text-anchor="end">0.7</text>
+    <text class="tk" x="45.0" y="18.0" text-anchor="end">0.8</text>
+    <clipPath id="q23c"><rect x="52.0" y="14.0" width="294.0" height="220.0"/></clipPath><g clip-path="url(#q23c)">
+    <path class="s2" d="M54.0,153.3 L55.9,176.7 L57.9,190.9 L59.8,201.6 L61.8,205.1 L63.8,206.4 L65.7,204.9 L67.7,208.8 L69.6,213.4 L71.6,208.2 L73.6,206.7 L75.5,207.2 L77.5,203.8 L79.4,200.8 L81.4,199.1 L83.4,198.2 L85.3,194.9 L87.3,189.8 L89.2,185.5 L91.2,184.0 L93.2,180.0 L95.1,176.8 L97.1,173.6 L99.0,170.3 L101.0,172.5 L103.0,171.2 L104.9,171.5 L106.9,166.7 L108.8,165.9 L110.8,163.9 L112.8,161.0 L114.7,163.2 L116.7,163.7 L118.6,163.0 L120.6,158.3 L122.6,157.4 L124.5,152.1 L126.5,154.8 L128.4,155.6 L130.4,155.1 L132.4,152.3 L134.3,151.2 L136.3,151.8 L138.2,150.8 L140.2,149.3 L142.2,149.3 L144.1,148.6 L146.1,146.4 L148.0,149.7 L150.0,146.6 L152.0,146.6 L153.9,141.1 L155.9,139.6 L157.8,139.3 L159.8,139.2 L161.8,135.4 L163.7,131.6 L165.7,128.2 L167.6,127.5 L169.6,127.5 L171.6,123.4 L173.5,122.1 L175.5,121.5 L177.4,120.4 L179.4,119.1 L181.4,117.3 L183.3,120.6 L185.3,119.2 L187.2,119.5 L189.2,120.7 L191.2,117.7 L193.1,121.1 L195.1,116.4 L197.0,115.7 L199.0,116.7 L201.0,115.3 L202.9,114.8 L204.9,112.9 L206.8,110.1 L208.8,107.6 L210.8,106.0 L212.7,104.8 L214.7,102.0 L216.6,99.7 L218.6,99.6 L220.6,96.4 L222.5,94.1 L224.5,91.1 L226.4,89.9 L228.4,87.6 L230.4,86.2 L232.3,83.6 L234.3,81.7 L236.2,81.0 L238.2,80.0 L240.2,78.3 L242.1,77.4 L244.1,76.4 L246.0,77.7 L248.0,74.0 L250.0,73.8 L251.9,75.4 L253.9,73.7 L255.8,73.2 L257.8,72.7 L259.8,69.7 L261.7,68.8 L263.7,68.9 L265.6,67.8 L267.6,64.3 L269.6,62.4 L271.5,62.1 L273.5,62.2 L275.4,58.5 L277.4,56.7 L279.4,56.4 L281.3,55.0 L283.3,54.0 L285.2,50.0 L287.2,46.3 L289.2,41.8 L291.1,38.0 L293.1,36.2 L295.0,35.8 L297.0,33.6 L299.0,32.9 L300.9,33.6 L302.9,32.6 L304.8,30.7 L306.8,26.6 L308.8,25.0 L310.7,22.9 L312.7,18.6 L314.6,17.3 L316.6,13.6 L318.6,13.8 L320.5,11.4 L322.5,9.4 L324.4,8.7 L326.4,6.1 L328.4,8.0 L330.3,7.7 L332.3,7.0 L334.2,4.1 L336.2,2.7 L338.2,2.4 L340.1,1.4 L342.1,2.2 L344.0,1.2 L346.0,0.6"/>
+    <path class="s1" d="M54.0,124.6 L55.9,138.4 L57.9,150.3 L59.8,158.9 L61.8,166.1 L63.8,172.7 L65.7,178.7 L67.7,183.5 L69.6,188.1 L71.6,191.8 L73.6,194.7 L75.5,197.6 L77.5,199.8 L79.4,202.0 L81.4,204.2 L83.4,206.5 L85.3,207.5 L87.3,207.5 L89.2,208.2 L91.2,208.2 L93.2,208.2 L95.1,208.3 L97.1,207.7 L99.0,208.4 L101.0,207.7 L103.0,208.4 L104.9,209.0 L106.9,208.5 L108.8,207.7 L110.8,208.3 L112.8,207.1 L114.7,207.3 L116.7,208.7 L118.6,208.5 L120.6,208.7 L122.6,208.2 L124.5,206.7 L126.5,206.8 L128.4,205.7 L130.4,205.7 L132.4,205.5 L134.3,205.8 L136.3,205.0 L138.2,203.8 L140.2,203.7 L142.2,203.4 L144.1,202.4 L146.1,202.2 L148.0,200.7 L150.0,200.2 L152.0,201.0 L153.9,199.3 L155.9,199.2 L157.8,197.6 L159.8,197.0 L161.8,195.6 L163.7,194.8 L165.7,195.5 L167.6,193.8 L169.6,193.4 L171.6,193.3 L173.5,192.5 L175.5,192.1 L177.4,190.9 L179.4,191.5 L181.4,191.2 L183.3,190.7 L185.3,189.3 L187.2,188.2 L189.2,187.1 L191.2,187.6 L193.1,187.1 L195.1,185.8 L197.0,185.0 L199.0,184.6 L201.0,183.3 L202.9,183.8 L204.9,183.6 L206.8,182.3 L208.8,182.8 L210.8,182.4 L212.7,181.6 L214.7,180.7 L216.6,181.1 L218.6,180.6 L220.6,179.3 L222.5,179.0 L224.5,179.4 L226.4,178.5 L228.4,177.3 L230.4,177.2 L232.3,177.5 L234.3,176.5 L236.2,175.7 L238.2,175.5 L240.2,174.4 L242.1,174.3 L244.1,174.2 L246.0,173.4 L248.0,172.7 L250.0,172.7 L251.9,173.0 L253.9,172.7 L255.8,172.0 L257.8,171.9 L259.8,172.3 L261.7,171.9 L263.7,171.1 L265.6,170.4 L267.6,169.0 L269.6,169.1 L271.5,168.3 L273.5,168.1 L275.4,167.5 L277.4,166.7 L279.4,166.6 L281.3,166.4 L283.3,167.1 L285.2,167.4 L287.2,165.9 L289.2,165.2 L291.1,165.2 L293.1,164.5 L295.0,163.2 L297.0,163.6 L299.0,163.3 L300.9,161.7 L302.9,161.8 L304.8,161.5 L306.8,161.5 L308.8,160.4 L310.7,160.0 L312.7,159.7 L314.6,159.0 L316.6,157.9 L318.6,156.4 L320.5,156.6 L322.5,156.0 L324.4,154.9 L326.4,154.6 L328.4,154.8 L330.3,154.3 L332.3,152.7 L334.2,152.0 L336.2,151.1 L338.2,150.0 L340.1,149.6 L342.1,149.3 L344.0,148.7 L346.0,147.7"/>
+    <path class="s3" d="M54.0,112.5 L55.9,117.7 L57.9,122.5 L59.8,127.1 L61.8,131.3 L63.8,135.0 L65.7,138.8 L67.7,142.3 L69.6,145.6 L71.6,148.7 L73.6,151.7 L75.5,154.5 L77.5,157.0 L79.4,159.4 L81.4,161.8 L83.4,164.1 L85.3,166.4 L87.3,168.9 L89.2,170.9 L91.2,173.1 L93.2,175.1 L95.1,176.6 L97.1,178.3 L99.0,180.0 L101.0,181.4 L103.0,183.0 L104.9,184.6 L106.9,185.9 L108.8,187.3 L110.8,188.4 L112.8,189.6 L114.7,190.6 L116.7,191.7 L118.6,192.8 L120.6,193.8 L122.6,194.8 L124.5,195.5 L126.5,196.5 L128.4,197.3 L130.4,198.1 L132.4,199.1 L134.3,199.9 L136.3,200.9 L138.2,201.5 L140.2,202.0 L142.2,202.6 L144.1,203.3 L146.1,204.0 L148.0,204.8 L150.0,205.1 L152.0,205.5 L153.9,205.9 L155.9,206.1 L157.8,206.7 L159.8,206.7 L161.8,206.7 L163.7,207.4 L165.7,207.4 L167.6,207.5 L169.6,207.7 L171.6,207.7 L173.5,208.1 L175.5,208.3 L177.4,208.5 L179.4,208.9 L181.4,209.0 L183.3,209.2 L185.3,209.2 L187.2,209.1 L189.2,209.0 L191.2,209.3 L193.1,209.5 L195.1,209.5 L197.0,209.2 L199.0,209.2 L201.0,209.3 L202.9,209.7 L204.9,209.9 L206.8,209.6 L208.8,209.7 L210.8,209.8 L212.7,210.1 L214.7,210.0 L216.6,210.1 L218.6,209.7 L220.6,209.9 L222.5,209.9 L224.5,209.5 L226.4,209.7 L228.4,209.7 L230.4,209.8 L232.3,210.0 L234.3,209.8 L236.2,209.4 L238.2,209.5 L240.2,209.6 L242.1,209.8 L244.1,210.0 L246.0,209.8 L248.0,209.7 L250.0,210.0 L251.9,209.9 L253.9,210.0 L255.8,209.7 L257.8,209.7 L259.8,209.3 L261.7,209.1 L263.7,208.9 L265.6,209.4 L267.6,208.9 L269.6,208.6 L271.5,208.7 L273.5,208.1 L275.4,208.1 L277.4,208.3 L279.4,207.9 L281.3,207.9 L283.3,207.7 L285.2,207.6 L287.2,207.3 L289.2,207.7 L291.1,207.4 L293.1,207.2 L295.0,207.2 L297.0,207.3 L299.0,207.4 L300.9,207.4 L302.9,207.3 L304.8,207.2 L306.8,207.3 L308.8,207.2 L310.7,206.9 L312.7,206.4 L314.6,206.5 L316.6,206.8 L318.6,206.9 L320.5,206.9 L322.5,206.6 L324.4,206.4 L326.4,206.1 L328.4,205.6 L330.3,205.2 L332.3,205.2 L334.2,204.7 L336.2,204.6 L338.2,204.3 L340.1,204.3 L342.1,203.9 L344.0,203.4 L346.0,203.3"/>
+    </g>
+    <circle class="ring2" cx="69.6" cy="213.4" r="5.2"/>
+    <text class="lbc" x="171.4" y="105.3" text-anchor="end">η = 0.3</text>
+    <circle class="ring2" cx="104.9" cy="209.0" r="5.2"/>
+    <text class="lb" x="265.5" y="160.3" text-anchor="end">η = 0.1</text>
+    <circle class="ring2" cx="212.7" cy="210.1" r="5.2"/>
+    <text class="lb" x="275.5" y="228.7" text-anchor="start">η = 0.03</text>
+    <text class="at" x="199.0" y="274" text-anchor="middle">number of trees</text>
+    <text class="at" transform="translate(11 124.0) rotate(-90)" text-anchor="middle">held-out log loss</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q23" value="0"><b>A</b><span>The three curves reach about the same lowest loss. A smaller learning rate needs more trees to get there, and past the lowest point the loss rises again.</span></label>
+      <label class="opt"><input type="radio" name="q23" value="1"><b>B</b><span>A larger learning rate reaches a lower best loss, so 0.3 is the best of the three.</span></label>
+      <label class="opt"><input type="radio" name="q23" value="2"><b>C</b><span>Adding trees lowers the held-out loss, so the best model uses the most trees.</span></label>
+      <label class="opt"><input type="radio" name="q23" value="3"><b>D</b><span>The learning rate 0.03 never overfits, because its curve is the flattest.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../a6-boosting/#boundary">A6 Many small trees draw a boundary</a> and <a href="../a6-boosting/#boosting">A6 Boosting: a new tree fits what is left over</a>.</p>
+  </article>
+
+  <article class="pq" id="q24" data-q="q24" data-kind="mc">
+    <h3 class="pq-h"><span>Question 24<span class="pq-st" hidden></span></span><span class="pq-tag">Boosting</span></h3>
+    <p class="pq-t tight">A boosted model with 100 trees of depth 3 predicts diabetes from the Pima data and gets 74.7% of the 154 held-out women right. A column of random numbers was added as a control. The table shows how often the trees ask about the inputs, and the loss of held-out accuracy in points when the input is shuffled (mean and SD over 50 shuffles). Which statement is correct?</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Split counts and shuffle costs for the inputs of the boosted model">
+    <thead>
+    <tr><th>Input</th><th>Times asked</th><th>Shuffle cost, points</th></tr></thead><tbody>
+    <tr><th>Glucose</th><td>108</td><td>11.5 ± 3.2</td></tr>
+    <tr><th>Pedigree function</th><td>102</td><td>0.6 ± 1.6</td></tr>
+    <tr><th>Age</th><td>86</td><td>1.6 ± 2.1</td></tr>
+    <tr><th>BMI</th><td>85</td><td>2.7 ± 2.1</td></tr>
+    <tr><th>Random numbers</th><td>62</td><td>0.5 ± 1.2</td></tr>
+    <tr><th>BloodPressure</th><td>56</td><td>0.1 ± 1.2</td></tr>
+    <tr><th>SkinThickness</th><td>49</td><td>−0.1 ± 0.5</td></tr>
+    <tr><th>Insulin</th><td>48</td><td>0.2 ± 1.0</td></tr>
+    <tr><th>Pregnancies</th><td>16</td><td>0.3 ± 0.4</td></tr>
+    </tbody></table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q24" value="0"><b>A</b><span>The pedigree function is the second most important input, because the trees ask about it 102 times.</span></label>
+      <label class="opt"><input type="radio" name="q24" value="1"><b>B</b><span>Glucose is the biggest cause of diabetes in these women, because the model relies on it most.</span></label>
+      <label class="opt"><input type="radio" name="q24" value="2"><b>C</b><span>The random column is asked about more often than blood pressure, so a count cannot tell a useful input from noise. Only glucose costs clearly more accuracy than the control.</span></label>
+      <label class="opt"><input type="radio" name="q24" value="3"><b>D</b><span>Blood pressure is useless for any model of diabetes, because shuffling it costs only 0.1 points here.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../a6-boosting/#importance">A6 Which inputs matter? Four answers</a>.</p>
+  </article>
+
+  <article class="pq" id="q25" data-q="q25" data-kind="num" data-dp="0" data-pct>
+    <h3 class="pq-h"><span>Question 25<span class="pq-st" hidden></span></span><span class="pq-tag">Boosting</span></h3>
+    <p class="pq-t tight">The chart explains one score of a boosted model on the Pima data. Woman A was in the held-out set. It starts from the average score and adds the SHAP shares of the inputs one at a time. The score is the log-odds, so the model's chance of diabetes is \(\sigma(\text{score})\). What chance does the model give Woman A? Answer as a per cent, as a whole number.</p>
+    <div class="pfig"><p class="fcap">Woman A, held-out row 31 of the Pima data. Coral bars push the score up and navy bars push it down.</p>
+    <svg class="fg" viewBox="0 0 420 300" role="img" aria-label="A waterfall chart for Woman A. The average score is minus 0.65. The shares are glucose plus 1.31, DiabetesPedigreeFunction plus 0.42, Age minus 0.32, Insulin minus 0.27, BMI plus 0.27, BloodPressure minus 0.08, SkinThickness plus 0.08 and Pregnancies plus 0.01.">
+    <line class="gl" x1="207.7" y1="260.0" x2="207.7" y2="20.0"/>
+    <line class="gl" x1="247.3" y1="260.0" x2="247.3" y2="20.0"/>
+    <line class="gl" x1="287.0" y1="260.0" x2="287.0" y2="20.0"/>
+    <line class="gl" x1="326.7" y1="260.0" x2="326.7" y2="20.0"/>
+    <line class="gl" x1="366.3" y1="260.0" x2="366.3" y2="20.0"/>
+    <line class="gl" x1="406.0" y1="260.0" x2="406.0" y2="20.0"/>
+    <line class="ax" x1="168.0" y1="260.0" x2="410.0" y2="260.0"/><line class="ax" x1="168.0" y1="260.0" x2="168.0" y2="16.0"/>
+    <text class="tk" x="207.7" y="275.0" text-anchor="middle">−1</text>
+    <text class="tk" x="247.3" y="275.0" text-anchor="middle">−0.5</text>
+    <text class="tk" x="287.0" y="275.0" text-anchor="middle">0</text>
+    <text class="tk" x="326.7" y="275.0" text-anchor="middle">0.5</text>
+    <text class="tk" x="366.3" y="275.0" text-anchor="middle">1</text>
+    <text class="tk" x="406.0" y="275.0" text-anchor="middle">1.5</text>
+    <line class="dv" x1="287.0" y1="16" x2="287.0" y2="272"/>
+    <rect class="bn" x="235.4" y="21" width="51.6" height="18"/>
+    <text class="lb" x="162.0" y="34.0" text-anchor="end">average score</text>
+    <text class="lb" x="230.4" y="34.0" text-anchor="end">−0.65</text>
+    <line class="cn" x1="235.4" y1="39" x2="235.4" y2="47"/>
+    <rect class="bp" x="235.4" y="47" width="103.9" height="18"/>
+    <text class="lb" x="344.4" y="60.0" text-anchor="start">+1.31</text>
+    <text class="lb" x="162.0" y="60.0" text-anchor="end">Glucose = 158</text>
+    <line class="cn" x1="339.4" y1="65" x2="339.4" y2="73"/>
+    <rect class="bp" x="339.4" y="73" width="33.3" height="18"/>
+    <text class="lb" x="377.7" y="86.0" text-anchor="start">+0.42</text>
+    <text class="lb" x="162.0" y="86.0" text-anchor="end">Pedigree function = 0.851</text>
+    <line class="cn" x1="372.7" y1="91" x2="372.7" y2="99"/>
+    <rect class="bn" x="347.3" y="99" width="25.4" height="18"/>
+    <text class="lb" x="342.3" y="112.0" text-anchor="end">−0.32</text>
+    <text class="lb" x="162.0" y="112.0" text-anchor="end">Age = 28</text>
+    <line class="cn" x1="347.3" y1="117" x2="347.3" y2="125"/>
+    <rect class="bn" x="325.9" y="125" width="21.4" height="18"/>
+    <text class="lb" x="320.9" y="138.0" text-anchor="end">−0.27</text>
+    <text class="lb" x="162.0" y="138.0" text-anchor="end">Insulin = 245</text>
+    <line class="cn" x1="325.9" y1="143" x2="325.9" y2="151"/>
+    <rect class="bp" x="325.9" y="151" width="21.4" height="18"/>
+    <text class="lb" x="352.3" y="164.0" text-anchor="start">+0.27</text>
+    <text class="lb" x="162.0" y="164.0" text-anchor="end">BMI = 31.6</text>
+    <line class="cn" x1="347.3" y1="169" x2="347.3" y2="177"/>
+    <rect class="bn" x="340.9" y="177" width="6.3" height="18"/>
+    <text class="lb" x="335.9" y="190.0" text-anchor="end">−0.08</text>
+    <text class="lb" x="162.0" y="190.0" text-anchor="end">BloodPressure = 76</text>
+    <line class="cn" x1="340.9" y1="195" x2="340.9" y2="203"/>
+    <rect class="bp" x="340.9" y="203" width="6.3" height="18"/>
+    <text class="lb" x="352.3" y="216.0" text-anchor="start">+0.08</text>
+    <text class="lb" x="162.0" y="216.0" text-anchor="end">SkinThickness = 36</text>
+    <line class="cn" x1="347.3" y1="221" x2="347.3" y2="229"/>
+    <rect class="bp" x="347.3" y="229" width="1.5" height="18"/>
+    <text class="lb" x="353.1" y="242.0" text-anchor="start">+0.01</text>
+    <text class="lb" x="162.0" y="242.0" text-anchor="end">Pregnancies = 3</text>
+    <text class="at" x="287.0" y="294" text-anchor="middle">score (log-odds); 0 means a chance of 0.5</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 25, in per cent"><span class="u">%</span></label>
+    <p class="revise" hidden>Revise <a href="../a6-boosting/#shap">A6 Sharing out a score: SHAP values</a>.</p>
+  </article>
+</section>
+
+<section id="score" aria-labelledby="score-h">
+  <h2 id="score-h">Finish and score</h2>
+  <p>Press the button when you are done. Blank answers count as missed. The page then locks your answers, shows your score by area and links to the sections to revise. It does not show the correct answers.</p>
+  <div class="bar"><button type="button" class="btn btn-main" id="btn-score">Score my answers</button><span class="status" id="score-note" aria-live="polite"></span></div>
+  <div class="card res" id="results" tabindex="-1" hidden></div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Where the numbers come from</h2>
+  <ol>
+    <li>The shark questions use the made-up SharkCam catch table. It has 600 records generated from published length-weight relationships and is not field data (<code>primer/data/sharks/catch.csv</code>). Question 13 uses the made-up dive log of 2,400 frames (<code>dive.json</code>).</li>
+    <li>The lines in questions 3 and 4 are rounded lines fitted to the 268 spadenose records. The curves in questions 6 and 12, the cross-validation in question 13 and the stumps in question 22 are computed from the table. The scores in questions 14, 15 and 16 are the cross-validated scores of the hammerhead detector of chapter A4. The scores in question 11 come from the softmax classifier of chapter A3.</li>
+    <li>The clinic questions use the Pima data. It is a published dataset of 768 women of Pima heritage, measured in the United States, and is not data from Mumbai. The Mumbai clinic in question 17 is a story. The models in questions 9, 17, 18, 20, 21, 23, 24 and 25 are fitted to the 614 training women with scikit-learn or XGBoost. Woman A is row 31 of the data: glucose 158, BMI 31.6, age 28.</li>
+    <li>Some numbers are invented for practice. They are the settings and speed in question 1, the 52% in question 2 and the starting values in question 5. The 8 in 100 in question 17 is invented too. The weights in questions 8 and 9 are rounded from fitted values. The script <code>data/make_tables.py</code> reproduces all the other numbers.</li>
+    <li>The ideas come from chapters A1 to A6, listed at the top of this page.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="pa-practice.js?v=1" defer></script>
+</body>
+</html>

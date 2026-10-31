@@ -152,7 +152,7 @@
    "title": "Practice set: learning from data",
    "blurb": "Timed questions on Part A.",
    "part": "A",
-   "live": false
+   "live": true
   },
   {
    "id": "b1",
