@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Explaining a network | How AI Learns</title>
+<meta name="description" content="Occlusion, saliency, Grad-CAM, integrated gradients and SHAP for a photo classifier, how to test a map, spurious cues where the water decides, and the limits of attention maps, on the SharkCam photos.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Local additions for this chapter only. */
+.card .bar { row-gap: 8px; }
+.card .controls { margin-top: 10px; }
+.bridge { max-width: 46em; margin: 12px 0 18px; padding: 8px 14px; border-left: 3px solid var(--teal); background: var(--paper); border-radius: 0 6px 6px 0; font-size: 15px; color: var(--ink-2); }
+.stage { position: relative; margin: 6px auto 0; max-width: 640px; user-select: none; touch-action: none; cursor: grab; border-radius: 4px; overflow: hidden; }
+.stage img { display: block; }
+.stage canvas.heat { position: absolute; left: 0; top: 0; pointer-events: none; }
+.stage .patch { position: absolute; box-sizing: border-box; background: rgb(124, 116, 104); border: 2px solid var(--ink); outline-offset: 2px; cursor: grab; }
+.stage .patch:focus { outline: 2px solid var(--teal); }
+.scorebar { position: relative; height: 18px; margin: 10px auto 0; max-width: 640px; border-radius: 4px; background: var(--rule); }
+.scorebar #oc-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--teal); border-radius: 4px; }
+.scorebar #oc-bar-base { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-top: 10px; }
+.panels figure { margin: 0; }
+.panels canvas { display: block; width: 100%; height: auto; border-radius: 4px; }
+.panels figcaption { margin-top: 4px; font-size: 14px; text-align: center; color: var(--ink-2); }
+.cu-wrap { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px 22px; align-items: start; margin-top: 10px; }
+.cu-wrap img { display: block; width: 100%; height: auto; border-radius: 4px; }
+.cu-row { display: grid; grid-template-columns: minmax(7em, 11em) minmax(0, 1fr) 3em; gap: 8px; align-items: center; margin: 4px 0; font-size: 14.5px; color: var(--ink-2); }
+.cu-row.shark { color: var(--ink); font-weight: 600; }
+.cu-track { height: 12px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+.cu-track span { display: block; height: 100%; background: var(--navy); }
+.cu-row.shark .cu-track span { background: var(--coral); }
+.cu-row b { text-align: right; font-feature-settings: "tnum" 1, "lnum" 1; }
+.note { font-size: 14px; color: var(--muted); }
+@media (max-width: 760px) { .cu-wrap { grid-template-columns: minmax(0, 1fr); } .cu-row { grid-template-columns: 6.5em minmax(0, 1fr) 2.6em; font-size: 13.5px; } }
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="b9">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part B, Neural networks</span><span>Chapter B9</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part B &middot; Chapter 9</p>
+  <h1>Explaining a network</h1>
+  <p class="subtitle">Where a photo classifier looks, and why a map that looks right is not yet proof</p>
+</header>
+
+<div class="tldr">
+  <p>A network says "hammerhead" with 73%. Why? This chapter covers the main ways to ask. Hide parts of the photo and watch the score (occlusion). Follow the slope of the score back to the pixels (saliency). Colour the last grid of features by how much it matters (Grad-CAM). Then come integrated gradients, and SHAP in brief. The maps are then tested, because a map can look convincing and still mislead.</p>
+  <p>The figures use a pretrained ResNet-18 and a vision transformer on the SharkCam photos, with credits shown. Both were trained on ImageNet, which has hammerhead, tiger shark and great white shark classes. All results are for these networks and photos. The chapter ends with spurious cues, where the water decides the answer, and with the limits of attention maps.</p>
+</div>
+<p class="youneed"><b>You will need:</b> the <a href="../b4-backpropagation/#layers">slopes sent back through a network</a> (B4), <a href="../t6-gradients/#gradient">the gradient</a> (0.6), <a href="../a6-boosting/#shap">SHAP values</a> (A6) and the idea of a <a href="../a4-grading-models/#rare">baseline</a> (A4). A convolutional network is a stack of filters that slide over the image (<a href="../c1-convolution/#filter">C1</a>, <a href="../c2-cnns/#stack">C2</a>). This chapter needs only that it ends in a small grid of feature maps.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#occlusion">Occlusion: cover and watch</a></li>
+    <li><a href="#saliency">Saliency: the slope as a map</a></li>
+    <li><a href="#cam">Grad-CAM and four maps side by side</a></li>
+    <li><a href="#ig">Integrated gradients, SHAP, and a deletion test</a></li>
+    <li><a href="#shortcut">Spurious cues: the water decides</a></li>
+    <li><a href="#attention">Attention maps and their limits</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. occlusion ============================ -->
+<section id="occlusion" aria-labelledby="occlusion-h">
+  <h2 id="occlusion-h">Occlusion: cover and watch</h2>
+  <p class="ask"><b>Guess first.</b> You cover part of the hammerhead photo with a grey square. Where must the square go to make the network's "hammerhead" score fall most: over the head, over the fin, or over the plain water?</p>
+  <dl class="terms">
+    <div><dt>score</dt><dd>the network's probability for one class, here "hammerhead" (<a href="../t7-probability/#softmax">0.7</a>)</dd></div>
+    <div><dt>occlusion</dt><dd>hiding a patch of the input and measuring how the score changes</dd></div>
+    <div><dt>patch</dt><dd>the square that is hidden, filled with a grey that is the average colour of the training photos</dd></div>
+  </dl>
+  <p class="claim">The score falls most when the patch hides what the network relies on, so sliding the patch over the photo gives a map of that evidence.</p>
+  <div class="card" id="oc">
+    <div class="bar" id="oc-bar"></div>
+    <div class="stage" id="oc-stage"></div>
+    <div class="scorebar" aria-hidden="true"><span id="oc-bar-fill"></span><span id="oc-bar-base"></span></div>
+    <div class="eqn" id="oc-eqn"></div>
+    <div class="readout" id="oc-read"></div>
+    <p class="note" id="oc-credit"></p>
+  </div>
+  <p class="cap"><b>A 112 px patch placed at x = 152, y = 48 cuts the hammerhead score from 73% to 2%. The same patch in three of the four corners leaves it at 71% to 80%, and at the lower right corner, by the tail, at 62%.</b> The bar shows the score, and the black tick the score of the whole photo. Computed offline: a grid of 15 by 35 scores for the 112 px patch, one forward pass per position (steps of 8 px).</p>
+  <p>The answer to the guess is "the head and body", not the fin or the water. The lowest scores come when the patch covers the shark's head and front body. The 72 px patch at best gives 39%, and the 112 px patch gives 2%. Press "map shown" to see the whole grid at once: the coral glow is where hiding the patch costs the most. Zeiler and Fergus (2014, section 4.2) used a grey square for this. They asked whether a network locates the object or relies on its surroundings. The correct-class probability fell when the object was covered.</p>
+  <p>Switch to the dolphin photo, where the network's score for the class "great white shark" is 41% (its top choice is "grey whale", 52%). Hiding a 72 px patch on the animal's back cuts the shark score to 6%. Even a patch in the top-right corner, which contains only water and its reflection, cuts it to 20%. The plain-water patch matters here, and the next sections show how far it matters.</p>
+  <div class="eqn" role="img" aria-label="Worked example: 0.725 minus 0.390 equals 0.335, and for a corner patch 0.725 minus 0.696 equals 0.029"><span class="t c-navy"><b>0.725</b><i>whole photo</i></span><span class="op">&minus;</span><span class="t c-coral"><b>0.390</b><i>72 px patch at the head</i></span><span class="op">=</span><span class="t c-teal"><b>0.335</b><i>drop, 34 points</i></span><span class="op">|</span><span class="t c-navy"><b>0.725</b><i>whole photo</i></span><span class="op">&minus;</span><span class="t c-coral"><b>0.696</b><i>72 px patch in the water corner</i></span><span class="op">=</span><span class="t c-teal"><b>0.029</b><i>drop, 3 points</i></span></div>
+  <p class="math">\[ \Delta(r) \;=\; p_c(x) \;-\; p_c\big(x \text{ with region } r \text{ hidden}\big) \]</p>
+  <ul class="math-notes">
+    <li><b>\(p_c(x)\)</b> is the network's probability for class \(c\) on the photo \(x\). <b>\(r\)</b> is a square region of the photo, hidden by replacing its pixels with the mean colour.</li>
+    <li><b>\(\Delta(r)\)</b> is the drop in the score. It is large where \(r\) hides evidence for \(c\). The occlusion map is \(\Delta(r)\) for all positions of \(r\).</li>
+  </ul>
+<pre class="code"><code>import numpy as np
+
+def occlusion_map(score, img, patch=3, stride=1, fill=0.0):
+    """Score of the image with a patch hidden, for patch positions on a grid."""
+    h, w = img.shape
+    rows = range(0, h - patch + 1, stride)
+    cols = range(0, w - patch + 1, stride)
+    out = np.zeros((len(rows), len(cols)))
+    for i, y in enumerate(rows):
+        for j, x in enumerate(cols):
+            hidden = img.copy()
+            hidden[y:y + patch, x:x + patch] = fill        # a grey patch
+            out[i, j] = score(hidden)
+    return out
+
+# a made-up 8 by 8 "photo": a bright 2 by 3 "fin" on a dark background
+img = np.zeros((8, 8)); img[2:4, 3:6] = 1.0
+score = lambda im: im[1:5, 2:7].mean()                    # a made-up scorer: brightness in the middle
+base = score(img)
+m = occlusion_map(score, img, patch=3)
+print("score of the whole image: %.3f" % base)
+print("score with the patch hidden at each position (rows = top edge, columns = left edge):")
+print(np.round(m, 2))
+y, x = np.unravel_index(m.argmin(), m.shape)
+print("lowest score %.2f when the patch covers rows %d-%d and columns %d-%d" % (m.min(), y, y + 2, x, x + 2))</code></pre>
+<pre class="out">score of the whole image: 0.300
+score with the patch hidden at each position (rows = top edge, columns = left edge):
+[[0.3  0.25 0.2  0.15 0.2  0.25]
+ [0.3  0.2  0.1  0.   0.1  0.2 ]
+ [0.3  0.2  0.1  0.   0.1  0.2 ]
+ [0.3  0.25 0.2  0.15 0.2  0.25]
+ [0.3  0.3  0.3  0.3  0.3  0.3 ]
+ [0.3  0.3  0.3  0.3  0.3  0.3 ]]
+lowest score 0.00 when the patch covers rows 1-3 and columns 3-5</pre>
+  <p>The code is the whole method in a dozen lines. It works on any scorer, so it needs no access to the inside of the network, which is its main strength. The made-up scorer reads the brightness in the middle, and the map says what to expect. The score falls to 0 when the 3 by 3 patch covers all the bright cells of the fin (rows 1 to 3, columns 3 to 5). It falls partly when the patch covers some of them.</p>
+  <p><b>Where it misleads.</b> The map depends on three choices: the patch size, the step and the fill. A small patch (40 px) never hides enough of a large object to move the score. The lowest score of any 40 px patch on the hammerhead is 54%. A patch as large as the shark hides it all. A grey fill is not "no information": it is an odd colour block that the network never saw. In the dolphin photo a grey patch over the animal cuts the shark score to 6%. As the next sections show, painting the same area with water raises it to 93%. The fill changes the answer. The cost is also high: the grid of the 72 px patch needs 800 forward passes, one at all of the 40 by 20 positions. <b>In practice</b>, use a step of a quarter to a half of the patch size and try two patch sizes. Treat the map as a test of one question: what if this region were missing?</p>
+  <div class="debug">
+    <p><b>Debug tip.</b> Check the score with no patch (the black tick) before reading the map. If it is already low, as for the market photo (the hammerhead class has 19%), differences between positions are small and noisy, and the map explains very little.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A 384 by 224 photo, a 72 px patch and a step of 24 px. How many forward passes does the occlusion map need?</summary><p>Positions across: \(\lfloor(384-72)/24\rfloor + 1 = 14\). Positions down: \(\lfloor(224-72)/24\rfloor + 1 = 7\). That is \(14 \times 7 = 98\) passes, against 800 for a step of 8.</p></details>
+    <details><summary>Why can the same patch give a large drop in one photo and a tiny drop in another?</summary><p>The drop depends on how much of the evidence the patch hides, and on how the network combines evidence. The network looked at the shark's body in the first photo and at the water around the animal in the other. A patch of the same size hides different amounts of what the score relies on.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. saliency ============================ -->
+<section id="saliency" aria-labelledby="saliency-h">
+  <h2 id="saliency-h">Saliency: the slope as a map</h2>
+  <p class="ask"><b>Guess first.</b> Backpropagation (<a href="../b4-backpropagation/#backward">B4</a>) passes slopes back to the first layer, and one more step gives the slope of the score with respect to the input numbers. If you draw those slopes as a picture, will the picture show the shark, the water or noise? And would the same network with random weights draw a similar picture?</p>
+  <dl class="terms">
+    <div><dt>saliency map</dt><dd>for one photo and one class, the size of the slope of the class score with respect to the pixels (<a href="../t6-gradients/#gradient">0.6</a>)</dd></div>
+    <div><dt>logit</dt><dd>the score before the softmax; saliency uses it, because the softmax squeezes large scores together</dd></div>
+    <div><dt>gradient &times; input</dt><dd>the slope times the pixel value, which says how much of the score this pixel supplies in a linear approximation</dd></div>
+    <div><dt>sanity check</dt><dd>a test that a method must pass, such as giving a different map when the weights are random</dd></div>
+  </dl>
+  <p class="claim">The slope of the class score with respect to a pixel says how fast the score moves if the pixel changes. Large slopes point at pixels the score is sensitive to.</p>
+  <div class="card" id="sa">
+    <div class="bar" id="sa-bar"></div>
+    <div class="controls" id="sa-controls"></div>
+    <div class="panels" id="sa-panels"></div>
+    <div class="readout" id="sa-read"></div>
+  </div>
+  <p class="cap"><b>For the trained network the slopes gather on the shark's body, with grain in the water. With the same architecture and random weights the map is spread evenly like static, and the rank correlation between the two maps is 0.20.</b> Slope of the class score with respect to the pixels, largest over the three colours, as a coral overlay; ResNet-18 trained on ImageNet, with the class named in the readout.</p>
+  <p>Choose the photos in turn. The answer to the guess is "the shark and grain, and no, not similar". In the trained network the slope map concentrates on the animal. The random network has no preference, and its map is uniform noise with a faint frame. That is the point of the sanity check of Adebayo and colleagues (2018). A method that gives the same map for random weights shows the image's own edges and not the model. Their abstract reports that some popular saliency methods are independent of the model. They found that plain gradients and Grad-CAM pass the check and that Guided Backpropagation does not. Plain gradient saliency also passes in these four photos, with rank correlations between 0.14 and 0.20. This page does not repeat the check for Grad-CAM. Simonyan, Vedaldi and Zisserman (2014) introduced this map for convolutional networks.</p>
+  <p>The tiny network of B4 gives the calculation. Its score \(z_o\) depends on the two inputs \(x_1\) (length) and \(x_2\) (girth). Saliency is the slope of \(z_o\) with respect to the inputs, found with the same chain rule: \(\partial z_o/\partial x_i = \sum_j v_j\,(1-h_j^2)\,W_{ji}\) for the tanh units. For Tag 3305 with \(x = (0.22, 0.21)\) the hidden values are \(h = (0.149, -0.140)\), so \(1-h_j^2 = (0.978, 0.980)\).</p>
+  <div class="eqn" role="img" aria-label="Worked example for the B4 network: slope of the score with respect to length is 1.018 and with respect to girth is minus 1.077; gradient times input is 0.224 and minus 0.226"><span class="t c-navy"><b>0.9 &times; 0.978 &times; 0.8 + (&minus;0.8) &times; 0.980 &times; (&minus;0.4)</b><i>&part;z/&part;x&#8321; = 0.704 + 0.314</i></span><span class="op">=</span><span class="t c-teal"><b>1.018</b><i>length raises the score</i></span><span class="op">|</span><span class="t c-navy"><b>0.9 &times; 0.978 &times; (&minus;0.6) + (&minus;0.8) &times; 0.980 &times; 0.7</b><i>&part;z/&part;x&#8322; = &minus;0.528 &minus; 0.549</i></span><span class="op">=</span><span class="t c-coral"><b>&minus;1.077</b><i>girth lowers it</i></span><span class="op">|</span><span class="t c-sand"><b>(0.224, &minus;0.226)</b><i>gradient &times; input</i></span></div>
+  <p>Both inputs matter about equally, and in opposite directions: more length raises the score for "adult", more girth (at the same length) lowers it. This is the slope that B4's backward pass already held, as \(\partial L/\partial x = (-0.670, 0.709)\). That slope of the loss is the slope of the score times the loss factor \(p - y = -0.658\), and \(-0.658 \times 1.018 = -0.670\). The gradient times the input, \((0.224, -0.226)\), says how much the inputs supply of the score in a straight-line approximation.</p>
+  <p class="math">\[ S_i \;=\; \Big|\,\frac{\partial\, y_c}{\partial x_i}\Big| \qquad\quad \text{gradient}\times\text{input:}\;\; x_i\,\frac{\partial\, y_c}{\partial x_i} \]</p>
+  <ul class="math-notes">
+    <li><b>\(y_c\)</b> is the score (logit) of class \(c\) for the photo and <b>\(x_i\)</b> is one input number, here one colour value of one pixel. <b>\(S_i\)</b> is the saliency of that input. The picture takes the largest \(S_i\) over the three colours of a pixel.</li>
+    <li>The slope is the derivative of <a href="../t6-gradients/#partial">0.6</a>: the change of \(y_c\) for a small change of \(x_i\), with all other inputs fixed.</li>
+  </ul>
+  <p><b>Where it misleads.</b> A slope is local. It says what happens for a tiny change of a pixel, not what happens if the pixel were removed. A pixel can be vital and have slope 0, if a ReLU or a saturated unit just downstream is flat there. A pixel can also have a large slope that matters little for the score. A ReLU network is a patchwork of straight pieces, so the map is grainy: the pictures above are noisy even when the trend is clear. Smoothing the map over several noisy copies of the photo (SmoothGrad) is a common remedy. <b>In practice</b>, use saliency to find where to look, and test the claim with a method that changes the photo, such as occlusion or the deletion test below.</p>
+  <div class="debug">
+    <p><b>Debug tip.</b> A map explains the class you ask for, not the class the network chose. For the dolphin photo the top choice is "grey whale" and the map above is for "great white shark". Print the class and the score next to the map.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why does saliency use the score before the softmax and not the probability?</summary><p>The probability saturates near 1 for a confident class, so its slope with respect to the pixels is close to 0 although the network relies on the pixels. The logit has no such flat region.</p></details>
+    <details><summary>For the B4 network at Tag 3305, which input has the larger saliency, and which pushes the score up?</summary><p>Girth has the slightly larger size (1.077 against 1.018), and length pushes the score up while girth pushes it down.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. cam ============================ -->
+<section id="cam" aria-labelledby="cam-h">
+  <h2 id="cam-h">Grad-CAM and four maps side by side</h2>
+  <p class="ask"><b>Guess first.</b> The last block of ResNet-18 turns the 384 by 224 photo into a grid of 12 by 7 cells, with 512 numbers in a cell (the 512 feature maps). To colour the 12 by 7 grid for "hammerhead", you need one weight per map, which is 512 numbers to find. Where could such weights come from?</p>
+  <dl class="terms">
+    <div><dt>feature map</dt><dd>one grid of numbers from one filter, with one value per region of the photo (<a href="../c1-convolution/#filter">C1</a>)</dd></div>
+    <div><dt>Grad-CAM</dt><dd>a coarse map made by weighting the feature maps of the last convolution block by the mean slope of the class score</dd></div>
+    <div><dt>channel weight \(\alpha_k\)</dt><dd>the mean slope of the score with respect to feature map \(k\)</dd></div>
+  </dl>
+  <p class="claim">A feature map the score increases with gets a positive weight, and the weighted sum of the maps, with negative values cut off, shows which regions supply the evidence.</p>
+  <div class="card" id="cm">
+    <div class="bar" id="cm-bar"></div>
+    <div class="controls" id="cm-controls"></div>
+    <div class="panels" id="cm-panels"></div>
+    <div class="readout" id="cm-read"></div>
+  </div>
+  <p class="cap"><b>For the hammerhead in Costa Rica all four maps put the weight on the shark's body and head. Grad-CAM is coarse (a cell is 32 by 32 pixels), the gradient and integrated-gradient maps are grainy, and the occlusion map is smooth.</b> ResNet-18, class "hammerhead" (73%). The earlier block gives a finer 14 by 24 grid and a less class-specific picture.</p>
+  <p>The answer to the guess is "the slopes". For channel \(k\), the weight \(\alpha_k\) is the mean over all cells of the slope \(\partial y_c/\partial A^k_{ij}\). This is the slope of the class score with respect to that channel's value in the cell. A channel that raises the score gets a positive weight, one that lowers it a negative weight. The map is the weighted sum of the 512 channel grids. A ReLU removes the negative total, which keeps only the cells that increase the score (Selvaraju and colleagues, 2017). Numbers from the hammerhead photo: of the 512 weights, 209 are positive; the map has \(7 \times 12 = 84\) cells.</p>
+  <div class="eqn" role="img" aria-label="Toy example with two made-up channels: alpha 0.5 and minus 0.2, summed grid 0.5, minus 0.6, 0.8, 0.5, after ReLU 0.5, 0, 0.8, 0.5"><span class="t c-navy"><b>0.5 &times; [[1, 0], [2, 1]]</b><i>channel 1, weight +0.5</i></span><span class="op">+</span><span class="t c-coral"><b>&minus;0.2 &times; [[0, 3], [1, 0]]</b><i>channel 2, weight &minus;0.2</i></span><span class="op">=</span><span class="t c-sand"><b>[[0.5, &minus;0.6], [0.8, 0.5]]</b><i>weighted sum</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>[[0.5, 0], [0.8, 0.5]]</b><i>after ReLU: the map</i></span></div>
+  <p>The box is a made-up toy with two channels and a 2 by 2 grid (the numbers are not from a network). Channel 2 has a large value in the top-right cell, but its weight is negative, so that cell ends below 0 and is cut. Channel 1 has the largest value (2) in the bottom-left cell and a positive weight, so that cell wins, with 0.8. The same steps, with 512 channels and 84 cells, give the map of the figure.</p>
+  <p class="math">\[ \alpha_k \;=\; \frac{1}{Z}\sum_{i,j}\frac{\partial\, y_c}{\partial A^{k}_{ij}} \qquad\quad L_c \;=\; \mathrm{ReLU}\Big(\sum_{k}\alpha_k\,A^{k}\Big) \]</p>
+  <ul class="math-notes">
+    <li><b>\(A^k_{ij}\)</b> is the value of feature map \(k\) in cell \((i,j)\) of the last convolution block, and <b>\(y_c\)</b> the score of class \(c\). <b>\(Z\)</b> is the number of cells (84 here), so \(\alpha_k\) is the average slope of the score with respect to that map.</li>
+    <li><b>\(L_c\)</b> is the Grad-CAM map: a weighted sum of the maps with weights \(\alpha_k\), with negative values set to 0. In words: add up the feature maps, counting a map by how much it raises the score.</li>
+  </ul>
+<pre class="code"><code>import numpy as np, torch
+from PIL import Image
+from torchvision.models import resnet18, ResNet18_Weights
+
+net = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1).eval()
+mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+img = np.asarray(Image.open("photos/h2.jpg").convert("RGB"))     # 224 high, 384 wide
+x = ((torch.tensor(img).permute(2, 0, 1).float() / 255).unsqueeze(0) - mean) / std
+HAMMERHEAD = 4                                                    # ImageNet class index
+
+# saliency: the slope of the class score with respect to every pixel value
+x1 = x.clone().requires_grad_(True)
+net(x1)[0, HAMMERHEAD].backward()
+sal = x1.grad.abs().max(1).values[0]                              # largest over R, G, B
+print("score before softmax: %.2f" % net(x)[0, HAMMERHEAD].item(),
+      "| saliency map", tuple(sal.shape), "max %.4f" % sal.max())
+
+# Grad-CAM: weight each channel of the last conv block by its mean slope
+acts = {}
+net.layer4.register_forward_hook(lambda m, i, o: acts.update(a=o))
+score = net(x)[0, HAMMERHEAD]
+grads = torch.autograd.grad(score, acts["a"])[0]
+alpha = grads.mean((2, 3), keepdim=True)                          # one weight per channel
+cam = torch.relu((alpha * acts["a"]).sum(1))[0].detach()
+cam = cam / cam.max()
+print("Grad-CAM map", tuple(cam.shape),
+      "weights: %d channels, %d positive" % (alpha.numel(), (alpha > 0).sum()))
+print(np.round(cam.numpy(), 1))</code></pre>
+<pre class="out">score before softmax: 14.78 | saliency map (224, 384) max 0.3290
+Grad-CAM map (7, 12) weights: 512 channels, 209 positive
+[[0.1 0.1 0.  0.1 0.1 0.2 0.2 0.1 0.  0.  0.1 0.1]
+ [0.1 0.1 0.1 0.2 0.4 0.6 0.7 0.4 0.2 0.  0.1 0.1]
+ [0.1 0.1 0.2 0.3 0.6 0.8 1.  0.8 0.5 0.2 0.1 0.1]
+ [0.1 0.1 0.3 0.4 0.6 0.8 1.  0.8 0.7 0.4 0.2 0.1]
+ [0.1 0.1 0.2 0.3 0.5 0.7 0.8 0.8 0.7 0.4 0.3 0.1]
+ [0.1 0.1 0.1 0.2 0.3 0.3 0.4 0.5 0.5 0.4 0.3 0.1]
+ [0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.2 0.2 0.2 0.1]]</pre>
+  <p>The printed grid is the map of the figure before it is stretched over the photo. Values are near 1 in rows 2 to 3 and columns 5 to 7, the middle of the shark, and near 0.1 at the edges. The code needs a download of the pretrained weights (45 MB) the first time, and the file <code>photos/h2.jpg</code> is the picture of the first figure.</p>
+  <p><b>Where it misleads.</b> Grad-CAM is coarse, since one cell covers a 32 by 32 pixel block, and it needs a network that ends in a spatial grid of features. The earlier block's map is finer but less tied to the class. Choose the market photo: the network gives "hammerhead" only 19% (its first choice is "sturgeon", 44%), so these maps explain a weak class and should not be over-read. A map shows where the network's evidence for a class lies, assuming the class is the right question. <b>In practice</b>, show maps for the top choice and for the class you care about, with the scores, and never show a single map as the explanation.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why is a ReLU applied to the weighted sum in Grad-CAM?</summary><p>Cells with a negative total supply evidence against the class. The map is meant to show evidence for it, so those cells are set to 0.</p></details>
+    <details><summary>In the toy example, change the weight of channel 2 to +0.2. What is the map?</summary><p>The sum is \(0.5\,[[1,0],[2,1]] + 0.2\,[[0,3],[1,0]] = [[0.5, 0.6],[1.2, 0.5]]\), all positive, so the ReLU leaves it as it is, and the top-right cell is now bright.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. ig ============================ -->
+<section id="ig" aria-labelledby="ig-h">
+  <h2 id="ig-h">Integrated gradients, SHAP, and a deletion test</h2>
+  <p class="ask"><b>Guess first.</b> Four methods give four different maps of one photo, and you cannot ask the network which is right. How could you decide? Think of a test that uses the photo and the score, and not the map's own logic.</p>
+  <dl class="terms">
+    <div><dt>integrated gradients</dt><dd>the sum of the slopes along a straight path from a baseline image to the photo, times the change in the pixel</dd></div>
+    <div><dt>baseline</dt><dd>the reference image that means "no information", here a black image</dd></div>
+    <div><dt>completeness</dt><dd>the attributions add up to the difference between the score of the photo and the score of the baseline</dd></div>
+    <div><dt>deletion test</dt><dd>remove the pixels a map ranks highest first, and watch how fast the score falls</dd></div>
+  </dl>
+  <p class="claim">A map should be trusted only after a test that does not rely on the map's own logic, and deleting what the map ranks highest is the simplest such test.</p>
+  <div class="card" id="dl">
+    <div class="bar" id="dl-bar"></div>
+    <div class="controls" id="dl-controls"></div>
+    <div class="split2"><div id="dl-stage"><canvas id="dl-canvas" role="img" aria-label="The photo with the blocks that the chosen map ranks highest replaced by grey"></canvas></div><div class="plot" id="dl-plot" role="img" aria-label="Score for the class against the share of the photo removed, for each map and for random order"></div></div>
+    <div class="readout" id="dl-read"></div>
+  </div>
+  <p class="cap"><b>After removing 10% of the Costa Rica photo, the score is 11% when blocks are ranked by integrated gradients, 14% by Grad-CAM, 10% by occlusion and 45% by saliency. It is 78% when blocks are removed in random order.</b> Blocks of 8 by 8 pixels set to the mean colour; one network; the random curve is the mean of 20 random orders. Only the two hammerhead photos are used: the shark scores of the others are too fragile for this test.</p>
+  <p>The answer to the guess is the deletion test, a faithfulness check in the spirit of Zeiler and Fergus's occlusion. Petsiuk, Das and Saenko (2018) use it, with an insertion test, to compare maps. If a map ranks the evidence correctly, deleting the top 10% of blocks should cut the score much faster than deleting 10% at random. Three methods do: integrated gradients, Grad-CAM and the occlusion map all reach about 10 to 14% of the starting score at 10% removed, against 78% for random order. The plain saliency map is much weaker (45%): it finds the shark but not the pixels that the score depends on most. For the Jarvis Island photo only integrated gradients (35% left at 10% removed) and Grad-CAM (45%) beat random order (71%). Saliency (82%) and the occlusion map (83%) do not, so the best method depends on the photo. Note also that removing a few random blocks first raises the Costa Rica score from 73% to 96% at 5% removed (on average): grey blocks are not neutral.</p>
+  <p><b>Integrated gradients</b> (Sundararajan and others, 2017) fix a weakness of the plain slope. The slope at the photo can be 0 where the score is flat (saturated), although the score depends on the pixel. Integrated gradients walk from a baseline \(x'\) (a black image) to the photo \(x\) in \(m\) small steps. They add up the slopes met on the way and multiply by the change of the pixel. Their selling point is completeness: the attributions of all pixels sum to the score of the photo minus the score of the baseline. For the hammerhead photo, with \(m = 64\) steps, they sum to 13.99, against \(14.78 - 0.91 = 13.86\) for the two scores, an error of 1%.</p>
+  <div class="eqn" role="img" aria-label="Toy example: F of x is x squared, x is 3, baseline 0; exact value 9; with 4 steps 11.25; with 64 steps 9.14"><span class="t c-navy"><b>F(x) = x&sup2;</b><i>x = 3, baseline 0</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>3 &times; &int; 2(3&alpha;) d&alpha; = 9</b><i>the true value: F(3) &minus; F(0)</i></span><span class="op">|</span><span class="t c-coral"><b>3 &times; mean(1.5, 3, 4.5, 6) = 11.25</b><i>4 steps</i></span><span class="op">|</span><span class="t c-sand"><b>3 &times; 3(65 &divide; 64) = 9.14</b><i>64 steps</i></span></div>
+  <p class="math">\[ \mathrm{IG}_i(x) \;=\; (x_i - x'_i)\int_0^1 \frac{\partial F\big(x' + \alpha\,(x - x')\big)}{\partial x_i}\,d\alpha \;\approx\; (x_i - x'_i)\,\frac1m\sum_{k=1}^{m}\frac{\partial F\big(x' + \tfrac{k}{m}(x - x')\big)}{\partial x_i} \]</p>
+  <ul class="math-notes">
+    <li><b>\(F\)</b> is the class score, <b>\(x\)</b> the photo and <b>\(x'\)</b> the baseline. <b>\(\alpha\)</b> runs from 0 (the baseline) to 1 (the photo), and <b>\(m\)</b> is the number of steps used to approximate the integral.</li>
+    <li>Summing \(\mathrm{IG}_i\) over all \(i\) gives \(F(x) - F(x')\). The toy shows it: the true value is 9, 4 steps overshoot to 11.25, and 64 steps give 9.14.</li>
+  </ul>
+  <p><b>SHAP for networks, in brief.</b> <a href="../a6-boosting/#shap">A6</a> shared a score among the inputs by averaging over all orders in which the inputs could be revealed. A photo has 258,048 input numbers, so the sum over orders is out of reach. Implementations group pixels into larger regions, or use approximations, such as Deep SHAP, that reuse the network's slopes (Lundberg and Lee, 2017). The idea is the same as integrated gradients: share the difference between the photo's score and a reference score among the inputs so that the shares add up. Both depend on the reference. A black baseline treats black as "no information", and a different baseline gives a different map.</p>
+  <p><b>Where it misleads.</b> Deletion has its own flaws: grey blocks are strange images, so the score may change because the picture looks odd and not because evidence was lost. Another family of checks inserts the top pixels into a blank image. Agreement of several methods and tests is better than a single test. Adebayo and colleagues (2018) also found that maps from integrated gradients and gradient times input keep much of the photo's own structure when the weights are randomised. The randomised-weights check matters for them too. <b>In practice</b>, run a randomised-weights check and a deletion test before you show any map to a colleague, and report which photo, class, baseline and fill you used.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>For \(F(x) = x^3\), baseline 0 and \(x = 2\), what do the true integrated gradients and the 2-step approximation give?</summary><p>True value: \(F(2) - F(0) = 8\). With 2 steps, the slopes \(3t^2\) at \(t = 1\) and \(t = 2\) are 3 and 12. The mean is 7.5, and times \(x - x' = 2\) the result is 15. More steps move it toward 8.</p></details>
+    <details><summary>Why compare a map's deletion curve with random order?</summary><p>Removing many blocks lowers any score. The curve is informative only relative to the curve for random blocks: a good map falls faster.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. shortcut ============================ -->
+<section id="shortcut" aria-labelledby="shortcut-h">
+  <h2 id="shortcut-h">Spurious cues: the water decides</h2>
+  <p class="ask"><b>Guess first.</b> The network gives the dolphin photo a 41% score for "great white shark". You paint the dolphin out and leave only the sea. Does the great white shark score fall, stay or rise?</p>
+  <dl class="terms">
+    <div><dt>spurious cue</dt><dd>a feature that goes with the answer in the training data but is not what defines it, such as blue water for sharks (also called a shortcut)</dd></div>
+    <div><dt>context</dt><dd>all of the photo except the object, such as the water, the light and the other animals</dd></div>
+    <div><dt>control</dt><dd>an edit that changes one thing, to test one explanation</dd></div>
+  </dl>
+  <p class="claim">A network can reach an answer through a cue that came with the answer in its training photos, and edits that remove the object but keep the cue reveal it.</p>
+  <div class="card" id="cu">
+    <div class="bar" id="cu-bar"></div>
+    <div id="cu-chips" class="bar"></div>
+    <div class="cu-wrap"><div><img id="cu-img" alt="The edited photo" width="384" height="224"></div><div id="cu-bars"></div></div>
+    <div id="cu-table"></div>
+    <div class="readout" id="cu-read"></div>
+  </div>
+  <p class="cap"><b>With the dolphin painted out, the great white shark score rises from 41% to 93%. A strip of water alone gets 63%, and the dolphin on grey gets under 4%. Pasted on green water, the hammerhead is called a great white shark (79%); on dark sand it stays a hammerhead (75%), and on a white card 88%.</b> ResNet-18; the edits are our own, made by hand from the credited photos. Click a row or a chip.</p>
+  <p>The answer to the guess is "rise". Take the water away and the dolphin on a grey field is a grey whale (57%), with a shark score below 4%. Put the water back without the animal and the shark score is 93%. For this network and this photo, the grey-green sea surface drives the shark call, and the dolphin's body is not what gives it. The hammerhead shows the other side. On a neutral background (a white card, dark sand) the hammerhead's head outline is enough for 75 to 88%, so the outline is a cue the network does use. On green water the network changes its answer from hammerhead to great white shark. It uses both cues, and the water can override the outline.</p>
+  <p>This is a case of what Geirhos and colleagues (2020) call shortcut learning. Networks can adopt decision rules that score well on the usual test sets and fail under other conditions. If most training photos of sharks show water, a rule built on the colour of the water lowers the training loss. SharkCam meets this problem. If all training photos of sharks come from clear blue water, a detector may learn the water. It can then fail in the murky water of <a href="../c3-domain-shift/#water">C3</a>, or call a dolphin a shark.</p>
+  <p><b>Limits of this demonstration.</b> It is one network and two photos, and the edits are crude. The pasted shark has hand-made edges, the "covered" photo has a visible seam, and the grey-green strip came from the same photo. The numbers are for these files only. Two JPEG versions of the same resized dolphin photo, saved at quality 90 and 88, scored 41% and 52% for great white shark and swapped the top two labels. Re-saving the shipped file at quality 75 gives 18% (exercise 3 repeats this). A single score is fragile. A controlled test would use many photos of an animal on many backgrounds, with the background and animal varied independently. <b>In practice</b>: look at wrong answers (error analysis). Use controls like these for any claim about what a network uses. Collect training photos where the background and the animal vary independently, and report results on groups, such as clear water and murky water (<a href="../a4-grading-models/#subgroups">A4</a>).</p>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a map highlights the background and not the object, do not assume the map is wrong. Run the control: remove the object and keep the background, then remove the background and keep the object. If the score follows the background, the network uses it.</p>
+  </div>
+  <div class="break">
+    <p><b>Common belief.</b> A network that scores well on a test set has learned the concept: a shark detector detects sharks.</p>
+    <p><b>Why it fails.</b> A test set drawn like the training set rewards any cue that goes with the label in both. The water goes with sharks in both, so it counts as correct.</p>
+    <p><b>Better account.</b> A network has learned whatever predicts the labels in its training data. Controls and groups outside the training pattern show which cue that was.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The dolphin on grey scores under 4% for the great white shark and the sea alone scores 63%. What do the two numbers say together?</summary><p>For this network the sea region supplies the evidence for that class. The animal alone does not support it, and the animal is not needed.</p></details>
+    <details><summary>The hammerhead pasted on green water is called a great white shark. Is the network wrong to look at the water?</summary><p>It is a reasonable rule in the training data, where sharks are in water, and a wrong one for telling species. What counts is whether the training data let it separate the two cues, and here the water outweighs the head outline.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 6. attention ============================ -->
+<section id="attention" aria-labelledby="attention-h">
+  <h2 id="attention-h">Attention maps and their limits</h2>
+  <p class="ask"><b>Guess first.</b> A vision transformer looks at a photo through 12 attention heads. In its last layer, you replace the attention weights by equal weights for all 196 patches, so that no patch is preferred. Does the hammerhead score collapse, drop a little, or stay?</p>
+  <dl class="terms">
+    <div><dt>attention weights</dt><dd>numbers that say how much one token reads from the others (<a href="../d4-self-attention/">D4</a>)</dd></div>
+    <div><dt>head</dt><dd>one of the parallel attention computations in a layer, with its own weights</dd></div>
+    <div><dt>class token</dt><dd>a special token whose final value is used for the prediction (<a href="../e1-vision-transformers/">E1</a>); its attention to the 196 image patches is the usual map</dd></div>
+  </dl>
+  <p class="claim">An attention map is easy to draw and shows where a token read from, which need not be where the evidence for the answer lies.</p>
+  <div class="card" id="at">
+    <div class="bar" id="at-bar"></div>
+    <div class="controls" id="at-controls"></div>
+    <div id="at-stage"><canvas id="at-canvas" role="img" aria-label="Attention of the class token to the 14 by 14 patches of the photo, in the last layer of a vision transformer"></canvas></div>
+    <div class="readout" id="at-read"></div>
+  </div>
+  <p class="cap"><b>With equal weights in all 12 heads of the last layer the hammerhead score goes from 88% to 81%, and with the weights shuffled across the photo to 77%. The maps of single heads differ, with rank agreement with the gradient map between 0.37 and 0.61. Only 5.5% of the mean attention falls on the shark, which covers 11% of the photo.</b> Torchvision ViT-B/16 (ImageNet), photo squashed to 224 by 224, attention of the class token in the last layer. The same network calls the dolphin photo a great white shark (86%).</p>
+  <p>The answer to the guess is "drop a little". The last layer's attention can be flattened and the network still says "hammerhead", at 81%. Choose the dolphin photo: the shark score goes from 86% to 70% with equal weights and 62% with shuffled weights. This fits the finding of Jain and Wallace (2019) that attention weights are often uncorrelated with gradient-based measures of importance. They also found that very different weights can give the same prediction. Wiegreffe and Pinter (2019) reply that whether attention is an explanation depends on what you mean by one, and that such experiments do not disprove its use. Both papers study text models, so they motivate the test here and do not settle the vision case.</p>
+  <p>Look at the map of single heads. The heads differ. In the hammerhead photo the agreement with the gradient map is 0.61 for head 12, 0.55 for head 3 and 0.37 for head 4. The mean over heads gives 0.54 (0.23 for the dolphin photo). Where does the attention go? The shark's outline (a mask made by colour thresholding, with a threshold we set by hand) covers 11% of the Costa Rica photo. Another threshold would change the 11% and the 5.5% a little. In the mean over heads, only 5.5% of the attention falls on the outline, which is less than a uniform spread would give. The bright patches in the figure are in the water. Head 9 puts 15% on the shark and head 1 puts 1%. For comparison, 20% of the ResNet's saliency and 28% of its Grad-CAM weight fall inside the outline. There are three reasons for the gap between attention and evidence. First, the output of a head is a mix of <i>value</i> vectors, and a patch with a large weight but a small, uninformative value adds little. Second, the residual connections (<a href="../b6-deep-networks/#residual">B6</a>) pass the class token's own earlier state forward, so a layer can change the answer less than its weights suggest. Third, this experiment changed only the last of 12 layers, so the evidence has already been gathered by the earlier ones.</p>
+  <p><b>Where it misleads.</b> Flattening attention is one test of one layer. It shows that this layer's weights do not decide the answer for these photos. It does not show that attention elsewhere is irrelevant. The map for a head is not a map for a class: it is the same for all classes. <b>In practice</b>, treat an attention map as a description of how the model moves information, and use occlusion, deletion or gradient-based maps, with controls, for claims about evidence. If you must show attention, show several heads and layers, and say what a flat-attention test did to the score.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Where a transformer puts its attention is what it looks at, so an attention map explains the answer.</p>
+    <p><b>Why it fails.</b> In the figure, flattening all 12 heads of the last layer moves the hammerhead score only from 88% to 81%, and only 5.5% of the attention falls on the shark. Jain and Wallace (2019) found a weak link between attention and gradient importance in text models too.</p>
+    <p><b>Better account.</b> An attention map shows where one token read from in one layer. Treat it as a description of how information moves, and test claims about evidence with occlusion, deletion or controls.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The score barely changes when one layer's attention is made uniform. Does that prove that attention is useless in the model?</summary><p>No. Only one layer was changed in two photos. Earlier layers may have moved the evidence into the class token already, and the other layers' attention was untouched.</p></details>
+    <details><summary>Why can two different sets of attention weights give the same prediction?</summary><p>The output depends on weights, value vectors and the layers after them. Different mixes can add up to similar vectors, and the residual path takes information around the attention step.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> A 384 by 224 photo is scanned with a 72 px patch. (a) How many forward passes does a step of 8 px need, and a step of 24 px? (b) A network takes 20 ms per forward pass. How long does a scan take?</p>
+        <details class="hint"><summary>Hint</summary><p>Positions along one side: \(\lfloor(\text{size}-\text{patch})/\text{step}\rfloor + 1\).</p></details></li>
+      <li><p><span class="ex-tag">theory</span> Take the B4 network (\(W^{[1]} = [[0.8,-0.6],[-0.4,0.7]]\), \(b^{[1]} = (0.1,-0.2)\), output weights \(v = (0.9,-0.8)\), tanh units). Compute the saliency \(\partial z_o/\partial x\) and the gradient times input for Tag 4127 with \(x = (0.564, 0.573)\).</p>
+        <details class="hint"><summary>Hint</summary><p>First \(h = \tanh(W^{[1]}x + b^{[1]})\), then \(\partial z_o/\partial x_i = \sum_j v_j(1-h_j^2)W_{ji}\).</p></details></li>
+      <li><p><span class="ex-tag">theory</span> A Grad-CAM layer has two channels with grids \(A^1 = [[2,0],[1,1]]\) and \(A^2 = [[0,1],[3,0]]\), and the mean slopes \(\alpha_1 = 0.4\), \(\alpha_2 = -0.3\). Compute the map, and say which cell is brightest.</p></li>
+      <li><p><span class="ex-tag">theory</span> For \(F(x) = x^3\), baseline 0 and \(x = 2\), compute integrated gradients with \(m = 2\) and \(m = 4\) steps (right end points). Compare with the true value. How does the error change with \(m\)?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Change the NumPy occlusion code: use a 2 by 2 patch and a scorer that reads the whole image mean. Predict where the map is flat, then run it. What does a scorer that is the mean of the whole image tell you about the importance of positions?</p></li>
+      <li><p><span class="ex-tag">practice</span> Use the model set-up of the Grad-CAM section. Hide three 72 px patches of the Costa Rica photo (the head, the tail fin, a corner of water) and print the hammerhead score for all three. Compare with the occlusion figure.</p></li>
+      <li><p><span class="ex-tag">practice</span> Save <code>photos/dol.jpg</code> again at JPEG qualities 95, 90, 75, 50 and 30, and print the scores for great white shark and grey whale after a save. How much does the score change, and what does it say about the claims of the spurious-cue figure?</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> A saliency map for a SharkCam detector, applied to a photo of a shark in clear water, highlights the water around the animal. List the explanations you can think of, and a test for it.</p></li>
+      <li><p><span class="ex-tag">open</span> Design a test with 200 photos that decides whether a shark detector uses the background. What do you vary, what do you measure, and what result would make you retrain the model?</p></li>
+      <li><p><span class="ex-tag">open</span> A colleague says "attention is the model's own explanation, so we need no other method". Argue for or against, using the evidence of this chapter, and say what experiment would change your mind.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <div class="recall comeback">
+    <details><summary>(B4, B9) Backpropagation gives the slope of the loss with respect to the weights. What one extra step gives a saliency map, and why is the logit used?</summary><p>Continue the backward pass to the input: the slope of the class score with respect to the input values. The logit is used because the softmax probability saturates, so its slope is near 0 for a confident class.</p></details>
+    <details><summary>(B7, B9) After fine-tuning SharkCam on murky water, how could an explanation method help you check for forgetting, and what would you still need to run?</summary><p>Compare the maps on clear-water photos before and after fine-tuning: if the map moves from the shark to the water, the cue has changed. You still need the old water's held-out accuracy (B7) and a deletion test, because a map alone is not evidence.</p></details>
+    <details><summary>(A4, B9) A shark detector scores 95% on a test set of 200 photos, all in blue water. What does the spurious-cue figure suggest you also do?</summary><p>Test by group (blue water, murky water, no animal, other animals), with controls like painting out the animal, as the subgroup analysis of A4 does for the clinic data.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Zeiler, M. D., and Fergus, R. (2014). Visualizing and understanding convolutional networks. ECCV 2014; arXiv:1311.2901. Occlusion sensitivity (section 4.2) and feature visualisation.</li>
+    <li>Simonyan, K., Vedaldi, A., and Zisserman, A. (2014). Deep inside convolutional networks: visualising image classification models and saliency maps. ICLR 2014 workshop; arXiv:1312.6034. Saliency from the gradient of the class score.</li>
+    <li>Selvaraju, R. R., Cogswell, M., Das, A., Vedantam, R., Parikh, D., and Batra, D. (2017). Grad-CAM: visual explanations from deep networks via gradient-based localization. ICCV 2017; arXiv:1610.02391.</li>
+    <li>Sundararajan, M., Taly, A., and Yan, Q. (2017). Axiomatic attribution for deep networks. ICML 2017; arXiv:1703.01365. Integrated gradients and completeness.</li>
+    <li>Lundberg, S. M., and Lee, S.-I. (2017). A unified approach to interpreting model predictions. NeurIPS 2017; arXiv:1705.07874. SHAP.</li>
+    <li>Petsiuk, V., Das, A., and Saenko, K. (2018). RISE: randomized input sampling for explanation of black-box models. arXiv:1806.07421. The deletion and insertion tests for comparing maps.</li>
+    <li>Adebayo, J., Gilmer, J., Muelly, M., Goodfellow, I., Hardt, M., and Kim, B. (2018). Sanity checks for saliency maps. NeurIPS 2018; arXiv:1810.03292. The abstract states that some saliency methods are independent of the model and of the data generating process. Gradients and Grad-CAM pass the model-randomisation test, and Guided Backpropagation does not.</li>
+    <li>Geirhos, R., Jacobsen, J.-H., Michaelis, C., Zemel, R., Brendel, W., Bethge, M., and Wichmann, F. A. (2020). Shortcut learning in deep neural networks. <i>Nature Machine Intelligence</i>; arXiv:2004.07780.</li>
+    <li>Jain, S., and Wallace, B. C. (2019). Attention is not explanation. NAACL 2019; arXiv:1902.10186. Wiegreffe, S., and Pinter, Y. (2019). Attention is not not explanation. EMNLP 2019; arXiv:1908.04626. Both papers study text models.</li>
+    <li>He, K., Zhang, X., Ren, S., and Sun, J. (2016). Deep residual learning for image recognition. CVPR 2016. The ResNet-18 architecture; weights from torchvision (ImageNet-1k). Dosovitskiy, A., and others (2021). An image is worth 16x16 words. ICLR 2021. The ViT-B/16 architecture; weights from torchvision. These two papers were not opened for this page, so no result is quoted from them. The torchvision ViT-B/16 weights were trained with torchvision's own recipe (a modified DeiT recipe, according to its model page), so they differ from the weights of the original paper.</li>
+  </ol>
+  <p class="note">Photo credits: Costa Rica hammerhead, Kris-Mikael Krister, CC BY 2.0. Jarvis Island hammerhead, Kevin Lino, NOAA/NMFS/PIFSC/ESD, public domain. Indian Ocean humpback dolphin, off Oman, pavlaki1968, CC BY 4.0. Milk sharks at a market in Kuala Lumpur, hewyk, CC BY 2.0. The dark sand in the edits is a crop of a photo of an olive ridley turtle by Brad Flickinger, CC BY 2.0. All via Wikimedia Commons. The edited pictures, saliency and attention overlays are made by us from these photos. The photos are resized to 224 pixels high; the scores are for these resized files. Torchvision says that its pretrained weights may come with licences or terms from the data they were trained on, and that users must check that their use is allowed. ImageNet's own terms limit use to non-commercial research and education. The weights are used here for teaching only.</p>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="b9-explaining.js?v=1" defer></script>
+</body>
+</html>

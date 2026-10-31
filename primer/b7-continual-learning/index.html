@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fine-tuning, forgetting and continual learning | How AI Learns</title>
+<meta name="description" content="Regularisation, early stopping and augmentation, pretraining and fine-tuning, catastrophic forgetting, the Fisher information, elastic weight consolidation as springs, Adam's v as a Fisher proxy, and learning task after task.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Local additions for this chapter only. */
+.card .bar { row-gap: 8px; }
+.card .controls { margin-top: 10px; }
+.eqs { margin: 10px 0 0; display: grid; gap: 4px; }
+.eqs .eqn { margin: 0; }
+.bridge { max-width: 46em; margin: 12px 0 18px; padding: 8px 14px; border-left: 3px solid var(--teal); background: var(--paper); border-radius: 0 6px 6px 0; font-size: 15px; color: var(--ink-2); }
+.bridge p { margin: 5px 0; }
+.bridge b { color: var(--ink); }
+.tl-row { display: grid; grid-template-columns: 7.2em repeat(4, minmax(0, 1fr)); gap: 4px; align-items: stretch; margin: 0 0 4px; }
+.tl-row.on .tl-lab { color: var(--ink); font-weight: 600; }
+.tl-lab { align-self: center; font-size: 14px; color: var(--muted); }
+.tl-wh { padding: 4px 6px; border: 1px solid var(--rule); border-radius: 6px; text-align: center; font-size: 13.5px; line-height: 1.25; color: var(--ink-2); background: var(--bg); }
+.tl-wh b { display: block; color: var(--ink); font-weight: 600; }
+.tl-wh i { font-style: normal; color: var(--muted); font-size: 12.5px; }
+.tl-wh.now { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal) inset; }
+.tl-c { padding: 8px 4px; border: 1px solid var(--rule); border-radius: 6px; text-align: center; font-size: 15.5px; color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.tl-c.unseen { border-style: dashed; color: var(--muted); font-size: 14px; }
+.tl-bar { display: grid; grid-template-columns: minmax(8em, 15em) minmax(0, 1fr) 3.4em; gap: 8px; align-items: center; font-size: 14.5px; color: var(--ink-2); margin: 3px 0; }
+.tl-bar.me { color: var(--ink); font-weight: 600; }
+.tl-track { height: 12px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+.tl-track span { display: block; height: 100%; background: var(--teal); }
+.tl-bar b { text-align: right; font-feature-settings: "tnum" 1, "lnum" 1; }
+#tl-bars { margin: 14px 0 4px; }
+.sub { margin: -4px 0 6px; font-size: 14px; color: var(--muted); }
+@media (max-width: 760px) { .tl-row { grid-template-columns: 4.6em repeat(4, minmax(0, 1fr)); } .tl-lab { font-size: 12.5px; } .tl-wh { font-size: 12px; padding: 3px 2px; } .tl-wh i { display: none; } .tl-c { padding: 8px 1px; font-size: 14px; } .tl-bar { grid-template-columns: 7.6em minmax(0, 1fr) 3em; font-size: 13.5px; } }
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="b7">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part B, Neural networks</span><span>Chapter B7</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part B &middot; Chapter 7</p>
+  <h1>Fine-tuning, forgetting and continual learning</h1>
+  <p class="subtitle">Why a model that learns the new water forgets the old, and how springs on the right weights stop it</p>
+</header>
+
+<div class="tldr">
+  <p>SharkCam learns to judge maturity in clear water. Then the robot dives into murky water, and a few weeks of fine-tuning on the new dives make it good there and bad in the clear water it knew. This chapter starts with the usual brakes on overfitting (a weight penalty, early stopping, noise in the inputs) and with pretraining and fine-tuning. It then explains catastrophic forgetting, the Fisher information that tells you which weights an old task needs, and elastic weight consolidation, which puts springs on those weights.</p>
+  <p>It ends with Adam's second moment as a cheap Fisher estimate (the idea behind Rayhaan's optimizer-state work), with learning task after task, and with where test-time training fits. The figures use small PyTorch models on the made-up spadenose records. The "water" is a made-up change in the camera's length readings, chosen so that the effects are visible.</p>
+</div>
+<p class="youneed"><b>You will need:</b> <a href="../b3-loss-gradient-descent/#batches">mini-batches</a> (B3), <a href="../b5-optimisers/#adam">Adam's \(m\) and \(v\)</a> and its <a href="../b5-optimisers/#curvature">first look at curvature</a> (B5), <a href="../b6-deep-networks/#dropout">dropout</a> (B6), <a href="../a4-grading-models/#overfit">overfitting and validation sets</a> (A4), <a href="../t6-gradients/#curvature">curvature</a> (0.6) and <a href="../t7-probability/#noise">expectation</a> (0.7).</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#water">Four waters</a></li>
+    <li><a href="#reg">Brakes on overfitting</a></li>
+    <li><a href="#transfer">Pretraining and fine-tuning</a></li>
+    <li><a href="#forget">Catastrophic forgetting</a></li>
+    <li><a href="#fisher">Which weights does the old water need?</a></li>
+    <li><a href="#ewc">Elastic weight consolidation</a></li>
+    <li><a href="#adam">Adam's v as a Fisher proxy</a></li>
+    <li><a href="#continual">Task after task</a></li>
+    <li><a href="#ttt">Learning while in use</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. water ============================ -->
+<section id="water" aria-labelledby="water-h">
+  <h2 id="water-h">Four waters, one question</h2>
+  <p class="ask"><b>Guess first.</b> SharkCam reads a spadenose shark's length from the video and says "mature" if it is longer than about 34 cm. You take it from clear water into murky water, where haze hides the tail and the camera reads the same shark 38% too short. About how many of 108 test sharks will the old rule get right: about 90%, about 60%, or about 35%?</p>
+  <dl class="terms">
+    <div><dt>task</dt><dd>one version of the problem, here one kind of water</dd></div>
+    <div><dt>apparent length</dt><dd>the length the camera reports, which is the true length times a factor that depends on the water</dd></div>
+    <div><dt>clarity reading</dt><dd>a made-up extra input, the water's visibility in metres from a sensor on the robot</dd></div>
+  </dl>
+  <p class="claim">The same sharks give different numbers in different water, so a rule learned in one water fails in another.</p>
+  <div class="card" id="wt">
+    <div class="bar" id="wt-bar"></div>
+    <div class="plot short" id="wt-plot" role="img" aria-label="Spadenose sharks plotted by the length the camera reads, in four waters, with the clear-water cut and the right cut for each water"></div>
+    <div class="readout" id="wt-read"></div>
+  </div>
+  <p class="cap"><b>The clear-water rule is right for 87% of the 108 test sharks in clear water, 64% in hazy water and 36% in murky water. Moving the cut (green line) to 62% of its old position fixes the murky case.</b> Blue dots are immature sharks, coral diamonds are mature ones. The made-up shifts (factors 1.00, 0.62, 0.80 and 0.48) are our own choice, exaggerated so that the effect is clear. They are not measurements.</p>
+  <p>The answer to the guess is "about 35%". In murky water most sharks look shorter than 34 cm, so the rule calls nearly all of them immature. It is right only for the third of the sharks that are immature. The sharks did not change, only the readings. A model trained in clear water cannot know this unless it is told. That is why the made-up robot has a clarity sensor and feeds its reading to the network as a fourth input next to length, girth and depth. In clear water the reading is about 8 m for all training sharks, so it has no information there. It becomes useful only after other waters arrive. The figures add a small made-up noise of 0.4 m to the readings, as a physical sensor would have.</p>
+  <p>The model in the rest of the chapter is small. A logistic regression has the weights \(w\) (on length), \(b\) (the bias) and \(c\) (on the clarity reading). Its score is \(z = w\,x + b + c\,v\), with \(x\) the standardised apparent length and \(v\) the standardised clarity. The small network has four inputs, four hidden ReLU units and one output: \(4\times4 + 4 + 4 + 1 = 25\) weights. Both use the log loss of <a href="../a3-logistic-regression/#logloss">A3</a> and <a href="../b3-loss-gradient-descent/#cost">B3</a>. Four waters arrive in this order: clear (8 m), murky (2 m, factor 0.62), hazy (4 m, factor 0.80) and silt (1 m, factor 0.48).</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>In murky water the camera reads 62% of the true length. A 41.0 cm adult spadenose (Tag 3305) comes out at how many centimetres, and does the clear-water rule still call it mature?</summary><p>\(0.62 \times 41.0 = 25.4\) cm. That is below the 34 cm cut, so the old rule calls it immature, which is wrong.</p></details>
+    <details><summary>Why is the clarity reading useless in the first water?</summary><p>It has almost the same value for all training sharks, so changing its weight changes all predictions in nearly the same way as the bias does. The training sharks can hardly tell the two apart, and the reading does not predict maturity.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. reg ============================ -->
+<section id="reg" aria-labelledby="reg-h">
+  <h2 id="reg-h">Brakes on overfitting: a penalty, early stopping and noise</h2>
+  <p class="ask"><b>Guess first.</b> A network with 1,300 weights trains on only 30 sharks. Its training loss falls toward 0. What does the validation loss do: keep falling, level off, or turn around and rise?</p>
+  <dl class="terms">
+    <div><dt>regularisation</dt><dd>anything that stops the model from fitting the training set as closely as it could; here a penalty on large weights</dd></div>
+    <div><dt>early stopping</dt><dd>stopping training when the validation loss stops improving, and keeping the best weights</dd></div>
+    <div><dt>patience</dt><dd>how many checks without a new best the run waits before it stops</dd></div>
+    <div><dt>data augmentation</dt><dd>training on altered copies of the examples, here with random noise on the inputs (<a href="../c3-domain-shift/#augment">C3</a> uses it for images)</dd></div>
+  </dl>
+  <p class="claim">A network that can fit 30 sharks perfectly will fit their noise too, and the three brakes limit that in different ways.</p>
+  <div class="card" id="rg">
+    <div class="bar" id="rg-bar"></div>
+    <div class="plot" id="rg-plot" role="img" aria-label="Training and validation loss by epoch for a network trained on 30 sharks, with chips for the weight penalty and input noise"></div>
+    <div class="controls" id="rg-controls"></div>
+    <div class="readout" id="rg-read"></div>
+  </div>
+  <p class="cap"><b>With no brake the validation loss is lowest, 0.36, at epoch 12 and then climbs to 2.03 by epoch 400, while the training loss reaches 0.00. A weight penalty of 0.05 ends the run at 0.35.</b> The curves are means of 6 runs on the made-up spadenose records (30 training sharks, 108 validation sharks, six inputs including depth and month, which have no information about maturity).</p>
+  <p>The answer to the guess is "turn around and rise". After about 12 epochs the network has learned what is common to all sharks and starts to memorise the 30 it sees. Try the brakes in turn. A <b>weight penalty</b> adds a term to the loss that grows with the size of the weights: \(L_{\text{total}} = L + \omega \sum w^2\). Large weights are what a network needs to bend a curve through noisy points, so the penalty keeps the curve smooth. At a step the penalty also shrinks all weights by a factor of \(1 - 2\eta\omega\). This is why people call it weight decay. <a href="../b5-optimisers/#adamw">B5</a> explains why Adam treats it differently from a plain penalty. <b>Early stopping</b> needs no change to the loss. Check the validation loss at regular intervals, remember the best weights, and stop when there has been no new best for the patience you set. With patience 3 the run above stops at epoch 24 and gives back the weights of epoch 12.</p>
+  <p><b>Noise in the inputs</b> is a simple augmentation. At the start of an epoch, all inputs are changed by random amounts of the size you choose (in standardised units, so 0.3 is 30% of a standard deviation). The network never sees the same 30 numbers twice, so it cannot memorise them. For a single linear model, noise of size \(s\) on an input acts like a penalty \(s^2 w^2\) on its weight (exercise 2). This links the first and third brake.</p>
+  <div class="eqn" role="img" aria-label="Worked example: weight 3, penalty 0.05 times 9 equals 0.45, shrink factor 1 minus 2 times 0.1 times 0.05 equals 0.99"><span class="t c-navy"><b>&omega; = 0.05</b><i>penalty strength</i></span><span class="op">&times;</span><span class="t c-coral"><b>3&sup2; = 9</b><i>a weight of 3, squared</i></span><span class="op">=</span><span class="t c-teal"><b>0.45</b><i>added to the loss</i></span><span class="op">|</span><span class="t c-navy"><b>1 &minus; 2 &times; 0.1 &times; 0.05</b><i>&eta; = 0.1</i></span><span class="op">=</span><span class="t c-teal"><b>0.99</b><i>weights shrink 1% per step</i></span></div>
+  <p class="math">\[ L_{\text{total}}(\theta) \;=\; L(\theta) \;+\; \omega \sum_j \theta_j^{2} \qquad\quad \theta_j \;\leftarrow\; (1 - 2\eta\omega)\,\theta_j \;-\; \eta\,\frac{\partial L}{\partial \theta_j} \]</p>
+  <ul class="math-notes">
+    <li><b>\(L\)</b> is the loss on the training data and <b>\(\omega\)</b> (omega) is the penalty strength, a number you choose. B5 uses the same letter, and \(\lambda\) is kept for the EWC strength below.</li>
+    <li><b>\(\theta_j\)</b> is one weight and <b>\(\eta\)</b> the learning rate. The second form is the first one differentiated: the penalty's slope is \(2\omega\theta_j\), which pulls a weight toward 0.</li>
+  </ul>
+  <p><b>Where the brakes fail.</b> Augmentation helps only when the altered copies are still correct examples. Try a different alteration: multiply a shark's length, girth and weight by a random factor up to 25% and keep its label. In a test run (10 networks) this lowered the clear-water validation accuracy from 82.1% to 78.8%, because a shark that is 25% longer is no longer the same maturity. The augmentation has to mirror a variation that does not change the answer. Early stopping can also stop too soon if the validation set is small and noisy (A4 gives the interval for 108 sharks). <b>In practice</b>, people use all three at once: a small penalty (\(10^{-4}\) to \(10^{-2}\) is common), a patience of a few epochs, and an augmentation that matches the data. A frequent mistake is to pick the stopping epoch with the test set. Use the validation set, as in <a href="../a4-grading-models/#splits">A4</a>.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A model that fits the training data perfectly is a better model.</p>
+    <p><b>Why it fails.</b> With enough weights, a model can fit the noise in 30 examples, and noise does not repeat in new sharks. The figure's validation loss is almost six times higher at the end than at epoch 12.</p>
+    <p><b>Better account.</b> Compare the training and validation curves. A gap that widens is overfitting, and any brake that shrinks the gap without raising the validation loss is worth keeping.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If the validation loss is lowest at epoch 1 or 2, the learning rate is probably too high, so the run overfits within a few steps. Lower the rate before adding brakes (<a href="../b8-debugging/#lab">B8</a>).</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>With a weight penalty \(\omega = 0.05\) and \(\eta = 0.1\), by what factor does a weight shrink in one step if its slope is 0?</summary><p>\(1 - 2 \times 0.1 \times 0.05 = 0.99\). After 100 steps, \(0.99^{100} = 0.37\) of the weight is left.</p></details>
+    <details><summary>Early stopping with patience 3 never fires in a run. What does the figure say about the run?</summary><p>The validation loss keeps reaching new lows. The run is not overfitting yet, so training for longer is allowed.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. transfer ============================ -->
+<section id="transfer" aria-labelledby="transfer-h">
+  <h2 id="transfer-h">Pretraining and fine-tuning</h2>
+  <p class="ask"><b>Guess first.</b> A network trained in clear water now gets only 4 labelled sharks from the murky water. Is it better to train it further on those 4, or to start a new network on those 4? And what does it cost in the clear water?</p>
+  <dl class="terms">
+    <div><dt>pretraining</dt><dd>training on a large or earlier task so that the weights start in a useful place</dd></div>
+    <div><dt>fine-tuning</dt><dd>continuing training from those weights on the new task, usually with a small learning rate</dd></div>
+    <div><dt>freezing</dt><dd>holding some weights fixed during fine-tuning</dd></div>
+  </dl>
+  <p class="claim">Fine-tuning starts the new task where the old task finished, so a few labelled examples go a long way, and the old task pays for it.</p>
+  <div class="card" id="tf">
+    <div class="bar" id="tf-bar"></div>
+    <div class="plot" id="tf-plot" role="img" aria-label="Accuracy in murky water against the number of labelled murky-water sharks for training from scratch, fine-tuning all weights and fine-tuning the last layer only"></div>
+    <div class="controls" id="tf-controls"></div>
+    <div class="readout" id="tf-read"></div>
+  </div>
+  <p class="cap"><b>With 4 murky-water sharks, fine-tuning gets 73% right against 67% from scratch, and training only the last layer gets 75%. By 16 sharks the gap is under 1 point, and the clear-water accuracy has fallen from 88% to 72%.</b> Means of 20 networks. The pretrained network applied to murky water without any training gets 38%.</p>
+  <p>Switch to the clear-water view. It shows the price of fine-tuning: accuracy in the old water drops to 70 to 74% whichever way you fine-tune. A network from scratch has no such drop because it never knew the old water. Freezing the first layer limits the damage to the shared features but does not protect the output weights. The answer to the guess is therefore: fine-tune, when labelled examples are few, and expect to lose some of the old skill.</p>
+  <p>Why fine-tuning helps follows from where the weights start. A random network has to find the weights that read length and girth at all. The pretrained network already has them, and the murky water mostly needs a shifted threshold. In the 25-weight network, 24 weights do not need to change much. Practitioners use the same logic at a large scale. They start from a model pretrained on a large data set. They fine-tune with a learning rate about ten times smaller than the original, so that the early layers are not wiped out, and often freeze those layers. A cheaper variant keeps all weights frozen and trains a small add-on, which Rayhaan's primer describes as LoRA (low-rank adaptation).</p>
+  <p><b>Where it misleads.</b> The benefit disappears as labelled data grows. At 160 sharks, scratch and fine-tuning are equal at 84 to 85%, and the last-layer-only run is worse (78%) because it cannot change the early layers. Starting from the old weights can also trap the run: if the new task needs very different features, pretraining is a poor start. <b>In practice</b>, always check three numbers: the new task's validation score, the old task's score, and the score of a network trained from scratch on the same new data.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why can fine-tuning be worse than training from scratch when the new task has lots of data?</summary><p>The old weights are a starting point that may lie in a valley that suits the old task. With enough new data, a fresh start finds a valley made for the new task and does not bring the old task's leftovers. In the figure the two tie at 160 sharks, so the safe claim is only that the advantage vanishes.</p></details>
+    <details><summary>The last-layer-only run beats the full fine-tune at 2 and 4 sharks and loses from 8 sharks on. Why?</summary><p>With 2 to 4 examples there is too little data to adjust 25 weights safely, so changing fewer weights overfits less. With 8 or more examples the early layers also need to move, and the frozen ones limit the model.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. forget ============================ -->
+<section id="forget" aria-labelledby="forget-h">
+  <h2 id="forget-h">Catastrophic forgetting</h2>
+  <p class="ask"><b>Guess first.</b> The network keeps training on murky-water sharks only, for 200 steps. Its murky-water accuracy will climb. What happens to its clear-water accuracy, which it is no longer trained on: stays near 88%, drifts down a little, or falls by 10 points or more?</p>
+  <dl class="terms">
+    <div><dt>catastrophic forgetting</dt><dd>a large loss of skill on an old task after training on a new one, with no data from the old task in the training set</dd></div>
+    <div><dt>weight space</dt><dd>the space whose axes are the weights; one point is one complete set of weights</dd></div>
+    <div><dt>old optimum</dt><dd>the weights \(\theta^*\) at the end of training on the old task</dd></div>
+  </dl>
+  <p class="claim">Training on the new water moves the weights, and the move that fits the new water also breaks the fit to the old water.</p>
+  <div class="card" id="fg">
+    <div class="bar" id="fg-bar"></div>
+    <div class="plot" id="fg-plot" role="img" aria-label="Accuracy in clear water and in murky water against training steps on murky water, with a scrubber"></div>
+    <div class="controls" id="fg-scrub"></div>
+    <div class="readout" id="fg-read"></div>
+  </div>
+  <p class="cap"><b>In 200 steps on murky water the accuracy there rises from 38% to 86%, and the accuracy in clear water falls from 88% to 73%. Tag 9840, an immature 30.7 cm shark, goes from a 12% chance of "mature" in clear water to 99%.</b> Means of 20 networks, with a clarity input. The curves are for the network with four hidden units.</p>
+  <p>The answer to the guess is "falls by 10 points or more": 15 points here, and 18 at the lowest point on the way (70%). The loss on the murky water does not mention the old water, so the weights are free to move anywhere that helps the new one. The next figure shows the two waters as a landscape over two weights.</p>
+  <div class="card" id="sp0">
+    <div class="bar" id="sp0-bar"></div>
+    <p class="sub" id="sp0-sub"></p>
+    <div class="plot tall" id="sp0-plot" role="img" aria-label="Contour lines of the loss for the old and the new water over two weights, with the path of plain fine-tuning from the old optimum"></div>
+    <div class="readout" id="sp0-read"></div>
+  </div>
+  <p class="cap"><b>Plain fine-tuning slides from the old optimum (blue dot) to the valley of the new water (coral lines). It ends 8 units away in the bias, where the old water's loss has risen from 0.20 to 1.76.</b> Blue contours are the loss on clear-water sharks and coral contours the loss on murky-water sharks, with the bottom of a valley at the lowest value. The model is the logistic regression with weights \(w\), \(b\) and \(c\).</p>
+  <p>Read the picture as a map. The two weights are \(b\) (the bias) and \(c\) (the weight on the clarity reading), with \(w\) held at its clear-water value. The blue valley is a vertical band at \(b \approx 2.9\). In clear water the reading is almost the same for all sharks, so \(c\) hardly matters and the loss depends on \(b\) almost alone. The coral valley is a diagonal band. In murky water the reading is \(-1.5\) (standardised), so only the combination \(b - 1.5c\) matters. Many pairs of \((b, c)\) are equally good. Gradient descent starts at the blue dot and moves straight down the coral slope. The shortest way down changes \(b\) and \(c\) together, and it changes \(b\) by a lot. That is the forgetting. Switch to "no clarity reading" to see the harder case: the weights are \(w\) and \(b\), and the two valleys do not overlap at all.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A network that has learned something keeps it unless the data is deleted. Storing weights is like storing a file.</p>
+    <p><b>Why it fails.</b> Weights are shared by all inputs, and training moves them all in the direction that helps the current data. Old knowledge is a pattern in the values of the weights, and the training step has no reason to protect that pattern.</p>
+    <p><b>Better account.</b> A network keeps old knowledge only while the new training data keeps asking for it. A penalty or stored examples can ask for it too.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> After any fine-tuning run, keep a small test set from the old task and score it again. A drop of 10 points or more shows forgetting, and a model card that reports only the new task's score hides it.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>In the weight-space picture, why does plain fine-tuning end far from the old optimum although many other points are equally good for the new water?</summary><p>Gradient descent follows the slope of the new loss only. From the old optimum the steepest way down is straight toward the nearest point on the new valley. That point is not chosen to be near the old optimum in the weights the old task needs.</p></details>
+    <details><summary>Does forgetting happen if the new data contains the old task's examples too?</summary><p>Much less. Training on both is the joint-training baseline of the timeline below, and replay is a cheaper copy of it.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. fisher ============================ -->
+<section id="fisher" aria-labelledby="fisher-h">
+  <h2 id="fisher-h">Which weights does the old water need?</h2>
+  <p class="ask"><b>Guess first.</b> You nudge one weight of the clear-water model by 1. Which nudge changes the model's predictions on clear-water sharks most: the weight on length \(w\), the bias \(b\), or the weight on the clarity reading \(c\)?</p>
+  <dl class="terms">
+    <div><dt>Fisher information \(F\)</dt><dd>a matrix that says how strongly the model's predictions change when its weights change</dd></div>
+    <div><dt>Fisher diagonal \(F_{jj}\)</dt><dd>one number per weight: the sensitivity of the predictions to that weight alone</dd></div>
+    <div><dt>KL divergence</dt><dd>how far one set of predicted probabilities has moved from another, in nats (<a href="../t7-probability/#crossent">0.7</a>); 0 means no change</dd></div>
+  </dl>
+  <p class="claim">The Fisher diagonal measures how much the model's predictions depend on a weight, and it can be estimated as the average squared slope of the loss.</p>
+  <div class="card" id="fi">
+    <div class="bar" id="fi-bar"></div>
+    <div class="split2"><div class="plot" id="fi-curve" role="img" aria-label="Chance of mature against length in clear water before and after nudging one weight"></div><div class="plot" id="fi-kl" role="img" aria-label="Average change in predictions against the size of the nudge for each of the three weights"></div></div>
+    <div class="controls" id="fi-controls"></div>
+    <div class="eqn" id="fi-eqn"></div>
+    <div class="readout" id="fi-read"></div>
+  </div>
+  <p class="cap"><b>Nudging the bias by 1 changes the predictions about 100 times more than nudging the clarity weight by 1. For small nudges the curve of a weight is a parabola \(\tfrac12 F_{jj}\,\delta^2\).</b> The model is the clear-water logistic regression; the change is the average KL divergence over the 160 training sharks.</p>
+  <p>The answer to the guess is the bias, or in these numbers about 0.06 for \(b\), 0.025 for \(w\) and 0.0007 for \(c\), as the readout shows. The clarity weight barely matters in clear water because its input is almost constant there. The Fisher information is a general way to put that into numbers.</p>
+  <p><b>The idea.</b> For one input \(x\), the model assigns probabilities \(p_\theta(y\mid x)\) to the answers. Move the weights by a small \(\boldsymbol\delta\), and the probabilities change. The average change, measured by the KL divergence, is for small \(\boldsymbol\delta\) a quadratic: \(\mathrm{KL} \approx \tfrac12\,\boldsymbol\delta^\top F\,\boldsymbol\delta\). The matrix \(F\) is the Fisher information. Its entry \(F_{jj}\) answers: how much do predictions change per unit of weight \(j\)? Its off-diagonal entries say how a move in weight \(j\) and a move in weight \(k\) interact. The curves of the figure are this formula for one weight at a time.</p>
+  <p><b>The estimate.</b> You do not need to move any weight to compute \(F_{jj}\). Differentiate the log probability. For one example, \(g_j = \partial \ln p_\theta(y\mid x) / \partial \theta_j\) says how fast the log probability of the answer changes with weight \(j\). It is the same slope the training loss uses, up to a sign. Averaging the square \(g_j^2\) over the examples gives \(F_{jj}\), the empirical Fisher diagonal. The squares make positive and negative slopes count in the same way. For the logistic model the slope has a simple form that you have met before (<a href="../b4-backpropagation/#backward">B4</a>). It is \(g_j = (p - y)\,f_j\), where \(f_j\) is the input of weight \(j\) and \(f = (x, 1, v)\).</p>
+  <div class="eqn" role="img" aria-label="Worked example: Tag 3305 has a squared bias slope of 0.00029 and Tag 9840 has 0.011, 38 times larger"><span class="t c-navy"><b>Tag 3305</b><i>41.0 cm, mature, p = 0.983</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>(0.983 &minus; 1)&sup2; = 0.00029</b><i>squared slope of b</i></span><span class="op">|</span><span class="t c-coral"><b>Tag 9840</b><i>30.7 cm, immature, p = 0.105</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>(0.105 &minus; 0)&sup2; = 0.011</b><i>squared slope of b</i></span><span class="op">=</span><span class="t c-sand"><b>38&times;</b><i>larger</i></span></div>
+  <p>The two boxes are worked examples for the bias, whose input is always 1. The model is sure about Tag 3305, so its squared slope is tiny. Tag 9840 is close to the boundary, with a chance of 0.105 of being called mature, and its squared slope is 38 times bigger. Over the 160 training sharks, the 48 whose error \(\lvert p-y\rvert\) exceeds 0.1 supply 99% of \(F_{bb}\). That is why the Fisher marks the weights an old task needs. It is built from the sharks the model finds hard, and those are the ones where moving a weight changes the answer.</p>
+  <p class="math">\[ F_{jk} \;=\; \mathbb{E}_{x}\;\mathbb{E}_{y\sim p_\theta(y\mid x)}\!\left[\frac{\partial \ln p_\theta(y\mid x)}{\partial\theta_j}\,\frac{\partial \ln p_\theta(y\mid x)}{\partial\theta_k}\right] \qquad\quad F_{jj} \;\approx\; \frac{1}{m}\sum_{i=1}^{m}\Big(\frac{\partial \ell_i}{\partial \theta_j}\Big)^{2} \]</p>
+  <ul class="math-notes">
+    <li><b>\(F_{jk}\)</b> is the Fisher information matrix, one entry per pair of weights, and <b>\(F_{jj}\)</b> its diagonal. <b>\(\theta_j\)</b> is weight \(j\).</li>
+    <li><b>\(\mathbb{E}_x\)</b> averages over the inputs (the old task's data). <b>\(\mathbb{E}_{y\sim p_\theta}\)</b> averages over answers that the model itself draws, not over the true labels.</li>
+    <li>The right-hand form is the estimate with the true labels: <b>\(\ell_i\)</b> is the loss of example \(i\) and <b>\(m\)</b> the number of examples (not Adam's \(m\)). It is called the empirical Fisher.</li>
+  </ul>
+  <p><b>Why use the true labels?</b> For a model whose probabilities are well calibrated, the answers it draws match the true labels on average, and the two versions agree. For the logistic model \(\mathbb{E}\big[(p - y)^2\big] = p(1-p)\) when \(y\) is drawn with probability \(p\), which is the curvature of the loss. This is the identity used in <a href="../b5-optimisers/#curvature">B5</a>, and the step that connects the Fisher information to the curvature of <a href="../t6-gradients/#curvature">0.6</a>. In the network figures below the two versions of the diagonal have a rank correlation of 0.98.</p>
+  <p><b>Where it misleads.</b> The full matrix has one entry per pair of weights. Our network has 25 weights and 625 entries. GPT-2 Small has 124 million weights and about \(1.5\times10^{16}\) entries, so only the diagonal is ever stored. The diagonal ignores how weights tilt together (the valley of <a href="../b5-optimisers/#race">B5</a>), and the directions that matter most are the eigenvectors of \(F\) (<a href="../t5-vectors-matrices/#eigen">0.5</a>). The empirical Fisher is also not the same as the curvature in general. Kunstner and others (2019) argue that it is an unreliable substitute for the true Fisher and for the curvature, and that updates built from it can be poor. The Fisher also shows what the trained model uses, which need not be what is true. With only 160 sharks, one hidden unit of the small network has a larger \(F\) for depth than for length (bar chart below). Depth has no information about maturity in the made-up table.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A weight has \(F_{jj} = 0.06\). About how much does the average KL divergence change if you nudge it by 0.5?</summary><p>\(\tfrac12 \times 0.06 \times 0.5^2 = 0.0075\) nats.</p></details>
+    <details><summary>Why is the Fisher diagonal built from squared slopes and not plain slopes?</summary><p>At a trained optimum the average plain slope is about 0, because positive and negative slopes cancel. The squared slope measures how large the slopes are, whatever their sign, and so how sensitive the predictions are.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 6. ewc ============================ -->
+<section id="ewc" aria-labelledby="ewc-h">
+  <h2 id="ewc-h">Elastic weight consolidation: springs on the weights</h2>
+  <p class="ask"><b>Guess first.</b> You attach a spring between a weight and its old value, and make the spring on weight \(j\) as stiff as the Fisher diagonal \(F_{jj}\). The stiff ones are the weights the old water needs. Will fine-tuning on murky water still learn it?</p>
+  <dl class="terms">
+    <div><dt>elastic weight consolidation (EWC)</dt><dd>fine-tuning with a penalty that pulls the weights back toward their old values, with a pull set by the Fisher diagonal</dd></div>
+    <div><dt>strength \(\lambda\)</dt><dd>one number, chosen by you, that scales all the springs</dd></div>
+    <div><dt>stiffness</dt><dd>\(\lambda F_{jj}\), how hard the spring on weight \(j\) pulls</dd></div>
+  </dl>
+  <p class="claim">A penalty \(\tfrac{\lambda}{2}\sum_j F_{jj}(\theta_j - \theta^*_j)^2\) lets the weights the old water ignores move freely, and keeps the others in place.</p>
+  <div class="card" id="sp">
+    <div class="bar" id="sp-bar"></div>
+    <p class="sub" id="sp-sub"></p>
+    <div class="plot tall" id="sp-plot" role="img" aria-label="Weight-space contours for the old and the new water with the path of fine-tuning with springs, drawn as zigzag lines from the anchor lines to the moving point"></div>
+    <div class="controls" id="sp-controls"></div>
+    <div class="eqn" id="sp-eqn"></div>
+    <p class="status" id="sp-status" aria-live="polite"></p>
+    <div class="readout" id="sp-read"></div>
+  </div>
+  <p class="cap"><b>At \(\lambda = 30\) the path (teal) stays at the old bias, \(b = 2.97\), and moves along the clarity weight to \(c = -4.8\). It reaches 86% in clear water and 84% in murky water, against 68% and 89% for plain fine-tuning.</b> The sand zigzags are the springs, thicker when stiffer. The spring on \(c\) is about 95 times softer than the spring on \(b\), because \(F_{cc}\) is 0.0007 and \(F_{bb}\) is 0.065.</p>
+  <p>Press Play, then move \(\lambda\). The answer to the guess is yes, when there is a free weight to learn through. The old task never used the clarity reading, so its Fisher is almost 0 and the spring on \(c\) is slack. The stiff spring on \(b\) keeps the point on the old valley. The new task is learned through \(c\) alone: \(b + c\,v = 2.97 + (-4.8)(-1.5) = 10.2\), which is close to the 11.0 that plain fine-tuning reaches by changing \(b\). A larger \(\lambda\) keeps the path nearer the old optimum but it learns less: at 300 the murky-water accuracy drops to 60%. With "same springs on all weights" (the same total stiffness) the spring on \(c\) resists what the new water needs. The murky water is learned worse: 43% at \(\lambda=30\) against 84%.</p>
+  <p><b>Why this penalty.</b> Kirkpatrick and colleagues (2017) derive EWC from Bayes' rule. After the old water the weights should stay where the old data says they are likely to be, and all we know about that is the old loss. Three steps turn this into the penalty. First, near its lowest point the old loss is a bowl. Its slope is 0 at \(\theta^*\), so a Taylor series (<a href="../t6-gradients/#curvature">0.6</a>) gives \(L_A(\theta) \approx L_A(\theta^*) + \tfrac12(\theta-\theta^*)^\top H\,(\theta-\theta^*)\), where \(H\) is the matrix of second derivatives. Second, when the model's probabilities are close to the truth, the Fisher information equals that curvature (the identity of the last section), so \(H \approx F\). In Bayesian terms the bowl is a Gaussian approximation to what the old data says about the weights. Third, keep only the diagonal of \(F\). The new loss plus this bowl for the old task is the EWC loss. Moving a weight by \(\Delta\) costs \(\tfrac12\lambda F_{jj}\Delta^2\), the energy of a spring with stiffness \(\lambda F_{jj}\).</p>
+  <div class="eqn" role="img" aria-label="Worked example at lambda 30: stiffness of b is 30 times 0.065 equals 1.94; moving b by 8 costs 62; moving c by 4.8 costs 0.23"><span class="t c-navy"><b>30 &times; 0.065</b><i>&lambda; &times; F for b</i></span><span class="op">=</span><span class="t c-teal"><b>1.94</b><i>stiffness of the b spring</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>&frac12; &times; 1.94 &times; 8.1&sup2; = 63.5</b><i>cost of the plain move, b + 8.1</i></span><span class="op">|</span><span class="t c-navy"><b>30 &times; 0.0007</b><i>&lambda; &times; F for c</i></span><span class="op">=</span><span class="t c-teal"><b>0.020</b><i>stiffness of the c spring</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>&frac12; &times; 0.020 &times; 4.8&sup2; = 0.23</b><i>cost of the EWC move</i></span></div>
+  <p class="math">\[ L(\theta) \;=\; L_B(\theta) \;+\; \frac{\lambda}{2}\sum_{j} F_{jj}\,\big(\theta_j - \theta^{*}_{j}\big)^{2} \]</p>
+  <ul class="math-notes">
+    <li><b>\(L_B\)</b> is the loss on the new task and <b>\(\theta^*\)</b> the weights at the end of the old task. <b>\(F_{jj}\)</b> is the Fisher diagonal for the old task, measured at \(\theta^*\) and fixed during the new training.</li>
+    <li><b>\(\lambda\)</b> is the strength, a number you choose. A new weight \(\theta_j\) that is far from \(\theta^*_j\) pays more when \(F_{jj}\) is large. At \(\lambda = 0\) this is plain fine-tuning.</li>
+  </ul>
+  <p>The same thing in the small network, with the curves of the last section:</p>
+  <div class="card" id="ec">
+    <div class="bar" id="ec-bar"></div>
+    <div class="plot" id="ec-plot" role="img" aria-label="Accuracy in clear and murky water against training steps for EWC, equal springs or replay; plain fine-tuning is dotted"></div>
+    <div class="controls" id="ec-controls"></div>
+    <div class="controls" id="ec-scrub"></div>
+    <div class="readout" id="ec-read"></div>
+  </div>
+  <p class="cap"><b>At \(\lambda = 30\) the network ends at 87% in clear water and 86% in murky water. Plain fine-tuning (dotted) ends at 73% and 86%. With no clarity reading, no value of \(\lambda\) gives both: 74% and 69% at \(\lambda=30\), against 68% and 87% for plain fine-tuning.</b> Means of 20 networks. "Same springs" uses the mean of the Fisher diagonal for all weights, and replay mixes 20 stored clear-water sharks into the batches.</p>
+  <p>Between \(\lambda = 3\) and 100 the clear-water accuracy stays at 85 to 88% and the murky-water accuracy falls slowly from 85% to 84%. At 300 it falls to 79%. The no-reading case is the limit of the method. When both waters need the same weights in different ways (the weights \(w\) and \(b\) of the earlier picture), no spring can give both. EWC can choose a point on the trade-off, but it cannot remove the conflict.</p>
+<pre class="code"><code>def ewc(lam):                       # the penalty, in a few lines
+    return lambda m: 0.5 * lam * sum(
+        (f * (q - s) ** 2).sum()
+        for f, q, s in zip(fisher, m.parameters(), star))
+
+# fisher[k]: average squared slope of weight k over the old water's sharks
+# star[k]:   the weight's value at the end of the old training
+for name, lam in [("plain fine-tuning", 0), ("EWC, lambda = 30", 30)]:
+    m = copy.deepcopy(net)
+    fit(m, XB, 200, ewc(lam) if lam else None)
+    print("%-24s: clear %.3f  murky %.3f" % (name, acc(m, XA), acc(m, XB)))</code></pre>
+<pre class="out">after the clear water   : clear 0.861  murky 0.407
+plain fine-tuning       : clear 0.806  murky 0.843
+EWC, lambda = 30        : clear 0.861  murky 0.861
+Fisher diagonal, first layer rows (h1..h4) x (length, girth, depth, clarity):
+[[0.102 0.111 0.269 0.   ]
+ [0.034 0.037 0.162 0.   ]
+ [0.    0.    0.    0.   ]
+ [0.    0.    0.    0.   ]]</pre>
+  <p>The code prints one network, and the figure averages 20, so its numbers differ from the caption. Its Fisher table shows one more fact. Hidden units 3 and 4 are off for all clear-water sharks, so all weights in their rows have \(F = 0\) and the springs on them are slack. They are spare capacity, and EWC lets the new water use it. The set-up lines at the top of the script are in the notes at the end of the page.</p>
+  <div class="break">
+    <p><b>Analogy.</b> The weights are the knots of a net, the old values are pegs in the wall, and the springs run from knot to peg. Stiff springs on the knots that bear the old picture, slack ones on the others.</p>
+    <p><b>Where it breaks.</b> Physical springs obey Hooke's law at all stretches, and the EWC bowl is a Taylor approximation that is good only near \(\theta^*\). The diagonal leaves out the tilt between weights. The Fisher is measured once, at the end of the old task. After several tasks you must keep one Fisher and one anchor per task, or merge them. And two tasks that need the same weights to be different cannot both be served.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Print the penalty next to the new loss at the start of fine-tuning. If the penalty is thousands of times the loss, the model cannot move and \(\lambda\) is too large. If it stays near 0, \(\lambda\) is too small to matter. A sensible \(\lambda\) puts the penalty within a factor of ten of the loss after a few steps. <b>In practice</b>, \(\lambda\) is tuned like a learning rate, on a small grid. Published values vary by many orders of magnitude with the model and the scale of \(F\). In Rayhaan's primer the best \(\lambda\) was \(10^7\) at 1B and 3B parameters and higher at 8B.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A weight has \(F_{jj} = 0\) for the old task. What does EWC do to it?</summary><p>The spring on it has stiffness 0, so it is as free as in plain fine-tuning. EWC leaves it to the new task.</p></details>
+    <details><summary>Why can a model that never sees the old data still be protected by EWC?</summary><p>The old data was used once, at the end of the old task, to measure \(F\) and store \(\theta^*\). After that the penalty needs only those two lists of numbers, not the sharks.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 7. adam ============================ -->
+<section id="adam" aria-labelledby="adam-h">
+  <h2 id="adam-h">Adam's v as a Fisher proxy</h2>
+  <p class="ask"><b>Guess first.</b> Adam keeps a running average \(v\) of the squared slope of all weights (<a href="../b5-optimisers/#adam">B5</a>). The Fisher diagonal is an average of squared slopes too. If you could read \(v\) from the finished run, how closely would its ranking of the weights match the Fisher diagonal: not at all, roughly, or almost the same?</p>
+  <dl class="terms">
+    <div><dt>proxy</dt><dd>a quantity you can get cheaply that replaces the one you want</dd></div>
+    <div><dt>rebuilt \(v\)</dt><dd>a second moment re-estimated from a few tiny steps at the finished weights, when the saved one is not available</dd></div>
+    <div><dt>matched strength</dt><dd>comparing penalties at the same \(\lambda\,\lVert v\rVert_1\), the sum of all entries, so that scale does not decide the comparison</dd></div>
+  </dl>
+  <p class="claim">Adam's \(v\) is a running average of squared slopes, so it can serve as the Fisher diagonal, up to a scale, without extra passes over the old data.</p>
+  <div class="card" id="fb">
+    <div class="bar" id="fb-bar"></div>
+    <div class="plot tall" id="fb-plot" role="img" aria-label="Grouped bars for each live weight of the network: the Fisher diagonal, Adam's v after training, and v rebuilt in 200 tiny steps"></div>
+    <div class="readout" id="fb-read"></div>
+  </div>
+  <p class="cap"><b>The three series rank the 13 live weights almost the same way (rank correlation 0.98), but the raw values differ. Adam's v after training is 34 to 80 times smaller than the Fisher diagonal, and the rebuilt v is 14 to 25 times smaller.</b> Switch to "scaled to sum to 1" and the bars line up. Most of the scale gap is the batch size: Adam sees the square of a batch average, and the Fisher is the average of squares.</p>
+  <p>The answer to the guess is "almost the same ranking, different scale". Here is why the scale differs. A batch slope is the mean of \(B\) example slopes, \(\bar g = \tfrac1B\sum g_i\). Its square has expectation \(\mathbb{E}[\bar g^2] = \tfrac1B\mathbb{E}[g^2] + \big(1-\tfrac1B\big)\big(\mathbb{E}[g]\big)^2\). At the old optimum the average slope \(\mathbb{E}[g]\) is about 0, so \(\mathbb{E}[\bar g^2] \approx F_{jj}/B\). For the weight from length to hidden unit 1, \(F = 0.107\), and with batches of 16 the rebuilt \(v\) should be \(0.107/16 = 0.0067\). The measured value is 0.0065. The \(v\) kept from the original training run (batches of 32) is 0.0026, a little below \(0.107/32 = 0.0033\). Over all 13 weights it is 34 to 80 times smaller than \(F\). The \(1/B\) rule is therefore a rough guide for a \(v\) saved from a run that was still moving.</p>
+  <p><b>The rebuild.</b> Public checkpoints share a model's weights and usually not Adam's state, so \(v\) has to be measured again. The recipe in Rayhaan's optimizer-state work uses a Fisher run. Start from the checkpoint's weights with a fresh optimiser and take about 200 steps at a learning rate of \(10^{-7}\). The rate is so small that the weights barely move, which keeps all slopes measured at the checkpoint. Then correct the start-up bias, \(\hat v = v/(1-\beta_2^{t})\). In the toy, 200 steps at \(10^{-7}\) move no weight by more than \(4\times10^{-6}\). The \(\hat v\) has a rank correlation of 0.98 with the Fisher diagonal (mean of 20 toy networks).</p>
+  <div class="eqn" role="img" aria-label="Worked example: F is 0.107, divided by batch 16 gives 0.0067, measured rebuilt v is 0.0065"><span class="t c-coral"><b>F = 0.107</b><i>length to unit 1</i></span><span class="op">&divide;</span><span class="t c-navy"><b>B = 16</b><i>batch size of the Fisher run</i></span><span class="op">=</span><span class="t c-sand"><b>0.0067</b><i>predicted v</i></span><span class="op">vs</span><span class="t c-teal"><b>0.0065</b><i>rebuilt v, measured</i></span></div>
+  <p class="math">\[ \mathbb{E}\big[\bar g_j^{\,2}\big] \;=\; \frac{1}{B}\,\mathbb{E}\big[g_j^{2}\big] + \Big(1-\frac1B\Big)\big(\mathbb{E}[g_j]\big)^{2} \;\approx\; \frac{F_{jj}}{B} \qquad\quad \hat v_j = \frac{v_j}{1-\beta_2^{\,t}} \]</p>
+  <ul class="math-notes">
+    <li><b>\(\bar g_j\)</b> is the slope of weight \(j\) averaged over a batch of \(B\) examples, and <b>\(g_j\)</b> the slope for one example. <b>\(F_{jj}\)</b> is the Fisher diagonal (the average of \(g_j^2\)).</li>
+    <li><b>\(v_j\)</b> is Adam's running average of \(\bar g_j^{\,2}\), <b>\(\beta_2\)</b> its memory factor and <b>\(t\)</b> the step count. The correction divides by \(1-\beta_2^t\), which is almost 1 after 200 steps at \(\beta_2 = 0.95\).</li>
+  </ul>
+  <p><b>Fisher against Adam's \(v\).</b> They are built differently, and the differences decide when one can replace the other.</p>
+  <ul class="plain">
+    <li><b>The Fisher diagonal</b> averages squared slopes of the log probability for single examples, with equal weight for all examples of the old task, at one fixed set of weights \(\theta^*\).</li>
+    <li><b>Adam's \(v\)</b> is an exponential moving average of squared mini-batch slopes of the training loss. It weights the last \(1/(1-\beta_2)\) steps most, and the weights move between those steps.</li>
+    <li>So \(v\) tracks the Fisher when batches are small, the weights are settled and the loss is the old task's. Otherwise it is a proxy, and penalties must be compared at matched strength.</li>
+  </ul>
+<pre class="code"><code>def rebuilt_v(steps=200, lr=1e-7, batch=16):
+    m = copy.deepcopy(net)
+    opt = torch.optim.Adam(m.parameters(), lr=lr, betas=(0.9, 0.95))
+    g = np.random.RandomState(2)
+    for _ in range(steps):
+        i = tr[g.randint(0, 160, batch)]
+        opt.zero_grad()
+        loss_fn(m(XA[i]).squeeze(1), y[i]).backward()
+        opt.step()
+    st = opt.state_dict()["state"]
+    v = torch.cat([st[k]["exp_avg_sq"].flatten() for k in range(4)])
+    return v / (1 - 0.95 ** steps)         # undo the start-up bias
+
+v = rebuilt_v()
+F = torch.cat([f.flatten() for f in fisher]); live = F > 0
+rank = lambda a: np.argsort(np.argsort(a))
+r = np.corrcoef(rank(v[live].numpy()), rank(F[live].numpy()))[0, 1]
+print("live weights:", int(live.sum()), "of", len(F))
+print("rank correlation with the Fisher diagonal: %.2f" % r)
+print("sum of v / sum of F: %.3f  (1/16 = %.3f)" % (v.sum() / F.sum(), 1 / 16))</code></pre>
+<pre class="out">live weights: 11 of 25
+rank correlation with the Fisher diagonal: 0.94
+sum of v / sum of F: 0.077  (1/16 = 0.062)</pre>
+  <p>This is one network, the same one as in the EWC code. It has 11 live weights and a rank correlation of 0.94, and its \(F\) for length to unit 1 is 0.102. The figure uses another network with 13 live weights and quotes the mean over 20, so the numbers differ.</p>
+  <div class="bridge">
+    <p><b>Bridge to Rayhaan's project.</b> His manuscript (under review at TMLR) rebuilds AdamW's second moment from public data and uses it as a Fisher proxy for an EWC-style penalty, so that fine-tuning forgets less. His <a href="https://rayhaan1345.github.io/projects/optimizer-state/primer/">primer</a> describes the recipe as a probe run of 10 steps at \(10^{-6}\) and a Fisher run of 200 steps at \(10^{-7}\). Both use the model's own \(\beta_2\) and \(\epsilon\), and \(\beta_2\) is 0.95 for all five models. Because the rebuilt \(v\) and the true \(v\) differ in scale, he compares penalties at matched strength \(\lambda\,\lVert v\rVert_1\), as in the definition above. On Pythia 1B, he reports, anchors with the same overall strength but equal or shuffled stiffness forgot 2.3 to 2.6 times more than the rebuilt \(v\). The equal springs of the EWC figure show the same pattern in the toy, whose numbers are made up and are not his results. See also the <a href="https://rayhaan1345.github.io/projects/optimizer-state/">project page</a>.</p>
+  </div>
+  <p><b>Where it breaks.</b> The relation between \(v\) and the Fisher is loose. The value of \(v\) depends on the batch size (the factor \(1/B\) above). It also depends on the recent steps, a memory of about \(1/(1-\beta_2) = 20\) steps at 0.95, and on the weights having moved. A \(v\) saved from a moving model is stale for the checkpoint, which is one reason to measure it afresh, as in the Fisher run. Kunstner and others (2019) argue that the empirical Fisher, and so \(v\), is an unreliable substitute for curvature in general (<a href="../b5-optimisers/#curvature">B5</a> has the same warning). In the toy, 12 of the 25 weights have \(F = 0\) and \(v = 0\), so the agreement is easy for them. The result for the 13 live weights is the fair test. <b>In practice</b>, a proxy like this is a way to get a usable stiffness without storing the old data, and it still needs the matched-strength check.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why does \(v\) from batches of 32 come out many times smaller than the Fisher diagonal?</summary><p>\(v\) averages the square of a batch mean. Near the optimum the mean slope is about 0, and averaging 32 example slopes shrinks the variance by about 32. The Fisher averages the squares of the single-example slopes. In the toy the measured gap is 34 to 80 times, a little wider than the batch size alone predicts.</p></details>
+    <details><summary>Why does the rebuild use a learning rate as small as \(10^{-7}\)?</summary><p>The aim is the sensitivity at the checkpoint. With a tiny rate the weights stay put during the 200 steps, so all slopes are measured at the checkpoint and not at a point the run drifted to.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 8. continual ============================ -->
+<section id="continual" aria-labelledby="continual-h">
+  <h2 id="continual-h">Task after task: replay, springs and separate weights</h2>
+  <p class="ask"><b>Guess first.</b> Four waters arrive one after another, and SharkCam must keep working in all of them. Which costs the least memory and keeps the most accuracy: fine-tuning only, replaying a few stored sharks, EWC springs, or a separate copy of the network per water?</p>
+  <dl class="terms">
+    <div><dt>continual learning</dt><dd>learning a sequence of tasks without forgetting the early ones</dd></div>
+    <div><dt>replay</dt><dd>keeping a few old examples and mixing them into the new training</dd></div>
+    <div><dt>regularisation method</dt><dd>a penalty that protects old weights, such as EWC</dd></div>
+    <div><dt>separate parameters</dt><dd>a new set of weights per task, with the old ones frozen</dd></div>
+  </dl>
+  <p class="claim">The three families protect the old tasks in different ways and charge different costs, and none is free.</p>
+  <div class="card" id="tl">
+    <div class="bar" id="tl-bar"></div>
+    <div class="controls" id="tl-controls"></div>
+    <div id="tl-grid" role="img" aria-label="Accuracy on each of four waters after each of four dives, for the chosen strategy"></div>
+    <div id="tl-bars"></div>
+    <div class="readout" id="tl-read"></div>
+  </div>
+  <p class="cap"><b>After the fourth dive, fine-tuning alone averages 76% over the four waters. Replay and EWC average 83% and separate weights 87%, against 85% for one network trained on all four at once.</b> Dashed cells are waters that have not arrived yet. Means of 10 networks with a clarity input; EWC uses \(\lambda = 30\) with one penalty per old water.</p>
+  <p>Step through the dives with fine-tuning only. After dive 2 the murky water is at 87% and the clear water at 71%. After dive 3 the clear water is at 76%, the murky water at 66% and the hazy water at 87%. A new water pushes the others down. The answer to the guess depends on what you count. <b>Separate weights</b> win on accuracy (87%), because a water keeps its own network. They cost one network per water, and they need to know which water they are in when they run. The clarity reading could tell them, but a network per water does not scale to a thousand waters. <b>Replay</b> keeps 10 stored sharks per water and mixes them into training. It reaches 83% and has to store examples, which is a problem when the data is private or large. <b>EWC</b> stores the weights and \(F\) per water. It reaches 83% and needs no old data, and it needs a \(\lambda\) that you have tuned.</p>
+  <p>The three families can be combined. Replay protects best the cases it replays, while a penalty protects more broadly. Rayhaan's primer notes this for language-model fine-tuning: replay of 5% FineWeb protected the text it replayed best, the anchor protected more broadly, and the two are complementary. A third group of methods grows the network, as the progressive networks of Rusu and others (2016) do with lateral connections from old to new columns. The "separate weights" row is the simplest version.</p>
+  <p><b>Where it misleads.</b> The numbers are for four waters, a 25-weight network and a clarity reading that tells the waters apart. A sequence in the field has hundreds of tasks, no labels at the boundaries, and no clarity reading. Methods for that setting store experience (Rolnick and others, 2019, study replay without task boundaries in reinforcement learning) or detect the shift. The joint-training row, 85%, is not an upper limit in all cases, because the small network cannot fit all four waters better than it does. <b>In practice</b>, report the whole table, never only the last row. A model with a good average and one collapsed water is a different product from one with equal accuracy in all waters.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Which strategy forgets no old water by construction, and what does it need at test time?</summary><p>Separate weights. A water's network is frozen after its dive, so its accuracy cannot change. At test time the robot must know which water it is in, to pick the network.</p></details>
+    <details><summary>Why is "average over the waters seen so far" a better summary than the accuracy on the newest water?</summary><p>The newest water is always learned well, even by plain fine-tuning (86%). The average shows what was lost on the earlier ones.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 9. ttt ============================ -->
+<section id="ttt" aria-labelledby="ttt-h">
+  <h2 id="ttt-h">Where test-time training fits</h2>
+  <p class="ask"><b>Guess first.</b> The robot enters murky water and gets no labels. After about 20 frames of reading lengths, can it do something that makes its old rule work again, without any change to its weights?</p>
+  <dl class="terms">
+    <div><dt>test-time adaptation</dt><dd>changing something in the model while it is in use, from the unlabelled inputs it sees (<a href="../c3-domain-shift/#adapt">C3</a>)</dd></div>
+    <div><dt>test-time training</dt><dd>doing this by updating weights on a self-supervised task built from the input (<a href="../c3-domain-shift/#ttt">C3</a>)</dd></div>
+    <div><dt>running average</dt><dd>a mean updated one frame at a time (<a href="../t7-probability/#ema">0.7</a>)</dd></div>
+  </dl>
+  <p class="claim">Continual learning updates a model between uses, with labels. Test-time training updates it during use, without labels.</p>
+  <div class="card" id="st">
+    <div class="bar" id="st-bar"></div>
+    <div class="split2"><div class="plot" id="st-acc" role="img" aria-label="Accuracy over the last 20 frames for the frozen clear-water rule and for the rule with its input scale re-estimated as frames arrive"></div><div class="plot" id="st-mu" role="img" aria-label="Running mean of the length readings against frames seen, with the clear-water mean and the water's true mean"></div></div>
+    <div class="controls" id="st-controls"></div>
+    <div class="readout" id="st-read"></div>
+  </div>
+  <p class="cap"><b>The frozen rule is right in 36% of murky-water frames over a whole dive. If the robot re-estimates the mean and spread as frames arrive and re-standardises, it is right in 80% of the first 20 frames and in 87% of all 108.</b> The 108 test sharks in a fixed random order, made-up murky water (factor 0.62). The frozen rule is the clear-water logistic regression.</p>
+  <p>The answer to the guess is yes, here. A rescaling of all the readings is undone by standardising with the water's own mean and spread. This is the simplest form of test-time adaptation. No weight changes, and no label is used, so what the model knew about the old water is not overwritten. It works only because this shift is a pure rescaling. Actual changes in light, colour and haze are not that tidy, so <a href="../c3-domain-shift/#adapt">C3</a> adapts normalisation statistics and some weights of an image network, and tests when that helps.</p>
+  <p><b>Test-time training</b> goes one step further. Sun and others (2020) update the weights of the network on a test input by minimising a self-supervised loss. Such a loss needs no label, because its target is built from the input, for example the rotation that was applied to it. The updated weights then make the prediction. The three modes differ in when and with what they update:</p>
+  <ul class="plain">
+    <li><b>Train once, deploy frozen.</b> Weights never change. Cheap, and fails when the water changes.</li>
+    <li><b>Continual learning.</b> Between deployments, with labelled data from the new water, using the methods of this chapter to avoid forgetting.</li>
+    <li><b>Test-time training.</b> During deployment, with a self-supervised target, one input or one chunk at a time. It needs no labels, and it costs computation for all inputs.</li>
+  </ul>
+  <div class="bridge">
+    <p><b>Bridge to Rayhaan's project.</b> His work at MBZUAI ports In-Place Test-Time Training, a method from ByteDance Seed, from text models to a Qwen vision-language model. In-Place TTT treats the down projection of selected MLP blocks as fast weights. It updates them chunk by chunk as the model reads, with a target built from the input, so generation never pauses. His motivation is the question of this chapter: recognising a shark when the water, the light and the animals change between dives. See the <a href="https://rayhaan1345.github.io/projects/in-place-ttt/">project page</a> and its <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">primer</a>, and <a href="../d6-long-context/">D6</a> for the long-context side.</p>
+  </div>
+  <p><b>Where this fits with forgetting.</b> A model that updates itself during use can drift. If all dives write into the same weights, the clear-water skill erodes in the way of the earlier figures. Test-time methods therefore limit what they change (a few fast weights, or only the statistics, as above), or reset after an input. <b>In practice</b>, ask three questions of any such method: what changes, what resets, and how you would notice damage. For SharkCam, the third is the small held-out set from the first water, scored after a dive.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why does re-standardising with running statistics fix a pure rescaling of the readings?</summary><p>Standardising turns \((fL - f\mu)/(f\sigma)\) into \((L-\mu)/\sigma\), so the factor \(f\) cancels. The old weights then see the same numbers as in the old water.</p></details>
+    <details><summary>Name one thing that would stop this trick from working.</summary><p>A shift that is not a rescaling of the inputs would stop it, for example one that changes how length relates to maturity. A water with very few frames would too, because the running mean is still noisy.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> A weight penalty \(\omega\sum w^2\) is added to the loss, and the plain gradient step has learning rate \(\eta\). Show that one step multiplies a weight by \(1-2\eta\omega\) before the loss slope is applied. For \(\eta=0.1\) and \(\omega=0.05\), how many steps does it take for a weight with no loss slope to fall to half its size?</p>
+        <details class="hint"><summary>Hint</summary><p>Differentiate \(\omega w^2\). Then solve \(0.99^t = 0.5\) with logarithms.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> A linear model predicts \(\hat y = w x\) with squared error. Add noise \(\varepsilon\) with mean 0 and variance \(s^2\) to the input, so the model sees \(x+\varepsilon\). Show that the expected squared error is the ordinary squared error plus \(s^2 w^2\). So input noise acts like a weight penalty. What is the penalty strength \(\omega\)?</p>
+        <details class="hint"><summary>Hint</summary><p>Expand \((w(x+\varepsilon) - y)^2\) and take the average over \(\varepsilon\); the term linear in \(\varepsilon\) averages to 0.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> For logistic regression with probability \(p\) for the true answer, one example has slope \((p-y)f_j\) for weight \(j\). (a) Compute the squared slope of the bias for a shark with \(p=0.9\), \(y=1\) and for a shark with \(p=0.6\), \(y=1\). (b) A training set has 100 sharks like the first and 10 like the second. Which group has the larger share of \(F_{bb}\)?</p>
+        <details class="hint"><summary>Hint</summary><p>The bias has \(f=1\). Multiply the squared slopes by the group sizes and compare.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> The old loss \(L_A\) has curvature \(k\) in one weight, with its minimum at \(\theta^*\). The new loss is \(L_B = \tfrac12 a(\theta-t)^2\), and the EWC penalty is \(\tfrac{\lambda}{2}k(\theta-\theta^*)^2\). Find the weight that minimises the sum, and show it lies between \(\theta^*\) and \(t\), closer to \(\theta^*\) when \(\lambda k\) is large compared with \(a\).</p>
+        <details class="hint"><summary>Hint</summary><p>Set the derivative of the sum to 0. You should get a weighted average of \(\theta^*\) and \(t\) with weights \(\lambda k\) and \(a\).</p></details></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Use the code of the EWC section as a base. Train on the clear water, then fine-tune on the murky water with \(\lambda \in \{1, 3, 10, 30, 100, 300\}\). Record the clear-water and murky-water accuracy for these, over five random seeds. Plot the two accuracies against one another. Where is the best trade-off?</p>
+        <details class="hint"><summary>Hint</summary><p>Change the seed in <code>torch.manual_seed</code> and in <code>fit</code>. Average over seeds before plotting.</p></details></li>
+      <li><p><span class="ex-tag">practice</span> Replace the Fisher diagonal in the EWC penalty by a list of ones scaled to the same sum. Fine-tune again at several \(\lambda\) and compare with the Fisher version at the same total stiffness. How much worse is the equal-springs run at its best \(\lambda\)?</p></li>
+      <li><p><span class="ex-tag">practice</span> Compute the Fisher diagonal two ways for the clear-water network. First use the true labels. Then use labels drawn from the model's own probabilities (for two classes, weight the two label values by \(p\) and \(1-p\)). Compute the rank correlation of the two and the ratio of their sums.</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> SharkCam will meet a new water once in a few weeks for years. Design the memory and testing plan. What do you store, and how often do you re-measure the Fisher? How do you notice that an old water has been forgotten? What would make you give up on one network and train a new one?</p></li>
+      <li><p><span class="ex-tag">open</span> The "no clarity reading" case showed that EWC cannot serve two tasks that need the same weights to differ. Give two ways to break the conflict, one that changes the inputs and one that changes the network, and say what it costs.</p></li>
+      <li><p><span class="ex-tag">open</span> A colleague proposes to measure the Fisher diagonal on the new data instead, to find out "which weights the new water needs", and to freeze the rest. What would this protect, what would it miss, and how would you test the proposal?</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <div class="recall comeback">
+    <details><summary>(B5, B7) Adam's \(v\) for a weight is 0.004 after batches of 25. Roughly what is that weight's Fisher diagonal, and what do you need to assume?</summary><p>About \(25 \times 0.004 = 0.1\), assuming the weight's mean slope is near 0 (the model is near an optimum) and \(v\) has settled. Dividing out the batch size is the step; the assumption fails for a model that is still moving.</p></details>
+    <details><summary>(A4, B7) You fine-tune SharkCam on a new water and report 91% on the new test set. Name two other numbers you need before you call the run a success.</summary><p>The accuracy on a held-out set from the old water, to catch forgetting. The accuracy of a lazy baseline on the new water (A4), to show the 91% means something. A third: a network trained from scratch on the same new data.</p></details>
+    <details><summary>(B6, B7) Dropout, a weight penalty and early stopping all limit overfitting. Which of them changes the loss, which changes the network, and which changes only when training ends?</summary><p>The weight penalty changes the loss. Dropout changes the network during training (B6). Early stopping changes only when training ends.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Kirkpatrick, J., Pascanu, R., Rabinowitz, N., Veness, J., Desjardins, G., Rusu, A. A., and others (2017). Overcoming catastrophic forgetting in neural networks. <i>Proceedings of the National Academy of Sciences</i> 114(13), 2017; arXiv:1612.00796. The EWC penalty, the Fisher diagonal and the Bayesian derivation.</li>
+    <li>Kunstner, F., Balles, L., and Hennig, P. (2019). Limitations of the empirical Fisher approximation for natural gradient descent. arXiv:1905.12558. Why the empirical Fisher is an unreliable substitute for the curvature.</li>
+    <li>Rusu, A. A., Rabinowitz, N. C., Desjardins, G., Soyer, H., Kirkpatrick, J., Kavukcuoglu, K., Pascanu, R., and Hadsell, R. (2016). Progressive neural networks. arXiv:1606.04671.</li>
+    <li>Rolnick, D., Ahuja, A., Schwarz, J., Lillicrap, T. P., and Wayne, G. (2019). Experience replay for continual learning. <i>NeurIPS 2019</i>; arXiv:1811.11682. Replay in reinforcement learning, with no task boundaries.</li>
+    <li>Sun, Y., Wang, X., Liu, Z., Miller, J., Efros, A. A., and Hardt, M. (2020). Test-time training with self-supervision for generalization under distribution shifts. <i>ICML 2020</i>; arXiv:1909.13231.</li>
+    <li>Zhang, C., Bengio, S., Hardt, M., Recht, B., and Vinyals, O. (2017). Understanding deep learning requires rethinking generalization. <i>ICLR 2017</i>; arXiv:1611.03530. A network can fit even random labels, which is why training loss alone says little.</li>
+    <li>Khan, R., and Khan, S. (manuscript under review at TMLR), as described in <a href="https://rayhaan1345.github.io/projects/optimizer-state/primer/">A primer on rebuilt optimizer state</a>. The rebuild recipe, the matched-strength comparison and the Pythia 1B figures quoted above come from this primer; the manuscript itself was not opened.</li>
+    <li><a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">Primer on In-Place Test-Time Training</a>, Rayhaan Khan's project page at MBZUAI.</li>
+  </ol>
+  <p class="note">Notes for readers who want to rerun the figures. The catch records are the made-up table of <code>data/sharks/catch.json</code> (spadenose rows only). The four waters, the factors and the clarity readings are made-up choices described on this page. The networks are four-input, four-hidden-unit ReLU networks trained with Adam (\(\beta_1 = 0.9\), \(\beta_2 = 0.95\)). The curves are means of 20 seeds, and the timeline of 10. The code blocks above are the core of the offline scripts, with the set-up lines below. The code leaves out the 0.4 m noise on the clarity readings that the figures use. Its clarity input is constant in clear water, so its Fisher for the clarity weights is 0 where the figure shows 0.0007, and its numbers differ a little.</p>
+  <pre class="code"><code>import copy, json, numpy as np, torch, torch.nn as nn
+
+rec = [r for r in json.load(open("catch.json"))["records"] if r["species"] == "spadenose"]
+L = np.array([r["length_cm"] for r in rec]); G = np.array([r["girth_cm"] for r in rec])
+D = np.array([r["depth_m"] for r in rec]); y = torch.tensor([float(r["mature"]) for r in rec])
+
+def view(f, clarity):           # the readings in a water where the camera reads f times the true size
+    X = np.stack([L * f, G * f, D, np.full(len(L), clarity)], 1)
+    return torch.tensor((X - [39.14, 10.99, 22.35, 8.0]) / [8.61, 2.45, 9.45, 4.0], dtype=torch.float32)
+
+p = np.random.RandomState(0).permutation(len(rec)); tr, te = p[:160], p[160:]
+XA, XB = view(1.0, 8.0), view(0.62, 2.0)      # clear water, murky water (made-up factors)
+loss_fn = nn.BCEWithLogitsLoss()
+
+def fit(net, X, steps, penalty=None, seed=1):
+    opt = torch.optim.Adam(net.parameters(), lr=0.02, betas=(0.9, 0.95))
+    g = np.random.RandomState(seed)
+    for _ in range(steps):
+        i = tr[g.randint(0, 160, 32)]
+        opt.zero_grad(); loss = loss_fn(net(X[i]).squeeze(1), y[i])
+        if penalty: loss = loss + penalty(net)
+        loss.backward(); opt.step()
+
+def acc(net, X): return ((net(X[te]).squeeze(1) > 0).float() == y[te]).float().mean().item()
+
+torch.manual_seed(0)
+net = nn.Sequential(nn.Linear(4, 4), nn.ReLU(), nn.Linear(4, 1))
+fit(net, XA, 300)                                         # learn the clear water
+star = [q.detach().clone() for q in net.parameters()]     # theta*: the weights to protect
+fisher = [torch.zeros_like(q) for q in net.parameters()]
+for i in tr:                                              # F_jj: average squared slope
+    net.zero_grad(); loss_fn(net(XA[i:i+1]).squeeze(1), y[i:i+1]).backward()
+    for f, q in zip(fisher, net.parameters()): f += q.grad ** 2 / len(tr)</code></pre>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="b7-continual-learning.js?v=1" defer></script>
+</body>
+</html>

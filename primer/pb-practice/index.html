@@ -1,0 +1,1128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Practice set: neural networks | How AI Learns</title>
+<meta name="description" content="Twenty-five practice questions on Part B: neurons, non-linearity, loss and mini-batches, backpropagation, optimisers, initialisation and normalisation, fine-tuning and forgetting, debugging and explaining a network. Scored in your browser, with links to the sections to revise.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Practice set B.P. Colours come from the site tokens, so the page follows light and dark mode. */
+.pset section { margin-top: 44px; scroll-margin-top: 64px; }
+.pset section > p, .pset section > ul { max-width: 46em; }
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+[hidden] { display: none !important; }
+
+/* Timer and progress bar, stuck to the top of the screen while you work. */
+.pbar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 26px 0 0; padding: 8px 12px; background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07); }
+.pb-time { min-width: 3.6em; font-family: "Spectral SC", Georgia, serif; font-size: 25px; line-height: 1.1; letter-spacing: 0.02em; color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.pb-time.over { color: var(--coral); }
+.pb-prog { color: var(--ink-2); font-size: 15px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.pb-prog b { color: var(--ink); }
+.pb-jump { margin-left: auto; font-size: 15px; }
+.pbar .btn { font-size: 14.5px; }
+.btn-main { border-color: var(--teal); color: var(--ink); background: var(--mark); padding: 6px 18px; font-size: 16px; }
+.btn-main:hover { background: var(--teal); color: var(--bg); }
+.btn[disabled] { opacity: 0.45; cursor: default; }
+
+/* A question. */
+.pq { max-width: 46em; margin: 16px 0 0; padding: 14px 16px 12px; border: 1px solid var(--rule); border-left-width: 4px; border-radius: 8px; background: var(--paper); scroll-margin-top: 76px; }
+.pq.right { border-left-color: var(--teal); }
+.pq.missed { border-left-color: var(--coral); }
+.pq-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 14px; margin: 0 0 8px; font-family: "Spectral SC", Georgia, serif; font-size: 16px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink); }
+.pq-tag { font-size: 14px; font-weight: 500; color: var(--muted); }
+.pq-st { margin-left: 8px; font-weight: 600; }
+.pq.right .pq-st { color: var(--link-hover); }
+.pq.missed .pq-st { color: var(--coral); }
+.pq-t { margin: 0 0 10px; color: var(--ink); }
+.pq-t.tight { margin-bottom: 4px; }
+.pq ul.stm { margin: 0 0 10px; padding-left: 1.3em; color: var(--ink); }
+.pq ul.stm li { margin: 2px 0; }
+.opts { min-width: 0; margin: 8px 0 0; padding: 0; border: 0; display: grid; gap: 6px; }
+.opt { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: start; gap: 8px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.opt:hover { border-color: var(--teal); }
+.opt.on { border-color: var(--teal); background: var(--mark); }
+.pq.missed .opt.on { border-color: var(--coral); background: var(--bg); }
+.opt b { min-width: 1.1em; font-family: "Spectral SC", Georgia, serif; font-weight: 600; color: var(--muted); }
+.opt input { margin: 5px 0 0; accent-color: var(--teal); }
+.opt span { min-width: 0; overflow-wrap: anywhere; }
+.opt .katex-display { margin: 0; }
+.pq .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+.pq-num { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 0; color: var(--ink-2); }
+.pq-num input { width: 9em; max-width: 100%; padding: 6px 10px; font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.pq-num input:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+.pq-num input:disabled, .opt input:disabled + b { opacity: 0.7; }
+.pq-num .u { color: var(--muted); }
+.revise { margin: 10px 0 0; padding-top: 8px; border-top: 1px dashed var(--rule); font-size: 15px; color: var(--ink-2); }
+.pq pre.pq-code { max-width: 100%; margin: 4px 0 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); overflow-x: auto; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5; }
+
+/* Figures. */
+.pfig { margin: 6px 0 10px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.pfig .fcap { margin: 0 0 4px; font-size: 14.5px; color: var(--ink-2); }
+.pfig svg { display: block; width: 100%; height: auto; max-width: 420px; margin: 0 auto; }
+.pfig .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+.pfig .pair svg { max-width: 330px; }
+.fg text { font-family: "Spectral", Georgia, serif; font-size: 13px; fill: var(--ink-2); }
+.fg .tk { font-size: 11.5px; fill: var(--muted); }
+.fg .nm { font-size: 14px; font-style: italic; fill: var(--ink); }
+.fg .ax { stroke: var(--muted); stroke-width: 1.3; fill: none; }
+.fg .gl { stroke: var(--rule); stroke-width: 1; }
+.fg .gm { stroke: var(--rule); stroke-width: 0.6; opacity: 0.7; }
+.fg .l1 { stroke: var(--navy); stroke-width: 2.4; fill: none; stroke-linejoin: round; }
+.fg .l2 { stroke: var(--coral); stroke-width: 2.4; fill: none; }
+.fg .d1 { fill: var(--navy); }
+.fg .d2 { fill: var(--coral); }
+.fg .b1 { fill: var(--navy); }
+.fg .vl { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.fg .nd { fill: var(--bg); stroke: var(--navy); stroke-width: 1.8; }
+.fg .nt { font-size: 14px; fill: var(--ink); text-anchor: middle; }
+.fg .ar { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+.fg .pt { fill: none; stroke: var(--navy); stroke-linecap: round; opacity: 0.5; }
+.fg .pt2 { fill: var(--coral); opacity: 0.8; }
+.fg .ptx { fill: none; stroke: var(--navy); stroke-linecap: round; }
+.fg .pt2x { fill: var(--coral); }
+.fg .l3 { stroke: var(--teal); stroke-width: 2.4; fill: none; }
+.fg .pm { fill: var(--bg); stroke: var(--teal); stroke-width: 2.4; }
+.fg .ring { fill: none; stroke: var(--coral); stroke-width: 2.2; }
+.fg .ring2 { fill: var(--bg); stroke: var(--ink); stroke-width: 1.8; }
+.fg .lb, .fg .lbc, .fg .lbm, .fg .lbx { font-size: 12.5px; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
+.fg .lbc { fill: var(--coral); }
+.fg .lbm { fill: var(--ink-2); font-size: 12px; }
+.fg .lbx { font-size: 15px; font-weight: 700; }
+.fg .at { font-size: 12.5px; fill: var(--ink-2); }
+.fg .s1 { stroke: var(--navy); stroke-width: 2.4; fill: none; }
+.fg .s2 { stroke: var(--coral); stroke-width: 2.4; fill: none; }
+.fg .s3 { stroke: var(--teal); stroke-width: 2.4; fill: none; stroke-dasharray: 7 4; }
+.fg .s4 { stroke: var(--ink-2); stroke-width: 2.4; fill: none; stroke-dasharray: 10 3 2 3; }
+.fg .dgn { stroke: var(--muted); stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
+.fg .dv { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+.fg .bp { fill: var(--coral); opacity: 0.85; }
+.fg .bn { fill: var(--navy); opacity: 0.85; }
+.fg .cn { stroke: var(--muted); stroke-width: 1; }
+.fg .nd.lf { stroke: var(--teal); }
+.fg .ld { stroke: var(--coral); stroke-width: 1.2; }
+.fg .nt.sm { font-size: 11.5px; fill: var(--ink-2); }
+.fg .nt.vv { font-size: 13.5px; font-weight: 600; fill: var(--ink); }
+.fg .nd.wt { stroke: var(--sand); }
+.fg .ahp { fill: var(--muted); }
+.fg .dgr { fill: var(--ink-2); }
+.tscroll { overflow-x: auto; margin: 4px 0 8px; }
+.ptable { border-collapse: collapse; width: 100%; max-width: 30em; margin: 0 auto 0 0; font-size: 15px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.ptable.cmx { max-width: 24em; }
+.ptable.w2 { max-width: 40em; }
+.ptable.tl td:last-child { text-align: left; white-space: nowrap; }
+.ptable.cmx th, .ptable.cmx td { text-align: center; }
+.ptable.cmx th:first-child, .ptable.cmx td:first-child { text-align: left; }
+.ptable caption { padding: 0 0 6px; text-align: left; font-size: 14.5px; color: var(--ink-2); caption-side: top; }
+.ptable th, .ptable td { padding: 5px 9px; text-align: right; border-bottom: 1px solid var(--rule); color: var(--ink-2); }
+.ptable th:first-child, .ptable td:first-child { text-align: left; }
+.ptable thead th { font-size: 13.5px; font-weight: 500; color: var(--muted); }
+.ptable thead th.grp { text-align: center; border-bottom: 1px solid var(--rule); }
+.ptable td.dg { background: var(--mark); color: var(--ink); font-weight: 600; }
+.ptable tbody th { font-weight: 500; color: var(--ink); }
+
+/* Score and results. */
+.res { margin-top: 18px; max-width: 46em; }
+.res h3 { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
+.res .big { margin: 0 0 4px; color: var(--ink); font-size: 18px; }
+.res .big b { font-size: 46px; font-weight: 600; line-height: 1.1; font-feature-settings: "tnum" 1, "lnum" 1; }
+.res .sub { margin: 0 0 10px; color: var(--ink-2); font-size: 15.5px; }
+.arow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--rule); }
+.arow .an { color: var(--ink); font-weight: 600; }
+.arow .as { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.arow .meter { grid-column: 1 / -1; height: 9px; border-radius: 5px; background: var(--rule); overflow: hidden; }
+.arow .meter i { display: block; height: 100%; background: var(--teal); }
+.arow .ar-rev { grid-column: 1 / -1; font-size: 15px; color: var(--ink-2); }
+.res ol.miss { margin: 6px 0 0; padding-left: 1.3em; color: var(--ink-2); font-size: 15.5px; }
+.res ol.miss li { margin: 5px 0; }
+.res .acts { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 16px 0 0; }
+.res h4 { margin: 18px 0 2px; font-family: "Spectral SC", Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+.area-badge { margin-left: 10px; padding: 0 10px; border-radius: 999px; background: var(--mark); color: var(--ink); font-size: 14px; font-weight: 500; vertical-align: 3px; }
+
+@media (max-width: 760px) {
+  .pset section { margin-top: 36px; }
+  .pbar { margin-top: 20px; padding: 6px 10px; gap: 4px 10px; }
+  .pb-time { font-size: 22px; }
+  .pq { padding: 12px 12px 10px; margin-left: -4px; margin-right: -4px; }
+  .pfig .pair { grid-template-columns: minmax(0, 1fr); }
+  .pb-prog .wide { display: none; }
+  .ptable { font-size: 14px; }
+  .ptable th, .ptable td { padding: 5px 5px; }
+  .res .big b { font-size: 40px; }
+}
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="pb">
+<main class="proj pset">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Neural networks</span><span>Practice set B.P</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part B &middot; Practice set</p>
+  <h1>Practice set: neural networks</h1>
+  <p class="subtitle">Twenty-five questions on the nine chapters of Part B, to attempt without notes</p>
+</header>
+
+<div class="tldr">
+  <p>This practice set covers Part B: one neuron, why a network needs a bend, loss and mini-batches, backpropagation, optimisers, initialisation and normalisation, fine-tuning and forgetting, debugging and explaining a network. It mixes calculations that you do by hand with a calculator, charts and tables drawn from the chapters, and statements to judge. Attempt it without notes and with the chapters closed. A timer is there if you want the pressure of a clock, and about an hour and a quarter is a fair target.</p>
+  <p>When you press Score my answers at the end, the page shows your score by area and the questions you missed, with links to the sections to revise. It does not show the correct answers. Revise the sections the score points to, try the missed questions again, and attempt the whole set again after a week.</p>
+</div>
+<p class="youneed"><b>You will need:</b> a pen, paper and a calculator with exp, ln and tanh keys, and what Part B teaches: <a href="../b1-one-neuron/">B1 One neuron</a>, <a href="../b2-non-linearity/">B2 Why non-linearity matters</a>, <a href="../b3-loss-gradient-descent/">B3 Loss and gradient descent</a>, <a href="../b4-backpropagation/">B4 Backpropagation</a>, <a href="../b5-optimisers/">B5 Optimisers</a>, <a href="../b6-deep-networks/">B6 Making deep networks trainable</a>, <a href="../b7-continual-learning/">B7 Fine-tuning, forgetting and continual learning</a>, <a href="../b8-debugging/">B8 Debugging neural networks</a> and <a href="../b9-explaining/">B9 Explaining a network</a>. Some calculations use the slopes of <a href="../t6-gradients/">0.6</a>, the softmax and the logarithms of <a href="../t7-probability/">0.7</a>, and the matrices of <a href="../t5-vectors-matrices/">0.5</a>.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#howto">How to use this set</a></li>
+    <li><a href="#neuron">Neurons and activations</a></li>
+    <li><a href="#nonlin">Why non-linearity matters</a></li>
+    <li><a href="#loss">Loss and mini-batches</a></li>
+    <li><a href="#backprop">Backpropagation</a></li>
+    <li><a href="#optim">Optimisers</a></li>
+    <li><a href="#deep">Initialisation and normalisation</a></li>
+    <li><a href="#tune">Fine-tuning and forgetting</a></li>
+    <li><a href="#debug">Debugging</a></li>
+    <li><a href="#explain">Explaining a network</a></li>
+    <li><a href="#score">Finish and score</a></li>
+  </ol>
+</nav>
+
+<div class="pbar" id="pbar" role="group" aria-label="Timer and progress">
+  <span class="pb-time" id="pb-time" role="timer">75:00</span>
+  <button type="button" class="btn" id="pb-go">Start timer</button>
+  <span class="pb-prog"><b id="pb-n">0</b> of 25<span class="wide"> answered</span></span>
+  <a class="pb-jump" href="#score" aria-label="Go to the score section">Score</a>
+</div>
+<noscript><p class="note">This practice set needs JavaScript to save your answers and to score them.</p></noscript>
+
+<section id="howto" aria-labelledby="howto-h">
+  <h2 id="howto-h">How to use this set</h2>
+  <ul class="plain">
+    <li>Close the chapters. Keep a pen, paper and a calculator beside you.</li>
+    <li>Choose a time and press Start timer when you begin. Pause it when you leave. The clock counts down, then goes on counting past zero so that you can see how long you took. The timer is optional.</li>
+    <li>Skip a question and return to it if you like. Your answers are saved in this browser as you type.</li>
+    <li>Press Score my answers at the end. The set is scored only then.</li>
+  </ul>
+  <div class="card">
+    <div class="bar"><span class="label">Time allowed</span><div id="tm-chips"></div><button type="button" class="btn" id="tm-reset">Reset timer</button></div>
+    <p class="note" id="store-note">Your answers and the timer are saved in this browser only. No data is sent anywhere.</p>
+  </div>
+</section>
+
+<section id="neuron" aria-labelledby="neuron-h">
+  <h2 id="neuron-h">Neurons and activations</h2>
+
+  <article class="pq" id="q1" data-q="q01" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 1<span class="pq-st" hidden></span></span><span class="pq-tag">Neurons and activations</span></h3>
+    <p class="pq-t tight">The diagram shows one neuron with two inputs and a tanh activation. The inputs are the scaled length and girth of Tag 4127, the juvenile bamboo shark from the Juhu rock pool, scaled as in chapter B4. The weights and the bias are made up. What is the output \(a\)? Give three decimal places.</p>
+    <div class="pfig">
+    <svg class="fg" viewBox="0 6 440 160" role="img" aria-label="One neuron. Two inputs, x1 equal to 0.564 and x2 equal to 0.573, are multiplied by the weights 1.8 and minus 0.9. A bias of 0.2 is added. The weighted sum z goes through a tanh activation to give the output a, which is the unknown.">
+    <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahp" d="M0 0L10 5L0 10z"/></marker></defs>
+    <rect class="nd" x="8" y="34" width="96" height="44" rx="7"/>
+    <text class="nt" x="56.0" y="51">x₁ = 0.564</text><text class="nt sm" x="56.0" y="67">scaled length</text>
+    <rect class="nd" x="8" y="114" width="96" height="44" rx="7"/>
+    <text class="nt" x="56.0" y="131">x₂ = 0.573</text><text class="nt sm" x="56.0" y="147">scaled girth</text>
+    <circle class="nd" cx="228" cy="96" r="38"/><text class="nt" x="228" y="92">weighted</text><text class="nt" x="228" y="109">sum z</text>
+    <line class="ar" x1="104" y1="56" x2="196" y2="80" marker-end="url(#a1)"/><line class="ar" x1="104" y1="136" x2="196" y2="113" marker-end="url(#a1)"/>
+    <text class="lb" x="132" y="58" text-anchor="middle">w₁ = 1.8</text><text class="lb" x="132" y="153" text-anchor="middle">w₂ = −0.9</text>
+    <text class="lb" x="228" y="20" text-anchor="middle">bias b = 0.2</text><line class="ar" x1="228" y1="26" x2="228" y2="54" marker-end="url(#a1)"/>
+    <line class="ar" x1="266" y1="96" x2="296" y2="96" marker-end="url(#a1)"/>
+    <rect class="nd" x="298" y="76" width="62" height="40" rx="7"/>
+    <text class="nt" x="329.0" y="101.0">tanh</text>
+    <line class="ar" x1="360" y1="96" x2="384" y2="96" marker-end="url(#a1)"/><text class="nt" x="388" y="101" style="text-anchor:start">a = ?</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 1, the neuron's output"></label>
+    <p class="revise" hidden>Revise <a href="../b1-one-neuron/#neuron">B1 A neuron, taken apart</a> and <a href="../b1-one-neuron/#activations">B1 Six activations</a>.</p>
+  </article>
+
+  <article class="pq" id="q2" data-q="q02" data-kind="mc">
+    <h3 class="pq-h"><span>Question 2<span class="pq-st" hidden></span></span><span class="pq-tag">Neurons and activations</span></h3>
+    <p class="pq-t">Three single neurons read the same two scaled inputs, the length and the depth of the 272 milk and bamboo sharks. Neuron P has no activation and is trained on squared error. Neuron Q has a sigmoid and is trained on log loss. Neuron R has a step and is trained with the perceptron rule. Which statement is correct?</p>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q02" value="0"><b>A</b><span>Q draws a curved boundary, because the sigmoid is a curve. That is why it can follow overlapping classes better than P or R.</span></label>
+      <label class="opt"><input type="radio" name="q02" value="1"><b>B</b><span>R settles on the best line after enough passes, because its updates get smaller as it improves.</span></label>
+      <label class="opt"><input type="radio" name="q02" value="2"><b>C</b><span>P is the line of A2 fitted to the labels 0 and 1, and Q is the logistic regression of A3. All three draw a straight boundary, and R keeps changing its weights while the classes overlap.</span></label>
+      <label class="opt"><input type="radio" name="q02" value="3"><b>D</b><span>P, Q and R end with the same weights, because the activation changes only how the output is drawn and not what training finds.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../b1-one-neuron/#neuron">B1 A neuron, taken apart</a> and <a href="../b1-one-neuron/#fit">B1 Fit a neuron to the sharks</a>.</p>
+  </article>
+</section>
+
+<section id="nonlin" aria-labelledby="nonlin-h">
+  <h2 id="nonlin-h">Why non-linearity matters</h2>
+
+  <article class="pq" id="q3" data-q="q03" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 3<span class="pq-st" hidden></span></span><span class="pq-tag">Why non-linearity matters</span></h3>
+    <p class="pq-t tight">Two layers have no activation between them. Layer 1 computes \(\mathbf{h} = W^{[1]}\mathbf{x} + \mathbf{b}^{[1]}\) with \(W^{[1]} = \begin{pmatrix} 2 & 0 \\ 1 & -1 \end{pmatrix}\) and \(\mathbf{b}^{[1]} = (2, -1)\). Layer 2 computes \(y = W^{[2]}\mathbf{h} + b^{[2]}\) with \(W^{[2]} = (1, 3)\) and \(b^{[2]} = -2\). Together they do the work of one layer, \(y = w_1 x_1 + w_2 x_2 + b\). What is \(b\)? Give a whole number.</p>
+    <div class="pfig">
+    <svg class="fg" viewBox="0 0 420 200" role="img" aria-label="A network with two inputs x1 and x2, two hidden units h1 and h2 and one output y. Layer 1 joins the inputs to the hidden units and layer 2 joins the hidden units to the output. There is no activation function anywhere.">
+    <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahp" d="M0 0L10 5L0 10z"/></marker></defs>
+    <line class="cn" x1="82" y1="55" x2="188" y2="55"/>
+    <line class="cn" x1="82" y1="55" x2="188" y2="135"/>
+    <line class="cn" x1="82" y1="135" x2="188" y2="55"/>
+    <line class="cn" x1="82" y1="135" x2="188" y2="135"/>
+    <line class="cn" x1="232" y1="55" x2="338" y2="95"/>
+    <line class="cn" x1="232" y1="135" x2="338" y2="95"/>
+    <circle class="nd" cx="60" cy="55" r="22"/><text class="nt" x="60" y="60">x₁</text>
+    <circle class="nd" cx="60" cy="135" r="22"/><text class="nt" x="60" y="140">x₂</text>
+    <circle class="nd" cx="210" cy="55" r="22"/><text class="nt" x="210" y="60">h₁</text>
+    <circle class="nd" cx="210" cy="135" r="22"/><text class="nt" x="210" y="140">h₂</text>
+    <circle class="nd" cx="360" cy="95" r="22"/><text class="nt" x="360" y="100">y</text>
+    <text class="lb" x="135" y="182" text-anchor="middle">layer 1: W¹ and b¹</text><text class="lb" x="285" y="182" text-anchor="middle">layer 2: W² and b²</text>
+    <text class="lbm" x="210" y="18" text-anchor="middle">no activation anywhere</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 3, the bias b"></label>
+    <p class="revise" hidden>Revise <a href="../b2-non-linearity/#bend">B2 Two layers need a bend</a>.</p>
+  </article>
+
+  <article class="pq" id="q4" data-q="q04" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 4<span class="pq-st" hidden></span></span><span class="pq-tag">Why non-linearity matters</span></h3>
+    <p class="pq-t tight">The chart and the table show eight made-up points: four inside a disc (class 0) and four in a ring around it (class 1). A neuron reads \(x\), \(y\) and a lifted feature \(z = x^2 + y^2\). Its plane is placed at the height halfway between the highest class 0 point and the lowest class 1 point. Seen from above, the cut is a circle. What is the radius of that circle? Give two decimal places.</p>
+    <div class="pfig"><p class="fcap">Navy dots are class 0 (inside the disc). Coral diamonds are class 1 (the ring).</p>
+    <svg class="fg" viewBox="0 0 300 290" role="img" aria-label="Eight points on the plane. Four navy dots, A to D, lie near the centre. Four coral diamonds, E to H, lie further out around them.">
+    <line class="gl" x1="45.9" y1="250.0" x2="45.9" y2="12.0"/>
+    <line class="gl" x1="105.0" y1="250.0" x2="105.0" y2="12.0"/>
+    <line class="gl" x1="164.0" y1="250.0" x2="164.0" y2="12.0"/>
+    <line class="gl" x1="223.0" y1="250.0" x2="223.0" y2="12.0"/>
+    <line class="gl" x1="282.1" y1="250.0" x2="282.1" y2="12.0"/>
+    <line class="gl" x1="40.0" y1="244.3" x2="288.0" y2="244.3"/>
+    <line class="gl" x1="40.0" y1="187.7" x2="288.0" y2="187.7"/>
+    <line class="gl" x1="40.0" y1="131.0" x2="288.0" y2="131.0"/>
+    <line class="gl" x1="40.0" y1="74.3" x2="288.0" y2="74.3"/>
+    <line class="gl" x1="40.0" y1="17.7" x2="288.0" y2="17.7"/>
+    <line class="ax" x1="40.0" y1="250.0" x2="292.0" y2="250.0"/><line class="ax" x1="40.0" y1="250.0" x2="40.0" y2="8.0"/>
+    <text class="tk" x="45.9" y="265.0" text-anchor="middle">−1</text>
+    <text class="tk" x="105.0" y="265.0" text-anchor="middle">−0.5</text>
+    <text class="tk" x="164.0" y="265.0" text-anchor="middle">0</text>
+    <text class="tk" x="223.0" y="265.0" text-anchor="middle">0.5</text>
+    <text class="tk" x="282.1" y="265.0" text-anchor="middle">1</text>
+    <text class="tk" x="33.0" y="248.3" text-anchor="end">−1</text>
+    <text class="tk" x="33.0" y="191.7" text-anchor="end">−0.5</text>
+    <text class="tk" x="33.0" y="135.0" text-anchor="end">0</text>
+    <text class="tk" x="33.0" y="78.3" text-anchor="end">0.5</text>
+    <text class="tk" x="33.0" y="21.7" text-anchor="end">1</text>
+    <path class="ptx" d="M211.2 108.3h0" style="stroke-width:8.8"/>
+    <text class="lb" x="218.2" y="102.3" text-anchor="start">A</text>
+    <path class="ptx" d="M128.6 97.0h0" style="stroke-width:8.8"/>
+    <text class="lb" x="135.6" y="91.0" text-anchor="start">B</text>
+    <path class="ptx" d="M175.8 176.3h0" style="stroke-width:8.8"/>
+    <text class="lb" x="182.8" y="170.3" text-anchor="start">C</text>
+    <path class="ptx" d="M187.6 119.7h0" style="stroke-width:8.8"/>
+    <text class="lb" x="194.6" y="113.7" text-anchor="start">D</text>
+    <path class="pt2x" d="M234.9 80.5l5.2 5.2l-5.2 5.2l-5.2 -5.2z"/>
+    <text class="lb" x="241.9" y="79.7" text-anchor="start">E</text>
+    <path class="pt2x" d="M81.3 69.1l5.2 5.2l-5.2 5.2l-5.2 -5.2z"/>
+    <text class="lb" x="88.3" y="68.3" text-anchor="start">F</text>
+    <path class="pt2x" d="M175.8 227.8l5.2 5.2l-5.2 5.2l-5.2 -5.2z"/>
+    <text class="lb" x="182.8" y="227.0" text-anchor="start">G</text>
+    <path class="pt2x" d="M69.5 148.5l5.2 5.2l-5.2 5.2l-5.2 -5.2z"/>
+    <text class="lb" x="76.5" y="147.7" text-anchor="start">H</text>
+    <text class="at" x="164.0" y="284" text-anchor="middle">x</text>
+    <text class="at" transform="translate(11 131.0) rotate(-90)" text-anchor="middle">y</text>
+    </svg>
+    </div>
+    <div class="tscroll"><table class="ptable" aria-label="Coordinates and classes of the eight points">
+    <thead>
+    <tr><th>Point</th><th>x</th><th>y</th><th>Class</th></tr></thead><tbody>
+    <tr><th>A</th><td>0.4</td><td>0.2</td><td>0 (disc)</td></tr>
+    <tr><th>B</th><td>−0.3</td><td>0.3</td><td>0 (disc)</td></tr>
+    <tr><th>C</th><td>0.1</td><td>−0.4</td><td>0 (disc)</td></tr>
+    <tr><th>D</th><td>0.2</td><td>0.1</td><td>0 (disc)</td></tr>
+    <tr><th>E</th><td>0.6</td><td>0.4</td><td>1 (ring)</td></tr>
+    <tr><th>F</th><td>−0.7</td><td>0.5</td><td>1 (ring)</td></tr>
+    <tr><th>G</th><td>0.1</td><td>−0.9</td><td>1 (ring)</td></tr>
+    <tr><th>H</th><td>−0.8</td><td>−0.2</td><td>1 (ring)</td></tr>
+    </tbody></table></div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 4, the radius of the circle"></label>
+    <p class="revise" hidden>Revise <a href="../b2-non-linearity/#lift">B2 Lift the circles</a>.</p>
+  </article>
+
+  <article class="pq" id="q5" data-q="q05" data-kind="mc">
+    <h3 class="pq-h"><span>Question 5<span class="pq-st" hidden></span></span><span class="pq-tag">Why non-linearity matters</span></h3>
+    <p class="pq-t tight">The chart shows 150 made-up points in the XOR pattern. A sigmoid neuron reads \(x\) and \(y\), so its boundary is a straight line. The dashed line is the best straight line that a search over 360 directions found, and it calls 73% of the points right. Which change would let the model call nearly all of them right?</p>
+    <div class="pfig"><p class="fcap">Made-up points, 150 in all. The dashed line is the best of 360 directions tried; it gets 73% of the points right.</p>
+    <svg class="fg" viewBox="0 0 340 310" role="img" aria-label="One hundred and fifty points in the XOR pattern. Navy dots have x and y with the same sign. Coral diamonds have x and y with different signs. A dashed straight line, the best that could be found, crosses the square.">
+    <line class="gl" x1="44.9" y1="270.0" x2="44.9" y2="12.0"/>
+    <line class="gl" x1="114.0" y1="270.0" x2="114.0" y2="12.0"/>
+    <line class="gl" x1="183.0" y1="270.0" x2="183.0" y2="12.0"/>
+    <line class="gl" x1="252.0" y1="270.0" x2="252.0" y2="12.0"/>
+    <line class="gl" x1="321.1" y1="270.0" x2="321.1" y2="12.0"/>
+    <line class="gl" x1="38.0" y1="263.9" x2="328.0" y2="263.9"/>
+    <line class="gl" x1="38.0" y1="202.4" x2="328.0" y2="202.4"/>
+    <line class="gl" x1="38.0" y1="141.0" x2="328.0" y2="141.0"/>
+    <line class="gl" x1="38.0" y1="79.6" x2="328.0" y2="79.6"/>
+    <line class="gl" x1="38.0" y1="18.1" x2="328.0" y2="18.1"/>
+    <line class="ax" x1="38.0" y1="270.0" x2="332.0" y2="270.0"/><line class="ax" x1="38.0" y1="270.0" x2="38.0" y2="8.0"/>
+    <text class="tk" x="44.9" y="285.0" text-anchor="middle">−1</text>
+    <text class="tk" x="114.0" y="285.0" text-anchor="middle">−0.5</text>
+    <text class="tk" x="183.0" y="285.0" text-anchor="middle">0</text>
+    <text class="tk" x="252.0" y="285.0" text-anchor="middle">0.5</text>
+    <text class="tk" x="321.1" y="285.0" text-anchor="middle">1</text>
+    <text class="tk" x="31.0" y="267.9" text-anchor="end">−1</text>
+    <text class="tk" x="31.0" y="206.4" text-anchor="end">−0.5</text>
+    <text class="tk" x="31.0" y="145.0" text-anchor="end">0</text>
+    <text class="tk" x="31.0" y="83.6" text-anchor="end">0.5</text>
+    <text class="tk" x="31.0" y="22.1" text-anchor="end">1</text>
+    <line class="gm" x1="183.0" y1="270.0" x2="183.0" y2="12.0"/><line class="gm" x1="38.0" y1="141.0" x2="328.0" y2="141.0"/>
+    <path class="ptx" d="M80.4 141.1h0 M64.4 231.9h0 M306.9 111.0h0 M230.1 137.9h0 M270.4 129.0h0 M173.9 195.8h0 M163.7 227.6h0 M54.0 214.5h0 M140.3 148.6h0 M295.1 92.5h0 M138.7 259.7h0 M60.0 255.5h0 M278.6 119.4h0 M130.1 185.8h0 M69.5 221.5h0 M173.7 232.7h0 M70.6 259.4h0 M104.8 186.5h0 M165.3 186.6h0 M63.5 164.6h0 M249.8 129.7h0 M227.6 93.7h0 M260.6 36.0h0 M84.5 155.0h0 M262.1 44.1h0 M144.2 223.8h0 M112.4 176.1h0 M182.6 244.6h0 M55.5 235.6h0 M198.3 107.3h0 M142.1 231.8h0 M131.9 166.7h0 M311.0 40.9h0 M267.7 95.9h0 M84.7 149.6h0 M243.3 66.2h0 M83.0 167.9h0 M182.4 193.6h0 M212.3 115.8h0 M230.9 136.5h0 M71.4 184.0h0 M261.4 107.3h0 M294.0 78.2h0 M151.2 226.3h0 M287.0 94.2h0 M250.5 126.4h0 M198.2 63.7h0 M239.8 66.5h0 M147.5 241.5h0 M182.9 230.9h0 M186.3 52.1h0 M92.1 261.0h0 M63.5 150.8h0 M318.6 132.2h0 M78.0 161.0h0 M88.8 174.8h0 M59.7 209.9h0 M57.3 152.8h0 M286.6 39.0h0 M268.3 38.9h0 M168.6 235.0h0 M294.2 50.0h0 M312.1 117.9h0 M95.4 192.2h0 M235.9 140.5h0 M90.8 144.2h0 M179.8 182.3h0 M155.1 232.7h0 M53.9 167.7h0 M205.9 136.3h0 M293.5 39.9h0 M303.6 67.4h0 M154.7 165.7h0" style="stroke-width:6.0"/>
+    <path class="pt2x" d="M211.0 253.1l3.8 3.8l-3.8 3.8l-3.8 -3.8z M85.8 32.0l3.8 3.8l-3.8 3.8l-3.8 -3.8z M146.8 134.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M228.0 192.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M83.0 66.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M315.8 209.8l3.8 3.8l-3.8 3.8l-3.8 -3.8z M197.8 141.3l3.8 3.8l-3.8 3.8l-3.8 -3.8z M142.5 114.7l3.8 3.8l-3.8 3.8l-3.8 -3.8z M109.9 63.0l3.8 3.8l-3.8 3.8l-3.8 -3.8z M284.5 228.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M67.8 39.9l3.8 3.8l-3.8 3.8l-3.8 -3.8z M230.9 210.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M293.9 206.7l3.8 3.8l-3.8 3.8l-3.8 -3.8z M89.1 15.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M171.8 90.3l3.8 3.8l-3.8 3.8l-3.8 -3.8z M51.7 53.9l3.8 3.8l-3.8 3.8l-3.8 -3.8z M249.0 212.0l3.8 3.8l-3.8 3.8l-3.8 -3.8z M62.0 113.0l3.8 3.8l-3.8 3.8l-3.8 -3.8z M292.4 253.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M267.2 213.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M125.8 81.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M181.1 50.5l3.8 3.8l-3.8 3.8l-3.8 -3.8z M116.2 19.6l3.8 3.8l-3.8 3.8l-3.8 -3.8z M304.8 176.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M251.1 250.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M112.6 52.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M86.2 106.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M254.5 251.3l3.8 3.8l-3.8 3.8l-3.8 -3.8z M320.8 224.7l3.8 3.8l-3.8 3.8l-3.8 -3.8z M61.8 46.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M220.7 220.9l3.8 3.8l-3.8 3.8l-3.8 -3.8z M213.7 203.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M134.7 101.9l3.8 3.8l-3.8 3.8l-3.8 -3.8z M296.9 231.7l3.8 3.8l-3.8 3.8l-3.8 -3.8z M68.7 122.1l3.8 3.8l-3.8 3.8l-3.8 -3.8z M238.2 243.6l3.8 3.8l-3.8 3.8l-3.8 -3.8z M58.6 63.0l3.8 3.8l-3.8 3.8l-3.8 -3.8z M254.9 194.3l3.8 3.8l-3.8 3.8l-3.8 -3.8z M263.0 198.9l3.8 3.8l-3.8 3.8l-3.8 -3.8z M111.2 107.1l3.8 3.8l-3.8 3.8l-3.8 -3.8z M143.6 79.6l3.8 3.8l-3.8 3.8l-3.8 -3.8z M125.1 63.7l3.8 3.8l-3.8 3.8l-3.8 -3.8z M159.5 124.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M116.0 19.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M196.5 253.1l3.8 3.8l-3.8 3.8l-3.8 -3.8z M87.7 63.6l3.8 3.8l-3.8 3.8l-3.8 -3.8z M127.5 101.6l3.8 3.8l-3.8 3.8l-3.8 -3.8z M138.8 75.8l3.8 3.8l-3.8 3.8l-3.8 -3.8z M261.2 150.0l3.8 3.8l-3.8 3.8l-3.8 -3.8z M201.2 244.7l3.8 3.8l-3.8 3.8l-3.8 -3.8z M181.9 43.5l3.8 3.8l-3.8 3.8l-3.8 -3.8z M74.9 44.9l3.8 3.8l-3.8 3.8l-3.8 -3.8z M216.0 148.3l3.8 3.8l-3.8 3.8l-3.8 -3.8z M163.3 50.7l3.8 3.8l-3.8 3.8l-3.8 -3.8z M83.0 108.5l3.8 3.8l-3.8 3.8l-3.8 -3.8z M159.2 130.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M314.1 249.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M102.2 84.6l3.8 3.8l-3.8 3.8l-3.8 -3.8z M194.5 189.3l3.8 3.8l-3.8 3.8l-3.8 -3.8z M115.5 47.0l3.8 3.8l-3.8 3.8l-3.8 -3.8z M256.5 152.9l3.8 3.8l-3.8 3.8l-3.8 -3.8z M156.9 78.8l3.8 3.8l-3.8 3.8l-3.8 -3.8z M312.9 240.5l3.8 3.8l-3.8 3.8l-3.8 -3.8z M185.1 242.5l3.8 3.8l-3.8 3.8l-3.8 -3.8z M151.5 78.4l3.8 3.8l-3.8 3.8l-3.8 -3.8z M213.4 252.9l3.8 3.8l-3.8 3.8l-3.8 -3.8z M145.7 42.0l3.8 3.8l-3.8 3.8l-3.8 -3.8z M301.5 160.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M250.9 170.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M87.3 118.8l3.8 3.8l-3.8 3.8l-3.8 -3.8z M68.8 97.0l3.8 3.8l-3.8 3.8l-3.8 -3.8z M230.9 168.3l3.8 3.8l-3.8 3.8l-3.8 -3.8z M243.9 180.2l3.8 3.8l-3.8 3.8l-3.8 -3.8z M168.9 22.3l3.8 3.8l-3.8 3.8l-3.8 -3.8z M89.0 29.7l3.8 3.8l-3.8 3.8l-3.8 -3.8z M91.4 114.1l3.8 3.8l-3.8 3.8l-3.8 -3.8z M176.8 131.3l3.8 3.8l-3.8 3.8l-3.8 -3.8z"/>
+    <path class="dv" d="M204.2,270.0 L38.0,66.4"/>
+    <text class="at" x="183.0" y="304" text-anchor="middle">x</text>
+    <text class="at" transform="translate(11 141.0) rotate(-90)" text-anchor="middle">y</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q05" value="0"><b>A</b><span>Train the same neuron for ten times as many steps, because the loss is still falling slowly.</span></label>
+      <label class="opt"><input type="radio" name="q05" value="1"><b>B</b><span>Replace the sigmoid by a ReLU, because a ReLU bends the boundary.</span></label>
+      <label class="opt"><input type="radio" name="q05" value="2"><b>C</b><span>Add a second layer of two neurons after it, with no activation between the layers.</span></label>
+      <label class="opt"><input type="radio" name="q05" value="3"><b>D</b><span>Give the neuron a third input, the product \(xy\), which is negative where the class is 1.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../b2-non-linearity/#one">B2 One neuron is not enough</a>, <a href="../b2-non-linearity/#lift">B2 Lift the circles</a> and <a href="../b2-non-linearity/#bend">B2 Two layers need a bend</a>.</p>
+  </article>
+</section>
+
+<section id="loss" aria-labelledby="loss-h">
+  <h2 id="loss-h">Loss and mini-batches</h2>
+
+  <article class="pq" id="q6" data-q="q06" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 6<span class="pq-st" hidden></span></span><span class="pq-tag">Loss and mini-batches</span></h3>
+    <p class="pq-t tight">A made-up network gives these five scores for Tag 1224, a milk shark. The softmax turns the scores into probabilities. The cross-entropy loss of this shark is \(-\ln p\), where \(p\) is the probability given to its true species. What is the loss? Give two decimal places.</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Five class scores of Tag 1224">
+    <thead>
+    <tr><th>Species</th><th>Score z</th></tr></thead><tbody>
+    <tr><th>Spadenose</th><td>0.5</td></tr>
+    <tr><th>Milk</th><td>1.8</td></tr>
+    <tr><th>Bamboo</th><td>2.6</td></tr>
+    <tr><th>Hammerhead</th><td>−0.4</td></tr>
+    <tr><th>Ganges</th><td>−1.5</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 6, the loss"></label>
+    <p class="revise" hidden>Revise <a href="../b3-loss-gradient-descent/#cost">B3 What the network is asked to minimise</a>.</p>
+  </article>
+
+  <article class="pq" id="q7" data-q="q07" data-kind="mc">
+    <h3 class="pq-h"><span>Question 7<span class="pq-st" hidden></span></span><span class="pq-tag">Loss and mini-batches</span></h3>
+    <p class="pq-t tight">The chart shows the loss during 10 epochs of training a one-neuron model on the 268 made-up spadenose sharks. The learning rate is 0.3 and the start is the same. The four runs used batch sizes 1, 16, 64 and 268, in some order. Dots mark the ends of epochs, and the horizontal axis counts steps (updates) on a log scale. Which run used batch size 16?</p>
+    <div class="pfig"><p class="fcap">Four runs of 10 epochs on the 268 made-up spadenose sharks, learning rate 0.3, the same start. Dots mark the ends of epochs.</p>
+    <svg class="fg" viewBox="0 0 360 290" role="img" aria-label="Loss against the number of steps on log scales, for four runs of 10 epochs. The four runs lie along one falling curve. A ringed dot marks the end of each run, at about 170 steps for run P, 10 steps for run Q, 2,680 steps for run R and 50 steps for run S.">
+    <line class="gm" x1="82.3" y1="244.0" x2="82.3" y2="14.0"/>
+    <line class="gm" x1="95.8" y1="244.0" x2="95.8" y2="14.0"/>
+    <line class="gm" x1="105.3" y1="244.0" x2="105.3" y2="14.0"/>
+    <line class="gm" x1="112.7" y1="244.0" x2="112.7" y2="14.0"/>
+    <line class="gm" x1="118.7" y1="244.0" x2="118.7" y2="14.0"/>
+    <line class="gm" x1="123.8" y1="244.0" x2="123.8" y2="14.0"/>
+    <line class="gm" x1="128.2" y1="244.0" x2="128.2" y2="14.0"/>
+    <line class="gm" x1="132.1" y1="244.0" x2="132.1" y2="14.0"/>
+    <line class="gm" x1="158.6" y1="244.0" x2="158.6" y2="14.0"/>
+    <line class="gm" x1="172.0" y1="244.0" x2="172.0" y2="14.0"/>
+    <line class="gm" x1="181.5" y1="244.0" x2="181.5" y2="14.0"/>
+    <line class="gm" x1="188.9" y1="244.0" x2="188.9" y2="14.0"/>
+    <line class="gm" x1="194.9" y1="244.0" x2="194.9" y2="14.0"/>
+    <line class="gm" x1="200.1" y1="244.0" x2="200.1" y2="14.0"/>
+    <line class="gm" x1="204.5" y1="244.0" x2="204.5" y2="14.0"/>
+    <line class="gm" x1="208.4" y1="244.0" x2="208.4" y2="14.0"/>
+    <line class="gm" x1="234.8" y1="244.0" x2="234.8" y2="14.0"/>
+    <line class="gm" x1="248.2" y1="244.0" x2="248.2" y2="14.0"/>
+    <line class="gm" x1="257.8" y1="244.0" x2="257.8" y2="14.0"/>
+    <line class="gm" x1="265.2" y1="244.0" x2="265.2" y2="14.0"/>
+    <line class="gm" x1="271.2" y1="244.0" x2="271.2" y2="14.0"/>
+    <line class="gm" x1="276.3" y1="244.0" x2="276.3" y2="14.0"/>
+    <line class="gm" x1="280.7" y1="244.0" x2="280.7" y2="14.0"/>
+    <line class="gm" x1="284.6" y1="244.0" x2="284.6" y2="14.0"/>
+    <line class="gm" x1="311.1" y1="244.0" x2="311.1" y2="14.0"/>
+    <line class="gm" x1="324.5" y1="244.0" x2="324.5" y2="14.0"/>
+    <line class="gl" x1="59.4" y1="244.0" x2="59.4" y2="14.0"/>
+    <line class="gl" x1="135.6" y1="244.0" x2="135.6" y2="14.0"/>
+    <line class="gl" x1="211.9" y1="244.0" x2="211.9" y2="14.0"/>
+    <line class="gl" x1="288.1" y1="244.0" x2="288.1" y2="14.0"/>
+    <line class="gl" x1="52.0" y1="244.0" x2="334.0" y2="244.0"/>
+    <line class="gl" x1="52.0" y1="168.0" x2="334.0" y2="168.0"/>
+    <line class="gl" x1="52.0" y1="110.5" x2="334.0" y2="110.5"/>
+    <line class="gl" x1="52.0" y1="53.0" x2="334.0" y2="53.0"/>
+    <line class="ax" x1="52.0" y1="244.0" x2="338.0" y2="244.0"/><line class="ax" x1="52.0" y1="244.0" x2="52.0" y2="10.0"/>
+    <text class="tk" x="59.4" y="259.0" text-anchor="middle">1</text>
+    <text class="tk" x="135.6" y="259.0" text-anchor="middle">10</text>
+    <text class="tk" x="211.9" y="259.0" text-anchor="middle">100</text>
+    <text class="tk" x="288.1" y="259.0" text-anchor="middle">1000</text>
+    <text class="tk" x="45.0" y="248.0" text-anchor="end">0.2</text>
+    <text class="tk" x="45.0" y="172.0" text-anchor="end">0.5</text>
+    <text class="tk" x="45.0" y="114.5" text-anchor="end">1</text>
+    <text class="tk" x="45.0" y="57.0" text-anchor="end">2</text>
+    <path class="l1" d="M153.2,101.7 L176.1,178.0 L189.6,201.8 L199.1,210.9 L206.5,215.6 L212.5,218.9 L217.6,221.2 L222.0,223.0 L225.9,224.3 L229.4,225.4"/>
+    <circle class="d1" cx="153.2" cy="101.7" r="2.6"/>
+    <circle class="d1" cx="176.1" cy="178.0" r="2.6"/>
+    <circle class="d1" cx="189.6" cy="201.8" r="2.6"/>
+    <circle class="d1" cx="199.1" cy="210.9" r="2.6"/>
+    <circle class="d1" cx="206.5" cy="215.6" r="2.6"/>
+    <circle class="d1" cx="212.5" cy="218.9" r="2.6"/>
+    <circle class="d1" cx="217.6" cy="221.2" r="2.6"/>
+    <circle class="d1" cx="222.0" cy="223.0" r="2.6"/>
+    <circle class="d1" cx="225.9" cy="224.3" r="2.6"/>
+    <circle class="ring2" cx="229.4" cy="225.4" r="6.2"/>
+    <text class="lbx" x="229.4" y="212.4" text-anchor="middle">P</text>
+    <path class="l1" d="M59.4,24.3 L82.3,28.4 L95.8,32.6 L105.3,37.0 L112.7,41.4 L118.7,46.0 L123.8,50.8 L128.2,55.6 L132.1,60.6 L135.6,65.7"/>
+    <circle class="d1" cx="59.4" cy="24.3" r="2.6"/>
+    <circle class="d1" cx="82.3" cy="28.4" r="2.6"/>
+    <circle class="d1" cx="95.8" cy="32.6" r="2.6"/>
+    <circle class="d1" cx="105.3" cy="37.0" r="2.6"/>
+    <circle class="d1" cx="112.7" cy="41.4" r="2.6"/>
+    <circle class="d1" cx="118.7" cy="46.0" r="2.6"/>
+    <circle class="d1" cx="123.8" cy="50.8" r="2.6"/>
+    <circle class="d1" cx="128.2" cy="55.6" r="2.6"/>
+    <circle class="d1" cx="132.1" cy="60.6" r="2.6"/>
+    <circle class="ring2" cx="135.6" cy="65.7" r="6.2"/>
+    <text class="lbx" x="135.6" y="52.7" text-anchor="middle">Q</text>
+    <path class="l1" d="M244.5,216.6 L267.5,230.3 L280.9,226.5 L290.4,227.9 L297.8,231.7 L303.8,231.7 L308.9,229.4 L313.4,231.3 L317.3,229.6 L320.7,231.5"/>
+    <circle class="d1" cx="244.5" cy="216.6" r="2.6"/>
+    <circle class="d1" cx="267.5" cy="230.3" r="2.6"/>
+    <circle class="d1" cx="280.9" cy="226.5" r="2.6"/>
+    <circle class="d1" cx="290.4" cy="227.9" r="2.6"/>
+    <circle class="d1" cx="297.8" cy="231.7" r="2.6"/>
+    <circle class="d1" cx="303.8" cy="231.7" r="2.6"/>
+    <circle class="d1" cx="308.9" cy="229.4" r="2.6"/>
+    <circle class="d1" cx="313.4" cy="231.3" r="2.6"/>
+    <circle class="d1" cx="317.3" cy="229.6" r="2.6"/>
+    <circle class="ring2" cx="320.7" cy="231.5" r="6.2"/>
+    <text class="lbx" x="320.7" y="218.5" text-anchor="middle">R</text>
+    <path class="l1" d="M112.7,39.4 L135.6,63.2 L149.1,88.2 L158.6,114.6 L166.0,140.4 L172.0,162.4 L177.1,177.9 L181.5,189.1 L185.4,196.3 L188.9,201.2"/>
+    <circle class="d1" cx="112.7" cy="39.4" r="2.6"/>
+    <circle class="d1" cx="135.6" cy="63.2" r="2.6"/>
+    <circle class="d1" cx="149.1" cy="88.2" r="2.6"/>
+    <circle class="d1" cx="158.6" cy="114.6" r="2.6"/>
+    <circle class="d1" cx="166.0" cy="140.4" r="2.6"/>
+    <circle class="d1" cx="172.0" cy="162.4" r="2.6"/>
+    <circle class="d1" cx="177.1" cy="177.9" r="2.6"/>
+    <circle class="d1" cx="181.5" cy="189.1" r="2.6"/>
+    <circle class="d1" cx="185.4" cy="196.3" r="2.6"/>
+    <circle class="ring2" cx="188.9" cy="201.2" r="6.2"/>
+    <text class="lbx" x="188.9" y="188.2" text-anchor="middle">S</text>
+    <text class="at" x="193.0" y="284" text-anchor="middle">steps (updates), log scale</text>
+    <text class="at" transform="translate(11 129.0) rotate(-90)" text-anchor="middle">loss on all 268 sharks, log scale</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q07" value="0"><b>A</b><span>Run P</span></label>
+      <label class="opt"><input type="radio" name="q07" value="1"><b>B</b><span>Run Q</span></label>
+      <label class="opt"><input type="radio" name="q07" value="2"><b>C</b><span>Run R</span></label>
+      <label class="opt"><input type="radio" name="q07" value="3"><b>D</b><span>Run S</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../b3-loss-gradient-descent/#batches">B3 Batches and epochs</a> and <a href="../b3-loss-gradient-descent/#noise">B3 Noisy steps</a>.</p>
+  </article>
+</section>
+
+<section id="backprop" aria-labelledby="backprop-h">
+  <h2 id="backprop-h">Backpropagation</h2>
+
+  <article class="pq" id="q8" data-q="q08" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 8<span class="pq-st" hidden></span></span><span class="pq-tag">Backpropagation</span></h3>
+    <p class="pq-t tight">The graph shows a tiny network with one input, two tanh units and a squared-error loss. The forward values are written on the nodes. The output weights are \(v_1 = 1.0\) and \(v_2 = 0.5\), and the target is 1. The input \(x\) feeds both units. What is the slope of the loss with respect to the input, \(\partial L/\partial x\)? Give three decimal places, with a minus sign if it is negative.</p>
+    <div class="pfig"><p class="fcap">Forward values of a made-up network, rounded to four decimals. The target is 1.</p>
+    <svg class="fg" viewBox="0 0 440 372" role="img" aria-label="A computation graph read from top to bottom. The input x feeds two nodes, z1 and z2. The weights w1 and w2 enter z1 and z2. Each z goes through tanh to give h1 and h2. The output y-hat adds v1 times h1 and v2 times h2, and the loss L is the squared gap between y-hat and the target 1. The forward values are written on the nodes.">
+    <defs><marker id="a8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahp" d="M0 0L10 5L0 10z"/></marker></defs>
+    <rect class="nd" x="180.0" y="7.0" width="80" height="42" rx="7"/>
+    <text class="nt sm" x="220" y="24">input x</text><text class="nt vv" x="220" y="42">1.0</text>
+    <rect class="nd" x="95.0" y="90.0" width="110" height="44" rx="7"/>
+    <text class="nt sm" x="150" y="108">z₁ = w₁ x</text><text class="nt vv" x="150" y="126">0.5</text>
+    <rect class="nd" x="235.0" y="90.0" width="110" height="44" rx="7"/>
+    <text class="nt sm" x="290" y="108">z₂ = w₂ x</text><text class="nt vv" x="290" y="126">−1.0</text>
+    <rect class="nd wt" x="9.0" y="90.0" width="62" height="44" rx="7"/>
+    <text class="nt sm" x="40" y="108">w₁</text><text class="nt vv" x="40" y="126">0.5</text>
+    <rect class="nd wt" x="369.0" y="90.0" width="62" height="44" rx="7"/>
+    <text class="nt sm" x="400" y="108">w₂</text><text class="nt vv" x="400" y="126">−1.0</text>
+    <rect class="nd" x="95.0" y="170.0" width="110" height="44" rx="7"/>
+    <text class="nt sm" x="150" y="188">h₁ = tanh z₁</text><text class="nt vv" x="150" y="206">0.4621</text>
+    <rect class="nd" x="235.0" y="170.0" width="110" height="44" rx="7"/>
+    <text class="nt sm" x="290" y="188">h₂ = tanh z₂</text><text class="nt vv" x="290" y="206">−0.7616</text>
+    <rect class="nd" x="140.0" y="250.0" width="160" height="44" rx="7"/>
+    <text class="nt sm" x="220" y="268">ŷ = v₁ h₁ + v₂ h₂</text><text class="nt vv" x="220" y="286">0.0813</text>
+    <rect class="nd lf" x="155.0" y="320.0" width="130" height="44" rx="7"/>
+    <text class="nt sm" x="220" y="338">L = (ŷ − 1)²</text><text class="nt vv" x="220" y="356">0.8440</text>
+    <line class="ar" x1="200" y1="49" x2="160" y2="88" marker-end="url(#a8)"/>
+    <line class="ar" x1="240" y1="49" x2="280" y2="88" marker-end="url(#a8)"/>
+    <line class="ar" x1="71" y1="112" x2="93" y2="112" marker-end="url(#a8)"/>
+    <line class="ar" x1="369" y1="112" x2="347" y2="112" marker-end="url(#a8)"/>
+    <line class="ar" x1="150" y1="134" x2="150" y2="168" marker-end="url(#a8)"/>
+    <line class="ar" x1="290" y1="134" x2="290" y2="168" marker-end="url(#a8)"/>
+    <line class="ar" x1="170" y1="214" x2="196" y2="249" marker-end="url(#a8)"/>
+    <line class="ar" x1="270" y1="214" x2="244" y2="249" marker-end="url(#a8)"/>
+    <line class="ar" x1="220" y1="294" x2="220" y2="318" marker-end="url(#a8)"/>
+    <text class="lbm" x="176" y="244" text-anchor="end">× v₁ = 1.0</text><text class="lbm" x="264" y="244" text-anchor="start">× v₂ = 0.5</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 8, the slope of the loss with respect to x"></label>
+    <p class="revise" hidden>Revise <a href="../b4-backpropagation/#backward">B4 Sending the slopes back</a> and <a href="../b4-backpropagation/#paths">B4 A value used twice</a>.</p>
+  </article>
+
+  <article class="pq" id="q9" data-q="q09" data-kind="mc">
+    <h3 class="pq-h"><span>Question 9<span class="pq-st" hidden></span></span><span class="pq-tag">Backpropagation</span></h3>
+    <p class="pq-t tight">A student writes the backward pass of a small network and checks it with central differences. The chart shows the relative error between her backpropagation slopes and the finite-difference slopes for two versions of her code, P and Q. The nudge \(h\) shrinks from 0.1 to 1e-15. Which statement is correct?</p>
+    <div class="pfig"><p class="fcap">Nine slopes of a small network, central differences in 64-bit numbers. The dots mark single values of h.</p>
+    <svg class="fg" viewBox="0 0 360 290" role="img" aria-label="Relative error between the backpropagation slopes and central-difference slopes against the nudge h, on log scales, for two versions of a backward function. Curve P falls steadily as h shrinks, reaches a very low value near h of 1e-5 and then rises again for smaller h. Curve Q stays at a high level for most values of h and joins P only at the smallest h.">
+    <line class="gl" x1="54.0" y1="244.0" x2="54.0" y2="14.0"/>
+    <line class="gl" x1="114.1" y1="244.0" x2="114.1" y2="14.0"/>
+    <line class="gl" x1="174.2" y1="244.0" x2="174.2" y2="14.0"/>
+    <line class="gl" x1="234.3" y1="244.0" x2="234.3" y2="14.0"/>
+    <line class="gl" x1="294.4" y1="244.0" x2="294.4" y2="14.0"/>
+    <line class="gl" x1="54.0" y1="244.0" x2="338.0" y2="244.0"/>
+    <line class="gl" x1="54.0" y1="186.5" x2="338.0" y2="186.5"/>
+    <line class="gl" x1="54.0" y1="129.0" x2="338.0" y2="129.0"/>
+    <line class="gl" x1="54.0" y1="71.5" x2="338.0" y2="71.5"/>
+    <line class="gl" x1="54.0" y1="14.0" x2="338.0" y2="14.0"/>
+    <line class="ax" x1="54.0" y1="244.0" x2="342.0" y2="244.0"/><line class="ax" x1="54.0" y1="244.0" x2="54.0" y2="10.0"/>
+    <text class="tk" x="54.0" y="259.0" text-anchor="middle">1e-15</text>
+    <text class="tk" x="114.1" y="259.0" text-anchor="middle">1e-12</text>
+    <text class="tk" x="174.2" y="259.0" text-anchor="middle">1e-9</text>
+    <text class="tk" x="234.3" y="259.0" text-anchor="middle">1e-6</text>
+    <text class="tk" x="294.4" y="259.0" text-anchor="middle">1e-3</text>
+    <text class="tk" x="47.0" y="248.0" text-anchor="end">1e-12</text>
+    <text class="tk" x="47.0" y="190.5" text-anchor="end">1e-9</text>
+    <text class="tk" x="47.0" y="133.0" text-anchor="end">1e-6</text>
+    <text class="tk" x="47.0" y="75.5" text-anchor="end">1e-3</text>
+    <text class="tk" x="47.0" y="18.0" text-anchor="end">1</text>
+    <path class="s1" d="M334.5,71.1 L314.4,109.5 L294.4,147.8 L274.4,186.1 L254.3,226.5 L234.3,203.5 L214.3,183.9 L194.2,168.3 L174.2,146.1 L154.2,126.5 L134.1,109.9 L114.1,89.7 L94.1,72.4 L74.0,51.5 L54.0,32.6"/>
+    <path class="s2" d="M334.5,53.0 L314.4,53.9 L294.4,53.9 L274.4,53.9 L254.3,53.9 L234.3,53.9 L214.3,53.9 L194.2,53.9 L174.2,53.9 L154.2,53.9 L134.1,53.9 L114.1,54.0 L94.1,53.8 L74.0,48.1 L54.0,32.6"/>
+    <circle class="d1" cx="334.5" cy="71.1" r="2.8"/>
+    <circle class="d2" cx="334.5" cy="53.0" r="2.8"/>
+    <circle class="d1" cx="314.4" cy="109.5" r="2.8"/>
+    <circle class="d2" cx="314.4" cy="53.9" r="2.8"/>
+    <circle class="d1" cx="294.4" cy="147.8" r="2.8"/>
+    <circle class="d2" cx="294.4" cy="53.9" r="2.8"/>
+    <circle class="d1" cx="274.4" cy="186.1" r="2.8"/>
+    <circle class="d2" cx="274.4" cy="53.9" r="2.8"/>
+    <circle class="d1" cx="254.3" cy="226.5" r="2.8"/>
+    <circle class="d2" cx="254.3" cy="53.9" r="2.8"/>
+    <circle class="d1" cx="234.3" cy="203.5" r="2.8"/>
+    <circle class="d2" cx="234.3" cy="53.9" r="2.8"/>
+    <circle class="d1" cx="214.3" cy="183.9" r="2.8"/>
+    <circle class="d2" cx="214.3" cy="53.9" r="2.8"/>
+    <circle class="d1" cx="194.2" cy="168.3" r="2.8"/>
+    <circle class="d2" cx="194.2" cy="53.9" r="2.8"/>
+    <circle class="d1" cx="174.2" cy="146.1" r="2.8"/>
+    <circle class="d2" cx="174.2" cy="53.9" r="2.8"/>
+    <circle class="d1" cx="154.2" cy="126.5" r="2.8"/>
+    <circle class="d2" cx="154.2" cy="53.9" r="2.8"/>
+    <circle class="d1" cx="134.1" cy="109.9" r="2.8"/>
+    <circle class="d2" cx="134.1" cy="53.9" r="2.8"/>
+    <circle class="d1" cx="114.1" cy="89.7" r="2.8"/>
+    <circle class="d2" cx="114.1" cy="54.0" r="2.8"/>
+    <circle class="d1" cx="94.1" cy="72.4" r="2.8"/>
+    <circle class="d2" cx="94.1" cy="53.8" r="2.8"/>
+    <circle class="d1" cx="74.0" cy="51.5" r="2.8"/>
+    <circle class="d2" cx="74.0" cy="48.1" r="2.8"/>
+    <circle class="d1" cx="54.0" cy="32.6" r="2.8"/>
+    <circle class="d2" cx="54.0" cy="32.6" r="2.8"/>
+    <text class="lbx" x="85.1" y="76.4" text-anchor="end">P</text>
+    <text class="lbc" x="234.3" y="45.0" text-anchor="middle">Q</text>
+    <text class="at" x="196.0" y="284" text-anchor="middle">nudge h (log scale; small values are on the left)</text>
+    <text class="at" transform="translate(12 129.0) rotate(-90)" text-anchor="middle">relative error (log scale)</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q09" value="0"><b>A</b><span>Both versions are right, because both curves reach a small error for some value of h.</span></label>
+      <label class="opt"><input type="radio" name="q09" value="1"><b>B</b><span>The best nudge is the smallest one, 1e-15, because the two nudged losses are then closest to the true slope.</span></label>
+      <label class="opt"><input type="radio" name="q09" value="2"><b>C</b><span>Version Q is right, because its error is the steadier of the two and does not depend on h.</span></label>
+      <label class="opt"><input type="radio" name="q09" value="3"><b>D</b><span>Version P is probably right and version Q has a bug. The error of P is limited by the bend of the loss for large h and by round-off for tiny h, and it is very small near h = 1e-5. The error of Q stays near 1e-2 whatever h is.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../b4-backpropagation/#check">B4 Gradient checking</a>.</p>
+  </article>
+</section>
+
+<section id="optim" aria-labelledby="optim-h">
+  <h2 id="optim-h">Optimisers</h2>
+
+  <article class="pq" id="q10" data-q="q10" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 10<span class="pq-st" hidden></span></span><span class="pq-tag">Optimisers</span></h3>
+    <p class="pq-t">An optimiser uses momentum in the averaging form: \[ \begin{gathered} m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t \\ \theta_t = \theta_{t-1} - \eta\, m_t. \end{gathered} \] After step 3 the weight is \(\theta_3 = 1.000\) and the average slope is \(m_3 = 0.30\). The settings are \(\beta_1 = 0.9\) and \(\eta = 0.2\), and the slope at step 4 is \(g_4 = -0.60\). What is \(\theta_4\)? Give three decimal places.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 10, the new weight"></label>
+    <p class="revise" hidden>Revise <a href="../b5-optimisers/#momentum">B5 Momentum</a>.</p>
+  </article>
+
+  <article class="pq" id="q11" data-q="q11" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 11<span class="pq-st" hidden></span></span><span class="pq-tag">Optimisers</span></h3>
+    <p class="pq-t tight">Adam keeps \(m\) and \(v\) for a weight, with \(\beta_1 = 0.9\) and \(\beta_2 = 0.999\). The table shows its state after step 1, where the slope was 1.2, and the slope at step 2. Compute the size of the step-2 update as a multiple of \(\eta\), which is \(\hat m_2/(\sqrt{\hat v_2} + \epsilon)\). Take \(\epsilon\) as small enough to ignore. Give three decimal places.</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Adam's state after step 1 and the slope at step 2">
+    <thead>
+    <tr><th>Step t</th><th>Slope g</th><th>m</th><th>v</th></tr></thead><tbody>
+    <tr><th>0</th><td>(none)</td><td>0</td><td>0</td></tr>
+    <tr><th>1</th><td>1.2</td><td>0.12</td><td>0.00144</td></tr>
+    <tr><th>2</th><td>0.6</td><td>?</td><td>?</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 11, the step as a multiple of the learning rate"></label>
+    <p class="revise" hidden>Revise <a href="../b5-optimisers/#adam">B5 Adam</a>.</p>
+  </article>
+
+  <article class="pq" id="q12" data-q="q12" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 12<span class="pq-st" hidden></span></span><span class="pq-tag">Optimisers</span></h3>
+    <p class="pq-t">AdamW updates a weight by \[ \theta \leftarrow \theta - \eta\,\Bigl(\frac{\hat m}{\sqrt{\hat v} + \epsilon} + \omega\,\theta\Bigr). \] A weight is \(\theta = 1.50\), with bias-corrected values \(\hat m = 0.40\) and \(\sqrt{\hat v} = 1.08\). The learning rate is \(\eta = 0.05\) and the weight decay is \(\omega = 0.1\). Ignore \(\epsilon\). What is the new \(\theta\)? Give three decimal places.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 12, the new weight"></label>
+    <p class="revise" hidden>Revise <a href="../b5-optimisers/#adamw">B5 AdamW and weight decay</a>.</p>
+  </article>
+
+  <article class="pq" id="q13" data-q="q13" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 13<span class="pq-st" hidden></span></span><span class="pq-tag">Optimisers</span></h3>
+    <p class="pq-t tight">A run uses a linear warm-up from 0 to the peak rate \(\eta_{\max} = 0.002\) over the first \(t_w = 200\) steps. After that the rate follows a cosine decay that ends at \(\eta_{\min} = 0.0002\) at step \(T = 2000\): \[ \eta_t = \eta_{\min} + \tfrac12(\eta_{\max} - \eta_{\min})\Bigl(1 + \cos\bigl(\pi\,\tfrac{t - t_w}{T - t_w}\bigr)\Bigr) \qquad (t > t_w). \] What is the learning rate at step 650, in units of 0.001? Give three decimal places.</p>
+    <div class="pfig"><p class="fcap">The schedule of the question: warm-up, then cosine decay. The dashed line marks step 650.</p>
+    <svg class="fg" viewBox="0 0 360 260" role="img" aria-label="Learning rate against step. The rate rises in a straight line from 0 to a peak at step 200, then falls in a smooth curve to a final value at step 2000. A dashed vertical line marks step 650.">
+    <line class="gl" x1="46.0" y1="214.0" x2="46.0" y2="14.0"/>
+    <line class="gl" x1="121.0" y1="214.0" x2="121.0" y2="14.0"/>
+    <line class="gl" x1="196.0" y1="214.0" x2="196.0" y2="14.0"/>
+    <line class="gl" x1="271.0" y1="214.0" x2="271.0" y2="14.0"/>
+    <line class="gl" x1="346.0" y1="214.0" x2="346.0" y2="14.0"/>
+    <line class="gl" x1="46.0" y1="214.0" x2="346.0" y2="214.0"/>
+    <line class="gl" x1="46.0" y1="170.5" x2="346.0" y2="170.5"/>
+    <line class="gl" x1="46.0" y1="127.0" x2="346.0" y2="127.0"/>
+    <line class="gl" x1="46.0" y1="83.6" x2="346.0" y2="83.6"/>
+    <line class="gl" x1="46.0" y1="40.1" x2="346.0" y2="40.1"/>
+    <line class="ax" x1="46.0" y1="214.0" x2="350.0" y2="214.0"/><line class="ax" x1="46.0" y1="214.0" x2="46.0" y2="10.0"/>
+    <text class="tk" x="46.0" y="229.0" text-anchor="middle">0</text>
+    <text class="tk" x="121.0" y="229.0" text-anchor="middle">500</text>
+    <text class="tk" x="196.0" y="229.0" text-anchor="middle">1000</text>
+    <text class="tk" x="271.0" y="229.0" text-anchor="middle">1500</text>
+    <text class="tk" x="346.0" y="229.0" text-anchor="middle">2000</text>
+    <text class="tk" x="39.0" y="218.0" text-anchor="end">0</text>
+    <text class="tk" x="39.0" y="174.5" text-anchor="end">0.5</text>
+    <text class="tk" x="39.0" y="131.0" text-anchor="end">1</text>
+    <text class="tk" x="39.0" y="87.6" text-anchor="end">1.5</text>
+    <text class="tk" x="39.0" y="44.1" text-anchor="end">2</text>
+    <path class="l1" d="M46.0,214.0 L49.0,196.6 L52.0,179.2 L55.0,161.8 L58.0,144.4 L61.0,127.0 L64.0,109.7 L67.0,92.3 L70.0,74.9 L73.0,57.5 L76.0,40.1 L79.0,40.1 L82.0,40.3 L85.0,40.5 L88.0,40.8 L91.0,41.3 L94.0,41.8 L97.0,42.4 L100.0,43.1 L103.0,43.9 L106.0,44.8 L109.0,45.8 L112.0,46.9 L115.0,48.0 L118.0,49.2 L121.0,50.6 L124.0,52.0 L127.0,53.5 L130.0,55.0 L133.0,56.7 L136.0,58.4 L139.0,60.2 L142.0,62.1 L145.0,64.0 L148.0,66.0 L151.0,68.0 L154.0,70.2 L157.0,72.3 L160.0,74.6 L163.0,76.9 L166.0,79.2 L169.0,81.6 L172.0,84.0 L175.0,86.5 L178.0,89.0 L181.0,91.6 L184.0,94.2 L187.0,96.8 L190.0,99.4 L193.0,102.1 L196.0,104.8 L199.0,107.5 L202.0,110.2 L205.0,112.9 L208.0,115.6 L211.0,118.3 L214.0,121.1 L217.0,123.8 L220.0,126.5 L223.0,129.2 L226.0,131.9 L229.0,134.6 L232.0,137.3 L235.0,139.9 L238.0,142.5 L241.0,145.1 L244.0,147.7 L247.0,150.2 L250.0,152.7 L253.0,155.1 L256.0,157.5 L259.0,159.8 L262.0,162.1 L265.0,164.3 L268.0,166.5 L271.0,168.7 L274.0,170.7 L277.0,172.7 L280.0,174.6 L283.0,176.5 L286.0,178.3 L289.0,180.0 L292.0,181.7 L295.0,183.2 L298.0,184.7 L301.0,186.1 L304.0,187.4 L307.0,188.7 L310.0,189.8 L313.0,190.9 L316.0,191.9 L319.0,192.8 L322.0,193.6 L325.0,194.3 L328.0,194.9 L331.0,195.4 L334.0,195.8 L337.0,196.2 L340.0,196.4 L343.0,196.6 L346.0,196.6"/>
+    <line class="dv" x1="143.5" y1="214.0" x2="143.5" y2="14.0"/>
+    <text class="lb" x="149.5" y="28.0" text-anchor="start">step 650</text>
+    <text class="lbm" x="82.0" y="34.1" text-anchor="start">peak</text>
+    <text class="lbm" x="346.0" y="188.6" text-anchor="end">final</text>
+    <text class="at" x="196.0" y="254" text-anchor="middle">step t</text>
+    <text class="at" transform="translate(11 114.0) rotate(-90)" text-anchor="middle">learning rate (× 0.001)</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 13, the learning rate in units of 0.001"><span class="u">× 0.001</span></label>
+    <p class="revise" hidden>Revise <a href="../b5-optimisers/#schedule">B5 Schedules and warm-up</a>.</p>
+  </article>
+</section>
+
+<section id="deep" aria-labelledby="deep-h">
+  <h2 id="deep-h">Initialisation and normalisation</h2>
+
+  <article class="pq" id="q14" data-q="q14" data-kind="num" data-dp="0">
+    <h3 class="pq-h"><span>Question 14<span class="pq-st" hidden></span></span><span class="pq-tag">Initialisation and normalisation</span></h3>
+    <p class="pq-t">A deep network has ReLU units and width 100 in all layers. The weights are random with spread \(\sigma = 0.2\), and the signal that enters the first layer has a typical size (root mean square) of 1. By what factor is the typical size multiplied after 6 layers? Use the rule of chapter B6 for what a random layer does to the size of the signal.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 14, the factor"><span class="u">times</span></label>
+    <p class="revise" hidden>Revise <a href="../b6-deep-networks/#signal">B6 Signals through twenty layers</a> and <a href="../b6-deep-networks/#xavier">B6 Choosing the scale: Xavier and He</a>.</p>
+  </article>
+
+  <article class="pq" id="q15" data-q="q15" data-kind="mc">
+    <h3 class="pq-h"><span>Question 15<span class="pq-st" hidden></span></span><span class="pq-tag">Initialisation and normalisation</span></h3>
+    <p class="pq-t tight">The table shows the hidden values of four sharks in one layer (made-up numbers). Layer norm is applied to this batch, with scale \(\gamma = 1\), shift \(\beta = 0\) and a tiny \(\epsilon\). What is the shaded cell (shark A, unit \(h_4\)) after the layer norm?</p>
+    <div class="pfig"><p class="fcap">Hidden values (made up) for four sharks in one batch. The shaded cell is the one to find.</p>
+    <div class="tscroll"><table class="ptable cmx" aria-label="Hidden values of four sharks in one layer; the outlined cell is shark A, unit h4">
+    <thead>
+    <tr><th></th><th>h₁</th><th>h₂</th><th>h₃</th><th>h₄</th></tr></thead><tbody>
+    <tr><th>Shark A</th><td>0</td><td>2</td><td>2</td><td class="dg">8</td></tr>
+    <tr><th>Shark B</th><td>4</td><td>1</td><td>3</td><td>2</td></tr>
+    <tr><th>Shark C</th><td>6</td><td>5</td><td>1</td><td>4</td></tr>
+    <tr><th>Shark D</th><td>2</td><td>8</td><td>6</td><td>6</td></tr>
+    </tbody></table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q15" value="0"><b>A</b><span>1.34</span></label>
+      <label class="opt"><input type="radio" name="q15" value="1"><b>B</b><span>1.67</span></label>
+      <label class="opt"><input type="radio" name="q15" value="2"><b>C</b><span>1.89</span></label>
+      <label class="opt"><input type="radio" name="q15" value="3"><b>D</b><span>5.00</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../b6-deep-networks/#norm">B6 Normalisation</a>.</p>
+  </article>
+
+  <article class="pq" id="q16" data-q="q16" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 16<span class="pq-st" hidden></span></span><span class="pq-tag">Initialisation and normalisation</span></h3>
+    <p class="pq-t">A stack of 50 residual blocks computes \(\mathbf{y} = \mathbf{x} + F(\mathbf{x})\) in all blocks. Near the current values the slope \(\partial F/\partial x\) of a block is 0.02, the same in all blocks. The slope of the loss at the output of the last block is 1. What is the slope that reaches the input of the first block? Give two decimal places.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 16, the factor"></label>
+    <p class="revise" hidden>Revise <a href="../b6-deep-networks/#residual">B6 Residual connections</a>.</p>
+  </article>
+
+  <article class="pq" id="q17" data-q="q17" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 17<span class="pq-st" hidden></span></span><span class="pq-tag">Initialisation and normalisation</span></h3>
+    <p class="pq-t">A hidden unit has the value \(a = 1.5\). During training, inverted dropout drops it with probability \(p = 0.4\), and multiplies it by \(1/(1-p)\) when it is kept. Over many training steps the mean of what the unit passes on is 1.5. What is the variance of what it passes on? Give two decimal places.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 17, the variance"></label>
+    <p class="revise" hidden>Revise <a href="../b6-deep-networks/#dropout">B6 Dropout</a>.</p>
+  </article>
+</section>
+
+<section id="tune" aria-labelledby="tune-h">
+  <h2 id="tune-h">Fine-tuning and forgetting</h2>
+
+  <article class="pq" id="q18" data-q="q18" data-kind="mc">
+    <h3 class="pq-h"><span>Question 18<span class="pq-st" hidden></span></span><span class="pq-tag">Fine-tuning and forgetting</span></h3>
+    <p class="pq-t tight">Three networks learned the clear water first and were then fine-tuned on the murky water. The charts show their accuracy in both waters during fine-tuning. One run is plain fine-tuning. One uses elastic weight consolidation (EWC) with springs set by the Fisher diagonal. One uses springs of equal stiffness on all weights, with the same total stiffness. Which run is EWC with the Fisher springs?</p>
+    <div class="pfig"><p class="fcap">Three fine-tuning runs from clear water to murky water (means of 20 networks).</p><div class="pair">
+    <svg class="fg" viewBox="0 0 330 250" role="img" aria-label="Accuracy against fine-tuning step for three runs P, Q and R. Clear water (the old task).">
+    <line class="gl" x1="46.0" y1="206.0" x2="46.0" y2="26.0"/>
+    <line class="gl" x1="113.0" y1="206.0" x2="113.0" y2="26.0"/>
+    <line class="gl" x1="180.0" y1="206.0" x2="180.0" y2="26.0"/>
+    <line class="gl" x1="247.0" y1="206.0" x2="247.0" y2="26.0"/>
+    <line class="gl" x1="314.0" y1="206.0" x2="314.0" y2="26.0"/>
+    <line class="gl" x1="46.0" y1="178.3" x2="314.0" y2="178.3"/>
+    <line class="gl" x1="46.0" y1="150.6" x2="314.0" y2="150.6"/>
+    <line class="gl" x1="46.0" y1="122.9" x2="314.0" y2="122.9"/>
+    <line class="gl" x1="46.0" y1="95.2" x2="314.0" y2="95.2"/>
+    <line class="gl" x1="46.0" y1="67.5" x2="314.0" y2="67.5"/>
+    <line class="gl" x1="46.0" y1="39.8" x2="314.0" y2="39.8"/>
+    <line class="ax" x1="46.0" y1="206.0" x2="318.0" y2="206.0"/><line class="ax" x1="46.0" y1="206.0" x2="46.0" y2="22.0"/>
+    <text class="tk" x="46.0" y="221.0" text-anchor="middle">0</text>
+    <text class="tk" x="113.0" y="221.0" text-anchor="middle">50</text>
+    <text class="tk" x="180.0" y="221.0" text-anchor="middle">100</text>
+    <text class="tk" x="247.0" y="221.0" text-anchor="middle">150</text>
+    <text class="tk" x="314.0" y="221.0" text-anchor="middle">200</text>
+    <text class="tk" x="39.0" y="182.3" text-anchor="end">40%</text>
+    <text class="tk" x="39.0" y="154.6" text-anchor="end">50%</text>
+    <text class="tk" x="39.0" y="126.9" text-anchor="end">60%</text>
+    <text class="tk" x="39.0" y="99.2" text-anchor="end">70%</text>
+    <text class="tk" x="39.0" y="71.5" text-anchor="end">80%</text>
+    <text class="tk" x="39.0" y="43.8" text-anchor="end">90%</text>
+    <path class="s1" d="M46.0,45.1 L47.3,45.4 L48.7,44.6 L50.0,45.7 L51.4,45.4 L52.7,47.0 L54.0,49.8 L55.4,53.7 L56.7,56.5 L58.1,59.5 L59.4,62.8 L60.7,66.7 L62.1,69.2 L63.4,71.1 L64.8,75.3 L66.1,79.7 L67.4,82.2 L68.8,85.0 L70.1,86.9 L71.5,88.3 L72.8,90.2 L74.1,91.9 L75.5,93.3 L76.8,94.4 L78.2,95.2 L79.5,95.5 L80.8,95.8 L82.2,96.1 L83.5,95.8 L84.9,95.8 L86.2,95.2 L87.5,95.0 L88.9,94.7 L90.2,94.1 L91.6,93.8 L92.9,93.6 L94.2,93.6 L95.6,93.3 L96.9,93.3 L98.3,92.7 L99.6,92.5 L100.9,91.9 L102.3,91.9 L103.6,92.2 L105.0,92.2 L106.3,92.2 L107.6,92.5 L109.0,92.7 L110.3,93.0 L111.7,93.3 L113.0,93.0 L114.3,93.0 L115.7,93.3 L117.0,93.3 L118.4,93.3 L119.7,93.6 L121.0,93.6 L122.4,93.6 L123.7,93.6 L125.1,93.6 L126.4,93.6 L127.7,93.6 L129.1,93.3 L130.4,93.0 L131.8,93.0 L133.1,93.0 L134.4,93.0 L135.8,93.0 L137.1,93.0 L138.5,93.0 L139.8,93.3 L141.1,93.3 L142.5,93.0 L143.8,93.0 L145.2,93.0 L146.5,92.7 L147.8,93.0 L149.2,93.0 L150.5,93.0 L151.9,93.0 L153.2,93.3 L154.5,93.0 L155.9,92.7 L157.2,92.7 L158.6,92.5 L159.9,92.5 L161.2,92.5 L162.6,92.2 L163.9,92.5 L165.3,92.5 L166.6,92.5 L167.9,92.7 L169.3,92.7 L170.6,92.5 L172.0,92.2 L173.3,91.9 L174.6,91.9 L176.0,91.9 L177.3,91.6 L178.7,91.6 L180.0,91.6 L181.3,91.6 L182.7,91.4 L184.0,91.4 L185.4,91.4 L186.7,91.1 L188.0,91.1 L189.4,91.1 L190.7,91.1 L192.1,91.1 L193.4,91.1 L194.7,91.4 L196.1,91.4 L197.4,91.4 L198.8,91.1 L200.1,91.4 L201.4,91.4 L202.8,91.1 L204.1,90.8 L205.5,90.5 L206.8,90.0 L208.1,90.5 L209.5,90.2 L210.8,90.2 L212.2,90.2 L213.5,90.2 L214.8,90.2 L216.2,90.2 L217.5,90.5 L218.9,90.5 L220.2,90.5 L221.5,90.5 L222.9,90.2 L224.2,90.0 L225.6,90.0 L226.9,90.0 L228.2,90.2 L229.6,90.2 L230.9,90.2 L232.3,90.0 L233.6,90.0 L234.9,90.0 L236.3,89.7 L237.6,89.7 L239.0,90.0 L240.3,90.0 L241.6,90.0 L243.0,90.0 L244.3,90.0 L245.7,89.7 L247.0,89.7 L248.3,89.7 L249.7,89.7 L251.0,89.7 L252.4,89.4 L253.7,89.1 L255.0,88.9 L256.4,88.6 L257.7,88.6 L259.1,89.1 L260.4,89.1 L261.7,89.7 L263.1,89.7 L264.4,89.7 L265.8,90.0 L267.1,90.0 L268.4,90.0 L269.8,89.1 L271.1,88.6 L272.5,88.3 L273.8,88.3 L275.1,88.0 L276.5,87.5 L277.8,87.2 L279.2,87.5 L280.5,88.0 L281.8,88.6 L283.2,89.1 L284.5,89.4 L285.9,89.1 L287.2,89.1 L288.5,88.9 L289.9,88.3 L291.2,88.3 L292.6,87.5 L293.9,87.5 L295.2,87.5 L296.6,87.8 L297.9,88.0 L299.3,88.0 L300.6,88.0 L301.9,88.3 L303.3,88.3 L304.6,88.3 L306.0,88.3 L307.3,88.3 L308.6,88.0 L310.0,87.8 L311.3,87.8 L312.7,87.8 L314.0,87.8"/>
+    <path class="s3" d="M46.0,45.1 L47.3,45.4 L48.7,44.8 L50.0,45.7 L51.4,45.4 L52.7,47.0 L54.0,49.5 L55.4,53.1 L56.7,55.4 L58.1,58.1 L59.4,60.6 L60.7,63.9 L62.1,66.2 L63.4,68.9 L64.8,71.1 L66.1,74.2 L67.4,77.0 L68.8,80.0 L70.1,81.7 L71.5,83.0 L72.8,83.6 L74.1,84.7 L75.5,85.3 L76.8,86.4 L78.2,86.6 L79.5,86.4 L80.8,86.1 L82.2,86.1 L83.5,85.8 L84.9,85.0 L86.2,84.4 L87.5,83.9 L88.9,83.0 L90.2,82.8 L91.6,82.5 L92.9,81.9 L94.2,81.9 L95.6,80.6 L96.9,80.6 L98.3,80.6 L99.6,80.3 L100.9,80.3 L102.3,80.6 L103.6,79.7 L105.0,80.3 L106.3,80.3 L107.6,80.0 L109.0,80.3 L110.3,80.6 L111.7,80.6 L113.0,80.6 L114.3,80.3 L115.7,80.3 L117.0,80.3 L118.4,80.3 L119.7,80.6 L121.0,80.6 L122.4,80.8 L123.7,81.1 L125.1,81.4 L126.4,81.4 L127.7,81.4 L129.1,81.4 L130.4,81.7 L131.8,81.7 L133.1,81.7 L134.4,81.9 L135.8,81.9 L137.1,81.9 L138.5,81.9 L139.8,82.2 L141.1,81.7 L142.5,81.9 L143.8,82.2 L145.2,82.2 L146.5,82.2 L147.8,81.9 L149.2,81.4 L150.5,81.1 L151.9,81.4 L153.2,81.4 L154.5,81.4 L155.9,81.4 L157.2,80.8 L158.6,81.1 L159.9,81.1 L161.2,81.4 L162.6,81.7 L163.9,81.9 L165.3,82.2 L166.6,82.2 L167.9,82.5 L169.3,82.5 L170.6,82.5 L172.0,82.8 L173.3,82.2 L174.6,81.9 L176.0,81.9 L177.3,81.9 L178.7,82.2 L180.0,81.9 L181.3,81.7 L182.7,81.7 L184.0,81.4 L185.4,81.4 L186.7,81.7 L188.0,81.7 L189.4,81.4 L190.7,81.7 L192.1,81.7 L193.4,82.2 L194.7,82.2 L196.1,81.9 L197.4,81.9 L198.8,81.7 L200.1,82.2 L201.4,81.9 L202.8,81.7 L204.1,81.9 L205.5,82.2 L206.8,82.2 L208.1,81.7 L209.5,81.7 L210.8,81.4 L212.2,81.4 L213.5,81.4 L214.8,81.4 L216.2,81.7 L217.5,81.7 L218.9,81.7 L220.2,81.9 L221.5,81.9 L222.9,81.4 L224.2,81.4 L225.6,81.4 L226.9,81.4 L228.2,81.7 L229.6,81.7 L230.9,81.9 L232.3,82.2 L233.6,82.2 L234.9,82.2 L236.3,81.9 L237.6,81.7 L239.0,81.4 L240.3,81.4 L241.6,81.7 L243.0,81.4 L244.3,81.1 L245.7,81.4 L247.0,81.4 L248.3,81.7 L249.7,81.9 L251.0,81.9 L252.4,81.9 L253.7,81.7 L255.0,81.9 L256.4,81.9 L257.7,81.9 L259.1,81.7 L260.4,81.7 L261.7,81.9 L263.1,82.2 L264.4,82.2 L265.8,81.7 L267.1,82.2 L268.4,82.5 L269.8,82.2 L271.1,81.9 L272.5,81.9 L273.8,81.9 L275.1,81.9 L276.5,81.9 L277.8,81.7 L279.2,81.7 L280.5,81.7 L281.8,82.2 L283.2,82.2 L284.5,82.5 L285.9,82.5 L287.2,82.5 L288.5,82.2 L289.9,81.9 L291.2,81.7 L292.6,81.4 L293.9,81.4 L295.2,81.7 L296.6,81.9 L297.9,82.5 L299.3,81.9 L300.6,81.9 L301.9,82.2 L303.3,82.5 L304.6,82.8 L306.0,82.5 L307.3,82.2 L308.6,81.9 L310.0,81.7 L311.3,81.7 L312.7,81.7 L314.0,81.7"/>
+    <path class="s2" d="M46.0,45.1 L47.3,45.4 L48.7,44.8 L50.0,45.4 L51.4,45.4 L52.7,47.0 L54.0,49.8 L55.4,52.6 L56.7,56.2 L58.1,57.8 L59.4,60.3 L60.7,62.8 L62.1,65.3 L63.4,68.1 L64.8,69.5 L66.1,73.4 L67.4,75.6 L68.8,78.1 L70.1,79.7 L71.5,80.6 L72.8,81.4 L74.1,82.2 L75.5,82.5 L76.8,82.2 L78.2,81.9 L79.5,82.2 L80.8,81.4 L82.2,81.1 L83.5,81.1 L84.9,80.6 L86.2,80.0 L87.5,78.9 L88.9,77.8 L90.2,77.0 L91.6,75.6 L92.9,74.5 L94.2,73.1 L95.6,72.2 L96.9,70.9 L98.3,69.8 L99.6,68.9 L100.9,68.1 L102.3,67.3 L103.6,66.7 L105.0,66.4 L106.3,66.2 L107.6,66.2 L109.0,65.9 L110.3,65.0 L111.7,64.8 L113.0,64.2 L114.3,63.9 L115.7,63.9 L117.0,63.9 L118.4,63.4 L119.7,63.1 L121.0,62.6 L122.4,62.6 L123.7,62.3 L125.1,62.0 L126.4,61.4 L127.7,60.6 L129.1,60.1 L130.4,60.3 L131.8,59.5 L133.1,59.2 L134.4,59.5 L135.8,59.2 L137.1,59.2 L138.5,58.7 L139.8,58.1 L141.1,57.6 L142.5,57.0 L143.8,56.5 L145.2,56.2 L146.5,55.9 L147.8,55.6 L149.2,54.8 L150.5,54.0 L151.9,53.1 L153.2,53.1 L154.5,53.1 L155.9,52.6 L157.2,52.3 L158.6,52.0 L159.9,52.3 L161.2,52.0 L162.6,52.0 L163.9,52.0 L165.3,52.0 L166.6,51.5 L167.9,51.5 L169.3,51.5 L170.6,51.5 L172.0,51.2 L173.3,50.9 L174.6,50.9 L176.0,50.6 L177.3,50.4 L178.7,50.4 L180.0,50.1 L181.3,50.1 L182.7,50.1 L184.0,49.8 L185.4,49.5 L186.7,49.5 L188.0,49.3 L189.4,49.0 L190.7,48.7 L192.1,48.4 L193.4,48.2 L194.7,48.4 L196.1,48.7 L197.4,49.0 L198.8,49.0 L200.1,48.7 L201.4,48.2 L202.8,47.9 L204.1,48.2 L205.5,47.9 L206.8,47.6 L208.1,47.3 L209.5,47.3 L210.8,47.3 L212.2,47.0 L213.5,46.8 L214.8,47.0 L216.2,47.3 L217.5,47.3 L218.9,48.2 L220.2,48.2 L221.5,47.9 L222.9,48.2 L224.2,47.9 L225.6,47.6 L226.9,47.6 L228.2,47.3 L229.6,47.6 L230.9,47.3 L232.3,47.6 L233.6,47.3 L234.9,47.6 L236.3,47.6 L237.6,47.3 L239.0,47.6 L240.3,47.3 L241.6,47.3 L243.0,47.3 L244.3,47.3 L245.7,47.0 L247.0,47.3 L248.3,47.3 L249.7,47.0 L251.0,47.3 L252.4,47.0 L253.7,47.3 L255.0,47.3 L256.4,47.6 L257.7,47.3 L259.1,47.3 L260.4,47.3 L261.7,47.0 L263.1,47.6 L264.4,47.3 L265.8,46.8 L267.1,46.8 L268.4,47.3 L269.8,47.0 L271.1,47.3 L272.5,47.3 L273.8,47.3 L275.1,47.0 L276.5,47.3 L277.8,47.3 L279.2,47.3 L280.5,47.6 L281.8,47.3 L283.2,47.3 L284.5,47.6 L285.9,47.6 L287.2,47.6 L288.5,47.6 L289.9,47.3 L291.2,47.6 L292.6,47.3 L293.9,47.6 L295.2,47.3 L296.6,47.0 L297.9,46.8 L299.3,46.8 L300.6,47.0 L301.9,47.3 L303.3,47.6 L304.6,47.3 L306.0,47.3 L307.3,47.3 L308.6,47.0 L310.0,47.6 L311.3,47.0 L312.7,47.0 L314.0,47.0"/>
+    <text class="lbx" x="320.0" y="51.0" text-anchor="start">R</text>
+    <text class="lbx" x="320.0" y="85.7" text-anchor="start">Q</text>
+    <text class="lbx" x="320.0" y="99.7" text-anchor="start">P</text>
+    <text class="at" x="46" y="16" text-anchor="start">Clear water (the old task)</text>
+    <text class="at" x="180.0" y="244" text-anchor="middle">fine-tuning step</text>
+    <text class="at" transform="translate(11 116.0) rotate(-90)" text-anchor="middle">accuracy</text>
+    </svg>
+    <svg class="fg" viewBox="0 0 330 250" role="img" aria-label="Accuracy against fine-tuning step for three runs P, Q and R. Murky water (the new task).">
+    <line class="gl" x1="46.0" y1="206.0" x2="46.0" y2="26.0"/>
+    <line class="gl" x1="113.0" y1="206.0" x2="113.0" y2="26.0"/>
+    <line class="gl" x1="180.0" y1="206.0" x2="180.0" y2="26.0"/>
+    <line class="gl" x1="247.0" y1="206.0" x2="247.0" y2="26.0"/>
+    <line class="gl" x1="314.0" y1="206.0" x2="314.0" y2="26.0"/>
+    <line class="gl" x1="46.0" y1="178.3" x2="314.0" y2="178.3"/>
+    <line class="gl" x1="46.0" y1="150.6" x2="314.0" y2="150.6"/>
+    <line class="gl" x1="46.0" y1="122.9" x2="314.0" y2="122.9"/>
+    <line class="gl" x1="46.0" y1="95.2" x2="314.0" y2="95.2"/>
+    <line class="gl" x1="46.0" y1="67.5" x2="314.0" y2="67.5"/>
+    <line class="gl" x1="46.0" y1="39.8" x2="314.0" y2="39.8"/>
+    <line class="ax" x1="46.0" y1="206.0" x2="318.0" y2="206.0"/><line class="ax" x1="46.0" y1="206.0" x2="46.0" y2="22.0"/>
+    <text class="tk" x="46.0" y="221.0" text-anchor="middle">0</text>
+    <text class="tk" x="113.0" y="221.0" text-anchor="middle">50</text>
+    <text class="tk" x="180.0" y="221.0" text-anchor="middle">100</text>
+    <text class="tk" x="247.0" y="221.0" text-anchor="middle">150</text>
+    <text class="tk" x="314.0" y="221.0" text-anchor="middle">200</text>
+    <text class="tk" x="39.0" y="182.3" text-anchor="end">40%</text>
+    <text class="tk" x="39.0" y="154.6" text-anchor="end">50%</text>
+    <text class="tk" x="39.0" y="126.9" text-anchor="end">60%</text>
+    <text class="tk" x="39.0" y="99.2" text-anchor="end">70%</text>
+    <text class="tk" x="39.0" y="71.5" text-anchor="end">80%</text>
+    <text class="tk" x="39.0" y="43.8" text-anchor="end">90%</text>
+    <path class="s1" d="M46.0,184.7 L47.3,182.5 L48.7,181.1 L50.0,179.1 L51.4,176.4 L52.7,173.0 L54.0,170.0 L55.4,165.8 L56.7,163.1 L58.1,159.2 L59.4,155.0 L60.7,149.0 L62.1,143.4 L63.4,136.8 L64.8,131.5 L66.1,126.2 L67.4,122.6 L68.8,117.7 L70.1,111.8 L71.5,106.6 L72.8,100.5 L74.1,95.5 L75.5,93.0 L76.8,88.0 L78.2,83.0 L79.5,79.4 L80.8,76.1 L82.2,75.3 L83.5,74.5 L84.9,75.3 L86.2,73.6 L87.5,73.1 L88.9,72.5 L90.2,71.1 L91.6,71.1 L92.9,70.9 L94.2,70.6 L95.6,70.9 L96.9,70.3 L98.3,70.9 L99.6,70.0 L100.9,68.9 L102.3,68.9 L103.6,68.9 L105.0,67.8 L106.3,67.8 L107.6,67.8 L109.0,67.8 L110.3,67.5 L111.7,67.0 L113.0,66.2 L114.3,65.3 L115.7,64.8 L117.0,64.2 L118.4,62.8 L119.7,62.8 L121.0,63.1 L122.4,62.0 L123.7,60.3 L125.1,59.2 L126.4,57.6 L127.7,57.0 L129.1,56.2 L130.4,55.1 L131.8,55.1 L133.1,54.2 L134.4,53.4 L135.8,53.7 L137.1,54.0 L138.5,54.2 L139.8,53.7 L141.1,54.0 L142.5,53.1 L143.8,53.1 L145.2,53.1 L146.5,53.4 L147.8,52.3 L149.2,52.0 L150.5,52.6 L151.9,52.6 L153.2,52.3 L154.5,52.9 L155.9,52.6 L157.2,53.1 L158.6,52.3 L159.9,52.3 L161.2,52.3 L162.6,52.6 L163.9,52.6 L165.3,52.0 L166.6,53.1 L167.9,53.1 L169.3,53.1 L170.6,53.1 L172.0,53.4 L173.3,52.6 L174.6,52.6 L176.0,52.0 L177.3,52.6 L178.7,52.9 L180.0,52.0 L181.3,52.0 L182.7,51.8 L184.0,50.9 L185.4,50.9 L186.7,50.4 L188.0,50.4 L189.4,50.9 L190.7,51.2 L192.1,51.2 L193.4,51.2 L194.7,51.5 L196.1,51.5 L197.4,51.2 L198.8,50.9 L200.1,50.6 L201.4,50.4 L202.8,50.9 L204.1,49.8 L205.5,49.8 L206.8,50.1 L208.1,50.1 L209.5,50.1 L210.8,50.1 L212.2,50.4 L213.5,49.8 L214.8,49.5 L216.2,49.3 L217.5,49.8 L218.9,49.8 L220.2,50.1 L221.5,50.1 L222.9,49.0 L224.2,49.5 L225.6,49.5 L226.9,48.4 L228.2,48.4 L229.6,49.3 L230.9,49.8 L232.3,49.8 L233.6,50.1 L234.9,50.9 L236.3,51.2 L237.6,50.1 L239.0,49.3 L240.3,48.4 L241.6,49.0 L243.0,48.4 L244.3,48.4 L245.7,48.4 L247.0,47.9 L248.3,48.2 L249.7,48.2 L251.0,47.9 L252.4,48.4 L253.7,49.0 L255.0,49.0 L256.4,50.1 L257.7,49.8 L259.1,49.5 L260.4,49.3 L261.7,49.8 L263.1,49.5 L264.4,48.4 L265.8,48.2 L267.1,48.4 L268.4,49.3 L269.8,50.1 L271.1,50.1 L272.5,50.1 L273.8,49.5 L275.1,49.0 L276.5,49.3 L277.8,48.4 L279.2,47.9 L280.5,48.4 L281.8,48.2 L283.2,48.4 L284.5,48.4 L285.9,48.4 L287.2,49.0 L288.5,48.4 L289.9,48.4 L291.2,48.2 L292.6,49.3 L293.9,48.4 L295.2,48.2 L296.6,48.4 L297.9,48.4 L299.3,49.0 L300.6,49.0 L301.9,49.0 L303.3,48.4 L304.6,48.4 L306.0,49.0 L307.3,48.4 L308.6,49.0 L310.0,49.5 L311.3,49.5 L312.7,49.8 L314.0,49.8"/>
+    <path class="s3" d="M46.0,184.7 L47.3,182.5 L48.7,180.8 L50.0,179.1 L51.4,176.4 L52.7,173.9 L54.0,170.6 L55.4,167.2 L56.7,163.4 L58.1,160.3 L59.4,157.0 L60.7,151.7 L62.1,147.0 L63.4,141.2 L64.8,135.9 L66.1,130.7 L67.4,125.4 L68.8,121.0 L70.1,116.0 L71.5,110.2 L72.8,101.9 L74.1,97.2 L75.5,92.7 L76.8,90.8 L78.2,88.6 L79.5,85.0 L80.8,84.4 L82.2,83.9 L83.5,83.6 L84.9,85.0 L86.2,86.4 L87.5,88.3 L88.9,89.7 L90.2,92.5 L91.6,95.0 L92.9,97.7 L94.2,101.3 L95.6,105.5 L96.9,106.6 L98.3,108.8 L99.6,109.9 L100.9,111.3 L102.3,112.7 L103.6,112.4 L105.0,111.6 L106.3,111.3 L107.6,109.6 L109.0,109.6 L110.3,108.2 L111.7,107.4 L113.0,106.0 L114.3,104.9 L115.7,103.5 L117.0,102.7 L118.4,101.3 L119.7,100.5 L121.0,99.9 L122.4,98.8 L123.7,99.1 L125.1,99.1 L126.4,99.1 L127.7,100.5 L129.1,101.0 L130.4,101.0 L131.8,101.3 L133.1,100.5 L134.4,100.2 L135.8,99.1 L137.1,98.8 L138.5,98.6 L139.8,98.3 L141.1,97.4 L142.5,97.2 L143.8,98.6 L145.2,97.2 L146.5,96.9 L147.8,97.4 L149.2,98.6 L150.5,99.7 L151.9,100.5 L153.2,100.8 L154.5,100.8 L155.9,101.0 L157.2,100.5 L158.6,100.5 L159.9,99.4 L161.2,98.6 L162.6,96.9 L163.9,95.2 L165.3,95.2 L166.6,95.5 L167.9,95.5 L169.3,95.5 L170.6,95.8 L172.0,95.8 L173.3,96.1 L174.6,95.5 L176.0,96.6 L177.3,96.9 L178.7,97.2 L180.0,96.3 L181.3,95.2 L182.7,95.0 L184.0,95.2 L185.4,96.3 L186.7,96.1 L188.0,96.1 L189.4,95.8 L190.7,96.3 L192.1,95.8 L193.4,95.5 L194.7,95.8 L196.1,95.2 L197.4,95.5 L198.8,95.8 L200.1,96.1 L201.4,95.2 L202.8,94.1 L204.1,94.4 L205.5,94.7 L206.8,94.4 L208.1,95.2 L209.5,97.7 L210.8,98.8 L212.2,99.1 L213.5,99.1 L214.8,98.8 L216.2,96.6 L217.5,94.7 L218.9,93.6 L220.2,93.8 L221.5,94.1 L222.9,94.4 L224.2,95.5 L225.6,96.6 L226.9,96.9 L228.2,96.1 L229.6,96.3 L230.9,96.9 L232.3,96.9 L233.6,96.1 L234.9,96.3 L236.3,95.8 L237.6,95.2 L239.0,96.3 L240.3,94.7 L241.6,95.2 L243.0,95.2 L244.3,94.4 L245.7,94.7 L247.0,95.8 L248.3,96.6 L249.7,97.4 L251.0,98.8 L252.4,98.8 L253.7,99.1 L255.0,98.8 L256.4,97.4 L257.7,96.3 L259.1,96.3 L260.4,94.7 L261.7,95.0 L263.1,96.1 L264.4,95.0 L265.8,94.4 L267.1,95.0 L268.4,95.2 L269.8,96.1 L271.1,96.9 L272.5,97.2 L273.8,97.7 L275.1,98.0 L276.5,98.6 L277.8,99.7 L279.2,98.6 L280.5,97.7 L281.8,95.8 L283.2,94.1 L284.5,93.0 L285.9,92.5 L287.2,93.6 L288.5,94.4 L289.9,95.8 L291.2,96.3 L292.6,97.7 L293.9,98.8 L295.2,99.4 L296.6,98.8 L297.9,98.3 L299.3,96.6 L300.6,95.2 L301.9,95.0 L303.3,94.7 L304.6,95.5 L306.0,95.8 L307.3,95.5 L308.6,96.3 L310.0,95.2 L311.3,96.6 L312.7,96.9 L314.0,97.2"/>
+    <path class="s2" d="M46.0,184.7 L47.3,182.5 L48.7,180.8 L50.0,178.9 L51.4,176.6 L52.7,173.6 L54.0,170.3 L55.4,167.5 L56.7,163.4 L58.1,160.3 L59.4,156.7 L60.7,151.2 L62.1,147.0 L63.4,141.2 L64.8,135.4 L66.1,130.7 L67.4,125.1 L68.8,121.5 L70.1,116.0 L71.5,111.0 L72.8,103.0 L74.1,96.9 L75.5,91.9 L76.8,88.0 L78.2,86.9 L79.5,86.4 L80.8,85.0 L82.2,81.4 L83.5,81.7 L84.9,81.1 L86.2,80.0 L87.5,79.7 L88.9,79.2 L90.2,78.6 L91.6,78.1 L92.9,78.6 L94.2,79.4 L95.6,80.3 L96.9,82.2 L98.3,84.2 L99.6,85.3 L100.9,85.8 L102.3,86.9 L103.6,86.1 L105.0,85.8 L106.3,86.1 L107.6,83.9 L109.0,82.8 L110.3,80.8 L111.7,80.6 L113.0,79.7 L114.3,78.1 L115.7,76.7 L117.0,75.8 L118.4,75.3 L119.7,74.5 L121.0,74.2 L122.4,72.5 L123.7,73.1 L125.1,71.4 L126.4,70.6 L127.7,69.2 L129.1,68.4 L130.4,66.7 L131.8,65.6 L133.1,64.2 L134.4,63.9 L135.8,62.8 L137.1,62.0 L138.5,63.1 L139.8,62.3 L141.1,62.3 L142.5,62.0 L143.8,61.7 L145.2,62.3 L146.5,62.0 L147.8,62.0 L149.2,62.0 L150.5,62.3 L151.9,62.3 L153.2,61.7 L154.5,60.9 L155.9,60.6 L157.2,60.6 L158.6,60.3 L159.9,59.8 L161.2,58.7 L162.6,57.0 L163.9,56.5 L165.3,56.5 L166.6,55.9 L167.9,55.6 L169.3,55.9 L170.6,54.5 L172.0,54.2 L173.3,53.7 L174.6,53.4 L176.0,52.9 L177.3,52.9 L178.7,54.0 L180.0,54.0 L181.3,53.7 L182.7,54.0 L184.0,54.2 L185.4,54.5 L186.7,54.0 L188.0,53.4 L189.4,52.3 L190.7,51.8 L192.1,52.3 L193.4,53.1 L194.7,52.6 L196.1,52.6 L197.4,52.9 L198.8,52.9 L200.1,53.1 L201.4,52.6 L202.8,52.6 L204.1,53.4 L205.5,52.6 L206.8,52.9 L208.1,51.8 L209.5,51.2 L210.8,52.0 L212.2,51.8 L213.5,51.8 L214.8,51.8 L216.2,52.9 L217.5,52.9 L218.9,53.4 L220.2,53.1 L221.5,52.9 L222.9,52.9 L224.2,53.4 L225.6,52.9 L226.9,53.1 L228.2,52.6 L229.6,52.6 L230.9,52.9 L232.3,52.0 L233.6,52.0 L234.9,52.0 L236.3,51.8 L237.6,52.3 L239.0,52.6 L240.3,53.4 L241.6,52.6 L243.0,52.0 L244.3,51.8 L245.7,51.2 L247.0,52.0 L248.3,52.3 L249.7,52.6 L251.0,52.6 L252.4,52.6 L253.7,52.6 L255.0,52.0 L256.4,52.6 L257.7,52.9 L259.1,52.6 L260.4,52.9 L261.7,52.9 L263.1,52.0 L264.4,51.2 L265.8,50.9 L267.1,50.9 L268.4,52.0 L269.8,51.8 L271.1,52.0 L272.5,52.3 L273.8,52.6 L275.1,53.4 L276.5,53.1 L277.8,53.4 L279.2,52.9 L280.5,52.9 L281.8,52.0 L283.2,51.2 L284.5,51.8 L285.9,51.8 L287.2,51.5 L288.5,52.3 L289.9,52.3 L291.2,52.0 L292.6,51.8 L293.9,52.3 L295.2,52.6 L296.6,52.9 L297.9,51.8 L299.3,51.8 L300.6,51.5 L301.9,51.5 L303.3,52.0 L304.6,51.8 L306.0,51.2 L307.3,51.2 L308.6,50.9 L310.0,51.5 L311.3,52.0 L312.7,52.0 L314.0,52.0"/>
+    <text class="lbx" x="320.0" y="53.8" text-anchor="start">P</text>
+    <text class="lbx" x="320.0" y="67.8" text-anchor="start">R</text>
+    <text class="lbx" x="320.0" y="101.2" text-anchor="start">Q</text>
+    <text class="at" x="46" y="16" text-anchor="start">Murky water (the new task)</text>
+    <text class="at" x="180.0" y="244" text-anchor="middle">fine-tuning step</text>
+    <text class="at" transform="translate(11 116.0) rotate(-90)" text-anchor="middle">accuracy</text>
+    </svg>
+    </div></div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q18" value="0"><b>A</b><span>Run P</span></label>
+      <label class="opt"><input type="radio" name="q18" value="1"><b>B</b><span>Run Q</span></label>
+      <label class="opt"><input type="radio" name="q18" value="2"><b>C</b><span>Run R</span></label>
+      <label class="opt"><input type="radio" name="q18" value="3"><b>D</b><span>The charts cannot tell, because the three runs differ only in their springs.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../b7-continual-learning/#forget">B7 Catastrophic forgetting</a> and <a href="../b7-continual-learning/#ewc">B7 Elastic weight consolidation: springs on the weights</a>.</p>
+  </article>
+
+  <article class="pq" id="q19" data-q="q19" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 19<span class="pq-st" hidden></span></span><span class="pq-tag">Fine-tuning and forgetting</span></h3>
+    <p class="pq-t tight">A logistic model has a weight \(w\) on the scaled length \(x\). For one shark the slope of the log loss with respect to \(w\) is \((p - y)\,x\). The table lists five made-up sharks with the model's probability \(p\) of mature and the label \(y\) (1 for mature). The Fisher diagonal entry \(F_{ww}\) is estimated as the mean of the squared slopes. What is it? Give three decimal places.</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Five made-up sharks with scaled length, model probability and label">
+    <thead>
+    <tr><th></th><th>Scaled length x</th><th>Probability p</th><th>Label y</th></tr></thead><tbody>
+    <tr><th>Shark 1</th><td>0.8</td><td>0.95</td><td>1</td></tr>
+    <tr><th>Shark 2</th><td>−1.2</td><td>0.50</td><td>0</td></tr>
+    <tr><th>Shark 3</th><td>0.5</td><td>0.60</td><td>0</td></tr>
+    <tr><th>Shark 4</th><td>−0.6</td><td>0.40</td><td>1</td></tr>
+    <tr><th>Shark 5</th><td>1.5</td><td>0.99</td><td>1</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 19, the Fisher diagonal entry"></label>
+    <p class="revise" hidden>Revise <a href="../b7-continual-learning/#fisher">B7 Which weights does the old water need?</a>.</p>
+  </article>
+
+  <article class="pq" id="q20" data-q="q20" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 20<span class="pq-st" hidden></span></span><span class="pq-tag">Fine-tuning and forgetting</span></h3>
+    <p class="pq-t tight">After the clear water, a model has weights \(\theta^*\) with a Fisher diagonal \(F\). Fine-tuning on the murky water has moved the weights to \(\theta\). The EWC penalty is \(\tfrac{\lambda}{2}\sum_j F_{jj}\,(\theta_j - \theta^*_j)^2\), and here \(\lambda = 20\). What is the penalty for the three weights in the table? Give two decimal places.</p>
+    <div class="pfig">
+    <div class="tscroll"><table class="ptable" aria-label="Three weights with old value, new value and Fisher diagonal">
+    <thead>
+    <tr><th>Weight</th><th>Old value θ*</th><th>New value θ</th><th>Fisher F</th></tr></thead><tbody>
+    <tr><th>w (length)</th><td>1.20</td><td>1.50</td><td>0.4</td></tr>
+    <tr><th>b (bias)</th><td>−0.50</td><td>−0.10</td><td>0.05</td></tr>
+    <tr><th>c (clarity reading)</th><td>0.00</td><td>2.00</td><td>0.002</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 20, the penalty"></label>
+    <p class="revise" hidden>Revise <a href="../b7-continual-learning/#ewc">B7 Elastic weight consolidation: springs on the weights</a>.</p>
+  </article>
+</section>
+
+<section id="debug" aria-labelledby="debug-h">
+  <h2 id="debug-h">Debugging</h2>
+
+  <article class="pq" id="q21" data-q="q21" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 21<span class="pq-st" hidden></span></span><span class="pq-tag">Debugging</span></h3>
+    <p class="pq-t">A SharkCam network sorts photos into 12 classes (a made-up task). Its weights are small random numbers, so it gives all the classes almost the same probability. About what cross-entropy loss, with the natural logarithm, should it show on its first batch? Give two decimal places.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 21, the starting loss"></label>
+    <p class="revise" hidden>Revise <a href="../b8-debugging/#recipe">B8 The routine and the starting loss</a>.</p>
+  </article>
+
+  <article class="pq" id="q22" data-q="q22" data-kind="mc">
+    <h3 class="pq-h"><span>Question 22<span class="pq-st" hidden></span></span><span class="pq-tag">Debugging</span></h3>
+    <p class="pq-t tight">A five-species network ends training with a flat loss near 1.2 and an accuracy equal to the lazy model's. The left chart shows its loss and the right chart shows the gradient norm of the five layers at step 120. Which cause fits both charts best?</p>
+    <div class="pfig"><p class="fcap">A five-species network, four hidden layers of 24 ReLU units, trained on 480 made-up catch records. The lazy model's accuracy is 48% and this network's is 48%.</p><div class="pair">
+    <svg class="fg" viewBox="0 0 330 250" role="img" aria-label="Training and validation loss against step for a five-species network. Both start at 1.61, fall slowly and are flat at about 1.2 to 1.25 from step 60 onward. Dashed lines mark 1.61 and 1.23.">
+    <line class="gl" x1="46.0" y1="206.0" x2="46.0" y2="26.0"/>
+    <line class="gl" x1="117.5" y1="206.0" x2="117.5" y2="26.0"/>
+    <line class="gl" x1="188.9" y1="206.0" x2="188.9" y2="26.0"/>
+    <line class="gl" x1="260.4" y1="206.0" x2="260.4" y2="26.0"/>
+    <line class="gl" x1="46.0" y1="206.0" x2="314.0" y2="206.0"/>
+    <line class="gl" x1="46.0" y1="154.6" x2="314.0" y2="154.6"/>
+    <line class="gl" x1="46.0" y1="103.1" x2="314.0" y2="103.1"/>
+    <line class="gl" x1="46.0" y1="51.7" x2="314.0" y2="51.7"/>
+    <line class="ax" x1="46.0" y1="206.0" x2="318.0" y2="206.0"/><line class="ax" x1="46.0" y1="206.0" x2="46.0" y2="22.0"/>
+    <text class="tk" x="46.0" y="221.0" text-anchor="middle">0</text>
+    <text class="tk" x="117.5" y="221.0" text-anchor="middle">100</text>
+    <text class="tk" x="188.9" y="221.0" text-anchor="middle">200</text>
+    <text class="tk" x="260.4" y="221.0" text-anchor="middle">300</text>
+    <text class="tk" x="39.0" y="210.0" text-anchor="end">1</text>
+    <text class="tk" x="39.0" y="158.6" text-anchor="end">1.2</text>
+    <text class="tk" x="39.0" y="107.1" text-anchor="end">1.4</text>
+    <text class="tk" x="39.0" y="55.7" text-anchor="end">1.6</text>
+    <path class="l1" d="M46.0,49.1 L46.7,49.1 L47.4,49.1 L48.1,51.7 L48.9,54.3 L49.6,54.3 L50.3,54.3 L51.0,59.4 L51.7,67.1 L52.4,69.7 L53.1,72.3 L53.9,80.0 L54.6,74.9 L58.9,87.7 L63.2,108.3 L67.4,123.7 L71.7,134.0 L76.0,131.4 L80.3,128.9 L84.6,136.6 L88.9,139.1 L93.2,144.3 L97.5,144.3 L101.7,134.0 L106.0,134.0 L110.3,146.9 L114.6,136.6 L118.9,136.6 L123.2,139.1 L127.5,144.3 L131.8,154.6 L136.0,157.1 L140.3,121.1 L144.6,152.0 L148.9,146.9 L153.2,141.7 L157.5,136.6 L161.8,152.0 L166.1,136.6 L170.4,146.9 L174.6,149.4 L178.9,144.3 L183.2,146.9 L187.5,149.4 L191.8,149.4 L196.1,134.0 L200.4,146.9 L204.7,146.9 L208.9,144.3 L213.2,152.0 L217.5,136.6 L221.8,139.1 L226.1,154.6 L230.4,134.0 L234.7,149.4 L239.0,149.4 L243.2,136.6 L247.5,141.7 L251.8,154.6 L256.1,144.3 L260.4,149.4 L264.7,136.6 L269.0,144.3 L273.3,149.4 L277.6,146.9 L281.8,152.0 L286.1,146.9 L290.4,149.4 L294.7,139.1 L299.0,144.3 L303.3,146.9 L307.6,141.7 L311.9,152.0"/>
+    <path class="l2" d="M46.0,49.1 L46.7,49.1 L47.4,51.7 L48.1,54.3 L48.9,56.9 L49.6,59.4 L50.3,62.0 L51.0,64.6 L51.7,67.1 L52.4,72.3 L53.1,74.9 L53.9,77.4 L54.6,82.6 L58.9,100.6 L63.2,113.4 L67.4,123.7 L71.7,128.9 L76.0,131.4 L80.3,134.0 L84.6,134.0 L88.9,134.0 L93.2,136.6 L97.5,136.6 L101.7,136.6 L106.0,136.6 L110.3,136.6 L114.6,136.6 L118.9,139.1 L123.2,139.1 L127.5,139.1 L131.8,139.1 L136.0,139.1 L140.3,139.1 L144.6,139.1 L148.9,139.1 L153.2,139.1 L157.5,141.7 L161.8,141.7 L166.1,141.7 L170.4,141.7 L174.6,141.7 L178.9,141.7 L183.2,141.7 L187.5,141.7 L191.8,141.7 L196.1,141.7 L200.4,141.7 L204.7,141.7 L208.9,141.7 L213.2,141.7 L217.5,141.7 L221.8,141.7 L226.1,141.7 L230.4,141.7 L234.7,141.7 L239.0,141.7 L243.2,144.3 L247.5,144.3 L251.8,144.3 L256.1,144.3 L260.4,141.7 L264.7,141.7 L269.0,141.7 L273.3,141.7 L277.6,144.3 L281.8,144.3 L286.1,144.3 L290.4,144.3 L294.7,144.3 L299.0,144.3 L303.3,144.3 L307.6,144.3 L311.9,144.3"/>
+    <path class="dgn" d="M46.0,49.3 L314.0,49.3"/>
+    <path class="dgn" d="M46.0,146.6 L314.0,146.6"/>
+    <text class="lbm" x="314.0" y="43.3" text-anchor="end">ln 5 = 1.61</text>
+    <text class="lbm" x="314.0" y="179.6" text-anchor="end">base-rate loss 1.23</text>
+    <text class="lb" x="124.6" y="72.3" text-anchor="start">navy line: training loss</text>
+    <text class="lbc" x="124.6" y="87.3" text-anchor="start">coral line: validation loss</text>
+    <text class="at" x="46" y="16" text-anchor="start">Loss during training</text>
+    <text class="at" x="180.0" y="244" text-anchor="middle">step</text>
+    <text class="at" transform="translate(11 116.0) rotate(-90)" text-anchor="middle">cross-entropy loss</text>
+    </svg>
+    <svg class="fg" viewBox="0 0 330 250" role="img" aria-label="Bars on a log scale for the gradient norm of the five layers at step 120. Layers 1, 2 and 3 are near one ten-millionth, layer 4 is about 7e-6 and layer 5, next to the output, is about 0.01.">
+    <line class="gl" x1="52.0" y1="206.0" x2="314.0" y2="206.0"/>
+    <line class="gl" x1="52.0" y1="161.0" x2="314.0" y2="161.0"/>
+    <line class="gl" x1="52.0" y1="116.0" x2="314.0" y2="116.0"/>
+    <line class="gl" x1="52.0" y1="71.0" x2="314.0" y2="71.0"/>
+    <line class="gl" x1="52.0" y1="26.0" x2="314.0" y2="26.0"/>
+    <line class="ax" x1="52.0" y1="206.0" x2="318.0" y2="206.0"/><line class="ax" x1="52.0" y1="206.0" x2="52.0" y2="22.0"/>
+    <text class="tk" x="45.0" y="210.0" text-anchor="end">1e-8</text>
+    <text class="tk" x="45.0" y="165.0" text-anchor="end">1e-6</text>
+    <text class="tk" x="45.0" y="120.0" text-anchor="end">1e-4</text>
+    <text class="tk" x="45.0" y="75.0" text-anchor="end">1e-2</text>
+    <text class="tk" x="45.0" y="30.0" text-anchor="end">1</text>
+    <rect class="bn" x="67.1" y="179.2" width="30.2" height="26.8"/>
+    <text class="lbm" x="82.2" y="174.2" text-anchor="middle">1.5e-7</text>
+    <text class="tk" x="82.2" y="224.0" text-anchor="middle">L1</text>
+    <rect class="bn" x="117.5" y="179.7" width="30.2" height="26.3"/>
+    <text class="lbm" x="132.6" y="174.7" text-anchor="middle">1.5e-7</text>
+    <text class="tk" x="132.6" y="224.0" text-anchor="middle">L2</text>
+    <rect class="bn" x="167.9" y="181.7" width="30.2" height="24.3"/>
+    <text class="lbm" x="183.0" y="176.7" text-anchor="middle">1.2e-7</text>
+    <text class="tk" x="183.0" y="224.0" text-anchor="middle">L3</text>
+    <rect class="bn" x="218.3" y="141.9" width="30.2" height="64.1"/>
+    <text class="lbm" x="233.4" y="136.9" text-anchor="middle">7.1e-6</text>
+    <text class="tk" x="233.4" y="224.0" text-anchor="middle">L4</text>
+    <rect class="bn" x="268.7" y="68.1" width="30.2" height="137.9"/>
+    <text class="lbm" x="283.8" y="63.1" text-anchor="middle">1.3e-2</text>
+    <text class="tk" x="283.8" y="224.0" text-anchor="middle">L5</text>
+    <text class="at" x="52" y="16" text-anchor="start">Gradient norm of each layer at step 120</text>
+    <text class="at" x="183.0" y="244" text-anchor="middle">layer (1 is next to the input)</text>
+    <text class="at" transform="translate(11 116.0) rotate(-90)" text-anchor="middle">gradient norm (log scale)</text>
+    </svg>
+    </div></div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q22" value="0"><b>A</b><span>The weights started with too small a spread. The slope shrinks layer by layer on the way back, so layer 1 gets tens of thousands of times less slope than layer 5 and barely moves.</span></label>
+      <label class="opt"><input type="radio" name="q22" value="1"><b>B</b><span>The learning rate is too high. The weights jump about, and the loss cannot settle below the base-rate value.</span></label>
+      <label class="opt"><input type="radio" name="q22" value="2"><b>C</b><span>The inputs were not scaled. Large inputs would make the first loss far above ln 5.</span></label>
+      <label class="opt"><input type="radio" name="q22" value="3"><b>D</b><span>The labels are shuffled. The training loss would then fall while the validation loss stays high.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../b8-debugging/#recipe">B8 The routine and the starting loss</a>, <a href="../b8-debugging/#lab">B8 The broken-run lab</a> and <a href="../b8-debugging/#grad">B8 Gradient norms and the update-to-weight ratio</a>.</p>
+  </article>
+
+  <article class="pq" id="q23" data-q="q23" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 23<span class="pq-st" hidden></span></span><span class="pq-tag">Debugging</span></h3>
+    <p class="pq-t tight">The chart shows the gradient norm of three weight matrices of a regression network for an ordinary batch and for the batch of the 32 heaviest sharks. The whole gradient of the heavy batch is clipped by norm with \(c = 5\). All parts are multiplied by \(\min(1, c/\lVert g\rVert)\), where \(\lVert g\rVert\) is the length of the three parts together. After clipping, what is the norm of the layer 2 part? Give two decimal places.</p>
+    <div class="pfig"><p class="fcap">Gradient norms of a made-up regression network (weight of a shark in kg), from chapter B8.</p>
+    <svg class="fg" viewBox="0 0 360 270" role="img" aria-label="Grouped bars on a log scale for the gradient norms of three weight matrices. For an ordinary batch of 32 sharks they are 0.8, 2.6 and 3.0. For the batch of the 32 heaviest sharks they are 19.6, 77.1 and 47.0.">
+    <line class="gl" x1="52.0" y1="199.9" x2="346.0" y2="199.9"/>
+    <line class="gl" x1="52.0" y1="133.0" x2="346.0" y2="133.0"/>
+    <line class="gl" x1="52.0" y1="66.1" x2="346.0" y2="66.1"/>
+    <line class="ax" x1="52.0" y1="220.0" x2="350.0" y2="220.0"/><line class="ax" x1="52.0" y1="220.0" x2="52.0" y2="10.0"/>
+    <text class="tk" x="45.0" y="203.9" text-anchor="end">1</text>
+    <text class="tk" x="45.0" y="137.0" text-anchor="end">10</text>
+    <text class="tk" x="45.0" y="70.1" text-anchor="end">100</text>
+    <rect class="bn" x="71.3" y="206.3" width="34.9" height="13.7"/>
+    <text class="lb" x="88.8" y="201.3" text-anchor="middle">0.8</text>
+    <rect class="bp" x="108.0" y="113.4" width="34.9" height="106.6"/>
+    <text class="lb" x="125.5" y="108.4" text-anchor="middle">19.6</text>
+    <text class="tk" x="107.1" y="242.0" text-anchor="middle">layer 1</text>
+    <rect class="bn" x="163.2" y="172.1" width="34.9" height="47.9"/>
+    <text class="lb" x="180.6" y="167.1" text-anchor="middle">2.6</text>
+    <rect class="bp" x="199.9" y="73.6" width="34.9" height="146.4"/>
+    <text class="lb" x="217.4" y="68.6" text-anchor="middle">77.1</text>
+    <text class="tk" x="199.0" y="242.0" text-anchor="middle">layer 2</text>
+    <rect class="bn" x="255.0" y="167.9" width="34.9" height="52.1"/>
+    <text class="lb" x="272.5" y="162.9" text-anchor="middle">3.0</text>
+    <rect class="bp" x="291.8" y="88.0" width="34.9" height="132.0"/>
+    <text class="lb" x="309.2" y="83.0" text-anchor="middle">47.0</text>
+    <text class="tk" x="290.9" y="242.0" text-anchor="middle">layer 3</text>
+    <text class="lbm" x="56.6" y="27.3" text-anchor="start">navy: an ordinary batch of 32 sharks</text>
+    <text class="lbc" x="56.6" y="42.3" text-anchor="start">coral: the batch of the 32 heaviest sharks</text>
+    <text class="at" transform="translate(11 117.0) rotate(-90)" text-anchor="middle">norm of the gradient (log scale)</text>
+    </svg>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 23, the clipped norm of layer 2"></label>
+    <p class="revise" hidden>Revise <a href="../b8-debugging/#grad">B8 Gradient norms and the update-to-weight ratio</a> and <a href="../b8-debugging/#clip">B8 Gradient clipping</a>.</p>
+  </article>
+</section>
+
+<section id="explain" aria-labelledby="explain-h">
+  <h2 id="explain-h">Explaining a network</h2>
+
+  <article class="pq" id="q24" data-q="q24" data-kind="mc">
+    <h3 class="pq-h"><span>Question 24<span class="pq-st" hidden></span></span><span class="pq-tag">Explaining a network</span></h3>
+    <p class="pq-t tight">The chart is a deletion test of one photo of a hammerhead. Blocks of the photo are removed, in the order that a method ranks them or in random order, and the network's hammerhead score is plotted. Which statement does the chart support?</p>
+    <div class="pfig"><p class="fcap">One network (ResNet-18) and one photo of a hammerhead. Blocks of 8 by 8 pixels are set to the mean colour. The random curve is the mean of 20 random orders.</p>
+    <svg class="fg" viewBox="0 0 360 280" role="img" aria-label="Hammerhead score against the share of the photo removed, in blocks ranked three ways. With blocks in random order the score first rises above its starting value and then falls slowly. With blocks ranked by saliency it falls to about half by 10 per cent removed and near zero by 30. With blocks ranked by Grad-CAM it falls to a small fraction by 10 per cent removed.">
+    <line class="gl" x1="52.0" y1="234.0" x2="52.0" y2="14.0"/>
+    <line class="gl" x1="87.3" y1="234.0" x2="87.3" y2="14.0"/>
+    <line class="gl" x1="122.7" y1="234.0" x2="122.7" y2="14.0"/>
+    <line class="gl" x1="158.0" y1="234.0" x2="158.0" y2="14.0"/>
+    <line class="gl" x1="193.3" y1="234.0" x2="193.3" y2="14.0"/>
+    <line class="gl" x1="264.0" y1="234.0" x2="264.0" y2="14.0"/>
+    <line class="gl" x1="52.0" y1="234.0" x2="264.0" y2="234.0"/>
+    <line class="gl" x1="52.0" y1="190.0" x2="264.0" y2="190.0"/>
+    <line class="gl" x1="52.0" y1="146.0" x2="264.0" y2="146.0"/>
+    <line class="gl" x1="52.0" y1="102.0" x2="264.0" y2="102.0"/>
+    <line class="gl" x1="52.0" y1="58.0" x2="264.0" y2="58.0"/>
+    <line class="gl" x1="52.0" y1="14.0" x2="264.0" y2="14.0"/>
+    <line class="ax" x1="52.0" y1="234.0" x2="268.0" y2="234.0"/><line class="ax" x1="52.0" y1="234.0" x2="52.0" y2="10.0"/>
+    <text class="tk" x="52.0" y="249.0" text-anchor="middle">0</text>
+    <text class="tk" x="87.3" y="249.0" text-anchor="middle">5</text>
+    <text class="tk" x="122.7" y="249.0" text-anchor="middle">10</text>
+    <text class="tk" x="158.0" y="249.0" text-anchor="middle">15</text>
+    <text class="tk" x="193.3" y="249.0" text-anchor="middle">20</text>
+    <text class="tk" x="264.0" y="249.0" text-anchor="middle">30</text>
+    <text class="tk" x="45.0" y="238.0" text-anchor="end">0%</text>
+    <text class="tk" x="45.0" y="194.0" text-anchor="end">20%</text>
+    <text class="tk" x="45.0" y="150.0" text-anchor="end">40%</text>
+    <text class="tk" x="45.0" y="106.0" text-anchor="end">60%</text>
+    <text class="tk" x="45.0" y="62.0" text-anchor="end">80%</text>
+    <text class="tk" x="45.0" y="18.0" text-anchor="end">100%</text>
+    <path class="s1" d="M52.0,74.5 L87.3,73.6 L122.7,134.3 L158.0,139.4 L193.3,168.7 L264.0,226.3"/>
+    <circle class="d1" cx="52.0" cy="74.5" r="2.8"/>
+    <circle class="d1" cx="87.3" cy="73.6" r="2.8"/>
+    <circle class="d1" cx="122.7" cy="134.3" r="2.8"/>
+    <circle class="d1" cx="158.0" cy="139.4" r="2.8"/>
+    <circle class="d1" cx="193.3" cy="168.7" r="2.8"/>
+    <circle class="d1" cx="264.0" cy="226.3" r="2.8"/>
+    <path class="s2" d="M52.0,74.5 L87.3,74.9 L122.7,203.2 L158.0,226.7 L193.3,232.9 L264.0,234.0"/>
+    <circle class="d2" cx="52.0" cy="74.5" r="2.8"/>
+    <circle class="d2" cx="87.3" cy="74.9" r="2.8"/>
+    <circle class="d2" cx="122.7" cy="203.2" r="2.8"/>
+    <circle class="d2" cx="158.0" cy="226.7" r="2.8"/>
+    <circle class="d2" cx="193.3" cy="232.9" r="2.8"/>
+    <circle class="d2" cx="264.0" cy="234.0" r="2.8"/>
+    <path class="s4" d="M52.0,74.5 L87.3,23.9 L122.7,63.5 L158.0,117.0 L193.3,146.4 L264.0,194.8"/>
+    <circle class="dgr" cx="52.0" cy="74.5" r="2.8"/>
+    <circle class="dgr" cx="87.3" cy="23.9" r="2.8"/>
+    <circle class="dgr" cx="122.7" cy="63.5" r="2.8"/>
+    <circle class="dgr" cx="158.0" cy="117.0" r="2.8"/>
+    <circle class="dgr" cx="193.3" cy="146.4" r="2.8"/>
+    <circle class="dgr" cx="264.0" cy="194.8" r="2.8"/>
+    <text class="lb" x="272.0" y="198.8" text-anchor="start">random order</text>
+    <text class="lb" x="272.0" y="216.3" text-anchor="start">saliency</text>
+    <text class="lbc" x="272.0" y="238.0" text-anchor="start">Grad-CAM</text>
+    <text class="at" x="158.0" y="274" text-anchor="middle">share of the photo's blocks removed, per cent</text>
+    <text class="at" transform="translate(11 124.0) rotate(-90)" text-anchor="middle">hammerhead score</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q24" value="0"><b>A</b><span>Grad-CAM shows what the network understands about hammerheads, because removing its blocks drives the score to nearly 0.</span></label>
+      <label class="opt"><input type="radio" name="q24" value="1"><b>B</b><span>Saliency is no better than random order, because its curve is also at the starting score after 5% of the blocks are removed.</span></label>
+      <label class="opt"><input type="radio" name="q24" value="2"><b>C</b><span>Grad-CAM's blocks matter more to the score than saliency's: at 10% removed the score is about 14% against 45%, and a random order leaves 78%. The random curve first rises, so grey blocks are not neutral, and the random curve is the control to read against.</span></label>
+      <label class="opt"><input type="radio" name="q24" value="3"><b>D</b><span>The rise of the random curve at 5% shows that the network is broken, so the chart cannot be used.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../b9-explaining/#ig">B9 Integrated gradients, SHAP, and a deletion test</a> and <a href="../b9-explaining/#cam">B9 Grad-CAM and four maps side by side</a>.</p>
+  </article>
+
+  <article class="pq" id="q25" data-q="q25" data-kind="mc">
+    <h3 class="pq-h"><span>Question 25<span class="pq-st" hidden></span></span><span class="pq-tag">Explaining a network</span></h3>
+    <p class="pq-t tight">A ResNet-18 was scored on a dolphin photo and on a hammerhead photo, with some edits. The table shows its score for “great white shark” and its top choice. Which conclusion do the numbers support?</p>
+    <div class="pfig"><p class="fcap">ResNet-18 on photos from chapter B9. The edits are our own.</p>
+    <div class="tscroll"><table class="ptable tl w2" aria-label="Scores of a ResNet-18 for six photos">
+    <thead>
+    <tr><th>Photo</th><th>Score for “great white shark”</th><th>Top choice</th></tr></thead><tbody>
+    <tr><th>Dolphin, original photo</th><td>41%</td><td>grey whale 52%</td></tr>
+    <tr><th>Dolphin painted out, sea left</th><td>93%</td><td>great white shark 93%</td></tr>
+    <tr><th>Dolphin kept, sea replaced by grey</th><td>4%</td><td>grey whale 57%</td></tr>
+    <tr><th>Hammerhead, original photo</th><td>11%</td><td>hammerhead 73%</td></tr>
+    <tr><th>Hammerhead pasted on green water</th><td>79%</td><td>great white shark 79%</td></tr>
+    <tr><th>Hammerhead pasted on dark sand</th><td>1%</td><td>hammerhead 75%</td></tr>
+    </tbody></table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q25" value="0"><b>A</b><span>The network has learned what a great white shark looks like, because it gives 93% to the sea once the dolphin is painted out.</span></label>
+      <label class="opt"><input type="radio" name="q25" value="1"><b>B</b><span>For this network and these photos the sea supplies much of the evidence for “great white shark”. A test set in which sharks are always in water would not show this.</span></label>
+      <label class="opt"><input type="radio" name="q25" value="2"><b>C</b><span>The network is broken, because a network that works ignores the background.</span></label>
+      <label class="opt"><input type="radio" name="q25" value="3"><b>D</b><span>The water cue is weak, because the hammerhead is still called a hammerhead when it is pasted on dark sand.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../b9-explaining/#shortcut">B9 Spurious cues: the water decides</a>.</p>
+  </article>
+</section>
+
+<section id="score" aria-labelledby="score-h">
+  <h2 id="score-h">Finish and score</h2>
+  <p>Press the button when you are done. Blank answers count as missed. The page then locks your answers, shows your score by area and links to the sections to revise. It does not show the correct answers.</p>
+  <div class="bar"><button type="button" class="btn btn-main" id="btn-score">Score my answers</button><span class="status" id="score-note" aria-live="polite"></span></div>
+  <div class="card res" id="results" tabindex="-1" hidden></div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Where the numbers come from</h2>
+  <ol>
+    <li>The shark questions use the made-up SharkCam catch table. It has 600 records generated from published length-weight relationships and is not field data (<code>primer/data/sharks/catch.csv</code>). Question 7 trains on its 268 spadenose records. Tag 4127 is the juvenile bamboo shark of the primer, and its scaled length and girth in question 1 are the ones of chapter B4.</li>
+    <li>The charts of questions 9, 18, 22, 24 and 25 are drawn from the data files of chapters B4, B7, B8 and B9. These come from small networks on the made-up records and from a pretrained ResNet-18 on photos credited in chapter B9. The XOR points of question 5 are random and made up. The curves of question 7 are recomputed with a fixed seed.</li>
+    <li>Many numbers are invented for practice. They are the weights and inputs of questions 1, 3, 8, 10, 11, 12, 14, 16, 17, 19 and 20, the points of question 4, the scores of question 6, the schedule of question 13, the hidden values of question 15 and the 12 classes of question 21. The gradient norms of question 23 are the ones printed by the code of chapter B8.</li>
+    <li>The script <code>data/make_tables.py</code> reproduces the chart data. The solutions to all questions are kept apart from this page.</li>
+    <li>The ideas come from chapters B1 to B9, listed at the top of this page.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="pb-practice.js?v=1" defer></script>
+</body>
+</html>

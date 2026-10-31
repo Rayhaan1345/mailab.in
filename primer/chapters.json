@@ -215,7 +215,7 @@
    "title": "Fine-tuning, forgetting and continual learning",
    "blurb": "Fisher information, EWC and learning task after task.",
    "part": "B",
-   "live": false
+   "live": true
   },
   {
    "id": "b8",
@@ -224,7 +224,7 @@
    "title": "Debugging neural networks",
    "blurb": "Symptoms, gradient diagnostics and clipping.",
    "part": "B",
-   "live": false
+   "live": true
   },
   {
    "id": "b9",
@@ -233,7 +233,7 @@
    "title": "Explaining a network",
    "blurb": "Saliency, occlusion, Grad-CAM and shortcuts.",
    "part": "B",
-   "live": false
+   "live": true
   },
   {
    "id": "pb",
@@ -242,7 +242,7 @@
    "title": "Practice set: neural networks",
    "blurb": "Timed questions on Part B.",
    "part": "B",
-   "live": false
+   "live": true
   },
   {
    "id": "c1",
