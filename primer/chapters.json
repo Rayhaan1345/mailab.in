@@ -314,7 +314,7 @@
    "title": "Self-attention",
    "blurb": "Queries, keys and values.",
    "part": "D",
-   "live": false
+   "live": true
   },
   {
    "id": "d5",
@@ -323,7 +323,7 @@
    "title": "The transformer",
    "blurb": "Blocks, positions, generation and the KV cache.",
    "part": "D",
-   "live": false
+   "live": true
   },
   {
    "id": "d6",
