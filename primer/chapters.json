@@ -287,7 +287,7 @@
    "title": "Tokenisation",
    "blurb": "Turning text in four languages into tokens.",
    "part": "D",
-   "live": false
+   "live": true
   },
   {
    "id": "d2",
@@ -296,7 +296,7 @@
    "title": "Embeddings",
    "blurb": "Words as directions in space.",
    "part": "D",
-   "live": false
+   "live": true
   },
   {
    "id": "d3",
@@ -305,7 +305,7 @@
    "title": "Predicting the next token",
    "blurb": "Probabilities, temperature and sampling.",
    "part": "D",
-   "live": false
+   "live": true
   },
   {
    "id": "d4",

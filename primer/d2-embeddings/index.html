@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Embeddings | How AI Learns</title>
+<meta name="description" content="Embedding tables, one-hot vectors against lookup, cosine similarity, a map of GloVe words from the sea, Mumbai and SharkCam, analogies with their limits, and a sentence map across four languages.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Local additions for this chapter only. */
+.row-chips { display: inline-block; margin: 0 10px 6px 0; }
+.card .bar { row-gap: 8px; }
+.card .bar label { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
+.card .bar select, .card .controls select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.eqs { margin: 10px 0 0; }
+.eqs .eqn { margin: 6px 0 0; }
+.oh-grid { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 10px 8px; margin: 10px 0; }
+.oh-col { min-width: 116px; }
+.oh-h { max-width: 190px; margin-bottom: 4px; font-size: 13px; line-height: 1.3; color: var(--muted); }
+.oh-c { display: flex; align-items: center; gap: 8px; height: 26px; margin-bottom: 2px; font: 13.5px ui-monospace, Menlo, monospace; }
+.oh-c span { width: 26px; text-align: center; border: 1px solid var(--rule); border-radius: 4px; line-height: 24px; background: var(--bg); }
+.oh-c.on span { background: color-mix(in srgb, var(--coral) 60%, transparent); border-color: var(--coral); font-weight: 600; }
+.oh-c em { font: normal 13.5px Spectral, Georgia, serif; color: var(--ink-2); }
+.oh-r { display: flex; gap: 3px; height: 26px; margin-bottom: 2px; }
+.oh-r span { width: 46px; text-align: center; border: 1px solid var(--rule); border-radius: 4px; font: 13.5px/24px ui-monospace, Menlo, monospace; background: var(--bg); }
+.oh-r.on span { background: color-mix(in srgb, var(--teal) 26%, transparent); border-color: var(--teal); }
+.oh-r.nud span { background: color-mix(in srgb, var(--coral) 28%, transparent); border-color: var(--coral); }
+.oh-r .x { outline: 2px solid var(--coral); outline-offset: 1px; }
+.oh-r.res span { cursor: pointer; }
+.oh-times { align-self: center; padding-top: 22px; font-size: 22px; color: var(--ink-2); }
+.ct-wrap { overflow-x: auto; }
+table.ct { border-collapse: collapse; font-size: 12px; font-feature-settings: "tnum" 1; }
+table.ct th, table.ct td { padding: 2px 1px; text-align: center; border: 1px solid var(--rule); min-width: 15px; }
+.eqn .t { max-width: 100%; }
+#oh-eqn .t b { white-space: normal; font-size: 15px; overflow-wrap: anywhere; text-align: center; }
+table.ct thead th { border: 0; vertical-align: bottom; font-weight: 400; color: var(--muted); }
+table.ct thead th span { display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11.5px; line-height: 1.05; }
+table.ct tbody th { text-align: right; font-weight: 500; color: var(--ink); padding: 2px 6px 2px 2px; white-space: nowrap; }
+table.ct tbody tr { cursor: pointer; }
+table.ct td.n1 { background: color-mix(in srgb, var(--teal) 18%, transparent); }
+table.ct td.n2 { background: color-mix(in srgb, var(--teal) 38%, transparent); }
+table.ct td.n3 { background: color-mix(in srgb, var(--teal) 60%, transparent); }
+table.ct tr.ra th { box-shadow: inset -4px 0 0 var(--coral); }
+table.ct tr.rb th { box-shadow: inset -4px 0 0 var(--navy); }
+.co-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
+#co-sent { max-height: 180px; overflow: auto; margin: 8px 0 0; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 5px; background: var(--bg); font-size: 14px; color: var(--ink-2); }
+#co-sent ol { margin: 0; padding-left: 1.6em; }
+.strip50 { display: grid; grid-template-columns: repeat(50, 1fr); gap: 1px; height: 20px; margin: 4px 0 8px; border: 1px solid var(--rule); border-radius: 3px; padding: 1px; background: var(--bg); }
+.mp-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 22px; margin-top: 8px; }
+.mp-side h4, .side-h { margin: 8px 0 2px; font-size: 14px; font-weight: 500; color: var(--muted); }
+.mp-side .eqn { margin: 2px 0 8px; }
+.an-row { display: grid; grid-template-columns: 7em minmax(0, 1fr) 3em; align-items: center; gap: 8px; margin: 3px 0; font-size: 15px; }
+.an-track { height: 14px; background: var(--paper); border-radius: 3px; overflow: hidden; border: 1px solid var(--rule); }
+.an-track span { display: block; height: 100%; background: color-mix(in srgb, var(--navy) 60%, transparent); }
+.an-row.first .an-track span { background: color-mix(in srgb, var(--teal) 70%, transparent); }
+.an-row b { text-align: right; font-feature-settings: "tnum" 1; font-weight: 500; }
+#an-full p { max-width: none; margin: 6px 0; color: var(--ink-2); font-size: 15px; }
+.verdict { padding: 4px 10px; border-left: 3px solid var(--sand); background: var(--paper); }
+.verdict.v-works { border-color: var(--teal); }
+.verdict.v-fails, .verdict.v-copies { border-color: var(--coral); }
+.sn-msg { max-width: none !important; margin: 6px 0 2px; font-size: 15px; color: var(--ink); }
+.sn-gloss { max-width: none !important; margin: 2px 0 6px; font-size: 14.5px; color: var(--muted); }
+.flagline { max-width: 46em; margin: 10px 0 0; padding: 6px 12px; border-left: 3px solid var(--coral); font-size: 15px; color: var(--ink-2); background: var(--paper); }
+@media (max-width: 760px) { .co-grid, .mp-side { grid-template-columns: minmax(0, 1fr); } .an-row { grid-template-columns: 5.6em minmax(0, 1fr) 2.6em; } }
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="d2">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part D, Language</span><span>Chapter D2</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part D &middot; Chapter 2</p>
+  <h1>Embeddings</h1>
+  <p class="subtitle">Giving a token a list of learned numbers, so that similar tokens get similar lists</p>
+</header>
+
+<div class="tldr">
+  <p>A token's ID is only a name. A language model needs numbers that say something about the token, so it looks up a row of learned numbers for the ID. That row is an embedding. This chapter shows how the table of rows works and why a lookup is enough. It compares words with cosine similarity, draws a map of 50-number GloVe vectors for sea, Mumbai and SharkCam words, and tests the famous analogies, including one that fails.</p>
+  <p>The last section embeds whole messages in four languages. All sixteen messages are invented, and the Hindi, Marathi and Hinglish texts have not yet been checked by a native speaker.</p>
+</div>
+<p class="youneed"><b>You will need:</b> <a href="../d1-tokenisation/#vocab">tokens and IDs</a> (D1), the <a href="../t5-vectors-matrices/#cosine">dot product and cosine similarity</a> (0.5) and <a href="../t5-vectors-matrices/#matrices">a matrix as rows</a> (0.5).</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#onehot">One-hot vectors and the lookup table</a></li>
+    <li><a href="#company">A word and its company</a></li>
+    <li><a href="#map">A map of words</a></li>
+    <li><a href="#analogy">Directions and analogies</a></li>
+    <li><a href="#sentences">From words to sentences</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. one-hot and lookup ============================ -->
+<section id="onehot" aria-labelledby="onehot-h">
+  <h2 id="onehot-h">One-hot vectors and the lookup table</h2>
+  <p class="ask"><b>Guess first.</b> The token &ldquo;&#9601;shark&rdquo; has ID 21027 in GPT-2. Could the model feed that number into a layer, like a length or a weight? And if instead the 50,257 tokens had an input slot of their own, all zero except one, how many multiplications would one token need in a <a href="../b1-one-neuron/#layer">layer</a> with 768 outputs?</p>
+  <dl class="terms">
+    <div><dt>embedding</dt><dd>the list of \(d\) learned numbers that represents one token</dd></div>
+    <div><dt>embedding table \(E\)</dt><dd>a matrix with one row per token and \(d\) columns</dd></div>
+    <div><dt>one-hot vector</dt><dd>a vector of zeros with a single 1 at the place of the token's ID</dd></div>
+    <div><dt>dimension \(d\)</dt><dd>how many numbers an embedding has (GPT-2 small: 768)</dd></div>
+  </dl>
+  <p class="claim">An embedding table is a matrix with one row per token. Multiplying a one-hot vector by it picks out one row, so a model simply copies that row.</p>
+  <div class="card" id="oh">
+    <div class="bar" id="oh-bar"></div>
+    <div class="oh-grid" id="oh-grid" role="img" aria-label="A one-hot vector times an embedding table equals one row of the table, the embedding of the chosen word"></div>
+    <div class="eqs"><div class="eqn" id="oh-eqn" aria-live="polite"></div></div>
+    <div class="readout" id="oh-read"></div>
+    <p class="status" id="oh-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>For the toy table, multiplying costs 32 products and 28 of them are with a zero. For GPT-2 the same trick would cost 38.6 million products, against 768 copies for the lookup.</b> The numbers in the toy table are made up.</p>
+  <p>Pick a word. The coral 1 in the one-hot vector multiplies its own row of the table, and all the zeros wipe out the other rows. The result is that row. Click a number of the result to see the sum behind it. A table lookup does the same job without any arithmetic. The model never uses the ID as a quantity, because an ID has no meaning (<a href="../d1-tokenisation/#vocab">D1</a>). It uses the ID as an address.</p>
+  <p>The rows of the table are parameters, learned like any weights by gradient descent (<a href="../b3-loss-gradient-descent/#cost">B3</a>). Press the training nudge. It applies one update to the row you selected, with a made-up slope of the loss and a step size of 0.5. The row of &ldquo;dolphin&rdquo; moves from (0.70, &minus;0.40, 0.80, 0.20) to (0.50, &minus;0.30, 0.75, 0.05), and no other row changes. The reason is the outer product of <a href="../t5-vectors-matrices/#outer">0.5</a> and the backward pass of <a href="../b4-backpropagation/#layers">B4</a>. The slope of the table is a one-hot vector times the slope at the embedding. So only the row of a token that was used gets a nonzero slope. A rare token's row learns rarely, which is why embeddings of rare words are poor.</p>
+  <div class="eqn" role="img" aria-label="The table has 50,257 rows of 768 numbers, which is 38,597,376 numbers, 31 percent of the 124,439,808 parameters of GPT-2 small"><span class="t c-navy"><b>50,257 &times; 768</b><i>rows &times; numbers per row</i></span><span class="op">=</span><span class="t c-coral"><b>38,597,376</b><i>numbers in GPT-2's table</i></span><span class="op">&divide;</span><span class="t c-navy"><b>124,439,808</b><i>parameters in GPT-2 small</i></span><span class="op">=</span><span class="t c-teal"><b>31%</b><i>of the model</i></span></div>
+  <p class="math">\[ \mathbf{e}_i \;=\; \mathbf{o}_i^{\top} E \;=\; E_{i,:} \qquad\qquad \frac{\partial L}{\partial E} \;=\; \mathbf{o}_i \left(\frac{\partial L}{\partial \mathbf{e}_i}\right)^{\!\top} \]</p>
+  <ul class="math-notes">
+    <li><b>\(E\)</b> is the embedding table with \(V\) rows (the vocabulary size) and \(d\) columns. <b>\(\mathbf{o}_i\)</b> is the one-hot vector of the token with ID \(i\), and <b>\(\mathbf{e}_i\)</b> is its embedding.</li>
+    <li><b>\(E_{i,:}\)</b> means row \(i\) of \(E\). The table has \(V \times d\) numbers.</li>
+    <li>The right-hand formula says the slope is zero in all rows except row \(i\), where it equals the slope at the embedding (\(L\) is the loss, <a href="../b3-loss-gradient-descent/#cost">B3</a>).</li>
+  </ul>
+  <p>In GPT-2 small the table is a third of the model. Radford and colleagues (2019) list the width \(d\) of their four models as 768, 1,024, 1,280 and 1,600. The same table is also used in the other direction at the end of the network, where it scores the tokens (<a href="../d3-next-token/#distribution">D3</a>).</p>
+  <pre class="code" data-run><code>import numpy as np
+
+words = ["shark", "whale", "dolphin", "boat", "net", "dock", "camera", "tide"]
+rng = np.random.default_rng(4127)
+E = rng.normal(0, 0.5, size=(len(words), 4)).round(2)   # the table: one row per word, random start
+
+i = words.index("dolphin")
+one_hot = np.eye(len(words))[i]          # 8 numbers, a single 1
+print(one_hot)
+print(one_hot @ E)                       # eight products per number...
+print(E[i])                              # ...or just copy the row
+print(np.allclose(one_hot @ E, E[i]))
+
+grad_e = np.array([0.4, -0.2, 0.1, 0.3]) # made-up slope of the loss at the embedding
+E[i] -= 0.5 * grad_e                     # one update: only this row moves
+print(E[i])</code></pre>
+  <pre class="out">[0. 0. 1. 0. 0. 0. 0. 0.]
+[ 0.33 -0.2  -0.13  0.37]
+[ 0.33 -0.2  -0.13  0.37]
+True
+[ 0.13 -0.1  -0.18  0.22]</pre>
+  <div class="break">
+    <p><b>Common belief.</b> The one-hot vector of a word, or its ID, already tells the model what the word means.</p>
+    <p><b>Why it fails.</b> In one-hot form all words are at the same distance from one another. The cosine of two different one-hot vectors is 0, so &ldquo;shark&rdquo; is as far from &ldquo;whale&rdquo; as from &ldquo;tide&rdquo;.</p>
+    <p><b>Better account.</b> The rows of the table are learned, so that tokens used in similar ways end up with similar rows.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a lookup fails with an index error such as &ldquo;index out of range in self&rdquo; in PyTorch, an ID is at least as large as the number of rows. The text was tokenised with a different tokenizer than the model's. If the sizes happen to fit, there is no error at all, only wrong output.</p>
+  </div>
+  <p class="used"><b>Used in:</b> the first layer of all language models (<a href="../d5-transformer/">D5</a>), and the next section, which asks where the numbers come from.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A batch has three tokens, two of them the same. How many rows of the table get a slope?</summary><p>Two. The repeated token's row gets the slopes of both positions added together, and all other rows get none.</p></details>
+    <details><summary>Why is a lookup the same as a matrix product with a one-hot vector?</summary><p>The vector has a 1 at one place and 0 elsewhere, so all products with the other rows are 0 and the sum is the chosen row.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. company ============================ -->
+<section id="company" aria-labelledby="company-h">
+  <h2 id="company-h">A word and its company</h2>
+  <p class="ask"><b>Guess first.</b> In the 24 short sentences below, &ldquo;shark&rdquo; and &ldquo;whale&rdquo; never appear together, while &ldquo;camera&rdquo; and &ldquo;lens&rdquo; often do. Which pair would you call more alike in meaning, using only the words around them?</p>
+  <dl class="terms">
+    <div><dt>context</dt><dd>the other words in the same sentence</dd></div>
+    <div><dt>count vector</dt><dd>a word's row of counts: how often a context word appears with it</dd></div>
+    <div><dt>cosine similarity</dt><dd>\(\cos\theta = \dfrac{\mathbf{u}\cdot\mathbf{v}}{\|\mathbf{u}\|\,\|\mathbf{v}\|}\), the similarity of direction (<a href="../t5-vectors-matrices/#cosine">0.5</a>)</dd></div>
+  </dl>
+  <p class="claim">Words that keep similar company get similar count rows, and the cosine of two rows measures how alike they are. Learned embeddings are a short, dense version of the same idea.</p>
+  <div class="card" id="co">
+    <div class="bar" id="co-bar"></div>
+    <div id="co-sent" hidden></div>
+    <div class="co-grid">
+      <div><p class="side-h">Counts: sentences in which the row word and the column word appear together (made up)</p><div class="ct-wrap" id="co-table" role="img" aria-label="Table of counts of how often ten words appear in a sentence with fifteen context words"></div></div>
+      <div><p class="side-h">Cosine of all pairs of rows (click a cell)</p><div class="plot" id="co-heat" role="img" aria-label="Matrix of cosine similarities between the count rows of ten words"></div></div>
+    </div>
+    <div class="eqs"><div class="eqn" id="co-eqn" aria-live="polite"></div></div>
+    <p class="status" id="co-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>Shark, whale and dolphin have cosines of 0.83 to 0.89 with one another, though no sentence has two of them. Camera and lens, which appear together, score only 0.17.</b> The sentences are made up for this chapter.</p>
+  <p>Click the row of &ldquo;shark&rdquo;, then the row of &ldquo;whale&rdquo;. Both rows have counts under &ldquo;sea&rdquo;, &ldquo;fin&rdquo;, &ldquo;reef&rdquo; and &ldquo;swam&rdquo;. The dot product adds up the products of matching counts. The cosine divides by the lengths, so a word seen often does not win just by having bigger counts. The working is in the boxes. For the second case, take &ldquo;boat&rdquo; and &ldquo;trawler&rdquo;: they share &ldquo;dock&rdquo;, &ldquo;net&rdquo; and &ldquo;harbour&rdquo;, and the cosine is 0.71. &ldquo;Camera&rdquo; and &ldquo;lens&rdquo; are one another's context, so they do not share context words, and their rows barely overlap.</p>
+  <p>Large corpora have millions of different context words, so these rows would be very long and mostly zeros. Embedding methods compress them into short dense rows. Word2vec learns its vectors by predicting which words appear near one another (Alammar, 2019). GloVe, used in the next section, was fitted to co-occurrence statistics of 6 billion words of Wikipedia and Gigaword text (Pennington, Socher and Manning, 2014). The language model of <a href="../d3-next-token/#loss">D3</a> learns its embeddings as part of predicting the next token.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Words that appear together are similar in meaning.</p>
+    <p><b>Why it fails.</b> &ldquo;Camera&rdquo; and &ldquo;lens&rdquo; appear together in this corpus and have a low cosine. &ldquo;Shark&rdquo; and &ldquo;whale&rdquo; never meet and have a high one.</p>
+    <p><b>Better account.</b> Words are similar when they appear in similar contexts. Words that go together are related, which is a different thing.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> A word seen only once or twice has a noisy row, so its neighbours can look odd. Before you trust a neighbour list, check how often the word occurs in the data.</p>
+  </div>
+  <p class="used"><b>Used in:</b> choosing which embeddings to trust (next section), and the training objective of <a href="../d3-next-token/#loss">D3</a>.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Two rows are (2, 0, 1) and (4, 0, 2). What is their cosine?</summary><p>The cosine is 1. The second row is twice the first, so the directions are the same. The dot product is 10, and the lengths are 2.236 and 4.472, which multiply to 10.</p></details>
+    <details><summary>Why divide by the lengths?</summary><p>A word that occurs ten times as often has counts ten times as large. The cosine keeps only the direction, so frequency does not decide the score.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. map ============================ -->
+<section id="map" aria-labelledby="map-h">
+  <h2 id="map-h">A map of words</h2>
+  <p class="ask"><b>Guess first.</b> The words below are rows of 50 numbers learned from Wikipedia and news text. The word &ldquo;net&rdquo; appears in fishing, but also in &ldquo;net profit&rdquo;. Will its nearest neighbours be &ldquo;boat&rdquo;, &ldquo;camera&rdquo; or &ldquo;price&rdquo;?</p>
+  <dl class="terms">
+    <div><dt>GloVe</dt><dd>word vectors learned from word counts; this chapter uses the 50-number version (<a href="https://huggingface.co/fse/glove-wiki-gigaword-50">PDDL licence</a>)</dd></div>
+    <div><dt>projection</dt><dd>squashing 50 numbers per word down to 2, so that a picture is possible</dd></div>
+    <div><dt>t-SNE and PCA</dt><dd>two ways to project: t-SNE tries to keep close words close, PCA keeps the two directions with the most spread</dd></div>
+    <div><dt>nearest neighbour</dt><dd>the word with the highest cosine to a given word</dd></div>
+  </dl>
+  <p class="claim">Words with similar neighbours get similar rows, so related words appear near one another on the map. The map is a flattened view, so the cosine of the 50 numbers is the actual measure.</p>
+  <div class="card" id="mp">
+    <div class="bar" id="mp-bar"></div>
+    <div class="plot tall" id="mp-plot" style="min-height:500px" role="img" aria-label="A two-dimensional map of 76 words in five groups: sea life, water and weather, boats and fishing, Mumbai and South Asia, and SharkCam"></div>
+    <p class="side-h">The 50 numbers of <b id="mp-word">shark</b> (teal positive, coral negative)</p>
+    <div class="strip50" id="mp-strip" role="img" aria-label="The 50 numbers of the chosen word as a strip of coloured cells"></div>
+    <div class="mp-side">
+      <div><p class="side-h">Nearest of the 76 words on the map, by cosine</p><div class="eqn" id="mp-nn"></div></div>
+      <div><p class="side-h">Nearest of all 400,000 words, by cosine</p><div class="eqn" id="mp-nnall"></div></div>
+    </div>
+    <div class="eqs"><div class="eqn" id="mp-eqn" aria-live="polite"></div></div>
+    <p class="status" id="mp-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>Shark appears among the sea animals, with dolphin (0.85) and whale (0.83) as nearest neighbours, and Mumbai appears among other South Asian cities such as Bombay, Karachi and Delhi.</b> A dotted line joins the chosen word to its five nearest neighbours in 50 numbers. The map is computed offline from GloVe (Pennington, Socher and Manning, 2014).</p>
+  <p>Click words and compare. &ldquo;Net&rdquo; is nearest to price, market and data among the 76 words, and among all 400,000 words its neighbours are profit, quarter and revenue. The text GloVe learned from used &ldquo;net&rdquo; more for money than for fishing, and a table has only one row per word, so the senses are blended. &ldquo;Tag&rdquo; is near &ldquo;card&rdquo;, &ldquo;ring&rdquo; and wrestling. The word &ldquo;spadenose&rdquo; has no row at all, since the word is missing from the 400,000 words. That is the unknown-word problem of <a href="../d1-tokenisation/#units">D1</a>: a word-level table cannot embed a word it never met, and a table of subword pieces can.</p>
+  <p>Switch between the t-SNE and PCA maps and the layout changes a lot, which says something. Fifty numbers cannot be drawn faithfully in two. PCA's two axes capture only 33% of the variation in these 76 words. A standard score asks how well a map's neighbours are also neighbours in 50 numbers. It is called trustworthiness, and 1 is perfect. At five neighbours it is 0.965 for t-SNE and 0.847 for PCA. t-SNE is better at neighbourhoods. Its cluster sizes and the gaps between clusters mean little, though, and a different setting of its perplexity can give a different picture (Wattenberg, Vi&eacute;gas and Johnson, 2016). The status line under the map tells you when the nearest word on the map and the nearest word in 50 numbers differ.</p>
+  <p class="math">\[ \cos\theta \;=\; \frac{\mathbf{u}\cdot\mathbf{v}}{\|\mathbf{u}\|\,\|\mathbf{v}\|} \;=\; \frac{\sum_{j=1}^{50} u_j v_j}{\sqrt{\sum_j u_j^2}\;\sqrt{\sum_j v_j^2}} \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{u}\)</b> and <b>\(\mathbf{v}\)</b> are the 50-number rows of two words, and \(u_j\) is the \(j\)-th number. The boxes above the map show the dot product, the two lengths and the cosine.</li>
+    <li>For &ldquo;shark&rdquo; and &ldquo;whale&rdquo; the dot product is 22.27 and the lengths are 5.01 and 5.33, so \(\cos\theta = 22.27/(5.01\times 5.33) = 0.83\). For &ldquo;shark&rdquo; and &ldquo;camera&rdquo; it is only 0.17.</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> A word has one vector, so a word has one meaning for the model.</p>
+    <p><b>Why it fails.</b> Look at &ldquo;net&rdquo; and &ldquo;tag&rdquo;. Their single rows blend the senses, and the finance and wrestling senses dominate.</p>
+    <p><b>Better account.</b> Inside a transformer, the row from the table is only the starting point. Attention mixes in the other words of the sentence, so the same token gets different vectors in different contexts (<a href="../d4-self-attention/">D4</a>).</p>
+  </div>
+  <div class="break">
+    <p><b>Analogy.</b> A flat map of the Earth. It shows which places are close, though it stretches the far north.</p>
+    <p><b>Where it breaks.</b> A globe loses one dimension when flattened. This map loses 48. Neighbours on the map can be far apart in 50 numbers, and the distances across the map mean little.</p>
+  </div>
+  <pre class="code"><code>import json, numpy as np
+
+D = json.load(open("words.json"))
+allw = D["words"] + D["extra"]                       # 104 words, 50 numbers per word
+names = [w["w"] for w in allw]
+V = np.array([w["v"] for w in allw])
+U = V / np.linalg.norm(V, axis=1, keepdims=True)     # unit length: a dot product is now a cosine
+
+def nearest(word, k=5):
+    s = U @ U[names.index(word)]
+    order = [j for j in np.argsort(-s) if names[j] != word][:k]
+    return [(names[j], round(float(s[j]), 2)) for j in order]
+
+print(nearest("shark"))
+print(nearest("mumbai"))
+print(nearest("net"))</code></pre>
+  <pre class="out">[('dolphin', 0.85), ('whale', 0.83), ('bird', 0.78), ('squid', 0.75), ('octopus', 0.74)]
+[('karachi', 0.85), ('bombay', 0.83), ('delhi', 0.8), ('ahmedabad', 0.8), ('kolkata', 0.76)]
+[('price', 0.64), ('market', 0.63), ('data', 0.59), ('catch', 0.53), ('weight', 0.51)]</pre>
+  <p>The file <a href="data/words.json">words.json</a> has the vectors. The same idea works on the table inside GPT-2, which was learned as part of a language model with no separate word-vector step. The code below needs the <code>transformers</code> library. Its output comes from running it for this chapter.</p>
+  <pre class="code"><code>from transformers import AutoTokenizer, AutoModelForCausalLM
+import numpy as np
+
+tok = AutoTokenizer.from_pretrained("gpt2")
+E = AutoModelForCausalLM.from_pretrained("gpt2").transformer.wte.weight.detach().numpy()
+print(E.shape)
+
+En = E / np.linalg.norm(E, axis=1, keepdims=True)
+sims = En @ En[tok.encode(" shark")[0]]
+top = np.argsort(-sims)[1:7]
+print([(tok.decode(int(i)), round(float(sims[i]), 2)) for i in top])</code></pre>
+  <pre class="out">(50257, 768)
+[(' sharks', 0.84), (' Shark', 0.76), (' Sharks', 0.61), (' whale', 0.61), (' tiger', 0.56), (' dolphin', 0.55)]</pre>
+  <p class="used"><b>Used in:</b> choosing what to embed in a retrieval system, and checking a model's table before trusting it. The same idea joins images and text in <a href="../e2-clip/">E2</a>.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The map shows &ldquo;boat&rdquo; right next to &ldquo;net&rdquo;. Can you conclude their rows are very similar?</summary><p>No. Check the cosine of the 50 numbers. The map may have pulled two words together that are far apart in 50 numbers.</p></details>
+    <details><summary>Why can GPT-2's table embed &ldquo;spadenose&rdquo; while GloVe cannot?</summary><p>GPT-2 cuts the word into subword pieces such as &ldquo;&#9601;sp&rdquo;, &ldquo;aden&rdquo; and &ldquo;ose&rdquo;, and the pieces have rows of their own. GloVe needs the whole word in its list.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. analogies ============================ -->
+<section id="analogy" aria-labelledby="analogy-h">
+  <h2 id="analogy-h">Directions and analogies</h2>
+  <p class="ask"><b>Guess first.</b> Take the 50 numbers of &ldquo;king&rdquo;, subtract those of &ldquo;man&rdquo; and add those of &ldquo;woman&rdquo;. Which word has the row nearest to the result? And would the same trick turn &ldquo;fish&rdquo; into &ldquo;bird&rdquo;, if you take away &ldquo;scale&rdquo; and add &ldquo;feather&rdquo;?</p>
+  <dl class="terms">
+    <div><dt>offset</dt><dd>the difference between two embeddings, such as \(\mathbf{v}_{\text{king}} - \mathbf{v}_{\text{man}}\)</dd></div>
+    <div><dt>analogy</dt><dd>&ldquo;A is to B as C is to ?&rdquo;</dd></div>
+    <div><dt>answer</dt><dd>the word whose row has the highest cosine with the result vector</dd></div>
+  </dl>
+  <p class="claim">The difference between two related words often points in a similar direction for other pairs, so \(\mathbf{v}_A - \mathbf{v}_B + \mathbf{v}_C\) can fall near the word that completes an analogy. It works for some relations and fails for others.</p>
+  <div class="card" id="an">
+    <div class="bar" id="an-bar"></div>
+    <div class="controls" id="an-controls"></div>
+    <div id="an-res" role="img" aria-label="The five words whose rows are nearest to the result of the analogy, with their cosines"></div>
+    <div class="eqs"><div class="eqn" id="an-eqn" aria-live="polite"></div></div>
+    <div id="an-full"></div>
+    <p class="status" id="an-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>King &minus; man + woman gives queen at 0.86. Over all 400,000 words, fish &minus; scale + feather gives trout at 0.75, though the expected answer is bird.</b> The figure searches 104 words. The notes below a preset give the result over all 400,000 words.</p>
+  <p>Press the preset buttons one by one. The first four work or half work. In the fifth, Mumbai &minus; India + Japan gives Tokyo, with a caveat: Mumbai is India's largest city and not its capital, and Tokyo is both for Japan.</p>
+  <p>The sixth fails. A fish has scales as a bird has feathers, so the answer should be &ldquo;bird&rdquo;. The nearest words are trout, herring and salmon, and &ldquo;bird&rdquo; comes 248th of 400,000. The result stays close to &ldquo;fish&rdquo;. The arithmetic finds the neighbourhood of an input and misses the relation. One reason is that &ldquo;scale&rdquo; mostly appears in text about size, as in &ldquo;the scale of the damage&rdquo;. Its row blends two senses, like &ldquo;net&rdquo; and &ldquo;tag&rdquo; on the map.</p>
+  <p>The last preset is a warning. &ldquo;Doctor&rdquo; &minus; &ldquo;man&rdquo; + &ldquo;woman&rdquo; gives &ldquo;nurse&rdquo;. This looks like a success and is a learned bias. Word vectors are learned from text that people wrote, so they copy the patterns in that text, including stereotypes. Bolukbasi and colleagues (2016) tested word2vec vectors learned from Google News articles. The vectors completed &ldquo;father is to doctor as mother is to&rdquo; with &ldquo;nurse&rdquo;, and &ldquo;man is to computer programmer as woman is to&rdquo; with &ldquo;homemaker&rdquo;. The GloVe vectors here come from Wikipedia and news text, and give the same &ldquo;nurse&rdquo; answer. The vectors record how people wrote. They do not show who can be a doctor or a nurse. A system that ranks people or messages with such vectors can repeat the bias, and checking for it is part of <a href="../f1-fairness/">F1</a>.</p>
+  <p>Tick off &ldquo;leave out the three input words&rdquo; to see a problem of the method: with the inputs allowed, the nearest word is often the input itself. Standard tests leave them out. Linzen (2016) shows that the method's use of cosine similarity mixes the offset with the neighbourhood of the inputs.</p>
+  <div class="eqn" role="img" aria-label="Worked example: king minus man plus woman gives a vector whose nearest word is queen"><span class="t c-navy"><b>v(king)</b><i>start</i></span><span class="op">&minus;</span><span class="t c-coral"><b>v(man)</b><i>take away</i></span><span class="op">+</span><span class="t c-teal"><b>v(woman)</b><i>add</i></span><span class="op">=</span><span class="t c-sand"><b>q</b><i>a vector, not yet a word</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>queen 0.86</b><i>the word with the highest cosine to q</i></span></div>
+  <p class="math">\[ \mathbf{q} \;=\; \mathbf{v}_A - \mathbf{v}_B + \mathbf{v}_C \qquad\qquad \text{answer} \;=\; \operatorname*{arg\,max}_{w \,\notin\, \{A,B,C\}} \; \cos(\mathbf{v}_w, \mathbf{q}) \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{v}_A\), \(\mathbf{v}_B\), \(\mathbf{v}_C\)</b> are the 50-number rows of the three input words, and <b>\(\mathbf{q}\)</b> is the result of the arithmetic.</li>
+    <li><b>\(\cos(\mathbf{v}_w, \mathbf{q})\)</b> is the cosine of a candidate word's row with \(\mathbf{q}\) (<a href="../t5-vectors-matrices/#cosine">0.5</a>). The word with the largest value is the answer, and the three inputs are left out.</li>
+  </ul>
+  <p>How often does the method find the expected word? The chart below uses the analogy test of Mikolov and colleagues (2013), which ships with the gensim library. Only the 14,877 questions whose words are all among GloVe's 30,000 most frequent words were asked, and the top answer was right 50% of the time. The score depends strongly on the relation. It is 94% for nationality adjectives and 80% for capitals of common countries. It is only 16% for cities in US states (the coral bar), where one state has many cities, and 13% for currencies. Many cities share a state, and many words share a nearest neighbourhood, so a single offset cannot choose.</p>
+  <div class="card"><div class="plot" id="an-acc" style="min-height:360px" role="img" aria-label="Bar chart of the share of analogy questions answered right for fourteen types of relation with GloVe 50"></div></div>
+  <p class="cap"><b>The arithmetic is right half the time overall, and nearly never for currencies and for cities in US states.</b> The dotted line is the overall score of 50%. Computed for this chapter with gensim's <code>evaluate_word_analogies</code>.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Embeddings store meaning as arithmetic, so the model understands that king is man's royal form.</p>
+    <p><b>Why it fails.</b> The method is right half the time on a standard test, depends on leaving the inputs out, and fails for one-to-many relations. It also reproduces stereotypes from its text, as the doctor and nurse preset shows.</p>
+    <p><b>Better account.</b> Embeddings contain statistics of how words are used. Some directions line up with simple relations. Treat an analogy as a probe of the table. It does not show understanding.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If an analogy returns one of its three inputs, leave the inputs out of the search before you conclude anything. If it returns something odd, check the neighbours of the inputs one at a time first.</p>
+  </div>
+  <p class="used"><b>Used in:</b> the way a retrieval system finds related words, and as a quick test of a new embedding table. A deeper question for a SharkCam reader of messages is in the exercises.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why must the search leave out &ldquo;king&rdquo;, &ldquo;man&rdquo; and &ldquo;woman&rdquo;?</summary><p>The result \(\mathbf{q}\) is close to the input words, because the offset is small compared with the word vectors. With the inputs allowed, the nearest word is often &ldquo;king&rdquo; itself, at 0.89.</p></details>
+    <details><summary>The test gives 16% for cities in US states. What does that say about using the method on SharkCam's places?</summary><p>One-to-many relations are hard, so Mumbai, Versova and Uran, which all belong to Maharashtra, will not be handled by one offset.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. sentences ============================ -->
+<section id="sentences" aria-labelledby="sentences-h">
+  <h2 id="sentences-h">From words to sentences</h2>
+  <p class="ask"><b>Guess first.</b> Message m02 (English) and message m10 (Marathi) report the same find, Tag 4127. They share almost no words and use different scripts. Will a model place them close together or far apart?</p>
+  <dl class="terms">
+    <div><dt>sentence encoder</dt><dd>a model that turns a whole text into one vector</dd></div>
+    <div><dt>multilingual</dt><dd>trained on many languages, so that texts with the same meaning fall near one another</dd></div>
+  </dl>
+  <p class="claim">A multilingual sentence encoder places texts with the same meaning near one another even across languages. It does this less well for some languages and some messages.</p>
+  <div class="card" id="sn">
+    <div class="bar" id="sn-bar"></div>
+    <div class="plot tall" id="sn-plot" role="img" aria-label="A map of the sixteen invented messages: colour is the topic, symbol is the language"></div>
+    <div id="sn-info"></div>
+    <p class="status" id="sn-status"></p>
+  </div>
+  <p class="cap"><b>Messages on the same topic have a mean cosine of 0.61, against 0.42 for different topics. The nearest message shares the topic for 13 of the 16.</b> The model is paraphrase-multilingual-MiniLM-L12-v2 (384 numbers per text, Apache-2.0 licence). Its two-dimensional PCA map keeps 40% of the variation.</p>
+  <p class="flagline"><b>Check before reuse.</b> All sixteen messages are invented, and the Hindi, Marathi and Hinglish texts have not yet been checked by a native speaker. Sixteen texts are a tiny sample. Messages on one topic also share numbers (44, 4127, 80), which an encoder may use as a cue.</p>
+  <p>Click a message. For Tag 4127, the Hindi message m06 and the Marathi message m10 have a cosine of 0.92, and the English message m02 is 0.83 from m10. That answers the guess. The weak spots matter as well: the Marathi message m11 about the young hammerhead has its nearest neighbour at only 0.63. The encoder was trained on 50 or more languages, which include Hindi and Marathi (Reimers and Gurevych, 2020). Quality can differ between languages, and no quality figure for Hindi or Marathi was found. In D1 the same messages cost five times as many tokens in Hindi. The encoder shows that the meaning can still arrive in the same neighbourhood.</p>
+  <div class="break">
+    <p><b>Common belief.</b> If a model puts a Hindi and a Marathi message close together, it reads both languages well.</p>
+    <p><b>Why it fails.</b> A high cosine says that two vectors point the same way. Shared topic words and shared numbers (44, 4127, 80) can cause that. For m11 the nearest message has a cosine of only 0.63.</p>
+    <p><b>Better account.</b> A multilingual encoder finds likely matches. A person or a second test must check them.</p>
+  </div>
+  <p>This is the idea behind searching messages by meaning, grouping reports by topic, and, in <a href="../e2-clip/">E2</a>, placing a photo and its caption in one space.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Does a cosine of 0.92 between a Hindi and a Marathi message mean they say the same thing?</summary><p>No. It says that their vectors point in nearly the same direction. They share a topic and several numbers. Check the texts before concluding that they match.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> GPT-2 has \(V = 50{,}257\) tokens and \(d = 768\). (a) How many numbers are in its table? (b) What share of GPT-2 small's 124,439,808 parameters is that? (c) How many multiplications would a one-hot product need for one token, and how many copies does a lookup need?</p></li>
+      <li><p><span class="ex-tag">theory</span> In the toy table of the figure, shark = (0.9, &minus;0.3, 0.7, 0.1), whale = (0.8, &minus;0.2, 0.9, 0.0) and boat = (&minus;0.5, 0.8, 0.1, 0.6). Compute the cosine of shark with whale and of shark with boat by hand. What do the signs say?</p>
+        <details class="hint"><summary>Hint</summary><p>Dot product first, then the two lengths.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> One training step on the token &ldquo;boat&rdquo; has a slope of the loss at its embedding of (0.2, &minus;0.4, 0.0, 0.6). With a step size of 0.5, compute the new row. Which other rows change? Explain with the outer product.</p></li>
+      <li><p><span class="ex-tag">theory</span> In two dimensions let man = (1, 1), woman = (1, 3), king = (4, 1) and queen = (4, 3). Compute king &minus; man + woman and find the nearest word by cosine. Then move king to (4, 2) and repeat. What does the result say about what the method needs from the data?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Load <a href="data/words.json">words.json</a>. Compute the cosine matrix of the 76 map words. Which pair from two different groups has the highest cosine, and does it make sense?</p></li>
+      <li><p><span class="ex-tag">practice</span> Write <code>analogy(a, b, c, exclude=True)</code>. Test it on five analogies of your own about the sea or Mumbai. For these, record whether the expected word is first, in the top five or missing. Try one with <code>exclude=False</code>.</p></li>
+      <li><p><span class="ex-tag">practice</span> Rebuild the count table of the company figure in Python from its 24 sentences, using the sentences in the chapter. Add six sentences about divers and robots and find the new neighbours of &ldquo;camera&rdquo;.</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> &ldquo;Doctor&rdquo; &minus; &ldquo;man&rdquo; + &ldquo;woman&rdquo; gives &ldquo;nurse&rdquo;. SharkCam's message reader will use an embedding table. What would you measure to check it for bias, and what would you do if you found some? What could go wrong with these fixes?</p>
+        <details class="hint"><summary>Hint</summary><p>Think about which downstream decision the embeddings feed. A bias that does not reach any decision matters less than one that does. Bolukbasi et al. (2016) and <a href="../f1-fairness/">F1</a> are good places to look next.</p></details></li>
+      <li><p><span class="ex-tag">open</span> A fisher's message says &ldquo;the net was torn&rdquo;. GloVe's row for &ldquo;net&rdquo; leans towards money. How could a system tell the senses apart? What would it need beyond one row per word?</p></li>
+      <li><p><span class="ex-tag">open</span> The sentence map put Hindi and Marathi messages near their English meanings. Design a test on SharkCam's own messages to find out whether this is so for fishers' own writing. What could mislead you, and how many messages would you need before you trusted it?</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Try these after two days, and again after a week, without looking back.</p>
+  <div class="recall comeback">
+    <details><summary>A tokenizer cuts &ldquo;sharkcamera&rdquo; into &ldquo;&#9601;shark&rdquo; and &ldquo;camera&rdquo;. How many rows of the embedding table does the model use for it? (Chapter <a href="../d1-tokenisation/#apply">D1</a>)</summary><p>Two, one per piece. The table has a row per token, and a word that is cut into pieces has no row of its own.</p></details>
+    <details><summary>The vectors (2, 1) and (4, 2) are two embeddings. What are their dot product and cosine? (Chapter <a href="../t5-vectors-matrices/#cosine">0.5</a>)</summary><p>The dot product is \(2\cdot4 + 1\cdot2 = 10\). The cosine is 1, since both point the same way. Only the lengths differ.</p></details>
+    <details><summary>A training batch has the tokens &ldquo;shark&rdquo;, &ldquo;at&rdquo; and &ldquo;dock&rdquo;. Which rows of the table get a slope, and what kind of matrix is that slope in B4's terms? (Chapter <a href="../b4-backpropagation/#layers">B4</a>)</summary><p>Three rows. The slope of the table is a sum of outer products of one-hot vectors with the slopes at the embeddings, so it is zero in all other rows.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Pennington, J., Socher, R. and Manning, C. D. (2014). GloVe: global vectors for word representation. <i>Proceedings of EMNLP 2014</i>, 1532&ndash;1543. <a href="https://aclanthology.org/D14-1162/">aclanthology.org/D14-1162</a>. The vectors used here are the 50-number Wikipedia 2014 plus Gigaword 5 set (6 billion tokens, 400,000 words), from <a href="https://huggingface.co/fse/glove-wiki-gigaword-50">huggingface.co/fse/glove-wiki-gigaword-50</a>, a gensim copy of the Stanford vectors. The licence is the Public Domain Dedication and License, as stated for the pre-trained vectors in the <a href="https://github.com/stanfordnlp/GloVe">GloVe repository</a> (the code there is Apache-2.0).</li>
+    <li>Alammar, J. (2019). The illustrated Word2vec. <a href="https://jalammar.github.io/illustrated-word2vec/">jalammar.github.io/illustrated-word2vec</a>. Explains embeddings, cosine similarity and the king and queen example.</li>
+    <li>Mikolov, T., Chen, K., Corrado, G. and Dean, J. (2013). Efficient estimation of word representations in vector space. <i>ICLR 2013 workshop</i>. <a href="https://arxiv.org/abs/1301.3781">arxiv.org/abs/1301.3781</a>. The source of the syntactic and semantic analogy test set (19,544 questions in 14 relations).</li>
+    <li>Linzen, T. (2016). Issues in evaluating semantic spaces using word analogies. <i>Proceedings of the 1st Workshop on Evaluating Vector-Space Representations for NLP</i>, 13&ndash;18. <a href="https://aclanthology.org/W16-2503/">aclanthology.org/W16-2503</a>.</li>
+    <li>Bolukbasi, T., Chang, K.-W., Zou, J., Saligrama, V. and Kalai, A. (2016). Man is to computer programmer as woman is to homemaker? Debiasing word embeddings. <i>Advances in Neural Information Processing Systems 29 (NIPS 2016)</i>. <a href="https://arxiv.org/abs/1607.06520">arxiv.org/abs/1607.06520</a>. Tests word2vec vectors learned from Google News articles and reports gender stereotypes in them, including the analogy father : doctor :: mother : nurse.</li>
+    <li>Wattenberg, M., Vi&eacute;gas, F. and Johnson, I. (2016). How to use t-SNE effectively. <i>Distill</i>. <a href="https://distill.pub/2016/misread-tsne/">distill.pub/2016/misread-tsne</a>.</li>
+    <li>Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. and Sutskever, I. (2019). Language models are unsupervised multitask learners. OpenAI. Table 2 gives the widths of the four sizes. <a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf">PDF</a>. Table sizes in the text were computed from the GPT-2 weights (MIT licence, <a href="https://huggingface.co/gpt2">huggingface.co/gpt2</a>).</li>
+    <li>Reimers, N. and Gurevych, I. (2019). Sentence-BERT: sentence embeddings using Siamese BERT-networks. <i>Proceedings of EMNLP-IJCNLP 2019</i>, 3982&ndash;3992. <a href="https://aclanthology.org/D19-1410/">aclanthology.org/D19-1410</a>.</li>
+    <li>Reimers, N. and Gurevych, I. (2020). Making monolingual sentence embeddings multilingual using knowledge distillation. <i>Proceedings of EMNLP 2020</i>, 4512&ndash;4525. <a href="https://aclanthology.org/2020.emnlp-main.365/">aclanthology.org/2020.emnlp-main.365</a>. Footnote 7 lists the 50 training languages, which include Hindi (hi) and Marathi (mr).</li>
+    <li>Sentence-Transformers. The model paraphrase-multilingual-MiniLM-L12-v2 (Apache-2.0 licence): <a href="https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2">model card</a> and <a href="https://www.sbert.net/docs/sentence_transformer/pretrained_models.html">pretrained models</a>. Both list hi and mr among the languages. Only the model card and the documentation were read, and no per-language quality figure was found in them.</li>
+    <li>The scripts that made the data: <a href="data/make_embeddings.py">make_embeddings.py</a>. The invented messages: <a href="../data/sharks/messages.json">messages.json</a>.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="d2-embeddings.js?v=1" defer></script>
+</body>
+</html>
