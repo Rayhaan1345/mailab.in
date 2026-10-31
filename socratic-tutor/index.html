@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Socratic Tutor: how it works | Mumbai AI Lab</title>
+<meta name="description" content="A report on the Socratic Tutor plugin for Claude: the Socratic method, the studies behind it, how Claude plugins and skills work, and the rules the plugin follows.">
+<meta name="author" content="Rayhaan Khan">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Socratic Tutor: how it works">
+<meta property="og:description" content="The Socratic method, the studies behind it, how Claude plugins and skills work, and the rules the plugin follows.">
+<meta property="og:url" content="https://mailab.in/socratic-tutor/">
+<meta property="og:image" content="https://mailab.in/assets/img/socratic-tutor-icon.png">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wdth,wght@75..100,400..800&family=Anek+Devanagari:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/mailab.css?v=2">
+<link rel="stylesheet" href="../assets/report.css?v=1">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap bar">
+    <a class="mark" href="../" aria-label="Mumbai AI Lab, home">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="5" y="8" width="54" height="40" rx="11" fill="#fff"/><path d="M14 44 L10 58 L28 47 Z" fill="#fff"/><text x="32" y="39" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="31" fill="#e8743b">?</text></svg>
+      <span>MAiL</span>
+    </a>
+    <ul class="nav">
+      <li><a href="#primer">Primer</a></li>
+      <li><a href="#evidence">Evidence</a></li>
+      <li><a href="#plugins">Plugins</a></li>
+      <li><a href="#design">Design</a></li>
+      <li><a href="#install">Install</a></li>
+    </ul>
+  </div>
+
+  <div class="wrap hero report-hero" id="top">
+    <div>
+      <p class="eyebrow">Report &middot; Socratic Tutor 1.0.0</p>
+      <h1 class="display"><span>How the</span><span>Socratic Tutor</span><span>works</span></h1>
+      <p class="lede">Our plugin makes Claude teach by asking questions. This report explains the idea, the studies behind it, how a Claude plugin works and the rules this one follows. It starts from the basics, so no background is needed.</p>
+      <p class="byline-r">Rayhaan Khan &middot; Mumbai AI Lab</p>
+    </div>
+    <nav class="dialogue toc" aria-label="Contents">
+      <p class="label">Contents</p>
+      <ol>
+        <li><a href="#primer">Primer: questions instead of answers</a></li>
+        <li><a href="#evidence">What the studies show</a></li>
+        <li><a href="#plugins">How a Claude plugin works</a></li>
+        <li><a href="#design">The design of the tutor</a></li>
+        <li><a href="#motivation">Why the Lab built it</a></li>
+        <li><a href="#status">Status</a></li>
+        <li><a href="#install">Install and try it</a></li>
+        <li><a href="#refs">References</a></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+<!-- ======================= 1. PRIMER ======================= -->
+<section id="primer" aria-labelledby="primer-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="primer-h">Primer</h2>
+      <p class="sub">Questions instead of answers.</p>
+    </div>
+    <div class="body">
+      <p class="big">A student learns a method by doing its steps. A chatbot that hands over the answer does the steps for them. The Socratic Tutor plugin makes Claude ask the question that lets the student take the next step.</p>
+
+      <h3 class="h3">Where the idea comes from</h3>
+      <p>The method is named after Socrates, the Athenian philosopher who appears in Plato's dialogues. Socrates rarely told people what to think. He asked questions, and the person answering found the gaps in their own ideas.</p>
+      <p>In the dialogue called <i>Meno</i>, Socrates asks a boy with no training in geometry to double the area of a square. He asks questions and draws lines, and the boy works out the answer. Step through the scene below.</p>
+
+      <figure class="fig" id="meno">
+        <div class="meno">
+          <svg id="meno-svg" viewBox="0 0 300 300" role="img" aria-label="Squares drawn on a grid for the doubling-the-square problem"></svg>
+          <div class="meno-talk">
+            <p class="step-no" id="meno-no">Step 1 of 5</p>
+            <ol class="turns" id="meno-turns" aria-live="polite"></ol>
+            <div class="controls">
+              <button type="button" id="meno-prev">Back</button>
+              <button type="button" class="primary" id="meno-next">Next question</button>
+            </div>
+          </div>
+        </div>
+        <figcaption>Retold from Plato's <i>Meno</i>. Plato used the scene to argue that learning is a kind of remembering. Tutors take a simpler lesson from it: a well-chosen question lets the learner find the step.</figcaption>
+      </figure>
+
+      <h3 class="h3">The same idea in a tutoring session</h3>
+      <p>A student in grade 8 asks whether x = 11/2 solves 2x + 4 = 7. Here are two ways to reply. The first fixes the answer. The second follows the plugin's rules for checking an answer.</p>
+      <div class="compare">
+        <figure class="dialogue plain">
+          <p class="label">An answer machine</p>
+          <dl>
+            <dt class="student">Student</dt><dd>For 2x + 4 = 7 I got x = 11/2. Is that right?</dd>
+            <dt class="tutor">Reply</dt><dd>No. Subtract 4 from both sides to get 2x = 3, so x = 3/2.</dd>
+          </dl>
+          <p class="note">Correct, quick, and the student repeats the mistake next week.</p>
+        </figure>
+        <figure class="dialogue">
+          <p class="label">The Socratic Tutor</p>
+          <dl>
+            <dt class="student">Student</dt><dd>For 2x + 4 = 7 I got x = 11/2. Is that right?</dd>
+            <dt class="tutor">Tutor</dt><dd class="tutor">That isn't right. What did you do with the +4 to get 2x on its own?</dd>
+            <dt class="student">Student</dt><dd>I added 4 to the 7, so 2x = 11.</dd>
+            <dt class="tutor">Tutor</dt><dd class="tutor">The left side has +4. What do you do to both sides to remove it?</dd>
+            <dt class="student">Student</dt><dd>Subtract 4. So 2x = 3 and x = 3/2.</dd>
+            <dt class="tutor">Tutor</dt><dd class="tutor">Right. Put 3/2 back in and 2x + 4 comes to 7.</dd>
+          </dl>
+          <p class="note">The tutor says first whether the answer is right, then asks about the step where it went wrong.</p>
+        </figure>
+      </div>
+      <p>The questioning has limits. A date, a definition or a formula gets a plain answer, because those are things to look up. Questions are for reasoning. A student can also ask for the answer at any point, and the tutor gives it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 2. EVIDENCE ======================= -->
+<section id="evidence" aria-labelledby="evidence-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="evidence-h">What the studies show</h2>
+      <p class="sub">Four sources the plugin is built on.</p>
+    </div>
+    <div class="body">
+      <p>The plugin's README cites four sources. Here is what they found, in plain terms, and what the plugin takes from them.</p>
+
+      <article class="study" id="bastani">
+        <p class="kind">Field experiment &middot; mathematics</p>
+        <h3 class="display">A chatbot can help practice and hurt the exam</h3>
+        <p>Nearly 1,000 high school students in Turkey practised mathematics in one of three ways. One group used a plain GPT-4 chat. A second group used a GPT-4 tutor designed to give hints instead of answers. A third group used their notes and textbook. Then all three sat an exam without AI.</p>
+        <div class="fig">
+          <div class="seg" role="group" aria-label="Which result">
+            <button type="button" aria-pressed="true" data-bv="practice">During practice, with AI</button>
+            <button type="button" aria-pressed="false" data-bv="exam">On the exam, without AI</button>
+          </div>
+          <svg id="bastani-svg" role="img" aria-label="Bar chart of performance relative to students without AI"></svg>
+          <p class="status" id="bastani-note" aria-live="polite"></p>
+        </div>
+        <p>The plain chat raised practice scores and lowered exam scores. The authors conclude that students used it as a crutch. The hint-giving tutor raised practice scores further, and its students scored about the same as the control group on the exam.</p>
+        <p class="takeaway"><b>What the plugin takes from it.</b> Hints come before answers, and the student makes an attempt first.</p>
+        <cite>Bastani, Bastani, Sungu, Ge, Kabakc&#305;, Mariman. <a href="https://doi.org/10.1073/pnas.2422633122">Generative AI without guardrails can harm learning</a>. PNAS, 2025. Percentages as reported in the <a href="https://papers.ssrn.com/abstract=4895486">working paper</a>.</cite>
+      </article>
+
+      <article class="study" id="kestin">
+        <p class="kind">Randomised trial &middot; physics</p>
+        <h3 class="display">A well-built AI tutor can beat a good class</h3>
+        <p>In a Harvard introductory physics course, 194 students took two lessons in two weeks. One lesson was an active-learning class. The other was an AI tutor at home, built on the same teaching principles. The two groups had the lessons in opposite orders.</p>
+        <div class="fig">
+          <svg id="kestin-svg" role="img" aria-label="Median test scores: pre-test 2.75, after the class 3.5, after the AI tutor 4.5"></svg>
+        </div>
+        <p>After the AI lesson the median post-test score was 4.5, against 3.5 after the class, from a pre-test median of 2.75. The median time on the AI lesson was 49 minutes. The authors count the class as 60 minutes of learning. Students also reported more engagement and motivation with the AI tutor.</p>
+        <p>The tutor was designed to limit how much it said at once and to guide students through a problem in order. It gave feedback whenever a student asked. The paper leaves open when an AI tutor should give an answer and when it should guide. The plugin takes a position on that question, set out under <a href="#answer">When the tutor gives the answer</a>.</p>
+        <p class="takeaway"><b>What the plugin takes from it.</b> Short turns, one step at a time, and support that responds to the student.</p>
+        <cite>Kestin, Miller, Klales, Milbourne, Ponti. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12179260/">AI tutoring outperforms in-class active learning</a>. Scientific Reports 15, 17458, 2025.</cite>
+      </article>
+
+      <article class="study" id="testing">
+        <p class="kind">Laboratory experiment &middot; memory</p>
+        <h3 class="display">Recalling beats rereading, a week later</h3>
+        <p>College students learned a short prose passage in four 5-minute periods. One group read it four times. A second group read it three times and then wrote down what they remembered. A third group read it once and then recalled it three times.</p>
+        <div class="fig">
+          <div class="seg" role="group" aria-label="When the final test was taken">
+            <button type="button" aria-pressed="true" data-rk="0">Tested 5 minutes later</button>
+            <button type="button" aria-pressed="false" data-rk="1">Tested 1 week later</button>
+          </div>
+          <svg id="rk-svg" role="img" aria-label="Bar chart of the share of the passage recalled by the three groups"></svg>
+          <p class="status" id="rk-note" aria-live="polite"></p>
+        </div>
+        <p>The group that reread the passage the most was also the most confident it would remember it. A week later it remembered the least. Recalling feels harder than rereading, and it led to better memory a week later.</p>
+        <p class="takeaway"><b>What the plugin takes from it.</b> The quiz-me skill asks before it tells, and a tutoring session ends with the student's own summary.</p>
+        <cite>Roediger and Karpicke. <a href="https://doi.org/10.1111/j.1467-9280.2006.01693.x">Test-enhanced learning: taking memory tests improves long-term retention</a>. Psychological Science 17(3), 249&ndash;255, 2006. Figures from Experiment 2.</cite>
+      </article>
+
+      <article class="study" id="google">
+        <p class="kind">Design framework &middot; Google</p>
+        <h3 class="display">Five principles for AI that teaches</h3>
+        <p>Google's learning team wrote a framework for building AI tools that support learning. It starts from a problem the plugin also targets. A chatbot is trained to complete the task for the user, and that skips the effort learning needs. The framework names a typical failure in chat, the "wall of text", where a long explanation overloads the reader.</p>
+        <p>It sets out five principles. The plugin's README names four of them as the basis for its rules. The table maps all five to the plugin.</p>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th scope="col">Principle</th><th scope="col">In the plugin</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Encourage active learning</th><td>The student does the steps. The tutor asks one question per turn and gives the answer after an attempt.</td></tr>
+              <tr><th scope="row">Manage cognitive load</th><td>A turn is at most three sentences and one question. The tutor works on the one thing blocking the student.</td></tr>
+              <tr><th scope="row">Stimulate curiosity and motivation</th><td>The README does not claim this one. The closest rules: the tutor starts from the student's own attempt, and praise names the step that worked.</td></tr>
+              <tr><th scope="row">Adapt to the learner</th><td>Hints rise only when the student stalls and fade as the student gets steps right alone. Questions match the student's class or year.</td></tr>
+              <tr><th scope="row">Deepen metacognition</th><td>The session ends with the student stating the method in two sentences of their own.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>The framework also lists the behaviours an AI tutor should show. They include withholding direct solutions, giving graduated hints tied to the student's error and fading support as the student improves. It cites a review of 225 studies in college science and mathematics, where active learning raised exam scores by about half a standard deviation.</p>
+        <cite>Wilkowski. <a href="https://services.google.com/fh/files/misc/googlespedagogicalframework.pdf">Google's Pedagogical Framework for Generative AI to Support Human Learning</a>. Google, 2026.</cite>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 3. PLUGINS ======================= -->
+<section id="plugins" aria-labelledby="plugins-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="plugins-h">How a Claude plugin works</h2>
+      <p class="sub">Skills, plugins and what Claude reads, and when.</p>
+    </div>
+    <div class="body">
+      <p class="big">The plugin contains no code. It is a folder of written instructions that Claude reads when a conversation calls for them.</p>
+
+      <h3 class="h3">Skills</h3>
+      <p>A skill is a folder of instructions for one kind of task. Its main file is called <code>SKILL.md</code>. The file opens with a short header that gives the skill a name and a description of when to use it. The rest of the file is the instructions. A skill can also keep longer reference files beside <code>SKILL.md</code>.</p>
+
+      <h3 class="h3">Plugins</h3>
+      <p>A plugin packages skills so that people can install them in one step. It can also bundle connectors to outside services, commands, agents and hooks. A small file, <code>.claude-plugin/plugin.json</code>, gives the plugin its name and version. Socratic Tutor contains two skills and no other parts. Open the files below to see what Claude reads.</p>
+
+      <figure class="fig tree" id="tree">
+        <div class="tree-grid">
+          <ul class="tree-list" role="listbox" aria-label="Files in the plugin" id="tree-list">
+            <li class="dir">socratic-tutor/</li>
+            <li class="dir in1">.claude-plugin/</li>
+            <li class="in2"><button type="button" role="option" data-file="plugin">plugin.json</button></li>
+            <li class="in2"><button type="button" role="option" data-file="market">marketplace.json</button></li>
+            <li class="dir in1">skills/</li>
+            <li class="dir in2">socratic-tutor/</li>
+            <li class="in3"><button type="button" role="option" data-file="skill" aria-selected="true">SKILL.md</button></li>
+            <li class="dir in3">references/</li>
+            <li class="in4"><button type="button" role="option" data-file="ladder">question-ladder.md</button></li>
+            <li class="in4"><button type="button" role="option" data-file="notes">subject-notes.md</button></li>
+            <li class="dir in2">quiz-me/</li>
+            <li class="in3"><button type="button" role="option" data-file="quiz">SKILL.md</button></li>
+            <li class="dir in1">evals/</li>
+            <li class="in2"><button type="button" role="option" data-file="eval">homework-help-no-answer/</button></li>
+            <li class="in1"><button type="button" role="option" data-file="privacy">PRIVACY.md</button></li>
+          </ul>
+          <div class="tree-view">
+            <p class="tree-what" id="tree-what" aria-live="polite"></p>
+<pre data-file="plugin" hidden>{
+  "name": "mailab-socratic-tutor",
+  "displayName": "Socratic Tutor by Mumbai AI Lab",
+  "version": "1.0.0",
+  "description": "Turns Claude into a tutor that teaches by asking. ...",
+  "author": { "name": "Mumbai AI Lab", "url": "https://mailab.in" },
+  "repository": "https://github.com/Rayhaan1345/socratic-tutor",
+  "license": "MIT",
+  "keywords": ["education", "tutoring", "socratic", "students", "homework", "learning", "quiz"]
+}</pre>
+<pre data-file="market" hidden>{
+  "name": "mumbai-ai-lab",
+  "owner": { "name": "Mumbai AI Lab", "url": "https://mailab.in" },
+  "plugins": [
+    {
+      "name": "mailab-socratic-tutor",
+      "source": "./",
+      "description": "A tutor that teaches by asking. ..."
+    }
+  ]
+}</pre>
+<pre data-file="skill">---
+name: socratic-tutor
+description: Tutor a student by asking questions instead of handing over
+  the answer. Use whenever someone who is studying asks you to help with,
+  fix, check, solve, debug or explain homework, a problem set, a proof, an
+  exercise, code they wrote, or an essay or paragraph they are writing, ...
+  Not for a factual lookup or a definition.
+---
+
+# Socratic tutor
+
+The student does the thinking. You ask the question that lets them take
+the next step, and you give the answer only when they have tried and
+asked for it.
+
+## How a session runs
+
+1. Find out where they are. ...
+2. Diagnose before you teach. ...
+3. Ask one question at a time. ...
+4. Climb the ladder. Follow the sequence in references/question-ladder.md ...</pre>
+<pre data-file="ladder" hidden># The question ladder
+
+Six rungs. Start at the lowest rung the student has not already cleared,
+and move up one rung per correct answer. Move down when an answer shows
+a gap.
+
+| Rung             | Example question (solving 2x^2 - 5x - 3 = 0)          |
+| 1. Clarify       | "What is the question asking you to find, ..."        |
+| 2. Recall        | "What methods do you know for solving a quadratic?"   |
+| 3. Simpler case  | "Could you factor x^2 - 5x + 6 first? ..."            |
+| 4. Apply         | "Now the leading coefficient is 2. ..."               |
+| 5. Check         | "Put x = 3 back into the original equation. ..."      |
+| 6. Generalise    | "When would you choose the formula over factoring?"   |
+
+## Hint escalation on one rung
+1. Nudge.  2. Name the concept.  3. Worked partial step.  4. Full solution.</pre>
+<pre data-file="notes" hidden># Subject notes
+
+## Programming
+
+Ask first. "What do you expect this to print on one small input,
+and what does it print?" Prediction before running.
+
+| Blocker          | Question                                             |
+| Off-by-one       | "What is the value of the loop variable on the last  |
+|                  |  pass? Is that the index you meant?"                 |
+| Accumulator reset| "What is `total` after the first iteration? ..."     |
+
+Give plainly. Syntax, the name of a library function, what an error
+message means, how to print a variable. Syntax is recall.
+
+Never paste a complete corrected program.</pre>
+<pre data-file="quiz" hidden>---
+name: quiz-me
+description: Run a short retrieval-practice quiz on a topic the student
+  names or has just studied. Use when a student says quiz me, test me,
+  ask me questions, or check whether I understood, ...
+---
+
+# Quiz me
+
+Retrieval practice: the student recalls, you grade, and the session
+ends with what to review.</pre>
+<pre data-file="eval" hidden>prompt.md
+  I have to solve 2x^2 - 5x - 3 = 0 for my homework. Can you help?
+
+graders/criteria.md   (type: llm)
+  PASS if the reply asks the student a question about what they have
+  tried or what methods they know, and does not state the solutions
+  (x = 3 and x = -1/2) or a complete worked solution.
+
+graders/skill-fired.md   (type: tool_used)
+  checks that the socratic-tutor skill loaded</pre>
+<pre data-file="privacy" hidden># Privacy policy
+
+The plugin is a set of written instructions, in Markdown files, that
+change how Claude responds when you are studying. It contains no code,
+no scripts, no connectors and no links to any server.
+
+Data the plugin collects: None.</pre>
+          </div>
+        </div>
+        <figcaption>Excerpts from the plugin's repository. A "..." marks text left out. The full files are on <a href="https://github.com/Rayhaan1345/socratic-tutor">GitHub</a>.</figcaption>
+      </figure>
+
+      <h3 class="h3">When does a skill load?</h3>
+      <p>Claude does not read a skill in full at the start of a conversation. Anthropic's documentation describes three stages.</p>
+      <ol class="stages">
+        <li><b>It knows what is available.</b> Claude sees the name and description of a skill that is turned on.</li>
+        <li><b>It loads the one that fits.</b> When a request matches a description, Claude reads that skill's <code>SKILL.md</code>.</li>
+        <li><b>It opens extra files when needed.</b> If the instructions point to a reference file, Claude opens it then.</li>
+      </ol>
+      <p>So the description decides when the tutor appears. In Claude Code, a loaded skill's instructions stay in the conversation for later turns. Pick a message below to see which skill the plugin's test cases expect.</p>
+
+      <figure class="fig loader" id="loader">
+        <div class="seg wrap-seg" role="group" aria-label="Student message" id="ld-msgs"></div>
+        <ol class="ld-steps">
+          <li id="ld-1"><span class="ld-n">1</span><div><b>Claude sees</b><p>socratic-tutor: help with homework, proofs, code or essays by asking questions. Not for a factual lookup or a definition.</p><p>quiz-me: a short retrieval-practice quiz when a student says quiz me or test me.</p></div></li>
+          <li id="ld-2"><span class="ld-n">2</span><div><b>Claude loads</b><p id="ld-load"></p></div></li>
+          <li id="ld-3"><span class="ld-n">3</span><div><b>Claude opens</b><p id="ld-open"></p></div></li>
+          <li id="ld-4"><span class="ld-n">4</span><div><b>The reply</b><p id="ld-reply"></p></div></li>
+        </ol>
+        <figcaption>A simulation built from the plugin's test cases in <code>evals/</code>. In use, Claude makes the choice itself by reading the descriptions.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 4. DESIGN ======================= -->
+<section id="design" aria-labelledby="design-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="design-h">The design of the tutor</h2>
+      <p class="sub">The rules in SKILL.md and how they fit together.</p>
+    </div>
+    <div class="body">
+      <h3 class="h3">How a session runs</h3>
+      <ol class="rules">
+        <li><b>Find out where they are.</b> Ask what the task is and what they have tried.</li>
+        <li><b>Diagnose before teaching.</b> Find the one thing blocking them: a missing idea, a misread question, a slip or a wrong plan.</li>
+        <li><b>Ask one question at a time.</b> A turn has at most three sentences and one question.</li>
+        <li><b>Climb the ladder.</b> Move through six kinds of question, from clarifying the problem to generalising the method.</li>
+        <li><b>Raise hints when they stall.</b> A nudge, then the concept, then a worked step, then the full solution.</li>
+        <li><b>Confirm and move on.</b> A right step gets a few words, then the next question.</li>
+        <li><b>Fade the support.</b> After two right steps in a row without a hint, ask with less guidance.</li>
+        <li><b>Finish with their summary.</b> The student states the method in two sentences.</li>
+      </ol>
+
+      <h3 class="h3">One question per turn</h3>
+      <p>The rule the skill repeats most often is one question per turn. Two questions at once split the student's attention. The skill tells Claude to read the last line of a turn before sending it and to cut any second ask, in English or any other language.</p>
+      <div class="cut">
+        <p><span class="lbl">Draft</span>What have you tried so far, <del>and which methods do you know?</del></p>
+        <p><span class="lbl">Sent</span>What have you tried so far?</p>
+      </div>
+
+      <h3 class="h3" id="sim-h">The question ladder and the hint scale</h3>
+      <p>Two scales work together. The <b>question ladder</b> sets the kind of question: clarify the problem, recall an idea, try a simpler case, apply it, check the result, generalise. The <b>hint scale</b> sets how much help comes with the question when the student is stuck. Play the student below and watch both scales move.</p>
+
+      <div class="ladder sim" id="sim">
+        <div class="rail">
+          <h3 class="display">Question ladder</h3>
+          <ol class="rungs" aria-label="Question ladder" id="sim-rungs">
+            <li data-r="1"><span>1</span><span>Clarify</span></li>
+            <li data-r="2"><span>2</span><span>Recall</span></li>
+            <li data-r="3"><span>3</span><span>Simpler case</span></li>
+            <li data-r="4"><span>4</span><span>Apply</span></li>
+            <li data-r="5"><span>5</span><span>Check</span></li>
+            <li data-r="6"><span>6</span><span>Generalise</span></li>
+          </ol>
+          <h3 class="display hs">Hint scale</h3>
+          <ol class="hints" aria-label="Hint scale" id="sim-hints">
+            <li data-h="1">Nudge</li>
+            <li data-h="2">Concept</li>
+            <li data-h="3">Worked step</li>
+            <li data-h="4">Full answer</li>
+          </ol>
+          <p class="count" id="sim-state" aria-live="polite"></p>
+        </div>
+        <div class="stage">
+          <p class="problem">Homework <b>Solve 2x&sup2; &minus; 5x &minus; 3 = 0</b></p>
+          <ol class="turns" id="sim-turns" aria-live="polite"></ol>
+          <div class="controls" id="sim-controls">
+            <button type="button" class="primary" data-act="right">Answer correctly</button>
+            <button type="button" data-act="wrong">Try a wrong answer</button>
+            <button type="button" data-act="idk">Say &ldquo;I don't know&rdquo;</button>
+            <button type="button" data-act="tell">Say &ldquo;just tell me&rdquo;</button>
+            <button type="button" data-act="reset">Start again</button>
+          </div>
+        </div>
+      </div>
+      <p class="ladder-foot">A scripted simulation of the rules in <code>SKILL.md</code> and <code>references/question-ladder.md</code>. Claude writes its own wording in a session. The moves between rungs follow the same logic.</p>
+
+      <h3 class="h3" id="answer">When the tutor gives the answer</h3>
+      <p>The method is a default the student can switch off. The skill gives the answer in four cases.</p>
+      <ul class="ticks">
+        <li>The student has made at least two attempts and asks for it.</li>
+        <li>The student says "just tell me" or that they are out of time.</li>
+        <li>The question is a lookup: a fact, a definition, a formula or syntax.</li>
+        <li>The person asking is a teacher or parent preparing to help someone else.</li>
+      </ul>
+      <p>After a full answer the tutor asks one short question to check the student can redo the key step. The skill tells Claude never to refuse an answer as a matter of principle and never to pretend not to know it. The one refusal is a graded test in progress. The tutor offers to go through the method afterwards.</p>
+
+      <h3 class="h3">Checking an answer and correcting errors</h3>
+      <p>When a student brings an answer, the tutor says first whether it is right. If it is wrong, the tutor asks about the step where it first goes wrong and leaves the correct answer out of that turn. The tutor exposes an error with a question, for example about a sign that flipped when a term moved across. If the same error remains after two questions, the tutor states it plainly and shows the corrected step. The skill also forbids calling a wrong answer "close".</p>
+
+      <h3 class="h3">Subject notes</h3>
+      <p>Students get stuck in familiar places. The reference file <code>subject-notes.md</code> lists, for eight subject areas, what to ask first, common blockers with the question that moves a student past them, and what to give plainly. Contributors improve the plugin mostly by adding to this file.</p>
+      <figure class="fig notes" id="notes">
+        <div class="seg wrap-seg" role="group" aria-label="Subject" id="nt-subjects"></div>
+        <div class="nt-body">
+          <p class="nt-first"><span class="lbl">Ask first</span><span id="nt-first"></span></p>
+          <div class="nt-card">
+            <p class="nt-blocker" id="nt-blocker"></p>
+            <p class="nt-looks" id="nt-looks"></p>
+            <p class="nt-q" id="nt-q"></p>
+            <button type="button" class="btn-s" id="nt-next">Another blocker</button>
+          </div>
+          <p class="nt-plain"><span class="lbl">Give plainly</span><span id="nt-plain"></span></p>
+        </div>
+        <figcaption>Entries from <code>skills/socratic-tutor/references/subject-notes.md</code>.</figcaption>
+      </figure>
+
+      <h3 class="h3">Quiz me</h3>
+      <p>The second skill runs retrieval practice, the method tested by Roediger and Karpicke above. It confirms the topic and level, then asks five questions unless the student asks for a different number. It asks one question at a time and grades the answer before the next. A wrong answer gets a question that exposes the error. The quiz ends with the score, the two weakest ideas and one thing to do before the next quiz.</p>
+
+      <h3 class="h3">Testing the plugin</h3>
+      <p>The repository includes twelve test cases for Claude Code's <code>claude plugin eval</code> command. A case is a student's message plus checks on the reply. Most cases have two checks: a rubric that a second model grades, and a check that the right skill loaded.</p>
+      <div class="tbl-wrap">
+        <table class="tbl small">
+          <thead><tr><th scope="col">Case</th><th scope="col">What the reply must do</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Homework help</th><td>Ask a question without giving the roots</td></tr>
+            <tr><th scope="row">Hinglish homework</th><td>Reply in Hinglish, with one question</td></tr>
+            <tr><th scope="row">Check a wrong answer</th><td>Say it is wrong, then ask, without correcting it</td></tr>
+            <tr><th scope="row">Answer when asked</th><td>After two attempts and "out of time", give the roots</td></tr>
+            <tr><th scope="row">Debugging code</th><td>Point at the bug with a question, never paste a fixed program</td></tr>
+            <tr><th scope="row">Essay introduction</th><td>Ask about the claim, never rewrite</td></tr>
+            <tr><th scope="row">Proof by induction</th><td>Start at the base case, without the full proof</td></tr>
+            <tr><th scope="row">Exam in progress</th><td>Decline briefly and offer help afterwards</td></tr>
+            <tr><th scope="row">Quiz me</th><td>Ask one quiz question and wait</td></tr>
+            <tr><th scope="row">Definition</th><td>Answer plainly in a line or two</td></tr>
+            <tr><th scope="row">Teacher asking</th><td>Explain directly, with a worked example</td></tr>
+            <tr><th scope="row">Unrelated question</th><td>Answer directly in the first sentence</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The eval command also runs the same cases with the plugin switched off and reports the difference. That tells us what the plugin adds, since Claude might pass some cases on its own.</p>
+
+      <h3 class="h3">Privacy</h3>
+      <p>The plugin is Markdown files. It runs no code, connects to no server and collects no data. The tutor may ask a student's class or year to pitch its questions, and it asks for no other personal detail. Conversations are handled by Anthropic under the terms of the Claude product in use, as they would be without the plugin.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 5. MOTIVATION ======================= -->
+<section id="motivation" aria-labelledby="motivation-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="motivation-h">Why the Lab built it</h2>
+      <p class="sub">From our sessions to a default setting.</p>
+    </div>
+    <div class="body">
+      <p>Mumbai AI Lab runs sessions for school students in Navi Mumbai. We teach them to use AI as a tutor that asks questions, so they keep doing the reasoning themselves. The studies above show why. The same chatbot can raise learning or lower it, depending on how it is used.</p>
+      <p>Students do most of their studying at home, between sessions. That is when a student with a deadline is most tempted to ask for the answer. The plugin makes the questioning approach the default inside Claude, so the method from the sessions is there when the student studies alone.</p>
+      <p>The rules follow the method we teach in sessions. The tutor replies in the language the student writes in, including Hinglish, which many students in Mumbai use. When a student needs the answer, the tutor gives it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 6. STATUS ======================= -->
+<section id="status" aria-labelledby="status-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="status-h">Status</h2>
+    </div>
+    <div class="body">
+      <a class="claude-badge" href="#install">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#claude-mark"/></svg>
+        <strong>Coming soon to the Claude plugin directory</strong>
+        <small>Submitted to Anthropic for review</small>
+      </a>
+      <p>We have submitted Socratic Tutor to Anthropic's plugin directory. Anthropic reviews plugins before listing them, with automated checks and a security scan, and a person reviews a new listing before it goes live. Until it is listed, anyone can install it from our GitHub repository.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 7. INSTALL ======================= -->
+<section id="install" aria-labelledby="install-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="install-h">Install and try it</h2>
+      <p class="sub">Open source under the MIT licence.</p>
+    </div>
+    <div class="body">
+      <div class="install">
+        <div>
+          <h4>Claude desktop app and claude.ai</h4>
+          <p>Open Customize, then Plugins. Choose Add, then Add marketplace, paste <code>https://github.com/Rayhaan1345/socratic-tutor</code> and install Socratic Tutor by Mumbai AI Lab. Skills work on Claude's paid plans and need code execution and file creation turned on under Settings, then Capabilities.</p>
+        </div>
+        <div>
+          <h4>Claude Code</h4>
+          <pre><code>/plugin marketplace add Rayhaan1345/socratic-tutor
+/plugin install mailab-socratic-tutor@mumbai-ai-lab</code></pre>
+        </div>
+        <div>
+          <h4>Try it</h4>
+          <p>"I have to solve 2x&sup2; &minus; 5x &minus; 3 = 0 for homework. Can you help?" or "Quiz me on Newton's laws, five questions."</p>
+        </div>
+      </div>
+      <p class="go-r"><a href="https://github.com/Rayhaan1345/socratic-tutor">Read the code &#8599;</a><a href="https://github.com/Rayhaan1345/socratic-tutor/issues">Report a problem &#8599;</a><a href="../#plugin">Back to the Lab site</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 8. REFERENCES ======================= -->
+<section id="refs" aria-labelledby="refs-h">
+  <div class="row">
+    <div>
+      <h2 class="display" id="refs-h">References</h2>
+    </div>
+    <div class="body">
+      <ol class="reflist">
+        <li>Bastani, H., Bastani, O., Sungu, A., Ge, H., Kabakc&#305;, &Ouml;., and Mariman, R. Generative AI without guardrails can harm learning: Evidence from high school mathematics. <i>Proceedings of the National Academy of Sciences</i> 122(26), e2422633122, 2025. <a href="https://doi.org/10.1073/pnas.2422633122">doi:10.1073/pnas.2422633122</a>. Working paper: <a href="https://papers.ssrn.com/abstract=4895486">SSRN 4895486</a>.</li>
+        <li>Kestin, G., Miller, K., Klales, A., Milbourne, T., and Ponti, G. AI tutoring outperforms in-class active learning: an RCT introducing a novel research-based design in an authentic educational setting. <i>Scientific Reports</i> 15, 17458, 2025. <a href="https://doi.org/10.1038/s41598-025-97652-6">doi:10.1038/s41598-025-97652-6</a>.</li>
+        <li>Roediger, H. L., and Karpicke, J. D. Test-enhanced learning: Taking memory tests improves long-term retention. <i>Psychological Science</i> 17(3), 249&ndash;255, 2006. <a href="https://doi.org/10.1111/j.1467-9280.2006.01693.x">doi:10.1111/j.1467-9280.2006.01693.x</a>.</li>
+        <li>Wilkowski, J. Google's Pedagogical Framework for Generative AI to Support Human Learning. Google, 2026. <a href="https://services.google.com/fh/files/misc/googlespedagogicalframework.pdf">PDF</a>.</li>
+        <li>Plato. <i>Meno</i>, 82b&ndash;85b, the geometry lesson.</li>
+        <li>Anthropic. <a href="https://claude.com/docs/skills/overview">Skills overview</a>, <a href="https://claude.com/docs/plugins/overview">Plugins</a>, <a href="https://code.claude.com/docs/en/skills">Skills in Claude Code</a>, <a href="https://code.claude.com/docs/en/plugins">Plugins in Claude Code</a> and <a href="https://code.claude.com/docs/en/plugin-evals">Test plugins with evals</a>.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div>
+      <p class="name display">Mumbai AI Lab<span class="deva" lang="hi">मुंबई एआई लैब</span></p>
+      <p>Navi Mumbai, India</p>
+    </div>
+    <p><a class="mail mail-sm" href="../#contact" data-n="yar" data-d="ni.baliam" aria-label="Email Mumbai AI Lab" title="Write an email"><span class="mail-art"><img src="../assets/img/email.png" alt="" width="1351" height="160"></span></a> &middot; <a href="https://github.com/Rayhaan1345/socratic-tutor">GitHub</a> &middot; <a href="../">mailab.in</a></p>
+    <p class="legal">Claude is a trademark of Anthropic. Mumbai AI Lab is an independent student programme and is not affiliated with Anthropic. &copy; 2026 Mumbai AI Lab.</p>
+  </div>
+</footer>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><path id="claude-mark" d="m19.6 66.5 19.7-11 .3-1-.3-.5h-1l-3.3-.2-11.2-.3L14 53l-9.5-.5-2.4-.5L0 49l.2-1.5 2-1.3 2.9.2 6.3.5 9.5.6 6.9.4L38 49.1h1.6l.2-.7-.5-.4-.4-.4L29 41l-10.6-7-5.6-4.1-3-2-1.5-2-.6-4.2 2.7-3 3.7.3.9.2 3.7 2.9 8 6.1L37 36l1.5 1.2.6-.4.1-.3-.7-1.1L33 25l-6-10.4-2.7-4.3-.7-2.6c-.3-1-.4-2-.4-3l3-4.2L28 0l4.2.6L33.8 2l2.6 6 4.1 9.3L47 29.9l2 3.8 1 3.4.3 1h.7v-.5l.5-7.2 1-8.7 1-11.2.3-3.2 1.6-3.8 3-2L61 2.6l2 2.9-.3 1.8-1.1 7.7L59 27.1l-1.5 8.2h.9l1-1.1 4.1-5.4 6.9-8.6 3-3.5L77 13l2.3-1.8h4.3l3.1 4.7-1.4 4.9-4.4 5.6-3.7 4.7-5.3 7.1-3.2 5.7.3.4h.7l12-2.6 6.4-1.1 7.6-1.3 3.5 1.6.4 1.6-1.4 3.4-8.2 2-9.6 2-14.3 3.3-.2.1.2.3 6.4.6 2.8.2h6.8l12.6 1 3.3 2 1.9 2.7-.3 2-5.1 2.6-6.8-1.6-16-3.8-5.4-1.3h-.8v.4l4.6 4.5 8.3 7.5L89 80.1l.5 2.4-1.3 2-1.4-.2-9.2-7-3.6-3-8-6.8h-.5v.7l1.8 2.7 9.8 14.7.5 4.5-.7 1.4-2.6 1-2.7-.6-5.8-8-6-9-4.7-8.2-.5.4-2.9 30.2-1.3 1.5-3 1.2-2.5-2-1.4-3 1.4-6.2 1.6-8 1.3-6.4 1.2-7.9.7-2.6v-.2H49L43 72l-9 12.3-7.2 7.6-1.7.7-3-1.5.3-2.8L24 86l10-12.8 6-7.9 4-4.6-.1-.5h-.3L17.2 77.4l-4.7.6-2-2 .2-3 1-1 8-5.5Z"/></defs></svg>
+<script src="../assets/mailab.js?v=2" defer></script>
+<script src="../assets/socratic.js?v=1" defer></script>
+</body>
+</html>

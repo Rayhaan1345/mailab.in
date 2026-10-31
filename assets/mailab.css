@@ -143,6 +143,8 @@ main section { padding: 0; }
   padding-bottom: 88px;
 }
 main > .wrap > section:first-child .row { margin-top: 88px; }
+/* grid children may shrink below their content, so a long code line scrolls instead of widening the page */
+.row > *, .plugin > div, .install > div { min-width: 0; }
 .row h2 { margin: 0; font-size: 52px; }
 .row h2 + .sub { margin: 14px 0 0; color: var(--muted); font-size: 17px; max-width: 16em; }
 .row .body > p { margin: 0 0 16px; max-width: 40em; color: var(--ink-2); }

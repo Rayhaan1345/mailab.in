@@ -1,0 +1,220 @@
+/* Report pages on mailab.in. Builds on mailab.css: same tokens, type and section rows. */
+
+:root {
+  --bar-a: #16324f;
+  --bar-b: #e8743b;
+  --bar-c: #9aa7b8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bar-a: #9cc0e6;
+    --bar-b: #f39261;
+    --bar-c: #5d6f86;
+  }
+}
+
+/* ---------- hero ---------- */
+
+.report-hero { padding-top: 56px; padding-bottom: 72px; align-items: end; }
+.report-hero h1 { font-size: clamp(60px, 8.6vw, 118px); }
+.report-hero .byline-r { margin: 22px 0 0; font-weight: 600; color: var(--on-navy-2); font-size: 17px; letter-spacing: 0.04em; }
+.toc ol { margin: 0; padding: 0 0 0 1.4em; display: grid; gap: 6px; font-size: 17.5px; line-height: 1.35; }
+.toc ol li::marker { color: var(--orange-ink); font-weight: 700; }
+.toc a { text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+
+/* ---------- prose inside a section ---------- */
+
+.row > *, .install > div { min-width: 0; }
+
+.body .h3 {
+  margin: 44px 0 12px;
+  font-size: 30px;
+  font-weight: 800;
+  font-variation-settings: "wdth" 75;
+  text-transform: uppercase;
+  line-height: 1;
+  letter-spacing: -0.005em;
+}
+.body > .big + .h3 { margin-top: 30px; }
+.body code, .study code, .fig code, .tree-what code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.84em;
+  background: var(--panel);
+  padding: 1px 5px;
+  overflow-wrap: anywhere;
+}
+.body > ul, .body > ol.stages { color: var(--ink-2); max-width: 40em; }
+.ticks { list-style: none; padding: 0; margin: 0 0 16px; }
+.ticks li { position: relative; padding: 6px 0 6px 30px; border-top: 1px solid var(--hair); }
+.ticks li::before { content: ""; position: absolute; left: 4px; top: 15px; width: 12px; height: 7px; border-left: 3px solid var(--orange); border-bottom: 3px solid var(--orange); transform: rotate(-45deg); }
+
+.stages { list-style: none; padding: 0; margin: 0 0 18px; counter-reset: st; display: grid; gap: 0; }
+.stages li { counter-increment: st; position: relative; padding: 10px 0 10px 50px; border-top: 1px solid var(--hair); }
+.stages li::before { content: counter(st); position: absolute; left: 0; top: 8px; width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 17px; }
+.stages b { color: var(--ink); font-weight: 600; }
+
+/* ---------- figures ---------- */
+
+.fig { margin: 22px 0 18px; background: var(--panel); padding: 20px 22px 16px; }
+.fig svg { display: block; width: 100%; height: auto; overflow: visible; }
+.fig svg text { font-family: "Anek Latin", "Helvetica Neue", Arial, sans-serif; }
+figure.fig { margin-left: 0; margin-right: 0; }
+.fig figcaption, .fig + figcaption { margin: 12px 0 0; font-size: 15px; color: var(--muted); max-width: 46em; line-height: 1.45; }
+.fig .status { margin: 10px 0 0; font-size: 16.5px; color: var(--ink-2); min-height: 3em; max-width: 44em; }
+
+.seg { display: inline-flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.seg button {
+  font: inherit;
+  font-size: 15.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border: 2px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  line-height: 1.25;
+}
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button:hover { border-color: var(--orange); }
+.wrap-seg { display: flex; }
+
+.btn-s { font: inherit; font-size: 15px; font-weight: 600; padding: 5px 12px; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+.btn-s:hover { border-color: var(--orange); }
+
+/* Meno: the doubling-the-square scene */
+.meno { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 26px; align-items: start; }
+.meno svg { max-width: 300px; }
+.meno-talk { display: flex; flex-direction: column; min-height: 300px; }
+.meno-talk .step-no { margin: 0 0 10px; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+#meno .sq { transition: opacity 0.4s ease, fill-opacity 0.4s ease; }
+
+/* dialogue turns, as in the home page ladder */
+.turns { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.turns li { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 14px; animation: rise 0.3s ease both; }
+.turns .who { font-size: 13.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; padding-top: 4px; color: var(--muted); }
+.turns .tutor .who { color: var(--orange-ink); }
+.turns .say { font-size: 18px; color: var(--ink-2); }
+.turns .tutor .say { font-weight: 500; color: var(--ink); }
+.turns .student .say { font-style: italic; }
+.turns .tag { display: inline-block; margin-right: 8px; font-size: 12.5px; letter-spacing: 0.06em; text-transform: uppercase; background: var(--orange); color: #fff; padding: 1px 7px; font-weight: 700; font-style: normal; vertical-align: 2px; }
+.turns .tag.rung { background: var(--navy); }
+
+/* answer machine against tutor */
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 20px; align-items: start; }
+.compare .dialogue { align-self: start; border: 1px solid var(--hair); border-top: 6px solid var(--orange); }
+.compare .dialogue.plain { border-top-color: var(--muted); }
+.compare .dialogue dd { font-size: 17px; }
+
+/* studies */
+.study { border-top: 1px solid var(--hair); padding: 26px 0 8px; }
+.study:first-of-type { margin-top: 20px; }
+.study .kind { margin: 0 0 6px; font-size: 13.5px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; color: var(--orange-ink); }
+.study h3 { margin: 0 0 12px; font-size: 36px; line-height: 0.98; }
+.study > p { margin: 0 0 14px; color: var(--ink-2); max-width: 40em; }
+.study .takeaway { border-left: 4px solid var(--orange); padding: 4px 0 4px 14px; color: var(--ink); }
+.study .takeaway b { font-weight: 700; }
+.study cite { display: block; margin: 0 0 18px; font-style: normal; font-size: 15px; color: var(--muted); max-width: 46em; }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; margin: 6px 0 18px; }
+.tbl { border-collapse: collapse; width: 100%; font-size: 16.5px; }
+.tbl th, .tbl td { text-align: left; vertical-align: top; padding: 10px 14px 10px 0; border-top: 1px solid var(--hair); }
+.tbl thead th { font-size: 13.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border-top: 3px solid var(--rule); }
+.tbl tbody th { font-weight: 600; color: var(--ink); width: 34%; }
+.tbl td { color: var(--ink-2); }
+.tbl.small { font-size: 15.5px; }
+
+/* plugin file tree */
+.tree-grid { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 18px; }
+.tree-list { list-style: none; margin: 0; padding: 0; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 14.5px; line-height: 1.5; }
+.tree-list li { padding-left: 0; }
+.tree-list .in1 { padding-left: 16px; }
+.tree-list .in2 { padding-left: 32px; }
+.tree-list .in3 { padding-left: 48px; }
+.tree-list .in4 { padding-left: 64px; }
+.tree-list .dir { color: var(--muted); }
+.tree-list button { font: inherit; background: none; border: 0; padding: 1px 6px; margin-left: -6px; color: var(--ink); cursor: pointer; text-align: left; }
+.tree-list button:hover { color: var(--orange-ink); }
+.tree-list button[aria-selected="true"] { background: var(--orange); color: #fff; }
+.tree-view { min-width: 0; }
+.tree-what { margin: 0 0 10px; font-size: 16.5px; color: var(--ink); min-height: 2.6em; }
+.tree-view pre {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--navy-deep);
+  color: #e6edf6;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13.5px;
+  line-height: 1.55;
+  overflow-x: auto;
+  border-left: 4px solid var(--orange);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* which skill loads */
+.ld-steps { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 8px; }
+.ld-steps li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; padding: 12px 14px; background: var(--bg); border-left: 4px solid var(--hair); transition: border-color 0.3s ease, opacity 0.3s ease; }
+.ld-steps li.hit { border-left-color: var(--orange); }
+.ld-steps li.skip { opacity: 0.55; }
+.ld-steps .ld-n { width: 30px; height: 30px; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+.ld-steps li.hit .ld-n { background: var(--orange); }
+.ld-steps b { display: block; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.ld-steps p { margin: 4px 0 0; color: var(--ink); font-size: 16.5px; }
+.loader .seg button { font-weight: 500; text-align: left; max-width: 100%; }
+
+/* one question per turn */
+.cut { background: var(--panel); padding: 14px 18px; margin: 12px 0 18px; max-width: 40em; }
+.cut p { margin: 4px 0; font-size: 18px; color: var(--ink); }
+.cut del { color: var(--orange-ink); text-decoration-thickness: 2px; }
+.lbl { display: inline-block; min-width: 64px; margin-right: 10px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+
+/* tutor simulator: the home page ladder with a second scale */
+.ladder.sim { margin-top: 18px; }
+.ladder.sim .rungs li.done { border-color: rgba(255, 255, 255, 0.55); color: #fff; }
+.ladder.sim .rungs li.on { background: var(--orange); border-color: var(--orange); color: #fff; }
+.ladder.sim .hs { margin-top: 18px; font-size: 26px; }
+.hints { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.hints li { font-size: 12.5px; line-height: 1.15; text-align: center; padding: 26px 2px 4px; border: 2px solid rgba(255, 255, 255, 0.28); color: var(--on-navy-2); position: relative; transition: background 0.25s ease; }
+.hints li::before { content: attr(data-h); position: absolute; top: 4px; left: 0; right: 0; font-weight: 700; font-size: 15px; }
+.hints li.on { background: var(--orange); border-color: var(--orange); color: #fff; }
+.ladder.sim .stage { min-height: 520px; }
+.ladder.sim .turns { max-height: 470px; overflow-y: auto; padding-right: 4px; }
+.ladder.sim .count { line-height: 1.4; }
+
+/* subject notes */
+.nt-body { display: grid; gap: 12px; }
+.nt-first, .nt-plain { margin: 0; color: var(--ink); font-size: 17px; }
+.nt-card { background: var(--bg); border-left: 4px solid var(--orange); padding: 14px 16px; }
+.nt-blocker { margin: 0; font-weight: 700; font-size: 19px; color: var(--ink); }
+.nt-looks { margin: 2px 0 8px; color: var(--muted); font-size: 16px; }
+.nt-q { margin: 0 0 12px; font-size: 18px; font-weight: 500; color: var(--ink); }
+
+/* references and links */
+.reflist { margin: 0; padding-left: 1.4em; color: var(--ink-2); font-size: 16.5px; display: grid; gap: 10px; max-width: 46em; }
+.reflist a { overflow-wrap: anywhere; }
+.go-r { margin: 18px 0 0; font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 17px; }
+
+/* ---------- small screens ---------- */
+
+@media (max-width: 900px) {
+  .report-hero { grid-template-columns: 1fr; }
+  .tree-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .body .h3 { font-size: 26px; }
+  .fig { padding: 16px 14px 14px; margin-left: -4px; margin-right: -4px; }
+  .meno { grid-template-columns: 1fr; gap: 14px; }
+  .meno svg { max-width: 260px; margin: 0 auto; }
+  .meno-talk { min-height: 0; }
+  .turns li { grid-template-columns: 1fr; gap: 2px; }
+  .compare { grid-template-columns: 1fr; }
+  .study h3 { font-size: 30px; }
+  .tbl tbody th { width: 40%; }
+  .ladder.sim .rungs { flex-direction: row; flex-wrap: wrap; }
+  .ladder.sim .rungs li { flex: 1 1 30%; font-size: 13.5px; padding: 5px 7px; }
+  .ladder.sim .stage { min-height: 0; }
+  .ladder.sim .turns { max-height: 420px; }
+  .ld-steps li { grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 10px; }
+}
