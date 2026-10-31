@@ -88,3 +88,15 @@
 
   update();
 })();
+
+// The email address is drawn as an image; the link assembles it only when clicked.
+(function () {
+  "use strict";
+  function rev(t) { return t.split("").reverse().join(""); }
+  document.querySelectorAll("a.mail").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      window.location.href = "mailto:" + rev(a.dataset.n) + "@" + rev(a.dataset.d);
+    });
+  });
+})();

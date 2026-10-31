@@ -320,6 +320,40 @@ footer.site p { margin: 6px 0 0; }
 footer.site a { color: var(--on-navy); }
 footer.site .legal { grid-column: 1 / -1; font-size: 14px; border-top: 1px solid rgba(255, 255, 255, 0.16); padding-top: 16px; margin-top: 10px; }
 
+/* ---------- email address ----------
+   Drawn in chalk as an image so scrapers do not read it. The PNG also serves as a mask,
+   so the address takes the colour of its link; the plain image is the fallback. */
+
+a.mail {
+  --mail-h: 36px;
+  display: inline-block;
+  vertical-align: calc(-0.38 * var(--mail-h));
+  line-height: 0;
+  text-decoration: none;
+  color: var(--orange-ink);
+}
+a.mail.mail-sm { --mail-h: 26px; }
+a.mail:hover { color: var(--orange); }
+footer.site a.mail { color: var(--orange); }
+footer.site a.mail:hover { color: var(--on-navy); }
+.mail-art { display: block; }
+.mail-art img { display: block; width: auto; height: var(--mail-h); }
+@supports (mask-image: none) or (-webkit-mask-image: none) {
+  .mail-art {
+    background-color: currentColor;
+    -webkit-mask: url("img/email.png") no-repeat 0 0 / 100% 100%;
+    mask: url("img/email.png") no-repeat 0 0 / 100% 100%;
+  }
+  .mail-art img { visibility: hidden; }
+}
+@media (forced-colors: active) {
+  .mail-art { forced-color-adjust: none; background-color: LinkText; }
+}
+@media print {
+  .mail-art { -webkit-mask: none; mask: none; background: none; }
+  .mail-art img { visibility: visible; }
+}
+
 /* ---------- small screens ---------- */
 
 @media (max-width: 900px) {
@@ -352,4 +386,6 @@ footer.site .legal { grid-column: 1 / -1; font-size: 14px; border-top: 1px solid
   .claude-badge { grid-template-columns: 32px auto; }
   .claude-badge svg { width: 32px; height: 32px; }
   footer.site .wrap { grid-template-columns: 1fr; }
+  a.mail { --mail-h: 30px; }
+  a.mail.mail-sm { --mail-h: 24px; }
 }
