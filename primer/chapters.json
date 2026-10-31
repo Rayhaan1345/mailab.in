@@ -251,7 +251,7 @@
    "title": "Images as numbers and convolution",
    "blurb": "Pixels, filters and feature maps.",
    "part": "C",
-   "live": false
+   "live": true
   },
   {
    "id": "c2",
@@ -260,7 +260,7 @@
    "title": "Convolutional networks",
    "blurb": "Stacked filters that read handwritten tags.",
    "part": "C",
-   "live": false
+   "live": true
   },
   {
    "id": "c3",
@@ -269,7 +269,7 @@
    "title": "When the water changes",
    "blurb": "Domain shift and adapting at test time.",
    "part": "C",
-   "live": false
+   "live": true
   },
   {
    "id": "pc",
