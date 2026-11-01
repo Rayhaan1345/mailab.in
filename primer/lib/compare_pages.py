@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare the built pages of two copies of the primer as normalised streams of tags, attributes and text.
 
-    python3 primer/lib/compare_pages.py OLD_PRIMER NEW_PRIMER [--changes CHANGES.md] [--show]
+    python3 primer/lib/compare_pages.py OLD_PRIMER NEW_PRIMER [--changes CHANGES.md] [--show] [--allow-new]
 
 OLD_PRIMER and NEW_PRIMER are two primer/ folders (for example a copy from before a step and the folder after it).
 Every index.html is parsed with html.parser and turned into a stream: comments and the doctype are ignored,
@@ -9,6 +9,7 @@ attributes are sorted, ?v=hash stamps are removed from href and src, and white s
 Pages that are byte for byte equal, pages whose streams are equal, and pages that differ are listed.
 
 --show     print the differing words of each changed page, with a little context.
+--allow-new  a page that exists only in NEW_PRIMER (a new page, such as the style guide) is listed and is not a problem.
 --changes  read a CHANGES file (### slug, then "- was: `...`" and "now: `...`" lines in backticks) and apply the
            entries to the old stream of each page. The result must equal the new stream. Then every difference
            belongs to an entry, and every entry belongs to a difference. Exit 1 if not.
@@ -128,11 +129,16 @@ def main():
         changes = parse_changes(sys.argv[sys.argv.index('--changes') + 1])
         args = [a for a in args if a != sys.argv[sys.argv.index('--changes') + 1]]
     show = '--show' in sys.argv
+    allow_new = '--allow-new' in sys.argv
+    new_pages = []
     B, N = pages(base), pages(new)
     problems = 0
     same_bytes = same_struct = 0
     changed = []
     for slug in sorted(set(B) | set(N)):
+        if slug in N and slug not in B and allow_new:
+            new_pages.append(slug)
+            continue
         if slug not in B or slug not in N:
             print('MISSING page', slug, 'in', 'new' if slug not in N else 'base')
             problems += 1
@@ -192,6 +198,8 @@ def main():
                 print('ENTRY for unknown page', s)
                 problems += 1
     print('pages: %d identical bytes, %d equal streams, %d changed (%s)' % (same_bytes, same_struct, len(changed), ' '.join(changed)))
+    if new_pages:
+        print('new pages (only in %s): %s' % (new, ' '.join(new_pages)))
     print('PROBLEMS: %d' % problems)
     return 1 if problems else 0
 

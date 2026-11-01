@@ -29,7 +29,7 @@ LIB = os.path.dirname(os.path.abspath(__file__))
 PRIMER = os.path.dirname(LIB)
 PARTIALS = os.path.join(LIB, "partials")
 SNIPPETS = os.path.join(LIB, "snippets")
-TEMPLATES = {"chapter": "template.html", "practice": "template.html", "index": "template-index.html"}
+TEMPLATES = {"chapter": "template.html", "practice": "template.html", "index": "template-index.html", "guide": "template-guide.html"}
 
 # Keys that a page.html front matter may carry. Everything else is an error, so a typo is caught.
 KEYS = {
@@ -45,14 +45,19 @@ KEYS = {
     "og_description": "optional: a social card description",
     "og_url": "optional: the address of the page for social cards",
     "author": "optional: meta author",
+    "title": "kind: guide only: the page title (a chapter takes its title from chapters.json)",
 }
 REQUIRED = {"chapter": ("description", "subtitle"), "practice": ("description", "subtitle"),
-            "index": ("description", "subtitle", "kicker", "byline")}
+            "index": ("description", "subtitle", "kicker", "byline"), "guide": ("title", "description", "subtitle")}
 
 # Elements that belong to the shell. A page.html that carries one of them would show it twice.
 SHELL_MARKUP = re.compile(
     r"<!doctype|<html\b|<head\b|<body\b|<main\b|</main>|<footer\b|<header\b[^>]*\bhero\b|"
     r"""<nav\b[^>]*\b(?:topbar|chap-nav)\b|<script\b[^>]*\bsrc\s*=|<link\b[^>]*\bstylesheet""", re.I)
+
+# A guide page (the style guide) shows the shell elements as demos, so it may carry them. The page-level elements stay forbidden.
+SHELL_MARKUP_GUIDE = re.compile(
+    r"<!doctype|<html\b|<head\b|<body\b|<main\b|</main>|<script\b[^>]*\bsrc\s*=|<link\b[^>]*\bstylesheet", re.I)
 
 
 class PageError(Exception):
@@ -367,10 +372,12 @@ def render_page(page_path, text=None, chapters=None, libs=None, snippets=None, u
         raise PageError("%s: kind must be one of %s, not %r" % (where, ", ".join(TEMPLATES), kind))
     if is_root != (kind == "index"):
         raise PageError("%s: kind: index belongs to primer/page.html only" % where)
+    if "title" in meta and kind != "guide":
+        raise PageError("%s: 'title' is for kind: guide only. A chapter takes its title from chapters.json" % where)
     for key in REQUIRED[kind]:
         if not meta.get(key):
             raise PageError("%s: front matter needs '%s'" % (where, key))
-    bad = SHELL_MARKUP.search(content)
+    bad = (SHELL_MARKUP_GUIDE if kind == "guide" else SHELL_MARKUP).search(content)
     if bad:
         raise PageError("%s: the content carries shell markup (%s). The template supplies it; remove it from page.html" % (where, bad.group(0).strip()))
 
@@ -382,6 +389,7 @@ def render_page(page_path, text=None, chapters=None, libs=None, snippets=None, u
     ctx["content"] = content
     ctx["is_index"] = kind == "index"
     ctx["is_practice"] = kind == "practice"
+    ctx["noindex"] = kind == "guide"
     ctx["assets"] = "assets/" if is_root else "../assets/"
     if is_root:
         ctx["title"] = esc(data["title"])
@@ -390,6 +398,11 @@ def render_page(page_path, text=None, chapters=None, libs=None, snippets=None, u
         ctx["ready"] = sum(1 for c in data["chapters"] if c.get("live"))
         ctx["total"] = len(data["chapters"])
         ctx.update({"id": "", "num": "", "part": "", "part_name": ""})
+    elif kind == "guide":
+        # The guide is not a chapter: no chapters.json record, no part, no number, no previous and next links.
+        ctx.update({"slug": slug, "id": "", "num": "", "part": "", "part_name": "", "title": esc(meta["title"])})
+        ctx["own_css"] = os.path.isfile(os.path.join(page_dir, slug + ".css"))
+        ctx["own_js"] = os.path.isfile(os.path.join(page_dir, slug + ".js"))
     else:
         if slug not in by_slug:
             raise PageError("%s: %s is not in chapters.json. Add the chapter there first" % (where, slug))

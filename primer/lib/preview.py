@@ -59,7 +59,9 @@ def inject(path, rel):
     with open(path, "r", encoding="utf-8") as f:
         text = f.read()
     url = live_url(rel)
-    head = '<meta name="robots" content="noindex">\n<link rel="canonical" href="%s">\n' % url
+    head = '<link rel="canonical" href="%s">\n' % url
+    if 'name="robots"' not in text:          # the style guide already says noindex
+        head = '<meta name="robots" content="noindex">\n' + head
     if "</head>" not in text or "</body>" not in text:
         return False
     text = text.replace("</head>", head + "</head>", 1)

@@ -4,6 +4,7 @@
     python3 primer/lib/build.py            write what is stale
     python3 primer/lib/build.py --check    write no files, exit 1 if something is stale
     python3 primer/lib/build.py --snippets list the snippets and the pages that use them (writes no files)
+    python3 primer/lib/build.py --guide-coverage  list the classes of lib/css that the style guide does not show (writes no files)
 
 What it does, in order:
   1. Joins lib/css/*.css (filename order) into assets/kit.css.
@@ -183,7 +184,11 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="Build assets/kit.css and assets/kit.js, build every index.html from its page.html and stamp version hashes into the pages.")
     ap.add_argument("--check", action="store_true", help="write no files; exit 1 if something is stale")
     ap.add_argument("--snippets", action="store_true", help="list the snippets in lib/snippets and the pages that use each; write no files")
+    ap.add_argument("--guide-coverage", action="store_true", help="list the classes of lib/css that primer/styleguide/page.html does not show, and check its demos against their markup; write no files")
     args = ap.parse_args(argv)
+    if args.guide_coverage:
+        import guide_coverage
+        return guide_coverage.main([])
     if args.snippets:
         args.check = True
 
