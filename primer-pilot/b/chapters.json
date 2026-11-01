@@ -1,0 +1,428 @@
+{
+ "title": "How AI Learns",
+ "parts": {
+  "0": "Toolkit",
+  "A": "Learning from data",
+  "B": "Neural networks",
+  "C": "Images",
+  "D": "Language",
+  "E": "Vision and language",
+  "F": "AI in the world"
+ },
+ "chapters": [
+  {
+   "id": "t1",
+   "num": "0.1",
+   "slug": "t1-python",
+   "title": "Python",
+   "blurb": "Lists, dictionaries, classes, NumPy and a first look at PyTorch.",
+   "part": "0",
+   "live": true
+  },
+  {
+   "id": "t2",
+   "num": "0.2",
+   "slug": "t2-algorithms",
+   "title": "Algorithms and data structures",
+   "blurb": "Stacks, queues, searching, sorting, recursion and Big-O.",
+   "part": "0",
+   "live": true
+  },
+  {
+   "id": "t3",
+   "num": "0.3",
+   "slug": "t3-algebra-functions",
+   "title": "Algebra and functions",
+   "blurb": "Lines, exponentials, logarithms and functions inside functions.",
+   "part": "0",
+   "live": true
+  },
+  {
+   "id": "t4",
+   "num": "0.4",
+   "slug": "t4-discrete-maths",
+   "title": "Discrete maths and logic",
+   "blurb": "Counting, sets, truth tables and graphs.",
+   "part": "0",
+   "live": true
+  },
+  {
+   "id": "t5",
+   "num": "0.5",
+   "slug": "t5-vectors-matrices",
+   "title": "Vectors and matrices",
+   "blurb": "Dot products, matrix products, inverses and eigenvectors.",
+   "part": "0",
+   "live": true
+  },
+  {
+   "id": "t6",
+   "num": "0.6",
+   "slug": "t6-gradients",
+   "title": "Slopes and gradients",
+   "blurb": "Derivatives, gradients, the chain rule and curvature.",
+   "part": "0",
+   "live": true
+  },
+  {
+   "id": "t7",
+   "num": "0.7",
+   "slug": "t7-probability",
+   "title": "Probability and statistics",
+   "blurb": "Base rates, distributions, softmax, cross-entropy and tests.",
+   "part": "0",
+   "live": true
+  },
+  {
+   "id": "t8",
+   "num": "0.8",
+   "slug": "t8-charts",
+   "title": "Reading charts and tables",
+   "blurb": "Reading plots and spotting misleading ones.",
+   "part": "0",
+   "live": true
+  },
+  {
+   "id": "p0",
+   "num": "0.P",
+   "slug": "p0-practice",
+   "title": "Practice set: toolkit",
+   "blurb": "Timed questions on the toolkit.",
+   "part": "0",
+   "live": true
+  },
+  {
+   "id": "a1",
+   "num": "A1",
+   "slug": "a1-what-is-a-model",
+   "title": "What a model is",
+   "blurb": "Inputs, outputs, parameters and the lazy baseline.",
+   "part": "A",
+   "live": true
+  },
+  {
+   "id": "a2",
+   "num": "A2",
+   "slug": "a2-linear-regression",
+   "title": "Linear regression",
+   "blurb": "Predicting a shark's weight from its length.",
+   "part": "A",
+   "live": true
+  },
+  {
+   "id": "a3",
+   "num": "A3",
+   "slug": "a3-logistic-regression",
+   "title": "Logistic regression and softmax",
+   "blurb": "Juvenile or adult, and which species.",
+   "part": "A",
+   "live": true
+  },
+  {
+   "id": "a4",
+   "num": "A4",
+   "slug": "a4-grading-models",
+   "title": "Grading a model fairly",
+   "blurb": "Splits, leakage, precision, recall, ROC and subgroups.",
+   "part": "A",
+   "live": true
+  },
+  {
+   "id": "a5",
+   "num": "A5",
+   "slug": "a5-decision-trees",
+   "title": "Decision trees",
+   "blurb": "Questions in a chain, chosen by the data.",
+   "part": "A",
+   "live": true
+  },
+  {
+   "id": "a6",
+   "num": "A6",
+   "slug": "a6-boosting",
+   "title": "Ensembles and boosting",
+   "blurb": "Many small trees, XGBoost and feature importance.",
+   "part": "A",
+   "live": true
+  },
+  {
+   "id": "pa",
+   "num": "A.P",
+   "slug": "pa-practice",
+   "title": "Practice set: learning from data",
+   "blurb": "Timed questions on Part A.",
+   "part": "A",
+   "live": true
+  },
+  {
+   "id": "b1",
+   "num": "B1",
+   "slug": "b1-one-neuron",
+   "title": "One neuron",
+   "blurb": "Weighted sums and activation functions.",
+   "part": "B",
+   "live": true
+  },
+  {
+   "id": "b2",
+   "num": "B2",
+   "slug": "b2-non-linearity",
+   "title": "Why non-linearity matters",
+   "blurb": "XOR, circles lifted into 3D, and hidden layers.",
+   "part": "B",
+   "live": true
+  },
+  {
+   "id": "b3",
+   "num": "B3",
+   "slug": "b3-loss-gradient-descent",
+   "title": "Loss and gradient descent",
+   "blurb": "How a network measures and reduces its error.",
+   "part": "B",
+   "live": true
+  },
+  {
+   "id": "b4",
+   "num": "B4",
+   "slug": "b4-backpropagation",
+   "title": "Backpropagation",
+   "blurb": "The chain rule, run backwards through a network.",
+   "part": "B",
+   "live": true
+  },
+  {
+   "id": "b5",
+   "num": "B5",
+   "slug": "b5-optimisers",
+   "title": "Optimisers",
+   "blurb": "SGD, momentum, Adam and warm-up.",
+   "part": "B",
+   "live": true
+  },
+  {
+   "id": "b6",
+   "num": "B6",
+   "slug": "b6-deep-networks",
+   "title": "Making deep networks trainable",
+   "blurb": "Initialisation, normalisation and residual connections.",
+   "part": "B",
+   "live": true
+  },
+  {
+   "id": "b7",
+   "num": "B7",
+   "slug": "b7-continual-learning",
+   "title": "Fine-tuning, forgetting and continual learning",
+   "blurb": "Fisher information, EWC and learning task after task.",
+   "part": "B",
+   "live": true
+  },
+  {
+   "id": "b8",
+   "num": "B8",
+   "slug": "b8-debugging",
+   "title": "Debugging neural networks",
+   "blurb": "Symptoms, gradient diagnostics and clipping.",
+   "part": "B",
+   "live": true
+  },
+  {
+   "id": "b9",
+   "num": "B9",
+   "slug": "b9-explaining",
+   "title": "Explaining a network",
+   "blurb": "Saliency, occlusion, Grad-CAM and shortcuts.",
+   "part": "B",
+   "live": true
+  },
+  {
+   "id": "pb",
+   "num": "B.P",
+   "slug": "pb-practice",
+   "title": "Practice set: neural networks",
+   "blurb": "Timed questions on Part B.",
+   "part": "B",
+   "live": true
+  },
+  {
+   "id": "c1",
+   "num": "C1",
+   "slug": "c1-convolution",
+   "title": "Images as numbers and convolution",
+   "blurb": "Pixels, filters and feature maps.",
+   "part": "C",
+   "live": true
+  },
+  {
+   "id": "c2",
+   "num": "C2",
+   "slug": "c2-cnns",
+   "title": "Convolutional networks",
+   "blurb": "Stacked filters that read handwritten tags.",
+   "part": "C",
+   "live": true
+  },
+  {
+   "id": "c3",
+   "num": "C3",
+   "slug": "c3-domain-shift",
+   "title": "When the water changes",
+   "blurb": "Domain shift and adapting at test time.",
+   "part": "C",
+   "live": true
+  },
+  {
+   "id": "pc",
+   "num": "C.P",
+   "slug": "pc-practice",
+   "title": "Practice set: images",
+   "blurb": "Timed questions on Part C.",
+   "part": "C",
+   "live": true
+  },
+  {
+   "id": "d1",
+   "num": "D1",
+   "slug": "d1-tokenisation",
+   "title": "Tokenisation",
+   "blurb": "Turning text in four languages into tokens.",
+   "part": "D",
+   "live": true
+  },
+  {
+   "id": "d2",
+   "num": "D2",
+   "slug": "d2-embeddings",
+   "title": "Embeddings",
+   "blurb": "Words as directions in space.",
+   "part": "D",
+   "live": true
+  },
+  {
+   "id": "d3",
+   "num": "D3",
+   "slug": "d3-next-token",
+   "title": "Predicting the next token",
+   "blurb": "Probabilities, temperature and sampling.",
+   "part": "D",
+   "live": true
+  },
+  {
+   "id": "d4",
+   "num": "D4",
+   "slug": "d4-self-attention",
+   "title": "Self-attention",
+   "blurb": "Queries, keys and values.",
+   "part": "D",
+   "live": true
+  },
+  {
+   "id": "d5",
+   "num": "D5",
+   "slug": "d5-transformer",
+   "title": "The transformer",
+   "blurb": "Blocks, positions, generation and the KV cache.",
+   "part": "D",
+   "live": true
+  },
+  {
+   "id": "d6",
+   "num": "D6",
+   "slug": "d6-long-context",
+   "title": "Long context",
+   "blurb": "The cost of attention, sparse attention and test-time training.",
+   "part": "D",
+   "live": true
+  },
+  {
+   "id": "d7",
+   "num": "D7",
+   "slug": "d7-assistants",
+   "title": "From language model to assistant",
+   "blurb": "Instruction tuning, preferences, prompts and tools.",
+   "part": "D",
+   "live": true
+  },
+  {
+   "id": "pd",
+   "num": "D.P",
+   "slug": "pd-practice",
+   "title": "Practice set: language",
+   "blurb": "Timed questions on Part D.",
+   "part": "D",
+   "live": true
+  },
+  {
+   "id": "e1",
+   "num": "E1",
+   "slug": "e1-vision-transformers",
+   "title": "Vision transformers and image tokens",
+   "blurb": "Photos cut into patches.",
+   "part": "E",
+   "live": true
+  },
+  {
+   "id": "e2",
+   "num": "E2",
+   "slug": "e2-clip",
+   "title": "Encoders and CLIP",
+   "blurb": "Photos and captions in one space.",
+   "part": "E",
+   "live": true
+  },
+  {
+   "id": "e3",
+   "num": "E3",
+   "slug": "e3-cross-attention",
+   "title": "Cross-attention",
+   "blurb": "Words looking at image patches.",
+   "part": "E",
+   "live": true
+  },
+  {
+   "id": "e4",
+   "num": "E4",
+   "slug": "e4-vlms",
+   "title": "Vision-language models",
+   "blurb": "From a photo to an answer.",
+   "part": "E",
+   "live": true
+  },
+  {
+   "id": "f1",
+   "num": "F1",
+   "slug": "f1-fairness",
+   "title": "Data, fairness and privacy",
+   "blurb": "Who is in the data, and who is missing.",
+   "part": "F",
+   "live": true
+  },
+  {
+   "id": "f2",
+   "num": "F2",
+   "slug": "f2-robots",
+   "title": "AI on a robot",
+   "blurb": "Sense, decide, act, on a small computer.",
+   "part": "F",
+   "live": true
+  },
+  {
+   "id": "f3",
+   "num": "F3",
+   "slug": "f3-sharkcam",
+   "title": "SharkCam, end to end",
+   "blurb": "The whole system, and where to go next.",
+   "part": "F",
+   "live": true
+  },
+  {
+   "id": "pf",
+   "num": "EF.P",
+   "slug": "pf-practice",
+   "title": "Practice set: vision, language and the world",
+   "blurb": "Timed questions on Parts E and F.",
+   "part": "F",
+   "live": true
+  }
+ ]
+}

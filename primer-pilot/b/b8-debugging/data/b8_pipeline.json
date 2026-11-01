@@ -1,0 +1,41 @@
+{
+ "buggy_output": "validation accuracy 0.450",
+ "fixed_output": "validation accuracy 0.750",
+ "tests": {
+  "data": {
+   "code": "raw = X.numpy() * sd + mu                              # undo the scaling to read the numbers\nk = np.argmin(np.abs(raw[:, 0] - 82.0) + np.abs(raw[:, 1] - 2.61))   # Tag 5519: 82.0 cm, 2.61 kg\nprint(raw[k].round(2), \"label:\", species[y[k]])",
+   "output": "[82.    2.61 27.6  14.   27.8  11.  ] label: spadenose"
+  },
+  "start": {
+   "code": "torch.manual_seed(0)\nfresh = nn.Sequential(nn.Linear(6, 24), nn.ReLU(), nn.Dropout(0.3),\n                      nn.Linear(24, 24), nn.ReLU(), nn.Linear(24, 5),\n                      nn.Softmax(dim=1))\nprint(\"starting loss\", round(loss_fn(fresh(Xtr), ytr).item(), 3), \" ln 5 =\", round(float(np.log(5)), 3))",
+   "output": "starting loss 1.613  ln 5 = 1.609"
+  },
+  "lazy": {
+   "code": "lazy = (yva == yva.bincount().argmax()).float().mean().item()\nprint(\"always the commonest species:\", round(lazy, 3), \" model:\", round(acc, 3))",
+   "output": "always the commonest species: 0.45  model: 0.45"
+  },
+  "overfit": {
+   "code": "torch.manual_seed(0)\nm = nn.Sequential(nn.Linear(6, 24), nn.ReLU(), nn.Dropout(0.3),\n                  nn.Linear(24, 24), nn.ReLU(), nn.Linear(24, 5), nn.Softmax(dim=1))\no = torch.optim.SGD(m.parameters(), lr=0.05, momentum=0.9)\nxb, yb = Xtr[:16], ytr[:16]                                # one small batch\nfor step in range(201):\n    l = loss_fn(m(xb), yb); l.backward(); o.step()\n    if step % 50 == 0: print(step, round(l.item(), 3))",
+   "output": "0 1.615\n50 1.495\n100 1.655\n150 1.405\n200 1.467"
+  },
+  "grad": {
+   "code": "torch.manual_seed(0)\nm = nn.Sequential(nn.Linear(6, 24), nn.ReLU(), nn.Linear(24, 5))\nfor k in range(3):\n    loss_fn(m(Xtr[:32]), ytr[:32]).backward()               # no zero_grad in between\n    print(\"backward call\", k + 1, \" gradient norm\", round(m[0].weight.grad.norm().item(), 4))",
+   "output": "backward call 1  gradient norm 0.1075\nbackward call 2  gradient norm 0.2151\nbackward call 3  gradient norm 0.3226"
+  },
+  "eval": {
+   "code": "torch.manual_seed(0)\nfresh = nn.Sequential(nn.Linear(6, 24), nn.ReLU(), nn.Dropout(0.3),\n                      nn.Linear(24, 24), nn.ReLU(), nn.Linear(24, 5), nn.Softmax(dim=1))\na, b = fresh(Xva[:4]), fresh(Xva[:4])                     # the same four sharks, twice\nprint(\"model.training:\", fresh.training, \"| two passes differ by\", round((a - b).abs().max().item(), 3))",
+   "output": "model.training: True | two passes differ by 0.031"
+  },
+  "shapes": {
+   "code": "print(Xtr.shape, Xtr.dtype, ytr.shape, ytr.dtype, \"labels from\", ytr.min().item(), \"to\", ytr.max().item())",
+   "output": "torch.Size([480, 6]) torch.float32 torch.Size([480]) torch.int64 labels from 0 to 4"
+  },
+  "output": {
+   "code": "print(model(Xtr[:2]).detach().numpy().round(3), \"row sums:\", model(Xtr[:2]).sum(1).detach().numpy().round(3))",
+   "output": "[[1. 0. 0. 0. 0.]\n [1. 0. 0. 0. 0.]] row sums: [1. 1.]"
+  }
+ },
+ "overfit_fixed": "0 1.736\n50 0.303\n100 0.175\n150 0.075\n200 0.069",
+ "start_fixed": "starting loss 1.648",
+ "data_fixed": "[82.    2.61 27.6  14.   27.8  11.  ] label: hammerhead"
+}

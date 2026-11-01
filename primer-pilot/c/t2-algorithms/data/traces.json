@@ -1,0 +1,728 @@
+{
+"programs": [
+{
+"id": "p1",
+"title": "Add up the long sharks",
+"lines": [
+"total = 0",
+"for length in [42.4, 74.5, 64.3]:",
+"    if length > 60:",
+"        total = total + length",
+"print(total)"
+],
+"steps": [
+{
+"line": 1,
+"kind": "assign",
+"changes": {
+"total": "0"
+},
+"next": 2,
+"out": null,
+"auto": true
+},
+{
+"line": 2,
+"kind": "assign",
+"changes": {
+"length": "42.4"
+},
+"next": 3,
+"out": null,
+"auto": false
+},
+{
+"line": 3,
+"kind": "branch",
+"changes": {},
+"next": 2,
+"out": null,
+"auto": false
+},
+{
+"line": 2,
+"kind": "assign",
+"changes": {
+"length": "74.5"
+},
+"next": 3,
+"out": null,
+"auto": false
+},
+{
+"line": 3,
+"kind": "branch",
+"changes": {},
+"next": 4,
+"out": null,
+"auto": false
+},
+{
+"line": 4,
+"kind": "assign",
+"changes": {
+"total": "74.5"
+},
+"next": 2,
+"out": null,
+"auto": false
+},
+{
+"line": 2,
+"kind": "assign",
+"changes": {
+"length": "64.3"
+},
+"next": 3,
+"out": null,
+"auto": false
+},
+{
+"line": 3,
+"kind": "branch",
+"changes": {},
+"next": 4,
+"out": null,
+"auto": false
+},
+{
+"line": 4,
+"kind": "assign",
+"changes": {
+"total": "138.8"
+},
+"next": 2,
+"out": null,
+"auto": false
+},
+{
+"line": 2,
+"kind": "branch",
+"changes": {},
+"next": 5,
+"out": null,
+"auto": false
+},
+{
+"line": 5,
+"kind": "print",
+"changes": {},
+"next": null,
+"out": "138.8",
+"auto": false
+}
+],
+"vars": [
+"total",
+"length"
+],
+"note": "total is 74.5 + 64.3 = 138.8. The loop header changes length each time and the if test decides whether line 4 runs.",
+"output": "138.8"
+},
+{
+"id": "p2",
+"title": "Find the longest",
+"lines": [
+"lengths = [42.4, 45.1, 74.5, 41.0]",
+"best = lengths[0]",
+"i = 0",
+"while i < len(lengths):",
+"    if lengths[i] > best:",
+"        best = lengths[i]",
+"    i = i + 1",
+"print(best)"
+],
+"steps": [
+{
+"line": 1,
+"kind": "assign",
+"changes": {
+"lengths": [
+42.4,
+45.1,
+74.5,
+41.0
+]
+},
+"next": 2,
+"out": null,
+"auto": true
+},
+{
+"line": 2,
+"kind": "assign",
+"changes": {
+"best": "42.4"
+},
+"next": 3,
+"out": null,
+"auto": false
+},
+{
+"line": 3,
+"kind": "assign",
+"changes": {
+"i": "0"
+},
+"next": 4,
+"out": null,
+"auto": true
+},
+{
+"line": 4,
+"kind": "branch",
+"changes": {},
+"next": 5,
+"out": null,
+"auto": false
+},
+{
+"line": 5,
+"kind": "branch",
+"changes": {},
+"next": 7,
+"out": null,
+"auto": false
+},
+{
+"line": 7,
+"kind": "assign",
+"changes": {
+"i": "1"
+},
+"next": 4,
+"out": null,
+"auto": false
+},
+{
+"line": 4,
+"kind": "branch",
+"changes": {},
+"next": 5,
+"out": null,
+"auto": false
+},
+{
+"line": 5,
+"kind": "branch",
+"changes": {},
+"next": 6,
+"out": null,
+"auto": false
+},
+{
+"line": 6,
+"kind": "assign",
+"changes": {
+"best": "45.1"
+},
+"next": 7,
+"out": null,
+"auto": false
+},
+{
+"line": 7,
+"kind": "assign",
+"changes": {
+"i": "2"
+},
+"next": 4,
+"out": null,
+"auto": false
+},
+{
+"line": 4,
+"kind": "branch",
+"changes": {},
+"next": 5,
+"out": null,
+"auto": false
+},
+{
+"line": 5,
+"kind": "branch",
+"changes": {},
+"next": 6,
+"out": null,
+"auto": false
+},
+{
+"line": 6,
+"kind": "assign",
+"changes": {
+"best": "74.5"
+},
+"next": 7,
+"out": null,
+"auto": false
+},
+{
+"line": 7,
+"kind": "assign",
+"changes": {
+"i": "3"
+},
+"next": 4,
+"out": null,
+"auto": false
+},
+{
+"line": 4,
+"kind": "branch",
+"changes": {},
+"next": 5,
+"out": null,
+"auto": false
+},
+{
+"line": 5,
+"kind": "branch",
+"changes": {},
+"next": 7,
+"out": null,
+"auto": false
+},
+{
+"line": 7,
+"kind": "assign",
+"changes": {
+"i": "4"
+},
+"next": 4,
+"out": null,
+"auto": false
+},
+{
+"line": 4,
+"kind": "branch",
+"changes": {},
+"next": 8,
+"out": null,
+"auto": false
+},
+{
+"line": 8,
+"kind": "print",
+"changes": {},
+"next": null,
+"out": "74.5",
+"auto": false
+}
+],
+"vars": [
+"best",
+"i"
+],
+"note": "best only changes when a longer length turns up, here at i = 1 and i = 2. The line i = i + 1 runs on every pass, which is why the loop ends.",
+"output": "74.5"
+},
+{
+"id": "p3",
+"title": "Binary search",
+"lines": [
+"items = [28.5, 36.1, 41.0, 44.0, 54.4, 62.2, 75.0]",
+"target = 54.4",
+"lo = 0",
+"hi = 6",
+"steps = 0",
+"found = -1",
+"while lo <= hi:",
+"    mid = (lo + hi) // 2",
+"    steps = steps + 1",
+"    if items[mid] == target:",
+"        found = mid",
+"        break",
+"    elif items[mid] < target:",
+"        lo = mid + 1",
+"    else:",
+"        hi = mid - 1",
+"print(found, steps)"
+],
+"steps": [
+{
+"line": 1,
+"kind": "assign",
+"changes": {
+"items": [
+28.5,
+36.1,
+41.0,
+44.0,
+54.4,
+62.2,
+75.0
+]
+},
+"next": 2,
+"out": null,
+"auto": true
+},
+{
+"line": 2,
+"kind": "assign",
+"changes": {
+"target": "54.4"
+},
+"next": 3,
+"out": null,
+"auto": true
+},
+{
+"line": 3,
+"kind": "assign",
+"changes": {
+"lo": "0"
+},
+"next": 4,
+"out": null,
+"auto": true
+},
+{
+"line": 4,
+"kind": "assign",
+"changes": {
+"hi": "6"
+},
+"next": 5,
+"out": null,
+"auto": true
+},
+{
+"line": 5,
+"kind": "assign",
+"changes": {
+"steps": "0"
+},
+"next": 6,
+"out": null,
+"auto": true
+},
+{
+"line": 6,
+"kind": "assign",
+"changes": {
+"found": "-1"
+},
+"next": 7,
+"out": null,
+"auto": true
+},
+{
+"line": 7,
+"kind": "branch",
+"changes": {},
+"next": 8,
+"out": null,
+"auto": false
+},
+{
+"line": 8,
+"kind": "assign",
+"changes": {
+"mid": "3"
+},
+"next": 9,
+"out": null,
+"auto": false
+},
+{
+"line": 9,
+"kind": "assign",
+"changes": {
+"steps": "1"
+},
+"next": 10,
+"out": null,
+"auto": false
+},
+{
+"line": 10,
+"kind": "branch",
+"changes": {},
+"next": 13,
+"out": null,
+"auto": false
+},
+{
+"line": 13,
+"kind": "branch",
+"changes": {},
+"next": 14,
+"out": null,
+"auto": false
+},
+{
+"line": 14,
+"kind": "assign",
+"changes": {
+"lo": "4"
+},
+"next": 7,
+"out": null,
+"auto": false
+},
+{
+"line": 7,
+"kind": "branch",
+"changes": {},
+"next": 8,
+"out": null,
+"auto": false
+},
+{
+"line": 8,
+"kind": "assign",
+"changes": {
+"mid": "5"
+},
+"next": 9,
+"out": null,
+"auto": false
+},
+{
+"line": 9,
+"kind": "assign",
+"changes": {
+"steps": "2"
+},
+"next": 10,
+"out": null,
+"auto": false
+},
+{
+"line": 10,
+"kind": "branch",
+"changes": {},
+"next": 13,
+"out": null,
+"auto": false
+},
+{
+"line": 13,
+"kind": "branch",
+"changes": {},
+"next": 16,
+"out": null,
+"auto": false
+},
+{
+"line": 16,
+"kind": "assign",
+"changes": {
+"hi": "4"
+},
+"next": 7,
+"out": null,
+"auto": false
+},
+{
+"line": 7,
+"kind": "branch",
+"changes": {},
+"next": 8,
+"out": null,
+"auto": false
+},
+{
+"line": 8,
+"kind": "assign",
+"changes": {
+"mid": "4"
+},
+"next": 9,
+"out": null,
+"auto": false
+},
+{
+"line": 9,
+"kind": "assign",
+"changes": {
+"steps": "3"
+},
+"next": 10,
+"out": null,
+"auto": false
+},
+{
+"line": 10,
+"kind": "branch",
+"changes": {},
+"next": 11,
+"out": null,
+"auto": false
+},
+{
+"line": 11,
+"kind": "assign",
+"changes": {
+"found": "4"
+},
+"next": 12,
+"out": null,
+"auto": false
+},
+{
+"line": 12,
+"kind": "branch",
+"changes": {},
+"next": 17,
+"out": null,
+"auto": false
+},
+{
+"line": 17,
+"kind": "print",
+"changes": {},
+"next": null,
+"out": "4 3",
+"auto": false
+}
+],
+"vars": [
+"target",
+"lo",
+"hi",
+"steps",
+"found",
+"mid"
+],
+"note": "The window shrinks from positions 0 to 6, to 4 to 6, to 4 to 4. Three steps find 54.4 at position 4, as the formula floor(log2 7) + 1 = 3 allows.",
+"output": "4 3"
+},
+{
+"id": "p4",
+"title": "Find the bug",
+"lines": [
+"lengths = [74.5, 41.0, 36.1, 64.3]",
+"count = 0",
+"for i in range(1, len(lengths)):",
+"    if lengths[i] > 40:",
+"        count = count + 1",
+"print(count)"
+],
+"steps": [
+{
+"line": 1,
+"kind": "assign",
+"changes": {
+"lengths": [
+74.5,
+41.0,
+36.1,
+64.3
+]
+},
+"next": 2,
+"out": null,
+"auto": true
+},
+{
+"line": 2,
+"kind": "assign",
+"changes": {
+"count": "0"
+},
+"next": 3,
+"out": null,
+"auto": true
+},
+{
+"line": 3,
+"kind": "assign",
+"changes": {
+"i": "1"
+},
+"next": 4,
+"out": null,
+"auto": false
+},
+{
+"line": 4,
+"kind": "branch",
+"changes": {},
+"next": 5,
+"out": null,
+"auto": false
+},
+{
+"line": 5,
+"kind": "assign",
+"changes": {
+"count": "1"
+},
+"next": 3,
+"out": null,
+"auto": false
+},
+{
+"line": 3,
+"kind": "assign",
+"changes": {
+"i": "2"
+},
+"next": 4,
+"out": null,
+"auto": false
+},
+{
+"line": 4,
+"kind": "branch",
+"changes": {},
+"next": 3,
+"out": null,
+"auto": false
+},
+{
+"line": 3,
+"kind": "assign",
+"changes": {
+"i": "3"
+},
+"next": 4,
+"out": null,
+"auto": false
+},
+{
+"line": 4,
+"kind": "branch",
+"changes": {},
+"next": 5,
+"out": null,
+"auto": false
+},
+{
+"line": 5,
+"kind": "assign",
+"changes": {
+"count": "2"
+},
+"next": 3,
+"out": null,
+"auto": false
+},
+{
+"line": 3,
+"kind": "branch",
+"changes": {},
+"next": 6,
+"out": null,
+"auto": false
+},
+{
+"line": 6,
+"kind": "print",
+"changes": {},
+"next": null,
+"out": "2",
+"auto": false
+}
+],
+"vars": [
+"count",
+"i"
+],
+"note": "The program should count the lengths over 40, which are 74.5, 41.0 and 64.3, so the answer should be 3. The loop starts at i = 1, so lengths[0] is never tested. Starting from range(len(lengths)) fixes it.",
+"output": "2"
+}
+]
+}

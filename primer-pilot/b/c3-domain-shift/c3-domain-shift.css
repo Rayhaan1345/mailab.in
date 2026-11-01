@@ -1,0 +1,18 @@
+/* Styles for this chapter only. Shared styles are in primer/lib/css. */
+
+.eqn .op.wrap { max-width: 22em; font-size: 15px; color: var(--ink-2); }
+.vw { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 14px 22px; align-items: start; }
+.vw .plot { min-height: 300px; }
+.aggrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 10px; }
+.aggrid.d8 { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.ag { margin: 0; }
+.ag figcaption { margin: 3px 0 0; font-size: 12px; line-height: 1.25; color: var(--muted); text-align: center; }
+.strip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; max-width: 460px; margin: 8px 0 0; }
+.bn2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 22px; }
+.bn2 .plot { min-height: 300px; }
+@media (max-width: 760px) {
+  .group { border-radius: 18px; }
+  .vw, .bn2 { grid-template-columns: minmax(0, 1fr); }
+  .aggrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aggrid.d8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

@@ -1,0 +1,16 @@
+{
+ "norm_lm": 123904,
+ "norm_vision": 124928,
+ "down_proj_all": 352321536,
+ "down_proj_one": 12582912,
+ "lm_total": 1720574976,
+ "vision_total": 406957056,
+ "total": 2127532032,
+ "merger": 25174016,
+ "deepstack": 75540480,
+ "embed": 311164928,
+ "random_best_cos_median": 0.095,
+ "random_best_cos_min": 0.075,
+ "random_best_cos_max": 0.126,
+ "word_nearest_cos_median": 0.586
+}

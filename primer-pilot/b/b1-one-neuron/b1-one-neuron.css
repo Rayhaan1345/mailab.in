@@ -1,0 +1,43 @@
+/* Styles for this chapter only. Shared styles are in primer/lib/css. */
+
+.eqstrip { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; margin: 14px 0 0; }
+.eqstrip > div { padding: 8px 12px; border: 1.5px solid var(--rule); border-radius: 7px; background: var(--bg); font-size: 14.5px; line-height: 1.4; color: var(--ink-2); }
+.eqstrip > div.on { border-color: var(--teal); background: var(--mark); color: var(--ink); }
+.eqstrip b { display: block; color: var(--ink); font-weight: 600; }
+.act-table { width: 100%; max-width: 46em; border-collapse: collapse; margin: 6px 0 16px; font-size: 15px; }
+.act-table th, .act-table td { padding: 6px 8px; border-bottom: 1px solid var(--rule); text-align: left; color: var(--ink-2); vertical-align: middle; }
+.act-table th { font-weight: 500; color: var(--muted); font-size: 14px; }
+.act-table td:first-child { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.act-wrap { overflow-x: auto; max-width: 46em; }
+.ly-grid { display: grid; gap: 0; margin: 4px 0 0; }
+.ly-row {
+  display: grid;
+  grid-template-columns: 5.2em repeat(3, minmax(0, 1fr)) 104px;
+  grid-template-rows: auto auto;
+  gap: 4px 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.ly-row.ly-head { grid-template-rows: auto; padding: 2px 0 4px; font-size: 13.5px; color: var(--muted); }
+.ly-row .ln { grid-column: 1; grid-row: 1; font-weight: 600; color: var(--ink); }
+.ly-row .li { width: 100%; min-width: 0; font: inherit; font-size: 15px; padding: 3px 6px; text-align: right; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.ly-row .li0 { grid-column: 2; grid-row: 1; }
+.ly-row .li1 { grid-column: 3; grid-row: 1; }
+.ly-row .li2 { grid-column: 4; grid-row: 1; }
+.ly-row .lz { grid-column: 2 / 4; grid-row: 2; font-size: 15px; color: var(--ink-2); }
+.ly-row .la { grid-column: 4; grid-row: 2; font-size: 15px; color: var(--ink-2); }
+.ly-row .lz b { color: var(--ink); }
+.ly-row .la b { color: var(--link-hover); }
+.ly-row .lc { grid-column: 5; grid-row: 1 / span 2; width: 104px; height: 104px; border: 1px solid var(--rule); border-radius: 4px; }
+.ly-head .lh { text-align: right; }
+.ly-head .lh0 { text-align: left; }
+.ly-head .lh4 { text-align: left; }
+@media (max-width: 560px) {
+  .ly-row { grid-template-columns: 3.8em repeat(3, minmax(0, 1fr)) 76px; gap: 4px 5px; }
+  .ly-row .lc { width: 76px; height: 76px; }
+  .ly-row .li { font-size: 14px; padding: 3px 4px; }
+  .ly-row .lz, .ly-row .la { font-size: 13.5px; }
+  .ly-row.ly-head { font-size: 12px; }
+}

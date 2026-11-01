@@ -1,0 +1,81 @@
+/* Styles for this chapter only. Shared styles are in primer/lib/css. */
+
+.card .bar label:has(input[type=range]) { display: grid; grid-template-columns: auto auto; gap: 2px 8px; align-items: center; min-width: 190px; }
+.card .bar label input[type=range] { grid-column: 1 / -1; width: 100%; }
+.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
+label.chk { align-items: flex-start; max-width: 100%; }
+.eqn .t { max-width: 100%; }
+.eqn .t i { max-width: 16em; }
+.stgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 8px; }
+.stgrid div { padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); font-size: 14.5px; color: var(--ink-2); }
+.stgrid b { display: block; color: var(--ink); font-size: 14px; letter-spacing: 0.02em; margin-bottom: 2px; }
+.split2 > div { min-width: 0; }
+.qline { margin: 0 0 8px; padding: 8px 12px; border-radius: 6px; background: var(--mark); color: var(--ink); font-size: 16px; }
+.reply {
+  margin: 0 0 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--navy);
+  border-radius: 0 6px 6px 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16.5px;
+  min-height: 4.5em;
+  overflow-wrap: anywhere;
+}
+.badge { display: inline-block; margin: 0 0 8px; padding: 2px 10px; border-radius: 999px; font-size: 13.5px; line-height: 1.4; }
+.badge.real { background: color-mix(in srgb, var(--teal) 22%, transparent); border: 1px solid var(--teal); color: var(--ink); }
+.badge.script { background: color-mix(in srgb, var(--sand) 25%, transparent); border: 1px dashed var(--sand); color: var(--ink); }
+span.tk { flex-direction: row; align-items: baseline; justify-content: normal; min-width: auto; padding: 1px 5px; border-color: var(--rule); line-height: 1.5; }
+.tk sub { font-size: 10.5px; color: var(--muted); margin-left: 3px; }
+.tk.off { border-style: dashed; color: var(--muted); opacity: 0.6; }
+pre.prompt, .ctx {
+  max-width: 100%;
+  margin: 6px 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--bg);
+  font: 13.5px/1.55 ui-monospace, Menlo, monospace;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.cursor { color: var(--coral); }
+.sp { padding: 0 3px; border-radius: 3px; background: color-mix(in srgb, var(--coral) 22%, transparent); }
+.ctx .old { color: var(--muted); }
+.ctx mark { background: color-mix(in srgb, var(--teal) 26%, transparent); color: var(--ink); padding: 0 2px; border-radius: 3px; }
+.ctx details { margin: 0 0 6px; }
+.ctx summary { cursor: pointer; font-family: "Spectral", Georgia, serif; font-size: 14px; color: var(--link); }
+.ctx details pre { margin: 6px 0 0; font: 12.5px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; color: var(--muted); }
+.run {
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  font: 13.5px/1.5 ui-monospace, Menlo, monospace;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.who { margin: 0; color: var(--ink-2); }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin: 0 0 12px; }
+.pair button {
+  text-align: left;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.4;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.pair button:hover { border-color: var(--teal); }
+.pair small { display: block; margin-top: 6px; color: var(--link); font-size: 13px; }
+@media (max-width: 760px) {
+  .pair, .stgrid { grid-template-columns: minmax(0, 1fr); }
+}

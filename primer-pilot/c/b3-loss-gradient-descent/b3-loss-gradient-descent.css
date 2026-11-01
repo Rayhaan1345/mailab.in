@@ -1,0 +1,8 @@
+/* Styles for this chapter only. Shared styles are in primer/lib/css. */
+
+.ro-line { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 10px 0 0; font-size: 15px; color: var(--ink-2); }
+.ro-line b { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.ro-line .tag { font-family: "Spectral SC", Georgia, serif; letter-spacing: 0.03em; color: var(--muted); }
+.ro-line .teal b { color: var(--teal); }
+.ro-line .cor b { color: var(--coral); }
+#st-svg { display: block; width: 100%; }

@@ -1,0 +1,47 @@
+/* Style guide only: the dashed frame around a demo, the list of class names above it, the colour swatches and the spacing bars.
+   The demos themselves use library classes only. Colours are palette variables. */
+
+.gd-block { margin: 0 0 6px; }
+.gd-cls { max-width: 46em; margin: -2px 0 6px; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.gd-cls code { padding: 0 8px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); color: var(--ink-2); font-size: 13px; overflow-wrap: normal; font-variant-ligatures: none; }
+.gd-use { max-width: 46em; margin: 0 0 10px; color: var(--ink-2); font-size: 15.5px; }
+.gd-demo { padding: 16px; border: 1px dashed var(--rule); border-radius: 6px; overflow-x: auto; }
+.gd-demo > :first-child { margin-top: 0; }
+.gd-demo > :last-child { margin-bottom: 0; }
+.gd-demo section, .gd-demo footer { margin-top: 0; }
+.gd-block pre.code { max-width: none; margin-top: 8px; }
+.gd-block pre.code + pre.code { margin-top: 6px; }
+
+/* Palette swatches: the token name selects the colour, a script writes the value. */
+.gd-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px 10px; }
+.gd-sw { display: grid; gap: 1px; font-size: 14px; color: var(--ink-2); line-height: 1.35; }
+.gd-sw i { display: block; height: 44px; margin-bottom: 4px; border: 1px solid var(--rule); border-radius: 6px; background: var(--c); }
+.gd-sw b { font-weight: 600; color: var(--ink); }
+.gd-sw code { font-size: 12.5px; color: var(--muted); font-variant-ligatures: none; }
+.gd-sw span { font-size: 13.5px; color: var(--muted); }
+.gd-sw[data-token="bg"] { --c: var(--bg); }
+.gd-sw[data-token="paper"] { --c: var(--paper); }
+.gd-sw[data-token="ink"] { --c: var(--ink); }
+.gd-sw[data-token="ink-2"] { --c: var(--ink-2); }
+.gd-sw[data-token="muted"] { --c: var(--muted); }
+.gd-sw[data-token="rule"] { --c: var(--rule); }
+.gd-sw[data-token="link"] { --c: var(--link); }
+.gd-sw[data-token="link-hover"] { --c: var(--link-hover); }
+.gd-sw[data-token="teal"] { --c: var(--teal); }
+.gd-sw[data-token="navy"] { --c: var(--navy); }
+.gd-sw[data-token="coral"] { --c: var(--coral); }
+.gd-sw[data-token="sand"] { --c: var(--sand); }
+.gd-sw[data-token="mark"] { --c: var(--mark); }
+.gd-sw[data-token="fig-bg"] { --c: var(--fig-bg); }
+
+/* Type scale rows: role, sample, size read from the page. */
+.gd-row { display: grid; grid-template-columns: 8em minmax(0, 1fr) 13em; gap: 4px 14px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--rule); }
+.gd-row > p { margin: 0; }
+
+/* Spacing bars: a script sets the width from data-px. */
+.gd-step { display: block; height: 10px; border-radius: 2px; background: var(--teal); }
+
+@media (max-width: 760px) {
+  .gd-demo { padding: 12px; }
+  .gd-row { grid-template-columns: minmax(0, 1fr); }
+}
