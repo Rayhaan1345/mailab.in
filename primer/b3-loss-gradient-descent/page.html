@@ -5,7 +5,7 @@ libs: plotly-full, katex
 ---
 <div class="tldr">
   <p>Training a network means making one number small: the loss. This chapter covers the two losses used most, squared error for numbers and cross-entropy for classes, and shows why cross-entropy rescues a model that is confidently wrong. Then it follows gradient descent over a loss landscape with two weights. Last, it shows what changes when the gradient comes from a mini-batch: an epoch becomes many steps, the path gets noisy, and the batch size trades speed against steadiness.</p>
-  <p>The model in the landscape figures is one sigmoid neuron on the 268 spadenose sharks of <a href="../a3-logistic-regression/#sigmoid">A3</a>, so the whole landscape fits on one screen. The sharks are made up: records generated from published length-weight relationships, not field data.</p>
+  <p>The model in the landscape figures is one sigmoid neuron on the 268 spadenose sharks of <a href="../a3-logistic-regression/#sigmoid">A3</a>, so the whole landscape fits on one screen. {{snippet:sharks-made-up}}</p>
 </div>
 <p class="youneed"><b>You will need:</b> <a href="../a2-linear-regression/#descent">gradient descent</a> and the <a href="../a2-linear-regression/#rate">learning rate</a> of A2, the <a href="../a3-logistic-regression/#logloss">log loss</a> of A3, the <a href="../t6-gradients/#gradient">gradient</a> and <a href="../t6-gradients/#chain">chain rule</a>, <a href="../t7-probability/#crossent">cross-entropy</a>, and <a href="../b1-one-neuron/#neuron">B1</a>.</p>
 

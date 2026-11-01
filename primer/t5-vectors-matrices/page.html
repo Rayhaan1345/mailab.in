@@ -511,7 +511,7 @@ print(np.allclose(total, D.T @ X))</code></pre>
  [ 0.2   0.    0.9 ]]
 True</pre>
   <p><b>In practice.</b> A rank-one table of \(1000\times1000\) entries is set by 2,000 numbers instead of 1,000,000. Adapters that fine-tune a large model use this saving. They store the change to a big weight matrix as a product of two thin matrices. That product is a short sum of outer products (<a href="../b7-continual-learning/#transfer">B7</a> mentions LoRA).</p>
-  <p class="used"><b>Used in:</b> the weight gradient of a layer (<a href="../b4-backpropagation/#layers">B4</a>); the update in In-Place test-time training. A chunk of text adds a step size times a sum of outer products, one per token, to a weight matrix (<a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/#fast">the In-Place TTT primer</a>).</p>
+  <p class="used"><b>Used in:</b> the weight gradient of a layer (<a href="../b4-backpropagation/#layers">B4</a>); the update in In-Place test-time training. A chunk of text adds a step size times a sum of outer products, one per token, to a weight matrix (<a href="https://{{snippet:address-ttt-primer}}#fast">the In-Place TTT primer</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the outer product of \((1,2)\) and \((3,4,5)\)?</summary><p>A \(2\times3\) table: first row \((3,4,5)\), second row \((6,8,10)\).</p></details>

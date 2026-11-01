@@ -5,7 +5,7 @@ libs: plotly-cartesian, d3, katex
 ---
 <div class="tldr">
   <p>Linear regression predicts a number. To predict a category, the model needs an output that behaves like a probability. Logistic regression computes the same weighted sum as a line, then squashes it with the sigmoid into a number between 0 and 1. This chapter predicts whether a spadenose shark is an adult from its length and girth and draws the decision boundary. It explains why log loss replaces squared error, trains the model with the gradient descent of <a href="../a2-linear-regression/#descent">A2</a>, and extends the idea to five species with softmax.</p>
-  <p>The sharks are made up: records generated from published length-weight relationships, not field data. The maturity labels follow a published length at maturity for spadenose sharks (35.8 cm for females, 33.8 cm for males).</p>
+  <p>{{snippet:sharks-made-up}} The maturity labels follow a published length at maturity for spadenose sharks (35.8 cm for females, 33.8 cm for males).</p>
 </div>
 <p class="youneed"><b>You will need:</b> <a href="../a2-linear-regression/">A2</a> (the line, the loss, gradient descent, scaling), the <a href="../t3-algebra-functions/#families">sigmoid curve</a>, <a href="../t6-gradients/#rules">slopes of the sigmoid and the logarithm</a>, and <a href="../t7-probability/#softmax">softmax</a> and <a href="../t7-probability/#crossent">cross-entropy</a>.</p>
 
@@ -535,6 +535,6 @@ Tag 5519 - true species: hammerhead  loss: 0.724
     <li>Alammar, J. (2016). A Visual and Interactive Guide to the Basics of Neural Networks. Its last sections turn the line-fitting model into a classifier with softmax. <a href="https://jalammar.github.io/visual-interactive-guide-basics-neural-networks/">jalammar.github.io</a></li>
     <li>Smilkov, D. and Carter, S. A Neural Network Playground (TensorFlow Playground). A browser tool for watching a classifier's boundary form as it trains; the decision-boundary and training figures here follow the same idea. <a href="https://playground.tensorflow.org/">playground.tensorflow.org</a></li>
     <li>Dash, S. S., Chakraborty, S. K., Zacharia, P. U., Dash, G., Kizhakudan, S. J., Bharadiya, S. A. and Gohel, J. (2018). Reproductive strategy of spadenose shark, <i>Scoliodon laticaudus</i> Muller and Henle, 1839 along north-eastern Arabian Sea. <i>Journal of Applied Ichthyology</i>, 34, 1304&ndash;1313. The source of the lengths at maturity (33.8 cm for males, 35.8 cm for females) behind the made-up maturity labels. The sharks were sampled off the Gujarat coast, not off Mumbai, and the values were read from the abstract, as noted in species.json.</li>
-    <li>Mumbai AI Lab (2026). Made-up catch records generated from published length-weight relationships, primer/data/sharks/catch.json and species.json. The records are not field data. The girth column was computed from weight with a body model that has no source. The softmax weights in this chapter's data/softmax.json were fitted offline to those records.</li>
+    <li>{{snippet:catch-ref}} The girth column was computed from weight with a body model that has no source. The softmax weights in this chapter's data/softmax.json were fitted offline to those records.</li>
   </ol>
 </section>

@@ -3,13 +3,15 @@
 
     python3 primer/lib/build.py            write what is stale
     python3 primer/lib/build.py --check    write no files, exit 1 if something is stale
+    python3 primer/lib/build.py --snippets list the snippets and the pages that use them (writes no files)
 
 What it does, in order:
   1. Joins lib/css/*.css (filename order) into assets/kit.css.
   2. Copies lib/kit.js to assets/kit.js.
   3. Builds every index.html from the page.html beside it, lib/template.html (lib/template-index.html for
      primer/page.html), the partials in lib/partials, the library table lib/libs.json and chapters.json.
-     See lib/pages.py. A folder that has an index.html but no page.html is a problem.
+     A {{snippet:key}} in a page.html becomes the text of lib/snippets/key.html. An unknown key is a problem and a
+     snippet that no page uses is a warning. See lib/pages.py. A folder that has an index.html but no page.html is a problem.
   4. Stamps all local stylesheet and script references in the pages with ?v=<first 8 hex of the
      sha1 of that file's content>: assets/kit.css, assets/kit.js, the chapter's own <slug>.js and
      <slug>.css, and any other local .js or .css file beside a page. External URLs are left alone.
@@ -165,13 +167,13 @@ def lint_page(path, text):
     return problems
 
 
-def check_starter(chapters, libs):
+def check_starter(chapters, libs, snippets):
     """The starter in lib/starter must stay a valid page. Render it as a chapter called 'starter' and lint it."""
     data, _ = chapters
     fake = {"starter": {"id": "x0", "num": "X0", "slug": "starter", "title": "Starter", "part": next(iter(data["parts"]))}}
     path = os.path.join(LIB, "starter", "index.html")
     try:
-        text = pages.render_page(os.path.join(LIB, "starter", "page.html"), chapters=(data, fake), libs=libs)
+        text = pages.render_page(os.path.join(LIB, "starter", "page.html"), chapters=(data, fake), libs=libs, snippets=snippets)
     except pages.PageError as e:
         return [str(e)]
     return lint_page(path, text)
@@ -180,7 +182,10 @@ def check_starter(chapters, libs):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Build assets/kit.css and assets/kit.js, build every index.html from its page.html and stamp version hashes into the pages.")
     ap.add_argument("--check", action="store_true", help="write no files; exit 1 if something is stale")
+    ap.add_argument("--snippets", action="store_true", help="list the snippets in lib/snippets and the pages that use each; write no files")
     args = ap.parse_args(argv)
+    if args.snippets:
+        args.check = True
 
     css_text, css_files = build_css()
     js_text = build_js()
@@ -200,15 +205,27 @@ def main(argv=None):
     sources, probs = page_sources()
     problems += probs
     chapters, libs = pages.load_chapters(), pages.load_libs()
-    problems += check_starter(chapters, libs)
+    try:
+        snippets = pages.load_snippets()
+    except pages.PageError as e:
+        print("PROBLEMS:\n  " + str(e))
+        return 2
+    used, expansions, users = set(), [], {}
+    problems += pages.check_snippets(snippets)
+    problems += check_starter(chapters, libs, snippets)
     touched = []
     for src in sources:
         path = os.path.join(os.path.dirname(src), "index.html")        # the generated page
+        page_used = set()
         try:
-            raw = pages.render_page(src, chapters=chapters, libs=libs)
+            raw = pages.render_page(src, chapters=chapters, libs=libs, snippets=snippets, used=page_used)
         except pages.PageError as e:
             problems.append(str(e))
             continue
+        used |= page_used
+        expansions.append(len(page_used))
+        for k in page_used:
+            users.setdefault(k, []).append(os.path.basename(os.path.dirname(src)) or "index")
         new_text, refs, probs = stamp_text(raw, path, generated)
         problems += probs + lint_page(path, new_text)
         for r in refs:
@@ -222,11 +239,23 @@ def main(argv=None):
                 with open(path, "w", encoding="utf-8", newline="") as f:
                     f.write(new_text)
 
+    if args.snippets:
+        print("snippets in lib/snippets (a page counts when its text reaches the snippet, directly or through another snippet)")
+        for key in sorted(snippets):
+            pg = sorted(users.get(key, []))
+            print("  %-26s %2d page%s  %s" % (key, len(pg), " " if len(pg) == 1 else "s", " ".join(pg) if len(pg) <= 8 else " ".join(pg[:8]) + " ..."))
+        for p in problems:
+            print("PROBLEM: " + p)
+        return 2 if problems else 0
     print("primer library build%s" % (" (check only)" if args.check else ""))
     print("  css  : %d files from lib/css -> assets/kit.css  %s bytes  v=%s" % (len(css_files), format(len(generated[KIT_CSS_OUT]), ","), short_hash(generated[KIT_CSS_OUT])))
     print("  js   : lib/kit.js -> assets/kit.js  %s bytes  v=%s" % (format(len(generated[KIT_JS_OUT]), ","), short_hash(generated[KIT_JS_OUT])))
     print("  pages: %d built from page.html, %d %s" % (len(sources), len(touched), "stale" if args.check else "rewritten"))
     print("  stamps: " + ", ".join("%s x%d" % (k, v) for k, v in sorted(stamp_counts.items())))
+    print("  snippets: %d in lib/snippets, %d used by %d pages" % (len(snippets), len(used & set(snippets)), sum(1 for n in expansions if n)))
+    unused = sorted(set(snippets) - used)
+    for key in unused:
+        print("  WARNING: snippet %r is not used by any page (lib/snippets/%s.html). Use it or delete it" % (key, key))
     if written:
         print("  wrote: " + ", ".join(written[:6]) + (" ..." if len(written) > 6 else ""))
     if problems:

@@ -11,8 +11,9 @@ This folder contains the shared code of How AI Learns: the page shell, the style
 | `template.html` | The page shell of chapters and practice sets: top bar, title block, previous and next, footer. |
 | `template-index.html` | The page shell of the front page. |
 | `partials/` | Parts that both shells use: `head.html` (the head), `footer.html` (the footer with the theme toggle) and `scripts.html` (the script block). |
+| `snippets/` | Text that repeats across pages, one file per snippet: facts about the owner's projects, licence and credit lines, data caveats, project addresses. A page uses a snippet as `{{snippet:key}}`. See "Snippets" below. |
 | `libs.json` | The libraries a page can load from the network (Plotly bundles, D3, KaTeX) with their pinned versions. |
-| `pages.py` | Reads `page.html`, fills the template, resolves the library list. Used by `build.py`. |
+| `pages.py` | Reads `page.html`, puts in the snippets, fills the template, resolves the library list. Used by `build.py`. |
 | `starter/` | The files `new_chapter.py` copies to start a chapter. |
 | `new_chapter.py` | Starts a new chapter folder from the starter. |
 | `css/*.css` | The styles, one file per family. Source of `assets/kit.css`. |
@@ -20,7 +21,9 @@ This folder contains the shared code of How AI Learns: the page shell, the style
 | `build.py` | Builds all `index.html` files from their `page.html`, joins the styles, copies `kit.js`, stamps version hashes. |
 | `preview.py` | Makes a noindex copy of the primer with a link back to the live version. |
 | `check_styles.mjs` | Compares the computed style of all elements between two copies of the site. |
+| `compare_pages.py` | Compares the built pages of two copies of the primer as streams of tags, attributes and text, and checks a CHANGES file against the differences. |
 | `CHANGES-2.3.md` | Step 2.3: which components were unified, which variants were found, and which pages changed. |
+| `CHANGES-2.5.md` | Step 2.5: which snippets were made, and the wording that changed on 19 pages because a snippet has one wording. |
 
 ## Pages: source and generated
 
@@ -100,7 +103,7 @@ Edit `template.html`, `template-index.html` or a file in `partials/`, then run `
 - `{{#for name}}...{{.}}...{{/for}}` repeats the text for the items of a list,
 - `{{> name}}` puts in `partials/name.html`.
 
-A tag alone on its line takes the line with it. A name the build does not know is an error. Values are not read again for tags, so `{{` in a page is safe.
+A tag alone on its line takes the line with it. A name the build does not know is an error. Values are not read again for tags, so `{{` in a page is safe. The one form a page can use is `{{snippet:key}}`, which the build expands in `page.html` before the template is filled (see "Snippets").
 
 ### Add a chapter
 
@@ -108,13 +111,90 @@ A tag alone on its line takes the line with it. A name the build does not know i
 
 This creates `primer/b10-something/` with `page.html` (front matter and a small working example), `b10-something.js` and `b10-something.css`. It prints the entry to add to `chapters.json`. Add it (`id`, `num`, `slug`, `title`, `blurb`, `part`, and `"live": false`). Edit the three files, then run `python3 primer/lib/build.py` and open the page. The build stops with a message until the chapter is in `chapters.json`.
 
+### Snippets
+
+Text that repeats across pages is written once, in `snippets/<key>.html`. A page writes `{{snippet:key}}`, and the build puts the text in its place when it builds `index.html`. A wording change is one edit in one file and one build. The reader sees plain HTML.
+
+    <p><b>Bridge to my project.</b> {{snippet:ttt-method}} {{snippet:ttt-port}} My motivation is {{snippet:ttt-motivation}}.</p>
+
+How it works:
+
+- **Token.** `{{snippet:key}}`. The key uses the lowercase letters a to z, digits and dashes, and is the name of the file without `.html`. It works in the content of `page.html` and in the front matter values, in text, in attributes (`href="https://{{snippet:address-ttt}}"`) and in code blocks. No other text in a page is read as a token.
+- **Put in as written.** The build puts the snippet text where the token is, with no space added or removed. A snippet is a sentence, a phrase or a paragraph. The text may start or end in the middle of a sentence, so write the rest of the sentence around the token.
+- **Source line.** The first line of a snippet file is a comment that says where its facts come from: `<!-- source: PROJECTS.md, section "Robots" -->`. The build checks that it is there and leaves it out of the page. The rest of the file is HTML.
+- **Nesting.** A snippet may contain tokens of other snippets, down to a depth of 2: a page uses `ttt-links`, and `ttt-links` uses `address-ttt`. A third level is an error, and so is a snippet that uses itself.
+- **Errors.** These stop the build, and the message names the file. They are an unknown key (with the nearest names), a key with a space or a capital letter, a missing source line, nesting beyond 2, and shell markup in a snippet.
+- **Warning.** A snippet that no page uses gets a warning. The build still succeeds.
+- **See where a snippet is used.** `python3 primer/lib/build.py --snippets` lists the keys, with the number of pages that reach them and the names of those pages. To find the text in a built page, search the page for the wording, then open the snippet.
+- **Practice sets.** Their generators (`template.html` and `questions.py` in `pXwork/`) write the tokens into `page.html`, so that regenerating a set keeps them.
+
+What goes into a snippet: facts, links and boilerplate. These are facts about the owner's projects, licence and credit lines, caveats about the data, and addresses. A reference entry that three or more pages repeat belongs here too. Teaching prose does not go in. A bridge to a project keeps its own framing sentence in the page ("My motivation is the question of this chapter") and takes the repeated fact sentences from snippets. The rules for what a page may say about the projects are in PROJECTS.md.
+
+To change a fact, edit its snippet and run the build. To add a snippet:
+
+- **Look.** If the fact is in the list below, use it.
+- **Create.** Make `snippets/<key>.html` with the source line and the text. Choose a key that says what the text is, with the project or topic first (`ttt-port`, `catch-table`).
+- **Use.** Put `{{snippet:key}}` into the pages and delete the old text. If two pages worded the same fact differently, choose one wording and list the change in a CHANGES file.
+- **Build.** Run `python3 primer/lib/build.py`. A page that already had the same words is unchanged.
+
+Writers of chapters use the existing keys. A missing fact is added to the library by the lead.
+
+The keys, with one line per key (44 in all):
+
+| Key | Text |
+|---|---|
+| `address-diabetes` | The address of the diabetes screening project page, without `https://`. Write `https://` before it in an `href`. |
+| `address-diabetes-primer` | The address of the diabetes screening primer. |
+| `address-optimizer-state` | The address of the optimizer-state project page. |
+| `address-optimizer-state-primer` | The address of the optimizer-state primer. |
+| `address-ttt` | The address of the In-Place TTT project page. |
+| `address-ttt-primer` | The address of the In-Place TTT primer. |
+| `address-socratic-tutor` | The address of the Socratic Tutor report on mailab.in. |
+| `ttt-method` | What In-Place Test-Time Training is: the down projection as fast weights, updated chunk by chunk. Two sentences. |
+| `ttt-no-pause` | Generation never pauses; an update happens in the step that completes a chunk. |
+| `ttt-port` | At MBZUAI, in Prof. Salman Khan's group, I am porting the method to a Qwen vision-language model. Follows `ttt-method`. |
+| `ttt-motivation` | A phrase: recognising a shark when the water, light and animals change between dives. Write "My motivation is" before it. |
+| `ttt-links` | "See the project page and its primer", with both links. |
+| `ttt-primer-ref` | The reference-list entry for my In-Place TTT primer. Add a note after it. |
+| `pima-data` | A phrase: 768 women of Pima heritage, measured in the United States. |
+| `diabetes-subgroups` | A phrase: checked results across demographic subgroups for bias. |
+| `diabetes-lesson` | A phrase: a model trained on one population may not suit another. |
+| `smith-1988-adap` | The reference-list entry for Smith and others (1988), the source of the Pima data. |
+| `optstate-problem` | Public checkpoints share weights but not optimizer state; can that state be rebuilt? Two sentences. |
+| `optstate-fisher` | A phrase: rebuilds AdamW's second moment from public data and uses it as a Fisher proxy. Write "My manuscript" before it. |
+| `tmlr-status` | A phrase: under review at TMLR. Change it when the status changes. |
+| `socratic-skills` | A phrase: two skills, `socratic-tutor` and `quiz-me`. |
+| `socratic-facts` | What the Socratic Tutor of Mumbai AI Lab is. Two sentences. |
+| `robot-fact` | I have built a small robot that ran a vision model on a Raspberry Pi. |
+| `catch-origin` | A phrase: records generated from published length-weight relationships, not field data. |
+| `sharks-made-up` | The sentence "The sharks are made up: ...". |
+| `catch-table` | A phrase: the made-up SharkCam catch table: 600 records ... |
+| `catch-ref` | The reference-list entry for the catch records. Add a note after it. |
+| `native-speaker-unchecked` | A phrase: have not yet been checked by a native speaker. Write "The Hindi, Marathi and Hinglish texts" before it. |
+| `photos-credited-under` | "Photos are credited under the figures." |
+| `photos-credited-ref` | "Photos: Wikimedia Commons, credited under the figures (photos.json)." |
+| `photo-credits-a` | Photographer and licence of the first four photos. |
+| `photo-credits-b` | Photographer and licence of the other four photos. |
+| `photo-credits-list` | All eight credits as one list. Uses the two halves. |
+| `gpt2-citation` | The GPT-2 paper: authors, year, title, publisher. |
+| `gpt2-pdf-link` | The link to the PDF of the GPT-2 paper. |
+| `gpt2-licence` | The licence sentence for the GPT-2 model, with the links to the model card and the repository. |
+| `mnist-licence` | The licence sentence for the MNIST digits. |
+| `lecun-1998` | The reference-list entry for LeCun and others (1998). Add a note after it. |
+| `torchvision-terms` | The terms of the torchvision and ImageNet weights, and "used here for teaching only". |
+| `practice-score-note` | Practice sets: how scoring works (the second paragraph of the intro box). |
+| `practice-noscript` | Practice sets: the note for readers without JavaScript. |
+| `practice-howto` | Practice sets: the section "How to use this set". |
+| `practice-finish` | Practice sets: the section "Finish and score". |
+| `practice-make-tables` | Practice sets: the last two sentences of "Where the numbers come from". |
+
 ### The contents list stays in the content
 
 `nav.toc` could be generated from the `h2` headings, but that would change pages. On 7 pages (0.3, 0.5, 0.6, 0.7, B5, B7, B8) the contents list uses a shorter label than the heading, and on 3 pages (0.1, 0.2, 0.8) the come-back section is not in the list. If the labels are made the same, the list can be generated, with an optional short label in the heading for the pages that want one.
 
 ### Practice sets and the front page
 
-The six practice-set pages and the front page are generated by scripts outside this repo (`pXwork/build.py` and `build_index.py` in the working folder). They now write `page.html`, not `index.html`: front matter (`kind: practice`, or `index`) followed by the content. Run `python3 primer/lib/build.py` after them. The count of ready chapters on the front page comes from the `live` flags in `chapters.json`.
+The six practice-set pages and the front page are generated by scripts outside this repo (`pXwork/build.py` and `build_index.py` in the working folder). They now write `page.html`, not `index.html`: front matter (`kind: practice`, or `index`) followed by the content. Run `python3 primer/lib/build.py` after them. The count of ready chapters on the front page comes from the `live` flags in `chapters.json`. The text that is the same on all six sets is a snippet (`practice-*`), and so are the notes on the catch table, the Pima data and the photo credits. The generators write the tokens, so a regenerated page keeps them.
 
 ## The style files
 
@@ -203,10 +283,11 @@ They live in `80-utilities.css`. They use `!important` where they replace an inl
 
     python3 primer/lib/build.py            write what is stale
     python3 primer/lib/build.py --check    write no files, exit 1 if something is stale
+    python3 primer/lib/build.py --snippets list the snippets and the pages that use them
 
-Run the build after a change in `css/`, `kit.js`, the template, the partials or `libs.json`, after you add or edit a `page.html`, and after you change `chapters.json`. A second run has no work to do. It uses Python 3 and no other packages.
+Run the build after a change in `css/`, `kit.js`, the template, the partials, `libs.json` or `snippets/`, after you add or edit a `page.html`, and after you change `chapters.json`. A second run has no work to do. It uses Python 3 and no other packages.
 
-`--check` fails when an `index.html` differs from what its `page.html` would give now, so a forgotten build or a hand edit of a generated page is found. A folder that has an `index.html` but no `page.html` is a problem, and so is a `page.html` whose folder is not in `chapters.json`. The build also renders `starter/page.html` as a chapter, so the starter cannot go out of step with the template.
+`--check` fails when an `index.html` differs from what its `page.html` and the snippets would give now. It finds a forgotten build, a snippet that was edited and not built, and a hand edit of a generated page. A folder that has an `index.html` but no `page.html` is a problem, and so is a `page.html` whose folder is not in `chapters.json`. The build also renders `starter/page.html` as a chapter, so the starter cannot go out of step with the template.
 
 The build also checks the rule that a page has no `<style>` element. A page may link the library, its own `<slug>.css`, KaTeX and the Google fonts. Any other stylesheet, and any `<style>` element, is reported as a problem and makes `--check` fail.
 
@@ -235,6 +316,12 @@ This runs `build.py --check`, then copies `primer/` to `OUTDIR` without `lib/` a
 The script needs Node 22 and Google Chrome. For three states of a page (width 1100 light, width 1100 dark, width 390) it waits 9 seconds for the figures, then records a hash of the full computed style of all elements, plus console errors. It prints the page states that differ. It blocks Google web fonts and normalises the ids that Plotly makes up, because both make two runs of one page differ. The other modes are at the top of the script: one page as JSON, snapshot a folder, diff two folders, and `--detail` for property-level differences on one page.
 
 When one rule changes the height of an element, the computed height, `top`, `bottom` and the origins of all its ancestors change too, and so do absolutely placed elements further down the page. To find the element that was restyled, ignore `height`, `width`, `block-size`, `inline-size`, `top`, `bottom`, `left`, `right`, `perspective-origin` and `transform-origin`, and look at what is left.
+
+## Checking that the text did not change
+
+    python3 primer/lib/compare_pages.py OLD_PRIMER NEW_PRIMER [--changes primer/lib/CHANGES-2.5.md] [--show]
+
+`OLD_PRIMER` is a copy of `primer/` from before a change. The script reads the `index.html` files of both with `html.parser` and compares tags, attributes (in any order) and text (white space collapsed). It leaves out the generated comment and the `?v=` stamps. It lists the pages that are byte for byte the same, the pages whose streams are the same, and the pages that differ (`--show` prints the words). With `--changes` it applies the `was` and `now` entries of a CHANGES file to the old stream of the page. The result must equal the new stream. Then all differences belong to entries and all entries to differences.
 
 ## Notes
 

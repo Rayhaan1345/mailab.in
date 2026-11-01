@@ -24,7 +24,7 @@ libs: plotly-cartesian, katex
 <!-- ============================ 1. who is in the data ============================ -->
 <section id="missing" aria-labelledby="missing-h">
   <h2 id="missing-h">Who is in the data?</h2>
-  <p class="ask"><b>Guess first.</b> The clinic model of A4 learned from 768 women of Pima heritage, measured in the United States. A woman visits a Mumbai clinic with a body mass index (BMI) of 24. Among the 768 women, about how many had a BMI below 24: 1 in 100, 1 in 10, or 1 in 3?</p>
+  <p class="ask"><b>Guess first.</b> The clinic model of A4 learned from {{snippet:pima-data}}. A woman visits a Mumbai clinic with a body mass index (BMI) of 24. Among the 768 women, about how many had a BMI below 24: 1 in 100, 1 in 10, or 1 in 3?</p>
   <dl class="terms">
     <div><dt>training population</dt><dd>the people whose records the model learned from</dd></div>
     <div><dt>coverage</dt><dd>how many training records lie close to a new input</dd></div>
@@ -72,7 +72,7 @@ libs: plotly-cartesian, katex
   </ul>
   <p>A second example: visitor 2, aged 62 with a BMI of 22.5 and a glucose of 140, gets a printed 28%. At an 11.4% share the shifted chance is 9%. Only 10 Pima women lie in her box. Both numbers rest on a model that has little to say about women like her.</p>
   <div class="bridge">
-    <p><b>Bridge to my diabetes project.</b> I built a diabetes risk screening app on this Pima data and checked results across demographic subgroups for bias. The lesson I draw is that a model trained on one population may not suit another: the app flagged my mother, who is not from that population. See the <a href="https://rayhaan1345.github.io/projects/diabetes-screening/">project page</a>.</p>
+    <p><b>Bridge to my diabetes project.</b> I built a diabetes risk screening app on this Pima data and {{snippet:diabetes-subgroups}}. The lesson I draw is that {{snippet:diabetes-lesson}}: the app flagged my mother, who is not from that population. See the <a href="https://{{snippet:address-diabetes}}">project page</a>.</p>
   </div>
   <div class="break">
     <p><b>Common belief.</b> A model trained on diabetes data works for anyone who might have diabetes.</p>
@@ -410,7 +410,7 @@ print("share with diabetes at the new base rate:", round((w * y).sum() / w.sum()
 <section class="refs" aria-labelledby="refs-h">
   <h2 id="refs-h">Sources and further reading</h2>
   <ol>
-    <li>Smith, J. W., Everhart, J. E., Dickson, W. C., Knowler, W. C. and Johannes, R. S. (1988). Using the ADAP learning algorithm to forecast the onset of diabetes mellitus. <i>Proceedings of the Annual Symposium on Computer Application in Medical Care</i>, 261&ndash;265. The Pima data used throughout.</li>
+    <li>{{snippet:smith-1988-adap}} The Pima data used throughout.</li>
     <li>Chouldechova, A. (2017). Fair prediction with disparate impact: a study of bias in recidivism prediction instruments. <i>Big Data</i> 5(2), 153&ndash;163. arXiv:1703.00056. The identity relating false positive rate, precision, sensitivity and base rate (equation 2.6) and the term predictive parity.</li>
     <li>Kleinberg, J., Mullainathan, S. and Raghavan, M. (2016). Inherent trade-offs in the fair determination of risk scores. <i>Innovations in Theoretical Computer Science (ITCS)</i> 2017. arXiv:1609.05807.</li>
     <li>Hardt, M., Price, E. and Srebro, N. (2016). Equality of opportunity in supervised learning. <i>Advances in Neural Information Processing Systems 29 (NIPS 2016)</i>. arXiv:1610.02413. Equal opportunity and equalised odds.</li>

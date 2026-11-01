@@ -9,7 +9,7 @@ scripts: boostlab.js
   <p>XGBoost is a fast library for boosting, with a penalty that stops a leaf from trusting a few sharks. At the end you ask a boosted SharkCam model which inputs it relies on, and you meet four answers that disagree, and SHAP values that share out one shark's score.</p>
 </div>
 <p class="youneed"><b>You will need:</b> trees, Gini impurity and the depth limit from <a href="../a5-decision-trees/#grow">A5</a>, and held-out sets from <a href="../a4-grading-models/#splits">A4</a>. You also need the learning rate and residuals from <a href="../a2-linear-regression/#rate">A2</a>, the sigmoid from <a href="../a3-logistic-regression/#sigmoid">A3</a>, <a href="../t4-discrete-maths/#counting">counting orders</a> and the <a href="../t7-probability/#ci">bootstrap</a>.</p>
-<p class="datanote"><b>The data.</b> This chapter uses the made-up SharkCam catch table: 600 records generated from published length-weight relationships, not field data. As in A5, sharks whose tag number ends in 0, 1 or 2 (164 sharks) are held out, and the other 436 are the training sharks. The question is "spadenose or not". Sections 1, 3 and 4 use length and depth. Section 2 predicts the weight of the 196 training spadenose sharks from length. Sections 5 and 6 use six measurements. In this table the girth was computed from the weight, so girth repeats part of what weight says.</p>
+<p class="datanote"><b>The data.</b> This chapter uses {{snippet:catch-table}}. As in A5, sharks whose tag number ends in 0, 1 or 2 (164 sharks) are held out, and the other 436 are the training sharks. The question is "spadenose or not". Sections 1, 3 and 4 use length and depth. Section 2 predicts the weight of the 196 training spadenose sharks from length. Sections 5 and 6 use six measurements. In this table the girth was computed from the weight, so girth repeats part of what weight says.</p>
 
 <nav class="toc" aria-label="Contents">
   <ol>
@@ -343,7 +343,7 @@ for lam in (0, 1, 3):
 lambda 0: leaf -1.817, after eta = 0.1: -0.1817
 lambda 1: leaf -1.772, after eta = 0.1: -0.1772
 lambda 3: leaf -1.689, after eta = 0.1: -0.1689</pre>
-  <div class="bridge"><p><b>Bridge to my project.</b> My diabetes screening report used XGBoost with feature-importance explanations. A rebuilt model with 100 trees of depth 3 and a learning rate of 0.01 gets 78.6% of 154 held-out women right. The data are the Pima data: 768 women of Pima heritage, measured in the United States, so not data from Mumbai. The dials above are the ones I had to set. Read more in my <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">diabetes primer</a>.</p></div>
+  <div class="bridge"><p><b>Bridge to my project.</b> My diabetes screening report used XGBoost with feature-importance explanations. A rebuilt model with 100 trees of depth 3 and a learning rate of 0.01 gets 78.6% of 154 held-out women right. The data are the Pima data: {{snippet:pima-data}}, so not data from Mumbai. The dials above are the ones I had to set. Read more in my <a href="https://{{snippet:address-diabetes-primer}}">diabetes primer</a>.</p></div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Leaf A has 4 sharks with leftovers adding up to 0.2 kg, and \(\lambda = 4\). What does the leaf answer, and what is the plain average?</summary><p>The answer is \(0.2/(4+4) = 0.025\) kg. The plain average is \(0.2/4 = 0.05\) kg, so the penalty halves it.</p></details>
@@ -382,7 +382,7 @@ lambda 3: leaf -1.689, after eta = 0.1: -0.1689</pre>
     <p><b>Why it fails.</b> A count includes the many small adjustments of questions that change almost no calls. A column of random numbers can be asked about often too. Adding one to the model, a column of normal random numbers, gets it asked about 73 times, more than length (47) or temperature (42) in that run. Shuffling it costs about 1 point, which is within the noise of the test.</p>
     <p><b>Better account.</b> Measure the effect directly, with a shuffle test or SHAP values, and say which question a number answers. Where two measures disagree, find out why before reporting either.</p>
   </div>
-  <div class="bridge"><p><b>Bridge to my project.</b> My <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">diabetes primer</a> shows the same pattern on the Pima data: the rebuilt model's trees ask about blood pressure 52 times, and shuffling it costs no accuracy. My report ranked inputs with XGBoost's importance chart, which counts questions.</p></div>
+  <div class="bridge"><p><b>Bridge to my project.</b> My <a href="https://{{snippet:address-diabetes-primer}}">diabetes primer</a> shows the same pattern on the Pima data: the rebuilt model's trees ask about blood pressure 52 times, and shuffling it costs no accuracy. My report ranked inputs with XGBoost's importance chart, which counts questions.</p></div>
   <div class="debug">
     <p><b>Debug tip.</b> Rank the inputs by one measure and then check the top three with another. A shuffle test needs held-out sharks and many repeats, because one shuffle is noisy: run it 50 times and look at the spread of the dots. Plant a column of random numbers as a control.</p>
   </div>
@@ -489,7 +489,7 @@ average score -0.24</pre>
   <div class="debug">
     <p><b>Debug tip.</b> Check that the shares add up: the average score plus all the shares must equal the model's own score, as the two numbers 4.0 and 4.0 above do. If they differ, you may have mixed scores with probabilities.</p>
   </div>
-  <div class="bridge"><p><b>Bridge to my project.</b> My <a href="https://rayhaan1345.github.io/projects/diabetes-screening/">project page</a> has an "Explain one score" panel that runs this kind of calculation in the browser, and my <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">primer</a> builds the same idea for one woman's score.</p></div>
+  <div class="bridge"><p><b>Bridge to my project.</b> My <a href="https://{{snippet:address-diabetes}}">project page</a> has an "Explain one score" panel that runs this kind of calculation in the browser, and my <a href="https://{{snippet:address-diabetes-primer}}">primer</a> builds the same idea for one woman's score.</p></div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why is the SHAP value an average over orders instead of one step?</summary><p>A measurement's step depends on which measurements were revealed before it, especially when inputs repeat one another. Averaging over all orders gives an input a fair share that does not depend on one chosen order.</p></details>

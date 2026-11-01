@@ -5,7 +5,7 @@ libs: plotly-cartesian, d3, katex
 ---
 <div class="tldr">
   <p>A network's loss depends on all of its weights. To improve them, training needs the slope of the loss with respect to a weight. Backpropagation computes all of those slopes in one pass from the loss back to the inputs, by applying the chain rule one node at a time.</p>
-  <p>This chapter runs it by hand on a tiny network that reads one shark. You step through the forward and backward passes, take one gradient step and watch the loss fall. Then you test the slopes with finite differences, see why long chains of small slopes cause trouble, and write the same network in NumPy and in PyTorch. The sharks are made up: records generated from published length-weight relationships, not field data.</p>
+  <p>This chapter runs it by hand on a tiny network that reads one shark. You step through the forward and backward passes, take one gradient step and watch the loss fall. Then you test the slopes with finite differences, see why long chains of small slopes cause trouble, and write the same network in NumPy and in PyTorch. {{snippet:sharks-made-up}}</p>
 </div>
 <p class="youneed"><b>You will need:</b> the <a href="../t6-gradients/#chain">chain rule</a> (0.6), <a href="../t4-discrete-maths/#graphs">graphs and DAGs</a> (0.4), the <a href="../t5-vectors-matrices/#outer">outer product</a> (0.5), a neuron with an activation (<a href="../b1-one-neuron/#neuron">B1</a>) and a loss with gradient descent (<a href="../b3-loss-gradient-descent/#landscape">B3</a>).</p>
 
@@ -605,6 +605,6 @@ float32  h = 1e-05  relative error = 4.8e-03</pre>
   <ol>
     <li>Karpathy, A. <i>micrograd</i>, a tiny scalar-valued autograd engine and neural network library (about 100 and 50 lines). The style of the step-through figure follows it. <a href="https://github.com/karpathy/micrograd">github.com/karpathy/micrograd</a></li>
     <li>PyTorch documentation. <i>torch.autograd.gradcheck</i>: compares finite-difference and analytical gradients; the defaults (eps 1e-6, atol 1e-5, rtol 1e-3) are designed for double-precision inputs. <a href="https://docs.pytorch.org/docs/stable/generated/torch.autograd.gradcheck.gradcheck.html">docs.pytorch.org</a></li>
-    <li>My optimizer-state primer gives the size of GPT-2 Small (124 million weights). <a href="https://rayhaan1345.github.io/projects/optimizer-state/primer/">rayhaan1345.github.io/projects/optimizer-state/primer/</a></li>
+    <li>My optimizer-state primer gives the size of GPT-2 Small (124 million weights). <a href="https://{{snippet:address-optimizer-state-primer}}">{{snippet:address-optimizer-state-primer}}</a></li>
   </ol>
 </section>

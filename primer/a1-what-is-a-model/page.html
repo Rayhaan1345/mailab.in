@@ -5,7 +5,7 @@ libs: plotly-cartesian, d3, katex
 ---
 <div class="tldr">
   <p>A model turns inputs into a prediction. Its parameters are the dials that decide which prediction. Supervised learning sets the dials from examples that come with answers. This chapter builds those ideas on the SharkCam catch records, then introduces the lazy model, the first score any model must beat. The chapters after it fit the dials (<a href="../a2-linear-regression/">A2</a>, <a href="../a3-logistic-regression/">A3</a>), grade the result (<a href="../a4-grading-models/">A4</a>) and try other kinds of rules (<a href="../a5-decision-trees/">A5</a>, <a href="../a6-boosting/">A6</a>).</p>
-  <p>All the sharks here are made up: records generated from published length-weight relationships, not field data.</p>
+  <p>{{snippet:sharks-made-up}}</p>
 </div>
 <p class="youneed"><b>You will need:</b> <a href="../t3-algebra-functions/#machines">functions</a> and <a href="../t3-algebra-functions/#exponents">exponents</a>, <a href="../t7-probability/#spread">the mean</a> and <a href="../t8-charts/#types">reading charts</a>. The code blocks use a little <a href="../t1-python/#arrays">NumPy</a>.</p>
 
@@ -128,7 +128,7 @@ lazy model says 0.193 kg: average miss = 0.104 kg</pre>
     <li><b>\(d\)</b> is the number of inputs for one shark. The subscript \(j\) in \(x_j\) numbers the inputs.</li>
   </ul>
   <p><b>One table, two questions.</b> Take Tag 4127, the 44.0 cm juvenile bamboo shark. If the question is the species, its label is the word "bamboo" and the task is classification. If the question is the weight, its label is 0.281 kg and the task is regression. The inputs are the same. Only the label column changes. In code, the table becomes a matrix \(X\) with one row per shark and one column per input, and a vector \(\mathbf{y}\) with one label per shark.</p>
-  <p>The same layout fits the clinic story. The Pima data is a published dataset of 768 women of Pima heritage, measured in the United States, not data from Mumbai. Woman A is one row, and her label is the diagnosis:</p>
+  <p>The same layout fits the clinic story. The Pima data is a published dataset of {{snippet:pima-data}}, not data from Mumbai. Woman A is one row, and her label is the diagnosis:</p>
   <div class="eqn" role="img" aria-label="Woman A from the Pima data as an example: the inputs are glucose 158, BMI 31.6 and age 28, and the label is 1, which means diabetes"><span class="t c-navy"><b>(158, 31.6, 28)</b><i>x of Woman A: glucose, BMI, age</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>1</b><i>y: she has diabetes</i></span><span class="t"><b>d = 3</b><i>inputs</i></span><span class="t"><b>m = 768</b><i>women in the table</i></span></div>
   <p><b>When it fails.</b> Supervised learning works when the label depends on the inputs and the examples look like the cases you will meet later. It fails when labels are wrong, when the inputs lack the information, or when the future differs from the past. A label also costs effort: a weight needs a scale and a species needs an expert.</p>
   <p><b>In practice.</b> Before you fit anything, count the rows and columns, and look for values that mean "not measured". The Pima file stores 374 missing insulin readings as 0, and a model that reads them as measurements learns nonsense. Ask who produced the label, and when (<a href="../a4-grading-models/#leak">A4</a> covers leaks).</p>
@@ -409,6 +409,6 @@ best of 10 tries: a = 3.15e-06, average miss = 0.017 kg</pre>
     <li>Google for Developers. Machine Learning Crash Course: Supervised learning. Defines examples, features and labels. <a href="https://developers.google.com/machine-learning/intro-to-ml/supervised">developers.google.com</a></li>
     <li>Karpathy, A. (2019). A Recipe for Training Neural Networks. Recommends starting from simple baselines, including an input-independent one, before building anything complicated. <a href="https://karpathy.github.io/2019/04/25/recipe/">karpathy.github.io</a></li>
     <li>Sanderson, G. (3Blue1Brown). Neural networks, chapter 2, "Gradient descent, how neural networks learn": learning as a search for good parameters. <a href="https://www.3blue1brown.com/lessons/gradient-descent">3blue1brown.com</a></li>
-    <li>Mumbai AI Lab (2026). Made-up catch records generated from published length-weight relationships, primer/data/sharks/catch.json and species.json. The records are not field data. The spadenose law is from Gladston et al. (2018), Journal of Applied Ichthyology, 34(3), 753&ndash;757, with the values read from the FishBase table, as noted in species.json.</li>
+    <li>{{snippet:catch-ref}} The spadenose law is from Gladston et al. (2018), Journal of Applied Ichthyology, 34(3), 753&ndash;757, with the values read from the FishBase table, as noted in species.json.</li>
   </ol>
 </section>

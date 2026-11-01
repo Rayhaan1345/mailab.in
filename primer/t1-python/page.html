@@ -564,7 +564,7 @@ for line in text.splitlines():
 tag -&gt; length_cm
 4127 -&gt; 44.0
 3305 -&gt; 41.0</pre>
-  <p>Notice that all data read from a file arrives as text, including the numbers. pandas does this conversion for you. The file used from here on is the SharkCam catch table: 600 made-up shark records generated from published length-weight relationships, not field data. The figure below shows sixteen of its rows, including the three recurring sharks. <a href="../data/sharks/catch.csv" download>Download catch.csv</a> to follow along on your own computer.</p>
+  <p>Notice that all data read from a file arrives as text, including the numbers. pandas does this conversion for you. The file used from here on is {{snippet:catch-table}}. The figure below shows sixteen of its rows, including the three recurring sharks. <a href="../data/sharks/catch.csv" download>Download catch.csv</a> to follow along on your own computer.</p>
   <div class="card" id="qf">
     <div class="controls" id="qf-controls"></div>
     <div class="bar"><span class="label">Generated pandas code</span></div>
@@ -646,7 +646,7 @@ hammerhead    0.053
 milk          0.695
 spadenose     0.675
 Name: mature, dtype: float64</pre>
-  <p>Look at a table before you trust it. The clinic data used later is a published dataset of 768 women of Pima heritage, measured in the United States. In its insulin column 374 values are 0, and zero means "not measured". Averaging them in gives 79.8. Setting them aside gives 155.5.</p>
+  <p>Look at a table before you trust it. The clinic data used later is a published dataset of {{snippet:pima-data}}. In its insulin column 374 values are 0, and zero means "not measured". Averaging them in gives 79.8. Setting them aside gives 155.5.</p>
   <pre class="code"><code>import json
 import numpy as np
 import pandas as pd

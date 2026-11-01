@@ -6,7 +6,7 @@ libs: katex
 ---
 <div class="tldr">
   <p>This practice set covers Part C: pixels and channels, a convolution computed by hand, output size, pooling, counting parameters, receptive fields, feature maps and the softmax, domain shift under water, data augmentation, batch-norm statistics at test time and test-time training. It mixes calculations that you do by hand, charts and grids drawn from the chapters, and statements to judge. Attempt it without notes and with the chapters closed. A timer is there if you want the pressure of a clock, and about an hour is a fair target.</p>
-  <p>When you press Score my answers at the end, the page shows your score by area and the questions you missed, with links to the sections to revise. It does not show the correct answers. Revise the sections the score points to, try the missed questions again, and attempt the whole set again after a week.</p>
+  {{snippet:practice-score-note}}
 </div>
 <p class="youneed"><b>You will need:</b> a pen, paper and a calculator with exp and ln keys, and what Part C teaches: <a href="../c1-convolution/">C1 Images as numbers and convolution</a>, <a href="../c2-cnns/">C2 Convolutional networks</a> and <a href="../c3-domain-shift/">C3 When the water changes</a>. Some questions use the dot product of <a href="../t5-vectors-matrices/">0.5</a>, the softmax and the logarithms of <a href="../t7-probability/">0.7</a>, and the batch norm of <a href="../b6-deep-networks/">B6</a>.</p>
 
@@ -34,21 +34,9 @@ libs: katex
   <span class="pb-prog"><b id="pb-n">0</b> of 21<span class="wide"> answered</span></span>
   <a class="pb-jump" href="#score" aria-label="Go to the score section">Score</a>
 </div>
-<noscript><p class="note">This practice set needs JavaScript to save your answers and to score them.</p></noscript>
+{{snippet:practice-noscript}}
 
-<section id="howto" aria-labelledby="howto-h">
-  <h2 id="howto-h">How to use this set</h2>
-  <ul class="plain">
-    <li>Close the chapters. Keep a pen, paper and a calculator beside you.</li>
-    <li>Choose a time and press Start timer when you begin. Pause it when you leave. The clock counts down, then goes on counting past zero so that you can see how long you took. The timer is optional.</li>
-    <li>Skip a question and return to it if you like. Your answers are saved in this browser as you type.</li>
-    <li>Press Score my answers at the end. The set is scored only then.</li>
-  </ul>
-  <div class="card">
-    <div class="bar"><span class="label">Time allowed</span><div id="tm-chips"></div><button type="button" class="btn" id="tm-reset">Reset timer</button></div>
-    <p class="note" id="store-note">Your answers and the timer are saved in this browser only. No data is sent anywhere.</p>
-  </div>
-</section>
+{{snippet:practice-howto}}
 
 <section id="pixels" aria-labelledby="pixels-h">
   <h2 id="pixels-h">Pixels and channels</h2>
@@ -1523,21 +1511,16 @@ print(side)</pre>
   </article>
 </section>
 
-<section id="score" aria-labelledby="score-h">
-  <h2 id="score-h">Finish and score</h2>
-  <p>Press the button when you are done. Blank answers count as missed. The page then locks your answers, shows your score by area and links to the sections to revise. It does not show the correct answers.</p>
-  <div class="bar"><button type="button" class="btn btn-main" id="btn-score">Score my answers</button><span class="status" id="score-note" aria-live="polite"></span></div>
-  <div class="card res" id="results" tabindex="-1" hidden></div>
-</section>
+{{snippet:practice-finish}}
 
 <section class="refs" aria-labelledby="refs-h">
   <h2 id="refs-h">Where the numbers come from</h2>
   <ol>
     <li>The digits are handwritten MNIST digits (LeCun et al., 1998), as in chapter C1. The crop of question 1 is the digit 7 of Tag 4127. The digit of question 15 is one of three that the network of chapter C2 misread. Its scores are recomputed from the weights of that network, which has 3,730 numbers.</li>
-    <li>Questions 2 and 17 use the depth model of <code>primer/data/sharks/depth.py</code>, which is a simple model with an assumed particle term and not a measurement of Mumbai water. The ResNet-18 confidences of questions 17 and 20 are the precomputed outputs of chapter C3. The photos behind them come via Wikimedia Commons. Credits: Kevin Lino, NOAA (public domain); Kris-Mikael Krister (CC BY 2.0); Karunakar Rayker (CC BY 2.0); hewyk (CC BY 2.0); Hariprasad Shetty10 (CC0); pavlaki1968 (CC BY 4.0); Don Kitson (CC BY 3.0); Brad Flickinger (CC BY 2.0). No photo is shown on this page.</li>
+    <li>Questions 2 and 17 use the depth model of <code>primer/data/sharks/depth.py</code>, which is a simple model with an assumed particle term and not a measurement of Mumbai water. The ResNet-18 confidences of questions 17 and 20 are the precomputed outputs of chapter C3. The photos behind them come via Wikimedia Commons. Credits: {{snippet:photo-credits-list}}. No photo is shown on this page.</li>
     <li>The curves of questions 14, 18, 20 and 21 are measured results of chapters C2 and C3, from one trained network of the two kinds. The brown water of question 18 is made up. The table of question 12 reports the nudge test of chapter C2.</li>
     <li>Many numbers are invented for practice. These are the grey values and filters of questions 3, 6, 7 and 13, the windows of question 5, the layers of questions 4, 8, 9, 10 and 11, and the batch-norm channel of question 19.</li>
-    <li>The script <code>data/make_tables.py</code> reproduces the chart data. The solutions to all questions are kept apart from this page.</li>
+    <li>{{snippet:practice-make-tables}}</li>
     <li>The ideas come from chapters C1 to C3, listed at the top of this page.</li>
   </ol>
 </section>

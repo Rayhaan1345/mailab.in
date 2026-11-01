@@ -6,7 +6,7 @@ libs: katex
 ---
 <div class="tldr">
   <p>This practice set covers Part A: what a model is, linear regression, logistic regression, grading a model, decision trees and boosting. It mixes calculations, charts and tables drawn from the catch records and the clinic data, and statements to judge. Attempt it without notes and with the chapters closed. A timer is there if you want the pressure of a clock, and about an hour is a fair target.</p>
-  <p>When you press Score my answers at the end, the page shows your score by area and the questions you missed, with links to the sections to revise. It does not show the correct answers. Revise the sections the score points to, try the missed questions again, and attempt the whole set again after a week.</p>
+  {{snippet:practice-score-note}}
 </div>
 <p class="youneed"><b>You will need:</b> a pen, paper and a calculator, and what Part A teaches: <a href="../a1-what-is-a-model/">A1 What a model is</a>, <a href="../a2-linear-regression/">A2 Linear regression</a>, <a href="../a3-logistic-regression/">A3 Logistic regression and softmax</a>, <a href="../a4-grading-models/">A4 Grading a model fairly</a>, <a href="../a5-decision-trees/">A5 Decision trees</a> and <a href="../a6-boosting/">A6 Ensembles and boosting</a>. Some calculations use the logarithms of <a href="../t3-algebra-functions/">0.3</a> and the probability of <a href="../t7-probability/">0.7</a>.</p>
 
@@ -29,21 +29,9 @@ libs: katex
   <span class="pb-prog"><b id="pb-n">0</b> of 25<span class="wide"> answered</span></span>
   <a class="pb-jump" href="#score" aria-label="Go to the score section">Score</a>
 </div>
-<noscript><p class="note">This practice set needs JavaScript to save your answers and to score them.</p></noscript>
+{{snippet:practice-noscript}}
 
-<section id="howto" aria-labelledby="howto-h">
-  <h2 id="howto-h">How to use this set</h2>
-  <ul class="plain">
-    <li>Close the chapters. Keep a pen, paper and a calculator beside you.</li>
-    <li>Choose a time and press Start timer when you begin. Pause it when you leave. The clock counts down, then goes on counting past zero so that you can see how long you took. The timer is optional.</li>
-    <li>Skip a question and return to it if you like. Your answers are saved in this browser as you type.</li>
-    <li>Press Score my answers at the end. The set is scored only then.</li>
-  </ul>
-  <div class="card">
-    <div class="bar"><span class="label">Time allowed</span><div id="tm-chips"></div><button type="button" class="btn" id="tm-reset">Reset timer</button></div>
-    <p class="note" id="store-note">Your answers and the timer are saved in this browser only. No data is sent anywhere.</p>
-  </div>
-</section>
+{{snippet:practice-howto}}
 
 <section id="models" aria-labelledby="models-h">
   <h2 id="models-h">Models and baselines</h2>
@@ -273,7 +261,7 @@ libs: katex
 
   <article class="pq" id="q9" data-q="q09" data-kind="num" data-dp="1">
     <h3 class="pq-h"><span>Question 9<span class="pq-st" hidden></span></span><span class="pq-tag">Logistic regression</span></h3>
-    <p class="pq-t tight">The Pima data are published records of 768 women of Pima heritage, measured in the United States. A logistic regression on the training women has the score \(z = 0.04 \times \text{glucose} + 0.09 \times \text{BMI} - 8.3\), with glucose in mg/dl. The decision boundary is where \(z = 0\). A woman on the boundary has glucose 130. What is her BMI? Give one decimal place.</p>
+    <p class="pq-t tight">The Pima data are published records of {{snippet:pima-data}}. A logistic regression on the training women has the score \(z = 0.04 \times \text{glucose} + 0.09 \times \text{BMI} - 8.3\), with glucose in mg/dl. The decision boundary is where \(z = 0\). A woman on the boundary has glucose 130. What is her BMI? Give one decimal place.</p>
     <div class="pfig"><p class="fcap">Training women of the Pima data (a few lie outside the frame). Coral diamonds have diabetes, navy dots do not.</p>
     <svg class="fg" viewBox="0 0 360 300" role="img" aria-label="Scatter of glucose against BMI for training women of the Pima data. Women with diabetes are coral diamonds and women without are navy dots. A straight boundary line runs from about glucose 61 and BMI 65 down to glucose 174 and BMI 15.">
     <line class="gl" x1="46.0" y1="254.0" x2="46.0" y2="14.0"/>
@@ -858,19 +846,14 @@ libs: katex
   </article>
 </section>
 
-<section id="score" aria-labelledby="score-h">
-  <h2 id="score-h">Finish and score</h2>
-  <p>Press the button when you are done. Blank answers count as missed. The page then locks your answers, shows your score by area and links to the sections to revise. It does not show the correct answers.</p>
-  <div class="bar"><button type="button" class="btn btn-main" id="btn-score">Score my answers</button><span class="status" id="score-note" aria-live="polite"></span></div>
-  <div class="card res" id="results" tabindex="-1" hidden></div>
-</section>
+{{snippet:practice-finish}}
 
 <section class="refs" aria-labelledby="refs-h">
   <h2 id="refs-h">Where the numbers come from</h2>
   <ol>
-    <li>The shark questions use the made-up SharkCam catch table. It has 600 records generated from published length-weight relationships and is not field data (<code>primer/data/sharks/catch.csv</code>). Question 13 uses the made-up dive log of 2,400 frames (<code>dive.json</code>).</li>
+    <li>The shark questions use {{snippet:catch-table}} (<code>primer/data/sharks/catch.csv</code>). Question 13 uses the made-up dive log of 2,400 frames (<code>dive.json</code>).</li>
     <li>The lines in questions 3 and 4 are rounded lines fitted to the 268 spadenose records. The curves in questions 6 and 12, the cross-validation in question 13 and the stumps in question 22 are computed from the table. The scores in questions 14, 15 and 16 are the cross-validated scores of the hammerhead detector of chapter A4. The scores in question 11 come from the softmax classifier of chapter A3.</li>
-    <li>The clinic questions use the Pima data. It is a published dataset of 768 women of Pima heritage, measured in the United States, and is not data from Mumbai. The Mumbai clinic in question 17 is a story. The models in questions 9, 17, 18, 20, 21, 23, 24 and 25 are fitted to the 614 training women with scikit-learn or XGBoost. Woman A is row 31 of the data: glucose 158, BMI 31.6, age 28.</li>
+    <li>The clinic questions use the Pima data. It is a published dataset of {{snippet:pima-data}}, and is not data from Mumbai. The Mumbai clinic in question 17 is a story. The models in questions 9, 17, 18, 20, 21, 23, 24 and 25 are fitted to the 614 training women with scikit-learn or XGBoost. Woman A is row 31 of the data: glucose 158, BMI 31.6, age 28.</li>
     <li>Some numbers are invented for practice. They are the settings and speed in question 1, the 52% in question 2 and the starting values in question 5. The 8 in 100 in question 17 is invented too. The weights in questions 8 and 9 are rounded from fitted values. The script <code>data/make_tables.py</code> reproduces all the other numbers.</li>
     <li>The ideas come from chapters A1 to A6, listed at the top of this page.</li>
   </ol>

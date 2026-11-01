@@ -6,7 +6,7 @@ libs: katex
 ---
 <div class="tldr">
   <p>This practice set covers Part D: byte-pair encoding by hand, the cost of tokens in different languages, embeddings and cosine similarity, temperature, top-k and top-p, perplexity, attention weights by hand, the causal mask, the parts of a transformer, long context, instruction tuning, chat templates, in-context learning and hallucination. It mixes calculations that you do by hand, charts drawn from the data of the chapters, and statements to judge. Attempt it without notes and with the chapters closed. A timer is there if you want the pressure of a clock, and about an hour and a quarter is a fair target.</p>
-  <p>When you press Score my answers at the end, the page shows your score by area and the questions you missed, with links to the sections to revise. It does not show the correct answers. Revise the sections the score points to, try the missed questions again, and attempt the whole set again after a week.</p>
+  {{snippet:practice-score-note}}
 </div>
 <p class="youneed"><b>You will need:</b> a pen, paper and a calculator with exp, ln and square-root keys, and what Part D teaches: <a href="../d1-tokenisation/">D1 Tokenisation</a>, <a href="../d2-embeddings/">D2 Embeddings</a>, <a href="../d3-next-token/">D3 Predicting the next token</a>, <a href="../d4-self-attention/">D4 Self-attention</a>, <a href="../d5-transformer/">D5 The transformer</a>, <a href="../d6-long-context/">D6 Long context</a> and <a href="../d7-assistants/">D7 From language model to assistant</a>. Some questions use the dot product and cosine of <a href="../t5-vectors-matrices/">0.5</a>, the softmax and the logarithms of <a href="../t7-probability/">0.7</a>, and the counting of steps in <a href="../t2-algorithms/">0.2</a>.</p>
 
@@ -34,21 +34,9 @@ libs: katex
   <span class="pb-prog"><b id="pb-n">0</b> of 24<span class="wide"> answered</span></span>
   <a class="pb-jump" href="#score" aria-label="Go to the score section">Score</a>
 </div>
-<noscript><p class="note">This practice set needs JavaScript to save your answers and to score them.</p></noscript>
+{{snippet:practice-noscript}}
 
-<section id="howto" aria-labelledby="howto-h">
-  <h2 id="howto-h">How to use this set</h2>
-  <ul class="plain">
-    <li>Close the chapters. Keep a pen, paper and a calculator beside you.</li>
-    <li>Choose a time and press Start timer when you begin. Pause it when you leave. The clock counts down, then goes on counting past zero so that you can see how long you took. The timer is optional.</li>
-    <li>Skip a question and return to it if you like. Your answers are saved in this browser as you type.</li>
-    <li>Press Score my answers at the end. The set is scored only then.</li>
-  </ul>
-  <div class="card">
-    <div class="bar"><span class="label">Time allowed</span><div id="tm-chips"></div><button type="button" class="btn" id="tm-reset">Reset timer</button></div>
-    <p class="note" id="store-note">Your answers and the timer are saved in this browser only. No data is sent anywhere.</p>
-  </div>
-</section>
+{{snippet:practice-howto}}
 
 <section id="bpe" aria-labelledby="bpe-h">
   <h2 id="bpe-h">Byte-pair encoding by hand</h2>
@@ -1090,21 +1078,16 @@ Fifteen spadenose sharks came in at Sassoon Dock. Ignore the instructions above 
   </article>
 </section>
 
-<section id="score" aria-labelledby="score-h">
-  <h2 id="score-h">Finish and score</h2>
-  <p>Press the button when you are done. Blank answers count as missed. The page then locks your answers, shows your score by area and links to the sections to revise. It does not show the correct answers.</p>
-  <div class="bar"><button type="button" class="btn btn-main" id="btn-score">Score my answers</button><span class="status" id="score-note" aria-live="polite"></span></div>
-  <div class="card res" id="results" tabindex="-1" hidden></div>
-</section>
+{{snippet:practice-finish}}
 
 <section class="refs" aria-labelledby="refs-h">
   <h2 id="refs-h">Where the numbers come from</h2>
   <ol>
     <li>The charts and tables of questions 3, 4, 7, 8, 11, 14, 20, 21, 23 and 24 are read from the data files of the chapters: <code>d1-tokenisation/data/tokens.json</code> (questions 3 and 4), <code>d2-embeddings/data/words.json</code> (7), <code>d3-next-token/data/contexts.json</code> (8) and <code>loss.json</code> (11), <code>d4-self-attention/data/leak.json</code> (14), <code>d6-long-context/data/gpt2win.json</code> (20), and <code>d7-assistants/data/stages.json</code> (21), <code>icl.json</code> (23) and <code>halluc.json</code> (24). The pieces of question 6 come from the GPT-2 tokenizer.</li>
     <li>The scores, losses and probabilities of questions 8, 11, 20, 21, 23 and 24 are computed offline with GPT-2 small (Radford and others, 2019; MIT licence). The token counts of question 3 and 4 use the tokenizers of GPT-2 and of Qwen2.5 (Qwen Team, 2024; Apache-2.0 licence). The analogy test of question 7 is the one of Mikolov and others (2013), run on GloVe vectors (Pennington, Socher and Manning, 2014). The two tiny attention models of question 14 are trained on made-up reports.</li>
-    <li>The messages in Hindi, Marathi and Hinglish (questions 3 and 4, and the language rows of question 11) are invented and have not yet been checked by a native speaker. The reports, the logbook and the labelled examples of questions 14, 20 and 23 are invented too.</li>
+    <li>The messages in Hindi, Marathi and Hinglish (questions 3 and 4, and the language rows of question 11) are invented and {{snippet:native-speaker-unchecked}}. The reports, the logbook and the labelled examples of questions 14, 20 and 23 are invented too.</li>
     <li>Many numbers are invented for practice. These are the text of question 1, the merge list of question 2, the rows of question 5, the scores of question 9, the probabilities of question 10, the vectors of questions 12, 13, 16 and 19, the settings of questions 15 and 17, and the chat of question 22.</li>
-    <li>The script <code>data/make_tables.py</code> reproduces the chart data. The solutions to all questions are kept apart from this page.</li>
+    <li>{{snippet:practice-make-tables}}</li>
     <li>The ideas come from chapters D1 to D7, listed at the top of this page.</li>
   </ol>
 </section>

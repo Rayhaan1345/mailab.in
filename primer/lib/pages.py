@@ -15,7 +15,11 @@ A page is a folder with a hand-edited source file, page.html, and a generated pa
 render_page() joins this with lib/template.html (or lib/template-index.html for the front page),
 the partials in lib/partials/, the libraries in lib/libs.json and the record of the page in chapters.json.
 The result has no version stamps yet: build.py adds them.
+
+Text that repeats across pages lives once in lib/snippets/<key>.html. A page writes {{snippet:key}} and the build
+puts the snippet text there (see "Snippets" below).
 """
+import difflib
 import html
 import json
 import os
@@ -24,6 +28,7 @@ import re
 LIB = os.path.dirname(os.path.abspath(__file__))
 PRIMER = os.path.dirname(LIB)
 PARTIALS = os.path.join(LIB, "partials")
+SNIPPETS = os.path.join(LIB, "snippets")
 TEMPLATES = {"chapter": "template.html", "practice": "template.html", "index": "template-index.html"}
 
 # Keys that a page.html front matter may carry. Everything else is an error, so a typo is caught.
@@ -92,6 +97,83 @@ def join_front_matter(meta, content):
             out.append("%s: %s" % (key, meta[key]))
     out.append("---")
     return "\n".join(out) + "\n" + content.strip("\n") + "\n"
+
+
+# ---------- snippets ----------
+# Text that repeats across pages (facts about the projects, licence and credit lines, caveats, URLs) is written once
+# in lib/snippets/<key>.html. A page uses it as {{snippet:key}}. The build puts the snippet text in the place of
+# the token, in page.html (front matter values and content) before the template is filled, so the result is
+# plain HTML. A snippet may contain tokens of other snippets, down to a depth of 2: a page uses a, a uses b, and b
+# uses none. The first line of a snippet file is a comment that says where its facts come from:
+#     <!-- source: PROJECTS.md, section "In-Place Test-Time Training" -->
+# The rest of the file is HTML. Leading and trailing white space is removed, so a snippet can be a phrase.
+
+SNIPPET_TOKEN = re.compile(r"\{\{\s*snippet\s*:([^}]*)\}\}")
+SNIPPET_KEY = re.compile(r"[a-z0-9][a-z0-9-]*")
+SNIPPET_SOURCE = re.compile(r"\A\s*<!--\s*source:\s*(.+?)\s*-->[ \t]*\n?", re.S)
+MAX_SNIPPET_DEPTH = 2
+
+
+def load_snippets():
+    """Return {key: html text} for all files in lib/snippets/. Raises PageError for a malformed file."""
+    out = {}
+    if not os.path.isdir(SNIPPETS):
+        return out
+    for fname in sorted(os.listdir(SNIPPETS)):
+        if fname.startswith("."):
+            continue
+        where = os.path.join("lib", "snippets", fname)
+        key, ext = os.path.splitext(fname)
+        if ext != ".html" or not SNIPPET_KEY.fullmatch(key):
+            raise PageError("%s: a snippet file is named <key>.html, where the key uses a-z, 0-9 and dashes" % where)
+        with open(os.path.join(SNIPPETS, fname), encoding="utf-8") as f:
+            text = f.read()
+        m = SNIPPET_SOURCE.match(text)
+        if not m:
+            raise PageError("%s: the first line must be a comment that says where the facts come from: <!-- source: ... -->" % where)
+        body = text[m.end():].strip()
+        if not body:
+            raise PageError("%s: the snippet has no text after the source comment" % where)
+        bad = SHELL_MARKUP.search(body)
+        if bad:
+            raise PageError("%s: a snippet is a fragment of a page and carries no shell markup (%s)" % (where, bad.group(0).strip()))
+        out[key] = body
+    return out
+
+
+def expand_snippets(text, snippets, where, used=None, _chain=()):
+    """Replace every {{snippet:key}} in text by the snippet text. Fills the set `used` with the keys it meets.
+
+    Unknown keys and nesting deeper than MAX_SNIPPET_DEPTH raise PageError. Running it on its own output changes nothing."""
+    def put(m):
+        key = m.group(1).strip()
+        if not SNIPPET_KEY.fullmatch(key):
+            raise PageError("%s: %r is not a snippet name (use a-z, 0-9 and dashes, as in {{snippet:ttt-method}})" % (where, m.group(0)))
+        if key not in snippets:
+            near = difflib.get_close_matches(key, snippets, n=3)
+            raise PageError("%s: unknown snippet %r%s. The snippets are the files in lib/snippets/ (%d of them)" % (
+                where, key, " (did you mean %s?)" % ", ".join(near) if near else "", len(snippets)))
+        chain = _chain + (key,)
+        if key in _chain:
+            raise PageError("%s: snippet %r uses itself (%s)" % (where, key, " -> ".join(chain)))
+        if len(chain) > MAX_SNIPPET_DEPTH:
+            raise PageError("%s: snippets nest too deep (%s). A snippet may contain snippets down to a depth of %d" % (
+                where, " -> ".join(chain), MAX_SNIPPET_DEPTH))
+        if used is not None:
+            used.add(key)
+        return expand_snippets(snippets[key], snippets, where, used, chain)
+    return SNIPPET_TOKEN.sub(put, text)
+
+
+def check_snippets(snippets):
+    """Expand every snippet on its own, so a bad nested key or a too deep nesting is found even if no page uses it."""
+    problems = []
+    for key, text in snippets.items():
+        try:
+            expand_snippets(text, snippets, "lib/snippets/%s.html" % key, None, (key,))
+        except PageError as e:
+            problems.append(str(e))
+    return problems
 
 
 # ---------- libraries ----------
@@ -262,8 +344,10 @@ def esc(s):
 
 # ---------- one page ----------
 
-def render_page(page_path, text=None, chapters=None, libs=None):
-    """Return the unstamped index.html text for the page.html at page_path."""
+def render_page(page_path, text=None, chapters=None, libs=None, snippets=None, used=None):
+    """Return the unstamped index.html text for the page.html at page_path.
+
+    snippets: the dict from load_snippets() (loaded here when None). used: a set that receives the keys of the snippets the page uses."""
     page_dir = os.path.dirname(os.path.abspath(page_path))
     is_root = os.path.abspath(page_dir) == PRIMER
     slug = os.path.basename(page_dir)
@@ -273,7 +357,10 @@ def render_page(page_path, text=None, chapters=None, libs=None):
             text = f.read()
     data, by_slug = chapters if chapters else load_chapters()
     libs = libs or load_libs()
+    snippets = load_snippets() if snippets is None else snippets
     meta, content = split_front_matter(text, where)
+    meta = {k: expand_snippets(v, snippets, where, used) for k, v in meta.items()}
+    content = expand_snippets(content, snippets, where, used)
 
     kind = meta.get("kind", "index" if is_root else "chapter")
     if kind not in TEMPLATES:

@@ -6,7 +6,7 @@ libs: katex
 ---
 <div class="tldr">
   <p>This practice set covers Part B: one neuron, why a network needs a bend, loss and mini-batches, backpropagation, optimisers, initialisation and normalisation, fine-tuning and forgetting, debugging and explaining a network. It mixes calculations that you do by hand with a calculator, charts and tables drawn from the chapters, and statements to judge. Attempt it without notes and with the chapters closed. A timer is there if you want the pressure of a clock, and about an hour and a quarter is a fair target.</p>
-  <p>When you press Score my answers at the end, the page shows your score by area and the questions you missed, with links to the sections to revise. It does not show the correct answers. Revise the sections the score points to, try the missed questions again, and attempt the whole set again after a week.</p>
+  {{snippet:practice-score-note}}
 </div>
 <p class="youneed"><b>You will need:</b> a pen, paper and a calculator with exp, ln and tanh keys, and what Part B teaches: <a href="../b1-one-neuron/">B1 One neuron</a>, <a href="../b2-non-linearity/">B2 Why non-linearity matters</a>, <a href="../b3-loss-gradient-descent/">B3 Loss and gradient descent</a>, <a href="../b4-backpropagation/">B4 Backpropagation</a>, <a href="../b5-optimisers/">B5 Optimisers</a>, <a href="../b6-deep-networks/">B6 Making deep networks trainable</a>, <a href="../b7-continual-learning/">B7 Fine-tuning, forgetting and continual learning</a>, <a href="../b8-debugging/">B8 Debugging neural networks</a> and <a href="../b9-explaining/">B9 Explaining a network</a>. Some calculations use the slopes of <a href="../t6-gradients/">0.6</a>, the softmax and the logarithms of <a href="../t7-probability/">0.7</a>, and the matrices of <a href="../t5-vectors-matrices/">0.5</a>.</p>
 
@@ -32,21 +32,9 @@ libs: katex
   <span class="pb-prog"><b id="pb-n">0</b> of 25<span class="wide"> answered</span></span>
   <a class="pb-jump" href="#score" aria-label="Go to the score section">Score</a>
 </div>
-<noscript><p class="note">This practice set needs JavaScript to save your answers and to score them.</p></noscript>
+{{snippet:practice-noscript}}
 
-<section id="howto" aria-labelledby="howto-h">
-  <h2 id="howto-h">How to use this set</h2>
-  <ul class="plain">
-    <li>Close the chapters. Keep a pen, paper and a calculator beside you.</li>
-    <li>Choose a time and press Start timer when you begin. Pause it when you leave. The clock counts down, then goes on counting past zero so that you can see how long you took. The timer is optional.</li>
-    <li>Skip a question and return to it if you like. Your answers are saved in this browser as you type.</li>
-    <li>Press Score my answers at the end. The set is scored only then.</li>
-  </ul>
-  <div class="card">
-    <div class="bar"><span class="label">Time allowed</span><div id="tm-chips"></div><button type="button" class="btn" id="tm-reset">Reset timer</button></div>
-    <p class="note" id="store-note">Your answers and the timer are saved in this browser only. No data is sent anywhere.</p>
-  </div>
-</section>
+{{snippet:practice-howto}}
 
 <section id="neuron" aria-labelledby="neuron-h">
   <h2 id="neuron-h">Neurons and activations</h2>
@@ -927,20 +915,15 @@ libs: katex
   </article>
 </section>
 
-<section id="score" aria-labelledby="score-h">
-  <h2 id="score-h">Finish and score</h2>
-  <p>Press the button when you are done. Blank answers count as missed. The page then locks your answers, shows your score by area and links to the sections to revise. It does not show the correct answers.</p>
-  <div class="bar"><button type="button" class="btn btn-main" id="btn-score">Score my answers</button><span class="status" id="score-note" aria-live="polite"></span></div>
-  <div class="card res" id="results" tabindex="-1" hidden></div>
-</section>
+{{snippet:practice-finish}}
 
 <section class="refs" aria-labelledby="refs-h">
   <h2 id="refs-h">Where the numbers come from</h2>
   <ol>
-    <li>The shark questions use the made-up SharkCam catch table. It has 600 records generated from published length-weight relationships and is not field data (<code>primer/data/sharks/catch.csv</code>). Question 7 trains on its 268 spadenose records. Tag 4127 is the juvenile bamboo shark of the primer, and its scaled length and girth in question 1 are the ones of chapter B4.</li>
+    <li>The shark questions use {{snippet:catch-table}} (<code>primer/data/sharks/catch.csv</code>). Question 7 trains on its 268 spadenose records. Tag 4127 is the juvenile bamboo shark of the primer, and its scaled length and girth in question 1 are the ones of chapter B4.</li>
     <li>The charts of questions 9, 18, 22, 24 and 25 are drawn from the data files of chapters B4, B7, B8 and B9. These come from small networks on the made-up records and from a pretrained ResNet-18 on photos credited in chapter B9. The XOR points of question 5 are random and made up. The curves of question 7 are recomputed with a fixed seed.</li>
     <li>Many numbers are invented for practice. They are the weights and inputs of questions 1, 3, 8, 10, 11, 12, 14, 16, 17, 19 and 20, the points of question 4, the scores of question 6, the schedule of question 13, the hidden values of question 15 and the 12 classes of question 21. The gradient norms of question 23 are the ones printed by the code of chapter B8.</li>
-    <li>The script <code>data/make_tables.py</code> reproduces the chart data. The solutions to all questions are kept apart from this page.</li>
+    <li>{{snippet:practice-make-tables}}</li>
     <li>The ideas come from chapters B1 to B9, listed at the top of this page.</li>
   </ol>
 </section>

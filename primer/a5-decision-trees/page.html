@@ -9,7 +9,7 @@ scripts: treelab.js
   <p>SharkCam uses the question "is this shark a spadenose?", asked from a shark's length and the depth where it was found. The tree is also the building block of the boosted models in <a href="../a6-boosting/#boosting">A6</a>.</p>
 </div>
 <p class="youneed"><b>You will need:</b> <a href="../t2-algorithms/#recursion">recursion and trees</a> from the toolkit, the idea of a <a href="../a1-what-is-a-model/#lazy">model and a baseline</a>, and the idea of a held-out set from <a href="../a4-grading-models/#splits">A4</a>. A short reminder appears where the held-out set is used.</p>
-<p class="datanote"><b>The data.</b> The sharks here come from the made-up SharkCam catch table: 600 records generated from published length-weight relationships, not field data. Sharks whose tag number ends in 0, 1 or 2 (164 sharks) are held out and never used to grow a tree. The other 436 sharks, 196 of them spadenose, are the training sharks.</p>
+<p class="datanote"><b>The data.</b> The sharks here come from {{snippet:catch-table}}. Sharks whose tag number ends in 0, 1 or 2 (164 sharks) are held out and never used to grow a tree. The other 436 sharks, 196 of them spadenose, are the training sharks.</p>
 
 <nav class="toc" aria-label="Contents">
   <ol>
@@ -253,7 +253,7 @@ print("train", round(tree.score(df[~held][X], df[~held].spadenose), 4), "held-ou
 train 0.9106 held-out 0.8598</pre>
   <p>This is the tree from the first figure, with a training accuracy of 91.1% and a held-out accuracy of 86.0%. Class 1 is spadenose.</p>
   <p><b>In practice</b>, two limits do most of the work: <code>max_depth</code> (3 to 8 is a common range) and <code>min_samples_leaf</code> (5 to 20 for a few hundred rows). Choose them with cross-validation on the training sharks (<a href="../a4-grading-models/#cv">A4</a>). A depth-limited tree is also a useful baseline for the models of the next chapter.</p>
-  <div class="bridge"><p><b>Bridge to my project.</b> My diabetes screening project used the same tree idea on the Pima data: 768 women of Pima heritage, measured in the United States, so not data from Mumbai. Its <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">primer</a> splits glucose and BMI into four boxes. The final model in my report was XGBoost, a library for boosted trees (<a href="../a6-boosting/#xgboost">A6</a>).</p></div>
+  <div class="bridge"><p><b>Bridge to my project.</b> My diabetes screening project used the same tree idea on the Pima data: {{snippet:pima-data}}, so not data from Mumbai. Its <a href="https://{{snippet:address-diabetes-primer}}">primer</a> splits glucose and BMI into four boxes. The final model in my report was XGBoost, a library for boosted trees (<a href="../a6-boosting/#xgboost">A6</a>).</p></div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why does a tree scan thresholds only between neighbouring different values?</summary><p>Any threshold between the same two neighbouring values gives the same two groups. A cut between two equal values cannot separate them at all.</p></details>

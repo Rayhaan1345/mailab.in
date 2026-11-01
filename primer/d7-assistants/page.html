@@ -268,7 +268,7 @@ beta = 0.3: policy [0.951 0.028 0.008 0.012 0.001], KL from the start 1.29</pre>
   </div>
   <p class="cap"><b>Only the descriptions are always in the context. A skill's instructions are read when a request matches, and its extra files only when they are needed.</b> The sizes are the typical values stated in the documentation, drawn to one scale. The messages and the matching follow the test cases of the Socratic Tutor, where the model itself decides by reading the descriptions.</p>
   <div class="bridge">
-    <p><b>Bridge to our Socratic Tutor.</b> The Socratic Tutor of Mumbai AI Lab is a plugin that makes Claude tutor by asking questions. It has two skills, <code>socratic-tutor</code> and <code>quiz-me</code>, and no code, only written instructions. The report explains <a href="https://mailab.in/socratic-tutor/#plugins">how a Claude plugin works</a> and when a skill loads. It sets out <a href="https://mailab.in/socratic-tutor/#design">the rules of the tutor</a> and <a href="https://mailab.in/socratic-tutor/#evidence">the studies behind them</a>. The rules are one question per turn, a ladder of questions, a hint scale, and a rule for when it gives the answer. It works through the mechanism of this chapter: instructions added to the context, not a change of weights. The same text could be a system prompt. The skill form keeps it out of the context until a request needs it.</p>
+    <p><b>Bridge to our Socratic Tutor.</b> {{snippet:socratic-facts}} The report explains <a href="https://{{snippet:address-socratic-tutor}}#plugins">how a Claude plugin works</a> and when a skill loads. It sets out <a href="https://{{snippet:address-socratic-tutor}}#design">the rules of the tutor</a> and <a href="https://{{snippet:address-socratic-tutor}}#evidence">the studies behind them</a>. The rules are one question per turn, a ladder of questions, a hint scale, and a rule for when it gives the answer. It works through the mechanism of this chapter: instructions added to the context, not a change of weights. The same text could be a system prompt. The skill form keeps it out of the context until a request needs it.</p>
   </div>
   <div class="break">
     <p><b>Common belief.</b> A model with tools can check its own answers, so it cannot hallucinate.</p>
@@ -432,7 +432,7 @@ model  : The bamboo sharks in the made-up table have a mean length of 47.4 cm.</
     <li>Kalai, A. T., Nachum, O., Vempala, S. S. and Zhang, E. (2025). Why Language Models Hallucinate. <a href="https://arxiv.org/abs/2509.04664">arXiv:2509.04664</a>.</li>
     <li>Anthropic documentation: <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview">Tool use with Claude</a> and <a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview">Agent Skills</a>.</li>
     <li>Qwen team. Tokenizer configuration of Qwen/Qwen2.5-0.5B and of Qwen/Qwen2.5-0.5B-Instruct on Hugging Face (chat template with tools, default system message). Apache 2.0 licence.</li>
-    <li>Radford, A. and others (2019). Language Models are Unsupervised Multitask Learners (GPT-2). MIT licence.</li>
-    <li>Khan, R. and Mumbai AI Lab. <a href="https://mailab.in/socratic-tutor/">How the Socratic Tutor works</a>.</li>
+    <li>{{snippet:gpt2-citation}} {{snippet:gpt2-pdf-link}}. {{snippet:gpt2-licence}}</li>
+    <li>Khan, R. and Mumbai AI Lab. <a href="https://{{snippet:address-socratic-tutor}}">How the Socratic Tutor works</a>.</li>
   </ol>
 </section>

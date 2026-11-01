@@ -8,7 +8,7 @@ libs: katex
 ---
 <div class="tldr">
   <p>This practice set covers Parts E and F: how a vision transformer cuts a photo into patches, how CLIP learns from pairs of photos and captions, cross-attention by hand, the cost of image tokens and the projector of a vision-language model, fairness metrics at one threshold, re-identification, quantisation, the latency budget of a robot, and the whole SharkCam system. It mixes calculations that you do by hand, charts drawn from the data of the chapters, a short program to trace and statements to judge. Attempt it without notes and with the chapters closed. A timer is there if you want the pressure of a clock, and about an hour and a quarter is a fair target.</p>
-  <p>When you press Score my answers at the end, the page shows your score by area and the questions you missed, with links to the sections to revise. It does not show the correct answers. Revise the sections the score points to, try the missed questions again, and attempt the whole set again after a week.</p>
+  {{snippet:practice-score-note}}
 </div>
 <p class="youneed"><b>You will need:</b> a pen, paper and a calculator with exp, ln and square-root keys, and what Parts E and F teach: <a href="../e1-vision-transformers/">E1 Vision transformers and image tokens</a>, <a href="../e2-clip/">E2 Encoders and CLIP</a>, <a href="../e3-cross-attention/">E3 Cross-attention</a>, <a href="../e4-vlms/">E4 Vision-language models</a>, <a href="../f1-fairness/">F1 Data, fairness and privacy</a>, <a href="../f2-robots/">F2 AI on a robot</a> and <a href="../f3-sharkcam/">F3 SharkCam, end to end</a>. Some questions use the dot product and cosine of <a href="../t5-vectors-matrices/">0.5</a>, the softmax and the logarithms of <a href="../t7-probability/">0.7</a>, and the attention of <a href="../d4-self-attention/">D4</a>.</p>
 
@@ -36,21 +36,9 @@ libs: katex
   <span class="pb-prog"><b id="pb-n">0</b> of 24<span class="wide"> answered</span></span>
   <a class="pb-jump" href="#score" aria-label="Go to the score section">Score</a>
 </div>
-<noscript><p class="note">This practice set needs JavaScript to save your answers and to score them.</p></noscript>
+{{snippet:practice-noscript}}
 
-<section id="howto" aria-labelledby="howto-h">
-  <h2 id="howto-h">How to use this set</h2>
-  <ul class="plain">
-    <li>Close the chapters. Keep a pen, paper and a calculator beside you.</li>
-    <li>Choose a time and press Start timer when you begin. Pause it when you leave. The clock counts down, then goes on counting past zero so that you can see how long you took. The timer is optional.</li>
-    <li>Skip a question and return to it if you like. Your answers are saved in this browser as you type.</li>
-    <li>Press Score my answers at the end. The set is scored only then.</li>
-  </ul>
-  <div class="card">
-    <div class="bar"><span class="label">Time allowed</span><div id="tm-chips"></div><button type="button" class="btn" id="tm-reset">Reset timer</button></div>
-    <p class="note" id="store-note">Your answers and the timer are saved in this browser only. No data is sent anywhere.</p>
-  </div>
-</section>
+{{snippet:practice-howto}}
 
 <section id="vit" aria-labelledby="vit-h">
   <h2 id="vit-h">Patches, tokens and position in a vision transformer</h2>
@@ -882,21 +870,16 @@ print(patches.shape)</pre>
   </article>
 </section>
 
-<section id="score" aria-labelledby="score-h">
-  <h2 id="score-h">Finish and score</h2>
-  <p>Press the button when you are done. Blank answers count as missed. The page then locks your answers, shows your score by area and links to the sections to revise. It does not show the correct answers.</p>
-  <div class="bar"><button type="button" class="btn btn-main" id="btn-score">Score my answers</button><span class="status" id="score-note" aria-live="polite"></span></div>
-  <div class="card res" id="results" tabindex="-1" hidden></div>
-</section>
+{{snippet:practice-finish}}
 
 <section class="refs" aria-labelledby="refs-h">
   <h2 id="refs-h">Where the numbers come from</h2>
   <ol>
     <li>The charts and tables of questions 3, 5, 6, 7, 10, 14, 15 and 20 are read from the data files of the chapters: <code>e1-vision-transformers/data/shuffle.json</code> (question 3), <code>e2-clip/data/clip.json</code> (5, 6 and 7), <code>e3-cross-attention/data/occ.json</code> (10), <code>e4-vlms/data/vlm2.json</code> (14), <code>f1-fairness/data/clinic.json</code> (15) and <code>f2-robots/data/quant.json</code> (20).</li>
-    <li>The networks behind them are the torchvision ViT-B/16 and ResNet-18 (question 3) and CLIP ViT-B/32 of OpenAI (5, 6 and 7). They are also BLIP image captioning of Salesforce (10; BSD-3-Clause licence) and Qwen3-VL-2B-Instruct (14; Apache-2.0 licence). Question 15 uses a logistic regression on the Pima women, and question 20 uses the digit reader of chapter C2. The Pima data is a published dataset of women of Pima heritage, measured in the United States, and not data from Mumbai.</li>
+    <li>The networks behind them are the torchvision ViT-B/16 and ResNet-18 (question 3) and CLIP ViT-B/32 of OpenAI (5, 6 and 7). They are also BLIP image captioning of Salesforce (10; BSD-3-Clause licence) and Qwen3-VL-2B-Instruct (14; Apache-2.0 licence). Question 15 uses a logistic regression on the Pima women, and question 20 uses the digit reader of chapter C2. The Pima data is a published dataset of {{snippet:pima-data}}, and not data from Mumbai.</li>
     <li>Many numbers are invented for practice. These are the program of question 2 and the cosines of question 4. They are also the keys and values of question 8, the sizes of questions 9, 11, 12 and 13, and the base rates and rates of question 16. The table of patients of question 17 is invented.</li>
     <li>The layer and the weight of question 18 are invented. So are the stage times, the computer and the shark of question 19, the models and limits of question 21, and the chances of question 22. The problems of questions 23 and 24 are invented, and the 92% of question 24 is the example of chapter F3. The photo size in question 1 is a made-up size.</li>
-    <li>The script <code>data/make_tables.py</code> reproduces the chart data. The solutions to all questions are kept apart from this page.</li>
+    <li>{{snippet:practice-make-tables}}</li>
     <li>The ideas come from chapters E1 to F3, listed at the top of this page.</li>
   </ol>
 </section>
