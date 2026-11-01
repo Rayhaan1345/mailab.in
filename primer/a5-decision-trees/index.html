@@ -73,6 +73,11 @@
   <p>The tree was grown on the 436 training sharks and is only two questions deep. Coral diamonds are spadenose sharks and navy dots are other sharks (milk, bamboo, hammerhead and Ganges). The ring starts on Tag 3305, the Sassoon spadenose from the made-up table: 41 cm long, found at 18 m. It answers "yes" to "length &le; 50.35 cm?" and "no" to "depth &le; 5.65 m?", so it ends in box 2, where 89% of the training sharks are spadenose. The call is spadenose.</p>
   <p>Now press Tag 4127, the juvenile bamboo shark from the Juhu rock pool. Its length is also under 50.35 cm, but it was found at 0.4 m, so it falls in box 1, which has no spadenose at all. Tag 5519, the young hammerhead, is longer than 59.85 cm and ends in box 4. The shallow-water question works in this table because the made-up dives in rock pools are shallow and mostly record bamboo sharks. A tree learns whatever pattern the table has, including quirks of how the table was made.</p>
   <p>A tree is a recursive object, as in the <a href="../t2-algorithms/#recursion">toolkit chapter on recursion</a>. Below the first question hangs a smaller tree for the sharks that said yes, and another for the sharks that said no. Predicting walks down one path, and the number of questions asked is at most the depth.</p>
+  <p>A second case, a shark that is not one of the three. A shark of 55 cm found at 2 m answers "no" to "length &le; 50.35 cm?" and "yes" to "length &le; 59.85 cm?". It ends in box 3, which has 57 training sharks, 17 of them spadenose. The call is "other shark", which is right for 40 of the 57, or 70%. This is the weakest box. The 17 spadenose sharks in it are all called wrongly.</p>
+  <p>The counts of the four boxes also give the training accuracy of the tree. A box is right for as many sharks as its majority class has:</p>
+  <div class="eqn" role="img" aria-label="Training accuracy from the four boxes: 17 plus 179 plus 40 plus 161, divided by 436, equals 91.1 percent"><span class="op">(</span><span class="t c-navy"><b>17</b><i>box 1: all other sharks</i></span><span class="op">+</span><span class="t c-coral"><b>179</b><i>box 2: spadenose, of 201</i></span><span class="op">+</span><span class="t c-navy"><b>40</b><i>box 3: other sharks, of 57</i></span><span class="op">+</span><span class="t c-navy"><b>161</b><i>box 4: all other sharks</i></span><span class="op">)</span><span class="op">&divide;</span><span class="t"><b>436</b><i>training sharks</i></span><span class="op">=</span><span class="t c-teal"><b>91.1%</b><i>training accuracy</i></span></div>
+  <p>Two details help when you read a tree. The threshold 50.35 lies halfway between the neighbouring training lengths 50.3 and 50.4, so no training shark lies on the line. And all the edges of the boxes are parallel to an axis. A rule that slants, such as "heavier than expected for its length", needs a staircase of small boxes to approximate it.</p>
+  <p><b>In practice</b>, read a tree from its leaves first. Print the number of training sharks and the class counts in the leaves, and look for leaves with few sharks. The code below does this for the tree of the figure, written out as nested questions.</p>
   <div class="break">
     <p><b>Analogy.</b> A tree resembles the game of twenty questions. The answers narrow the set of animals one by one, and the last answer names one.</p>
     <p><b>Where it breaks.</b> In the game a person invents a new question while thinking about the animal. A tree may only ask "is this measurement at most some threshold?", and all its questions were fixed during training. The 89% is also only the share of training sharks in the box, and nobody has tested it as a chance for a new shark (<a href="../a4-grading-models/#threshold">A4</a>).</p>
@@ -80,10 +85,43 @@
   <div class="debug">
     <p><b>Debug tip.</b> Check how many training sharks are in the box that makes a call. A box with 3 sharks that "shows 100% spadenose" says much less than a box with 160 sharks at 89%.</p>
   </div>
+<pre class="code"><code>import numpy as np, pandas as pd
+
+df = pd.read_csv("catch.csv")                  # made-up records
+train = df[df.record_id % 10 &gt;= 3]             # tags ending 0, 1, 2 are held out
+L, d = train.length_cm.to_numpy(), train.depth_m.to_numpy()
+spade = (train.species == "spadenose").to_numpy()
+
+def box(length, depth):                        # the tree of the figure
+    if length &lt;= 50.35:
+        return 1 if depth &lt;= 5.65 else 2
+    return 3 if length &lt;= 59.85 else 4
+
+boxes = np.array([box(a, b) for a, b in zip(L, d)])
+right = 0
+for b in (1, 2, 3, 4):
+    n, k = (boxes == b).sum(), spade[boxes == b].sum()
+    call = "spadenose" if k &gt; n - k else "other"
+    right += max(k, n - k)
+    print(f"box {b}: {n:3d} sharks, {k:3d} spadenose, call {call}")
+print("training accuracy", round(right / len(L), 3))
+
+for tag, length, depth in [(3305, 41.0, 18.0), (4127, 44.0, 0.4), (5519, 82.0, 14.0)]:
+    print("Tag", tag, "-&gt; box", box(length, depth))</code></pre>
+<pre class="out">box 1:  17 sharks,   0 spadenose, call other
+box 2: 201 sharks, 179 spadenose, call spadenose
+box 3:  57 sharks,  17 spadenose, call other
+box 4: 161 sharks,   0 spadenose, call other
+training accuracy 0.911
+Tag 3305 -&gt; box 2
+Tag 4127 -&gt; box 1
+Tag 5519 -&gt; box 4</pre>
+  <p>The four boxes match the figure, and the accuracy 0.911 matches the sum above. Tags 3305, 4127 and 5519 end in boxes 2, 1 and 4, as in the figure.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A shark is 70 cm long and was found at 3 m. Which box does it end in, and what is the call?</summary><p>Box 4. It answers "no" to "length &le; 50.35 cm?" and "no" to "length &le; 59.85 cm?". The depth question is never asked, because the path never reaches it. The call is "other shark", and box 4 has 161 training sharks, none of them spadenose.</p></details>
     <details><summary>Why does the tree call all sharks in box 2 spadenose when 11% of the training sharks there are not?</summary><p>The call is the majority class. A leaf gives one answer to all sharks in its box, so the sharks of the minority class in that box are called wrongly.</p></details>
+    <details><summary>Box 1 has 17 training sharks and none is a spadenose. Does that show that a new shark in box 1 is certainly not a spadenose?</summary><p>No. If 10% of all sharks in that region were spadenose, the chance of 0 in 17 is \(0.9^{17} = 0.17\), about 1 in 6. A box of 17 sharks cannot rule out a share of 10%.</p></details>
   </div>
 </section>
 
@@ -111,6 +149,12 @@
     <li><b>\(n\)</b> is the number of sharks in the box. <b>\(n_L\)</b> and <b>\(n_R\)</b> are the numbers that answer yes (left) and no (right).</li>
     <li><b>\(G_L\)</b> and <b>\(G_R\)</b> are the impurities of the yes side and the no side, found with the same formula.</li>
   </ul>
+  <p>Now the guess-first question with numbers. Box A has 10 spadenose and 10 other sharks, so its shares are 0.5 and 0.5. Box B has 18 and 2, so its shares are 0.9 and 0.1.</p>
+  <div class="eqn" role="img" aria-label="Gini of box A: one minus 0.25 minus 0.25 equals 0.50"><span class="op"><i>G</i><sub>A</sub> =</span><span class="t"><b>1</b><i>whole</i></span><span class="op">&minus;</span><span class="t c-navy"><b>0.25</b><i>0.5 squared</i></span><span class="op">&minus;</span><span class="t c-coral"><b>0.25</b><i>0.5 squared</i></span><span class="op">=</span><span class="t c-teal"><b>0.50</b><i>G, box A</i></span></div>
+  <div class="eqn" role="img" aria-label="Gini of box B: one minus 0.01 minus 0.81 equals 0.18"><span class="op"><i>G</i><sub>B</sub> =</span><span class="t"><b>1</b><i>whole</i></span><span class="op">&minus;</span><span class="t c-navy"><b>0.01</b><i>0.1 squared</i></span><span class="op">&minus;</span><span class="t c-coral"><b>0.81</b><i>0.9 squared</i></span><span class="op">=</span><span class="t c-teal"><b>0.18</b><i>G, box B</i></span></div>
+  <p>Box A is 2.8 times as mixed as box B, so the answer is "more than twice". The scale bends with the shares. A minority share of 10% already gives 0.18, and a share of 2% (49 against 1) gives 0.04.</p>
+  <p>A second split of the training sharks shows how size matters. The question "depth &le; 5.65 m?" sends 21 sharks to the yes side, all of them other sharks, so \(G = 0\). The other 415 sharks answer no. They are 219 other and 196 spadenose, so \(G = 0.498\). The weighted Gini is \(21/436 \times 0 + 415/436 \times 0.498 = 0.4745\), and the drop from 0.495 is about 0.02. A pure side helps in proportion to its size, and 21 sharks are 5% of the box.</p>
+  <p><b>In practice</b>, Gini is the default score of scikit-learn. Entropy, \(-\sum_k p_k \log_2 p_k\), is the other common score. For two classes it rises and falls like the Gini curve, and the two usually choose the same split. Be careful with a measurement that has many distinct values. It offers many cut points, so the best of them can look good by luck. A large Gini drop is a reason to test the tree on held-out sharks, and not a result in itself.</p>
   <div class="break">
     <p><b>Common belief.</b> The best question is the one that gets the most sharks right.</p>
     <p><b>Why it fails.</b> Take box 2 of the first figure, with 22 other and 179 spadenose training sharks. The question "length at most 42.65 cm?" sends 4 other and 130 spadenose sharks to the yes side, and 18 other and 49 spadenose to the no side. Both sides call spadenose, so the split leaves the number of right answers at 179 of 201. Yet the weighted Gini falls from 0.195 to 0.170, because the yes side became almost pure.</p>
@@ -120,10 +164,26 @@
     <p><b>Debug tip.</b> If a split gives a drop of 0 or close to it, check the threshold. A cut at the very edge of the range sends nearly all sharks to one side, so the weighted Gini stays at its old value.</p>
   </div>
   <div class="used"><p><b>Used in:</b> Gini impurity is the score the greedy search lowers in the next section. Boosted trees in <a href="../a6-boosting/#xgboost">A6</a> use a different score, built from the leftover errors, but the splitting search is the same.</p></div>
+<pre class="code" data-run><code>import numpy as np
+
+def gini(counts):
+    p = np.array(counts) / sum(counts)
+    return 1 - np.sum(p ** 2)
+
+print(round(gini([10, 10]), 3), round(gini([18, 2]), 3), gini([20, 0]))
+
+# the first question on the 436 training sharks: counts are [other, spadenose]
+before = gini([240, 196])
+yes, no = [39, 179], [201, 17]
+after = (218 * gini(yes) + 218 * gini(no)) / 436
+print(round(before, 3), round(after, 4), round(before - after, 3))</code></pre>
+<pre class="out">0.5 0.18 0.0
+0.495 0.2188 0.276</pre>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is \(G\) for a box with 5 spadenose and 5 other sharks, and for a box with only spadenose?</summary><p>For 5 and 5: \(1 - 0.5^2 - 0.5^2 = 0.5\). For a box with one class: \(1 - 1^2 - 0^2 = 0\).</p></details>
     <details><summary>Why is the weighted impurity after a split never above the impurity before it?</summary><p>The Gini curve bends downward. The weighted average of the two sides is a point on the straight line between them, and that line stays on or below the curve at the box's own share.</p></details>
+    <details><summary>A box has 49 other sharks and 1 spadenose. What is \(G\), and what does it say?</summary><p>\(G = 1 - 0.98^2 - 0.02^2 = 0.039\). The box is almost pure, so one more question gains little there.</p></details>
   </div>
 </section>
 
@@ -179,7 +239,10 @@ print(round(float(t), 2), round(float(s), 3))
 print(round(gini(5, 5), 3))</code></pre>
 <pre class="out">49.6 0.167
 0.5</pre>
-  <p>The best cut is at 49.6 cm. It puts four spadenose on the yes side, and the one spadenose in the other six sharks leaves the no side mixed. The weighted Gini drops from 0.5 to 0.167. Now the same function on the training table:</p>
+  <p>The best cut is at 49.6 cm. It puts four spadenose on the yes side, and the one spadenose in the other six sharks leaves the no side mixed. The weighted Gini drops from 0.5 to 0.167.</p>
+  <p>Check the 0.167 by hand. The yes side has 4 sharks, all spadenose, so \(G = 0\). The no side has 6 sharks, 1 spadenose and 5 other, so \(G = 1 - (1/6)^2 - (5/6)^2 = 0.278\). The weighted Gini is \(0.4 \times 0 + 0.6 \times 0.278 = 0.167\). A worse cut, at 38.5 cm, puts one spadenose alone on the yes side. The no side then has 9 sharks, 4 of them spadenose, with \(G = 0.494\). The weighted Gini is \(0.9 \times 0.494 = 0.444\), nearly as bad as no split at all.</p>
+  <p>The scan has a tie. A cut at 58.55 cm also scores 0.167: the yes side has 6 sharks with 5 spadenose, and the no side is pure. The code returns the first of equal scores, which is 49.6 cm. Larger tables have ties too, so the tree you get can depend on the order of the rows or on the random seed of the library. Two trees with the same score are equally good on the training sharks and can differ on new ones.</p>
+  <p>Now the same function on the training table:</p>
 <pre class="code"><code>import pandas as pd                                   # best_split and gini come from the block above
 df = pd.read_csv("catch.csv")                         # made-up records
 train = df[df.record_id % 10 >= 3]                    # tags ending in 0, 1, 2 are held out
@@ -222,11 +285,13 @@ print("train", round(tree.score(df[~held][X], df[~held].spadenose), 4), "held-ou
 
 train 0.9106 held-out 0.8598</pre>
   <p>This is the tree from the first figure, with a training accuracy of 91.1% and a held-out accuracy of 86.0%. Class 1 is spadenose.</p>
+  <p><b>In practice</b>, two limits do most of the work: <code>max_depth</code> (3 to 8 is a common range) and <code>min_samples_leaf</code> (5 to 20 for a few hundred rows). Choose them with cross-validation on the training sharks (<a href="../a4-grading-models/#cv">A4</a>). A depth-limited tree is also a useful baseline for the models of the next chapter.</p>
   <div class="bridge"><p><b>Bridge to my project.</b> My diabetes screening project used the same tree idea on the Pima data: 768 women of Pima heritage, measured in the United States, so not data from Mumbai. Its <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">primer</a> splits glucose and BMI into four boxes. The final model in my report was XGBoost, a library for boosted trees (<a href="../a6-boosting/#xgboost">A6</a>).</p></div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why does a tree scan thresholds only between neighbouring different values?</summary><p>Any threshold between the same two neighbouring values gives the same two groups. A cut between two equal values cannot separate them at all.</p></details>
     <details><summary>The first split gives a weighted Gini of 0.219 and the best second split gives 0.15. What did the second split improve, and is the search done?</summary><p>It lowered the weighted Gini of the whole tree by further splitting one box. The search is done only when the depth limit, the smallest box size, or purity stops it. A box that is already pure needs no more questions.</p></details>
+    <details><summary>On the ten sharks, a cut at 38.5 cm puts 1 spadenose on the yes side and 9 sharks (4 spadenose, 5 other) on the no side. What is the weighted Gini?</summary><p>The yes side is pure, so \(G = 0\). The no side has \(G = 1 - (4/9)^2 - (5/9)^2 = 0.494\). The weighted Gini is \(0.9 \times 0.494 = 0.444\), far above the best cut's 0.167.</p></details>
   </div>
 </section>
 
@@ -247,18 +312,50 @@ train 0.9106 held-out 0.8598</pre>
   <div class="eqn" role="img" aria-label="Standard error equals the square root of 0.86 times 0.14 divided by 164, about 0.027"><span class="t c-coral"><b>0.027</b><i>standard error</i></span><span class="op">=</span><span class="op">&radic;</span><span class="op">(</span><span class="t"><b>0.86</b><i>accuracy p</i></span><span class="op">&times;</span><span class="t"><b>0.14</b><i>1 &minus; p</i></span><span class="op">&divide;</span><span class="t"><b>164</b><i>held-out sharks</i></span><span class="op">)</span></div>
   <p>So the curves at depth 2, 3, 4 and 5 are the same within noise. Do not read a gap of half a point between two depths as a finding. Choose a depth from the curves, take the simplest tree on the plateau, and test it once on data that played no part in the choice.</p>
   <p>Trees also need no feature scaling. A question compares one measurement with one threshold. If length were written in inches, all thresholds would be divided by 2.54 and no shark would change boxes. This differs from the models of <a href="../a2-linear-regression/#scaling">A2</a>, where the scale of a feature changes how fast gradient descent moves.</p>
+  <p>Put numbers on the trade. The depth-2 tree has 4 leaves. It gets 397 of the 436 training sharks right (91.1%) and 141 of the 164 held-out sharks (86.0%). The depth-12 tree has 50 leaves. It gets 434 of the training sharks right (99.5%) and 139 of the held-out sharks (84.8%).</p>
+  <div class="eqn" role="img" aria-label="From depth 2 to depth 12: 46 more leaves gain 37 training sharks and lose 2 held-out sharks"><span class="t c-sand"><b>46</b><i>extra leaves: 50 &minus; 4</i></span><span class="op">&rArr;</span><span class="t c-navy"><b>+37</b><i>training sharks right: 434 &minus; 397</i></span><span class="op">and</span><span class="t c-coral"><b>&minus;2</b><i>held-out sharks right: 139 &minus; 141</i></span></div>
+  <p>That is under one extra training shark per leaf, and a small loss on new sharks. The smallest-box dial works against it directly. With a smallest box of 20, the tree stops at 10 leaves, with 90.4% on the training sharks and 86.0% on the held-out sharks.</p>
+  <p><b>In practice</b>, choose the depth and the smallest box with cross-validation on the training sharks (<a href="../a4-grading-models/#cv">A4</a>), and not on the held-out sharks. For a few hundred rows, try depths 2 to 8 and smallest boxes of 5 to 20. Keep the simplest tree whose score is within the noise of the best. A tree deeper than the data support models the quirks of the training sharks.</p>
   <div class="break">
     <p><b>Common belief.</b> A tree with 100% training accuracy is a perfect model.</p>
-    <p><b>Why it fails.</b> The deepest tree is right about all but one of its 436 training sharks, and wrong about roughly one in seven new ones. It memorised the training sharks, with the quirks of their lengths and depths, instead of learning what separates the species.</p>
+    <p><b>Why it fails.</b> The deepest tree is right about all but two of its 436 training sharks, and wrong about roughly one in seven new ones. It memorised the training sharks, with the quirks of their lengths and depths, instead of learning what separates the species.</p>
     <p><b>Better account.</b> Only held-out accuracy tells you how the tree will do on new sharks, and a baseline tells you whether that number is good (<a href="../a1-what-is-a-model/#lazy">A1</a>). Here the lazy answer "other shark" is right 56% of the time.</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> When training accuracy is near 100% and held-out accuracy is far lower, cut the depth, raise the smallest box size, or both. Then compare the gap again.</p>
   </div>
+<pre class="code"><code>import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+
+df = pd.read_csv("catch.csv")                  # made-up records
+df["spadenose"] = (df.species == "spadenose").astype(int)
+held = df.record_id % 10 &lt; 3
+X = ["length_cm", "depth_m"]
+tr, he = df[~held], df[held]
+
+def run(label, seed=0, **kw):
+    t = DecisionTreeClassifier(random_state=seed, **kw).fit(tr[X], tr.spadenose)
+    a, b = t.score(tr[X], tr.spadenose), t.score(he[X], he.spadenose)
+    print(f"{label:16s} leaves {t.get_n_leaves():2d}  train {a:.1%}  held-out {b:.1%}")
+
+for depth in (1, 2, 3, 6):
+    run(f"depth {depth}", max_depth=depth)
+run("depth 12", seed=1, max_depth=12)         # seed 1 breaks ties as the figure does
+run("no limit")
+run("smallest box 20", min_samples_leaf=20)</code></pre>
+<pre class="out">depth 1          leaves  2  train 87.2%  held-out 82.9%
+depth 2          leaves  4  train 91.1%  held-out 86.0%
+depth 3          leaves  6  train 91.3%  held-out 85.4%
+depth 6          leaves 24  train 94.0%  held-out 85.4%
+depth 12         leaves 50  train 99.5%  held-out 84.8%
+no limit         leaves 51  train 99.8%  held-out 83.5%
+smallest box 20  leaves 10  train 90.4%  held-out 86.0%</pre>
+  <p>The first five rows match the figure. When two cuts score the same, scikit-learn picks between them with its random seed, and only deep trees have enough ties to notice. Over seeds 0 to 99, the depth-12 tree gets between 135 and 140 of the 164 held-out sharks right. Seed 1 gives the figure's 139. Without a depth limit the tree grows one more level, to 51 leaves.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The tree has 99.8% training accuracy and 85% held-out accuracy. What is the gap, and what does it suggest?</summary><p>About 15 points. It suggests overfitting: many small boxes that capture noise in the training sharks.</p></details>
     <details><summary>Why are depth 3 and depth 5 hard to tell apart in the figure?</summary><p>Their held-out accuracies differ by less than the noise of a 164-shark held-out set, which is about 2.7 points.</p></details>
+    <details><summary>Depth 2 gets 141 of 164 held-out sharks right and depth 6 gets 140. Is depth 6 worse?</summary><p>No clear difference. One shark of 164 is 0.6 points, far inside the noise of about 2.7 points. The depth-6 tree is more complex for no visible gain, so the simpler tree is the better choice.</p></details>
   </div>
 </section>
 
@@ -283,6 +380,13 @@ train 0.9106 held-out 0.8598</pre>
     <li>The leaf value is the average of those weights. The best single number for a box under squared error is its average.</li>
     <li>The search picks the question that makes the error of the two new boxes, added together, as small as possible.</li>
   </ul>
+  <p>A second case, the next question. The figure above shows the first one: the squared error of the whole box, 3.544, falls to 1.292. The two averages it leaves, 0.139 kg and 0.363 kg, are the answers of the two leaves. Subtract the overall average 0.219 and you get &minus;0.080 and +0.144, the first stump of <a href="../a6-boosting/#boosting">A6</a>. The tree and the boosted model start from the same cut.</p>
+  <p>Now look inside the right box. It has 70 sharks, with an average of 0.363 kg and a squared error of 0.857. The best question there is "length &le; 54.55 cm?". It sends 64 sharks to the yes side, with an average of 0.338 kg and a squared error of 0.358. It sends the 6 longest sharks to the no side, with an average of 0.626 kg and a squared error of 0.045.</p>
+  <div class="eqn" role="img" aria-label="Drop in squared error in the right box: 0.8567 minus 0.3581 minus 0.0454 equals 0.453"><span class="t c-navy"><b>0.8567</b><i>error of the right box: 70 sharks, average 0.363 kg</i></span><span class="op">&minus;</span><span class="t c-teal"><b>0.3581</b><i>yes side: 64 sharks, average 0.338 kg</i></span><span class="op">&minus;</span><span class="t c-sand"><b>0.0454</b><i>no side: 6 sharks, average 0.626 kg</i></span><span class="op">=</span><span class="t c-coral"><b>0.453</b><i>drop in squared error</i></span></div>
+  <p>The search peels off the few longest and heaviest sharks, because large gaps from one average cost the most squared error. Those 6 sharks are the two highest steps of the depth-3 tree.</p>
+  <p>Why the average? A leaf must give one answer \(c\) to all its sharks. The squared error of that answer is \(\sum_i (y_i - c)^2\). Its slope in \(c\) is \(-2\sum_i (y_i - c)\), which is zero when \(\sum_i y_i = n\,c\). That is the average of the \(y_i\). The error is a bowl in \(c\) (<a href="../a2-linear-regression/#line">A2</a>), so the zero slope is the lowest point.</p>
+  <p>Follow Tag 3305, 41.0 cm and 0.228 kg. It answers "yes" to "length &le; 42.15?", then "no" to "&le; 34.95?" and "no" to "&le; 39.45?". It ends in a step of 21 sharks with an average of 0.215 kg, so the error is 0.013 kg. The two highest steps (0.55 and 0.70 kg) rest on only 3 sharks per step, from 54.7 to 59.8 cm. Their answers would move if one shark changed.</p>
+  <p><b>In practice</b>, a smallest box of 5 to 20 sharks smooths the staircase and removes steps like those two. A tree answers with averages of training weights, so its answers stay within the range of those weights. For a target that keeps growing, such as the weight of a growing shark, check what happens beyond the training range.</p>
   <div class="break">
     <p><b>Analogy.</b> A regression tree is a staircase laid against a smooth hill. More steps follow the hill more closely.</p>
     <p><b>Where it breaks.</b> A staircase has a last step. Beyond the last training shark the tree has no slope, so it says the same weight for a 60 cm and an 80 cm shark.</p>
@@ -291,10 +395,39 @@ train 0.9106 held-out 0.8598</pre>
     <p><b>Debug tip.</b> If a regression tree has many steps and the held-out error is much higher than the training error, plot the steps against the held-out points. Steps that follow single noisy sharks show that the smallest box size is too low.</p>
   </div>
   <div class="used"><p><b>Used in:</b> In <a href="../a6-boosting/#boosting">A6</a>, small regression trees are added one after another to fit what the earlier trees missed. That is boosting.</p></div>
+<pre class="code"><code>import numpy as np, pandas as pd
+from sklearn.tree import DecisionTreeRegressor
+
+df = pd.read_csv("catch.csv")                  # made-up records
+sp = df[df.species == "spadenose"]
+tr, he = sp[sp.record_id % 10 &gt;= 3], sp[sp.record_id % 10 &lt; 3]
+x, y = tr[["length_cm"]].to_numpy(), tr.weight_kg.to_numpy()
+xh, yh = he[["length_cm"]].to_numpy(), he.weight_kg.to_numpy()
+
+def rmse(a, b):
+    return float(np.sqrt(np.mean((a - b) ** 2)))
+
+print("average only", round(rmse(y.mean(), y), 4), round(rmse(y.mean(), yh), 4))
+for depth in (1, 2, 3, 4, 6):
+    tree = DecisionTreeRegressor(max_depth=depth, random_state=0).fit(x, y)
+    a, b = rmse(tree.predict(x), y), rmse(tree.predict(xh), yh)
+    print(depth, tree.get_n_leaves(), round(a, 4), round(b, 4))
+
+tree = DecisionTreeRegressor(max_depth=3, random_state=0).fit(x, y)
+print(tree.predict([[41.0], [60.0], [70.0]]).round(3))</code></pre>
+<pre class="out">average only 0.1345 0.1582
+1 2 0.0812 0.0896
+2 4 0.0522 0.0673
+3 8 0.036 0.0447
+4 16 0.0313 0.0411
+6 50 0.0243 0.0491
+[0.215 0.7   0.7  ]</pre>
+  <p>The depth-3 row matches the figure: 8 steps, 0.036 kg on the training sharks and 0.045 kg on the held-out sharks. The held-out error is lowest at depth 4 and rises after it, while the training error keeps falling. The last line shows the tree answering 0.215 kg at 41 cm and the same 0.700 kg at 60 and 70 cm.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What does a leaf of a regression tree answer, and why that number?</summary><p>The average of the training values in its box, because the average is the single number with the smallest squared error for those values.</p></details>
     <details><summary>Why does the tree's line go flat at 80 cm?</summary><p>No training shark was longer than about 60 cm, so the last box covers all lengths above its threshold and answers with one average.</p></details>
+    <details><summary>A leaf has three sharks that weigh 0.50, 0.55 and 0.60 kg. What does it answer, and what is its squared error?</summary><p>It answers the average, 0.55 kg. The squared error is \((-0.05)^2 + 0^2 + 0.05^2 = 0.005\). Any other answer gives a larger sum.</p></details>
   </div>
 </section>
 

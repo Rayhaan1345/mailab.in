@@ -125,6 +125,11 @@ code { overflow-wrap: anywhere; }
     <li><b>\(L\)</b> is the length in cm and <b>\(\hat{y}\)</b> the predicted weight in kg. <b>\(w_0, \dots, w_M\)</b> are the weights the fit chooses, and <b>\(M\)</b> is the degree.</li>
     <li><b>RMSE</b> is the square root of the mean squared error (<a href="../a2-linear-regression/#line">A2</a>), so it is in kg. <b>\(m\)</b> is the number of records it is computed on: the 14 training sharks for training error, and the other spadenose records for test error.</li>
   </ul>
+  <p>A second case, with one shark. Tag 3305 is the Sassoon spadenose, 41.0 cm long and 0.228 kg. The 14 training sharks do not include it, so it tests the curves. The line predicts 0.234 kg, which is 0.006 kg too high. The cubic predicts 0.224 kg, 0.004 kg too low. The degree-9 curve predicts 0.262 kg, 0.034 kg too high.</p>
+  <p>Tag 3305 is a mild case. The 14 training sharks run from 18.2 to 49.6 cm. Over the 222 test sharks inside that range, the cubic has an RMSE of 0.035 kg and the degree-9 curve 2.8 kg. Over the 32 test sharks outside it, the numbers are 0.060 kg and 258 kg. The degree-9 curve gives about 1,000 kg for a 60 cm shark, because no training point pins it down there.</p>
+  <p>Count the weights against the records. Degree \(M\) has \(M + 1\) weights. Degree 9 has 10 weights for 14 sharks. Degree 13 has 14 weights and passes through all 14 points, so its training error is 0.000. Its test error is about 850,000 kg. A model with as many weights as training records can match them whatever the data say. A zero training error is then no evidence at all.</p>
+  <p>More data moves the safe degree upward. The test error of the degree-9 curve is 92 kg with 14 training sharks, 0.055 kg with 30 and 0.038 kg with 60, level with the cubic's 0.037 kg. The test sharks here come from the same table as the training sharks. A new coast or a murkier season can differ, which is the subject of <a href="../c3-domain-shift/#water">C3</a>.</p>
+  <p><b>In practice</b>, plot the training and validation errors against the dial you are tuning: the degree here, the depth or the number of trees later. Take the simplest setting whose validation error is close to the lowest. Fit polynomials on a rescaled length, as <code>Polynomial.fit</code> does in the code below. Raw powers of 49.6 reach \(10^{15}\), and rounding errors then swamp the fit.</p>
   <div class="break">
     <p><b>Common belief.</b> The model with the lowest training error is the best model.</p>
     <p><b>Why it fails.</b> Training error never rises when you add flexibility, so it always favours the most flexible model, even when the extra flexibility only fits noise.</p>
@@ -158,6 +163,7 @@ degree 9:  train 0.023   test 91.566</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>The training error is 0.02 kg and the test error is 0.30 kg. Is the model over- or underfitting, and what could you try?</summary><p>Overfitting, because the test error is 15 times the training error. Try more training records, a lower degree, or fewer features.</p></details>
     <details><summary>Why can the training error not rise when you go from degree 3 to degree 4?</summary><p>The degree-4 family contains all the degree-3 curves (set \(w_4 = 0\)). The best degree-4 fit is therefore at least as good on the training records.</p></details>
+    <details><summary>A fit has 12 weights and 12 training sharks with different lengths. What training error do you expect, and what does it tell you?</summary><p>Close to zero, because 12 weights can pass through 12 points. It gives no information about new sharks. Only the validation error does.</p></details>
   </div>
 </section>
 
@@ -192,6 +198,10 @@ degree 9:  train 0.023   test 91.566</pre>
     <li><b>\(\hat{p}\)</b> is the share of test records the model got right and <b>\(n\)</b> the number of test records. This is the standard error of a share from <a href="../t7-probability/#ci">0.7</a>.</li>
     <li>About 95% of test scores from sets like this one fall within 1.96 SE of the model's long-run accuracy. The figure shows the interval for the current split.</li>
   </ul>
+  <p>A second case, the Ganges sharks. A random test set of 120 records leaves out all three Ganges sharks with a chance that is a product of three fractions:</p>
+  <div class="eqn" role="img" aria-label="Worked example: chance that a random test set of 120 records has no Ganges shark"><span class="t c-navy"><b>480/600</b><i>first Ganges shark is outside the test set</i></span><span class="op">&times;</span><span class="t c-navy"><b>479/599</b><i>second</i></span><span class="op">&times;</span><span class="t c-navy"><b>478/598</b><i>third</i></span><span class="op">=</span><span class="t c-coral"><b>0.511</b><i>chance of no Ganges shark in the test set</i></span></div>
+  <p>In 24 plain 60/20/20 shuffles of the table, the test set had no Ganges shark 11 times. That is close to the 12 that 0.511 predicts. A test set without a Ganges shark cannot measure recall for that species, and the same shuffle can put two or all three in training. The noise formula says the same in numbers. An accuracy of 0.78 has a standard error of 0.053 on 60 test records, 0.038 on 120 and 0.024 on 300.</p>
+  <p><b>In practice</b>, 60/20/20 and 70/15/15 are common splits for a few hundred records, and a few per cent for the test set is enough when there are millions. With few records, choose with cross-validation (next section) and keep a small test set. A random split also answers one question only: how will the model do on records like these? If SharkCam will meet sharks from a different coast or season, build the test set to look like that place, for example by keeping whole dives aside.</p>
   <div class="break">
     <p><b>Common belief.</b> If I use the test score to choose between two models, it is still a test score.</p>
     <p><b>Why it fails.</b> The choice now depends on the test set. The winner is the model that happened to do best on those records, so its score on them is a little too high. The more models you try, the larger the effect.</p>
@@ -218,6 +228,7 @@ first five test records: [ 4  7 11 19 25]</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why is a 100% training score no reason to choose the unlimited tree?</summary><p>The model may have memorised the training records, noise included. Only the validation score says how it treats records it has not seen, and there the tree scores far lower.</p></details>
     <details><summary>You halve the test set from 120 to 60 records. By what factor does the standard error of the test score change?</summary><p>It grows by \(\sqrt{2} \approx 1.4\), since the standard error goes with \(1/\sqrt{n}\).</p></details>
+    <details><summary>A model gets 90 of 100 test records right. Give a 95% interval for its accuracy.</summary><p>The standard error is \(\sqrt{0.9 \times 0.1/100} = 0.03\). The interval is 0.90 plus or minus 1.96 \(\times\) 0.03, from about 84% to 96%.</p></details>
   </div>
 </section>
 
@@ -252,6 +263,11 @@ first five test records: [ 4  7 11 19 25]</pre>
     <li><b>\(K\)</b> is the number of folds and <b>\(a_k\)</b> the accuracy on fold \(k\), scored by a model trained on the other \(K-1\) folds.</li>
     <li><b>CV</b> is the cross-validated score. <b>SD</b> is the standard deviation of the fold scores, the spread from <a href="../t7-probability/#spread">0.7</a>.</li>
   </ul>
+  <p>The spread of the fold scores is a number you can work out. Take the five scores 0.758, 0.808, 0.792, 0.750 and 0.783, with mean 0.778. Their gaps from the mean are &minus;0.020, +0.030, +0.014, &minus;0.028 and +0.005. The squares add up to 0.0023. Divide by \(K - 1 = 4\) to get 0.00058, then take the square root:</p>
+  <div class="eqn" role="img" aria-label="Worked example: standard deviation of the five fold accuracies"><span class="t c-sand"><b>0.0023</b><i>sum of squared gaps</i></span><span class="op">&divide;</span><span class="t"><b>4</b><i>K &minus; 1</i></span><span class="op">&rarr; &radic; =</span><span class="t c-teal"><b>0.024</b><i>SD of the fold scores: 2.4 points</i></span></div>
+  <p>Now compare two models on the same folds. The depth-3 tree beats the logistic regression in all five folds, by 0.8, 1.7, 2.5, 5.8 and 0.8 points. The sign test of <a href="../t7-probability/#test">0.7</a> asks how often a fair coin gives five wins in five, counting either side: \(2/2^5 = 0.0625\). The folds share training records, so even that is optimistic. Five wins in five folds is suggestive and falls short of proof.</p>
+  <p>The steadiness has a measurable size. Across 24 different shuffles, a single 60/20/20 test score of the logistic regression ranged from 72.5% to 84.2%, with an SD of 3.2 points. Its 5-fold cross-validated score ranged only from 77.0% to 78.8%, with an SD of 0.45 points.</p>
+  <p><b>In practice</b>, use 5 or 10 folds, shuffle first, and stratify for a rare class. For grouped data such as frames of one dive, use a grouped split. When two models differ by less than the SD of the fold scores, repeat the cross-validation with several seeds before you name a winner. If you also tune settings with the folds, the best tuned score is a little too high, so keep the test set for the final number.</p>
   <div class="break">
     <p><b>Common belief.</b> Cross-validation produces one final model that has been tested \(K\) times.</p>
     <p><b>Why it fails.</b> It trains \(K\) different models and throws them away. The score describes the recipe (the model type, settings and preprocessing), not any one trained model.</p>
@@ -290,6 +306,7 @@ cross-validated RMSE: 0.026 kg</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>In 10-fold cross-validation on 600 records, how many records does the model train on, and how many does it score?</summary><p>It trains on 540 records and scores 60. After ten rounds all 600 have been scored once.</p></details>
     <details><summary>Cross-validation picks the logistic regression with a mean of 77.8%. What should you train and grade next?</summary><p>Train a new logistic regression on all the training records, then grade it once on the test set. The ten or five models from the folds are not the final model.</p></details>
+    <details><summary>Five folds give accuracies 0.70, 0.80, 0.90, 0.80 and 0.80. Find the cross-validated score and the SD.</summary><p>The mean is 0.80. The gaps are &minus;0.10, 0, +0.10, 0 and 0, with squares adding to 0.02. Divide by 4 to get 0.005, and the square root is 0.071. So CV = 0.80 with an SD of 0.07.</p></details>
   </div>
 </section>
 
@@ -321,6 +338,9 @@ cross-validated RMSE: 0.026 kg</pre>
     <li><b>\(\mathrm{Train}\)</b> and <b>\(\mathrm{Test}\)</b> are the sets of animals (whole animals, and not single rows) used for training and for the test. \(\cap\) means the part they share, and \(\varnothing\) is the empty set.</li>
     <li>"Fitted steps" means scaling, imputing, selecting columns and fitting. Any step that learns a number from data is fitted on the training rows only, then applied to the test rows.</li>
   </ul>
+  <p>A second case puts a number on the duplicates. Suppose a shark has \(F\) frames and a random 20% of the frames go to the test set. A test frame has no sibling in the training set only if the other \(F - 1\) frames of its shark also went to the test set. With \(F = 4\) that chance is about \(0.2^3 = 0.008\), so 99% of the test frames have a sibling in training. A dive video at 1 frame per second can give a shark 40 frames, and the chance is then close to zero.</p>
+  <p>The label-peeking tab is a selection effect. Take 80 sharks with coin-flip labels and 200 filler columns. A filler column has a correlation with the labels that varies around zero with a spread of about 0.11, which is \(1/\sqrt{80}\). The best of 200 columns reaches 0.33 on average in a simulation of 300 draws, three times the spread. Keep the ten best, and a model finds a signal that was only selection.</p>
+  <p><b>In practice</b>, put all the steps in one scikit-learn <code>Pipeline</code> and pass the pipeline to <code>cross_val_score</code>. The pipeline then refits scaling, selection and model on the training rows of the current fold. Split by animal, dive or patient when rows repeat. A column recorded after the outcome is a leak too. Ask of a column whether its value exists at the moment of prediction.</p>
   <div class="break">
     <p><b>Common belief.</b> Scaling, filling gaps and picking columns are chores before modelling, so I can do them once on the whole table.</p>
     <p><b>Why it fails.</b> These steps all learn something from the data: a mean, a median, a ranking of columns. Learned on the whole table, it has seen the test rows, and with labels involved the effect can be large.</p>
@@ -351,6 +371,7 @@ sharks in both sets: []</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why does the logistic regression barely change between the leaky and the fair split, while the unlimited tree changes a lot?</summary><p>The tree can memorise rows, so a test frame of a shark it trained on is easy. The logistic regression fits one smooth rule and has little capacity to memorise, so it gains very little from seeing the same shark.</p></details>
     <details><summary>You select the 20 best columns by correlation with the label on the whole table and then run 5-fold cross-validation. What goes wrong?</summary><p>The selection used the labels of the records in all the test folds. Columns that match by chance look useful, and the fold scores are too high. Do the selection inside the training part of the folds.</p></details>
+    <details><summary>A diabetes model uses a column "insulin prescribed", which is recorded correctly. Why is it a leak?</summary><p>The prescription is written after the diagnosis. At screening time the value does not exist yet, so the model would be reading the doctor's decision back. Ask whether a column is known when the prediction is made.</p></details>
   </div>
 </section>
 
@@ -386,6 +407,10 @@ sharks in both sets: []</pre>
     <li><b>Recall</b> is the share of positives found. <b>Precision</b> is the share of flags that are right. <b>Specificity</b> is the share of negatives left alone. A ratio is undefined if its bottom is zero: precision when no record is flagged, recall when there are no positives.</li>
     <li><b>\(F_1\)</b> is the harmonic mean of precision and recall. The two forms above are the same number, because \(\text{precision} = TP/(TP+FP)\) and \(\text{recall} = TP/(TP+FN)\).</li>
   </ul>
+  <p>A second case: the same detector at a threshold of 0.10. The counts are TP 50, FP 95, FN 7 and TN 448, and they add up to 600. Work through the five scores.</p>
+  <div class="eqn" role="img" aria-label="Worked example: five scores of the hammerhead detector at threshold 0.10"><span class="t c-teal"><b>83.0%</b><i>accuracy: (50 + 448) &divide; 600</i></span><span class="t c-coral"><b>34.5%</b><i>precision: 50 &divide; (50 + 95)</i></span><span class="t c-sand"><b>87.7%</b><i>recall: 50 &divide; (50 + 7)</i></span><span class="t c-navy"><b>82.5%</b><i>specificity: 448 &divide; (448 + 95)</i></span><span class="t"><b>49.5%</b><i>F1: 100 &divide; (100 + 95 + 7)</i></span></div>
+  <p>Compare this with 0.30, where recall was 50.9% and F1 54.7%. F1 is higher at 0.30 although recall is much lower there. F1 gives precision and recall equal weight. If a miss costs more than a false alarm, F1 can prefer the wrong threshold.</p>
+  <p>The matrix grows with the number of classes. A five-species matrix has five rows and five columns. The row of a species gives its recall: the diagonal cell over the row total. The column of a species gives its precision: the diagonal cell over the column total. <b>In practice</b>, print the four counts beside the scores, and fix the main score before you look at results. Scikit-learn's <code>classification_report</code> prints precision, recall and F1 for all classes in one table.</p>
   <h3 class="sub-h3">Why F1 and not the plain average?</h3>
   <p class="ask"><b>Guess first.</b> A detector flags all 600 records. Its recall is 100% and its precision is 9.5%. What do you think a fair single number for it is?</p>
   <div class="card" id="f1">
@@ -433,6 +458,7 @@ F1          0.667</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>Which score would you watch if a false alarm costs the crew an hour, and which if a missed hammerhead is the worse outcome?</summary><p>Precision for the false alarms, because it falls as FP rises. Recall for the misses, because it falls as FN rises.</p></details>
     <details><summary>A detector has TP = 8, FP = 2, FN = 12, TN = 78. Find precision, recall and F1.</summary><p>Precision \(8/10 = 0.80\). Recall \(8/20 = 0.40\). F1 \(= 16/(16+2+12) = 16/30 = 0.53\).</p></details>
+    <details><summary>A detector flags 10 records, and all 10 are hammerheads. Of the 57 in the table, what are its precision and recall?</summary><p>Precision is 10 of 10, which is 100%. Recall is 10 of 57, which is 17.5%. A perfect precision can go with a detector that misses most of what it should find.</p></details>
   </div>
 </section>
 
@@ -471,6 +497,19 @@ F1          0.667</pre>
     <li><b>\(c_{FN}\)</b> and <b>\(c_{FP}\)</b> are the cost of one miss and one false alarm, in any unit you choose. Only their ratio matters.</li>
     <li><b>\(p\)</b> is the model's probability for a record and <b>\(\tau^{*}\)</b> the threshold that minimises the expected cost, assuming \(p\) is calibrated. With a miss costing 5 false alarms, \(\tau^{*} = 1/6 = 0.167\).</li>
   </ul>
+  <p>The rule follows from a few lines of algebra. Flagging a record pays for a false alarm with chance \(1 - p\), so its expected cost is \((1-p)\,c_{FP}\). Leaving it alone pays for a miss with chance \(p\), so its expected cost is \(p\,c_{FN}\). Flag when the first is smaller: \((1-p)\,c_{FP} \le p\,c_{FN}\). Collect the terms: \(c_{FP} \le p\,(c_{FN} + c_{FP})\). Divide, and \(p \ge c_{FP}/(c_{FP}+c_{FN})\).</p>
+  <p>Now check it on the table, with a miss costing 5. The cost is \(5\,FN + FP\) at a threshold:</p>
+  <table class="tbl" style="max-width: 34em" aria-label="Counts and cost at five thresholds of the hammerhead detector">
+    <tr><th>threshold</th><th>TP</th><th>FP</th><th>FN</th><th>cost</th></tr>
+    <tr><td>0.50</td><td>19</td><td>12</td><td>38</td><td>202</td></tr>
+    <tr><td>0.30</td><td>29</td><td>20</td><td>28</td><td>160</td></tr>
+    <tr class="pick"><td>0.167 (1/6)</td><td>47</td><td>51</td><td>10</td><td>101</td></tr>
+    <tr><td>0.10</td><td>50</td><td>95</td><td>7</td><td>130</td></tr>
+    <tr><td>0.05</td><td>54</td><td>188</td><td>3</td><td>203</td></tr>
+  </table>
+  <p class="mini-note">Made-up records, out-of-fold scores. Cost = 5 &times; FN + FP.</p>
+  <p>The cheapest row is the one at 1/6. Going from 0.30 to 0.10 finds 21 more hammerheads and adds 75 more false alarms, which is 3.6 false alarms per hammerhead found. That is below the price of a miss, so the move pays. Going on to 0.05 finds 4 more and adds 93, which is 23 false alarms per hammerhead, far above 5. The cost rises again.</p>
+  <p><b>In practice</b>, the rule is often a target, such as "find at least 90% of the hammerheads". Read off the highest threshold on validation scores that reaches the target. Here it is 0.084, with 52 hammerheads found (91%), 118 false alarms and a precision of 31%. State the price of the target. Check the threshold again when the base rate or the water changes, because a threshold is tied to the population it was chosen on.</p>
   <div class="break">
     <p><b>Common belief.</b> A model has one accuracy, one precision and one recall.</p>
     <p><b>Why it fails.</b> Those numbers belong to a model and a threshold together. The same model gives 50.9% recall at 0.30 and 87.7% at 0.10, and the default of 0.5 is only a habit.</p>
@@ -500,6 +539,7 @@ threshold 0.15: flags  8   recall 1.00   precision 0.50</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>A missed hammerhead costs 9 false alarms. What threshold does the formula give, and is it above or below 0.5?</summary><p>\(\tau^{*} = 1/(1+9) = 0.10\), below 0.5. When misses cost more, the model should flag more readily.</p></details>
     <details><summary>Lowering the threshold never reduces recall. Why can it reduce precision?</summary><p>Records flagged before are still flagged, so TP cannot fall, and recall cannot fall. The extra flags may be mostly other sharks, so FP can grow faster than TP and precision can fall.</p></details>
+    <details><summary>Lowering the threshold from 0.10 to 0.05 finds 4 more hammerheads (50 to 54) and adds 93 false alarms (95 to 188). Is it worth it if a miss costs 5 false alarms?</summary><p>That is 93/4, about 23 false alarms per extra hammerhead, against a break-even of 5. The move does not pay. The total cost rises from 130 to 203.</p></details>
   </div>
 </section>
 
@@ -538,6 +578,11 @@ threshold 0.15: flags  8   recall 1.00   precision 0.50</pre>
     <li><b>TPR</b> is recall, and <b>FPR</b> is 1 minus specificity. The ROC curve plots one against the other for all thresholds.</li>
     <li><b>\(n_{+}\)</b> and <b>\(n_{-}\)</b> are the numbers of positives and negatives, and <b>\(s_i\)</b> is the score of record \(i\). The sums run over all pairs of one positive and one negative. \(\mathbf{1}(\cdot)\) is 1 if the statement inside is true and 0 if not.</li>
   </ul>
+  <p>A second case, small enough to do by hand. Eight records have the scores 0.9, 0.8, 0.7, 0.5, 0.4, 0.3, 0.2 and 0.1. Those at 0.9, 0.7 and 0.4 are positive. Lower the threshold past one score at a time. A positive moves the dot up by 1/3, and a negative moves it right by 1/5. The path runs (0, 0), (0, 1/3), (1/5, 1/3), (1/5, 2/3), (2/5, 2/3), (2/5, 1), and then straight right to (1, 1).</p>
+  <p>The area under this path is a sum of strips. A step to the right has width 1/5 and adds a strip as tall as the dot is high. The first negative is passed at height 1/3, the second at 2/3, and the last three at height 1. The height is the share of positives that outscore that negative.</p>
+  <div class="eqn" role="img" aria-label="Worked example: AUC of eight records from the strips under the ROC path"><span class="t c-sand"><b>4</b><i>1/3 + 2/3 + 1 + 1 + 1: share of positives above that negative, added up</i></span><span class="op">&divide;</span><span class="t"><b>5</b><i>negatives</i></span><span class="op">=</span><span class="t c-teal"><b>0.8</b><i>AUC</i></span></div>
+  <p>This is the pair count of the code below in another order: 12 wins in 15 pairs is also 0.8. How sure is the 0.920 of the hammerhead scorer? A simulation can show. Draw 600 of the scored records with repeats, compute the AUC, and do this 2,000 times. The middle 95% of those AUCs runs from 0.884 to 0.951.</p>
+  <p>AUC also averages over thresholds you would never use. At a false positive rate no higher than 5%, the scorer finds 59.6% of the hammerheads. At no higher than 10% it finds 82.5%. Two scorers with the same AUC can differ in that region. <b>In practice</b>, quote the AUC with an interval, and add the true positive rate at the false alarm rate you can afford.</p>
   <div class="break">
     <p><b>Common belief.</b> An AUC of 0.92 means the model is right 92% of the time.</p>
     <p><b>Why it fails.</b> Accuracy needs a threshold and counts all records. AUC compares positives with negatives, over all thresholds. The same model has an AUC of 0.920 and an accuracy of 83.0% at threshold 0.10.</p>
@@ -572,6 +617,7 @@ AUC from curve: 0.8</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>What AUC would you expect from scores that are random and unrelated to the labels, and what from scores that are perfectly upside down?</summary><p>About 0.5 for random scores. About 0 for upside-down scores: the positive nearly always scores lower, so reversing the sign gives about 1.</p></details>
     <details><summary>Does AUC change if you double the number of negatives by adding more records of the same kind?</summary><p>Not in expectation. AUC compares a positive with a negative, so the mix of the data does not matter, as long as the new negatives are like the old ones. Precision at a fixed threshold would fall.</p></details>
+    <details><summary>Two positives score 0.9 and 0.4. Three negatives score 0.6, 0.3 and 0.2. What is the AUC?</summary><p>There are 6 pairs. The 0.9 beats all three negatives. The 0.4 beats 0.3 and 0.2 and loses to 0.6. That is 5 wins in 6 pairs, an AUC of 0.83.</p></details>
   </div>
 </section>
 
@@ -612,6 +658,10 @@ AUC from curve: 0.8</pre>
     <li><b>\(n_{+}\)</b> is the number of positive records and <b>\(n\)</b> the number of all records. For the Ganges class \(n_{+}/n = 3/600 = 0.005\), so the lazy accuracy is 99.5%.</li>
     <li>Any model should beat these two baselines on the score that matters. The first baseline is the lazy accuracy. The second is the dashed line in the PR plot.</li>
   </ul>
+  <p>A second case: how well can you know a recall that rests on a few positives? Suppose a detector finds 27 of 30 rare animals. The recall is 90%, and the Wilson interval (defined in <a href="#subgroups">Subgroup analysis</a>, later in this chapter) runs from 74% to 96.5%. Even 30 positives leave an interval about 22 points wide. With 3 positives, finding 2 gives 21% to 94%. To collect 30 Ganges sharks at a base rate of 0.5%, you need 6,000 records:</p>
+  <div class="eqn" role="img" aria-label="Worked example: records needed to collect 30 Ganges sharks"><span class="t c-coral"><b>30</b><i>positives wanted</i></span><span class="op">&divide;</span><span class="t"><b>0.005</b><i>base rate of the Ganges shark</i></span><span class="op">=</span><span class="t c-teal"><b>6,000</b><i>records to collect</i></span></div>
+  <p>Cross-validation meets the same limit. Five stratified folds deal three Ganges sharks into three of the folds, one apiece. The other two folds have no Ganges shark, and recall there is 0 &divide; 0. So collect the out-of-fold scores of all folds first, and compute the recall once on the pooled scores, as the figure does.</p>
+  <p><b>In practice</b>, a model for a rare class is often trained with class weights or with extra copies of the rare records, so that training does not ignore them. That changes training only. Keep the evaluation set at the true mix, and choose the threshold on validation data, because reweighted scores are no longer probabilities.</p>
   <div class="break">
     <p><b>Common belief.</b> A model that is 99.5% accurate works.</p>
     <p><b>Why it fails.</b> A model that flags no record is 99.5% accurate on the same table. Accuracy adds up the correct answers, and the 597 common records dominate the sum.</p>
@@ -638,6 +688,7 @@ flag all: precision 0.005  recall 1.0  F1 0.01</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>A model flags 7 records and finds all 3 Ganges sharks. What are its precision, recall and accuracy?</summary><p>Precision is 3 of 7, 43%. Recall is 3 of 3, 100%. It makes 4 false alarms, so 596 of the 600 calls are right: accuracy 99.3%, which is below the 99.5% of the lazy model.</p></details>
     <details><summary>Why can a ROC curve look excellent when the PR curve for the same scores looks poor?</summary><p>The false positive rate divides by all the negatives, a large number, so many false alarms still give a small rate. Precision divides by the flagged records, so the same false alarms weigh heavily.</p></details>
+    <details><summary>You want about 20 positives in a validation set, and the class is 0.5% of the records. How many records do you need?</summary><p>At 0.5%, 20 positives need 20 &divide; 0.005 = 4,000 records. The made-up table has 600, so it is far too small for a reliable estimate of Ganges recall.</p></details>
   </div>
 </section>
 
@@ -676,6 +727,11 @@ flag all: precision 0.005  recall 1.0  F1 0.01</pre>
     <li><b>sens</b> is the sensitivity and <b>spec</b> the specificity of the model. <b>\(p\)</b> is the prevalence where the model is used.</li>
     <li>The top is TP per woman (sens times \(p\)). The bottom adds FP per woman (1 minus spec, times the healthy share \(1-p\)). It is Bayes' rule from <a href="../t7-probability/#bayes">0.7</a> with the model's own numbers.</li>
   </ul>
+  <p>A second case, the town with 2% prevalence. Screen 1,000 women. Twenty have diabetes and 980 do not. The model finds 57.1% of the 20, so 11.4 are flagged. It flags 12.4% of the 980 healthy women, so 121.5 are flagged. The flagged group has 132.9 women, and 11.4 of them have diabetes:</p>
+  <div class="eqn" role="img" aria-label="Worked example: precision at a prevalence of 2 percent"><span class="t c-coral"><b>11.4</b><i>TP: 20 &times; 0.571</i></span><span class="op">&divide;</span><span class="t"><b>132.9</b><i>TP + FP: 11.4 + 121.5 (980 &times; 0.124)</i></span><span class="op">=</span><span class="t c-teal"><b>8.6%</b><i>of flagged women have diabetes</i></span></div>
+  <p>That is about 12 flagged women for one woman found. The women the model clears are 99.0% healthy. The lazy answer, that nobody has diabetes, is already right for 98%. At this prevalence a clear result adds little.</p>
+  <p>There is a shortcut in odds (<a href="../a3-logistic-regression/#sigmoid">A3</a>). A flag multiplies the odds of diabetes by sensitivity over (1 minus specificity), here 0.571 / 0.124 = 4.6. At 2% the odds are 2 to 98, or 0.0204. After a flag they are 0.0204 &times; 4.6 = 0.094, a chance of 0.094 / 1.094 = 8.6%. The multiplier belongs to the model. The starting odds belong to the town.</p>
+  <p><b>In practice</b>, plan the follow-up for the false alarms before you start. Screening 10,000 women at 2% gives 200 with diabetes, of whom about 114 are flagged, and about 1,215 false alarms. The follow-up clinic must be able to see about 1,330 women to find 114.</p>
   <div class="break">
     <p><b>Common belief.</b> A good test is good wherever it is used.</p>
     <p><b>Why it fails.</b> Sensitivity and specificity are measured on a sample with a given mix of sick and healthy people. Precision depends on that mix. Move the model to a town with a different mix and precision changes, even if the model itself does not.</p>
@@ -698,6 +754,7 @@ prevalence  2.0%: precision 8.6%</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>A screening model has sensitivity 90% and specificity 90%. At 1% prevalence, what share of flagged people have the condition?</summary><p>Per 1,000 people, 10 are sick and 9 of them are flagged. Of the 990 healthy, 99 are flagged. Precision is \(9/(9+99) = 8.3\%\).</p></details>
     <details><summary>Does moving the threshold change the model's precision in the clinic? Does it change the prevalence?</summary><p>It changes sensitivity and specificity, so it changes precision. It does not change the prevalence, which describes the women, not the model.</p></details>
+    <details><summary>A test set is built with 50% women who have diabetes and 50% who do not. With sensitivity 0.571 and specificity 0.876, what is the precision on it?</summary><p>Per woman screened, TP = 0.5 &times; 0.571 = 0.2855 and FP = 0.5 &times; 0.124 = 0.062. Precision is 0.2855 / 0.3475 = 82%. That is far above the 9% to 34% of the towns, and it comes from the way the test set was built.</p></details>
   </div>
 </section>
 
@@ -732,6 +789,9 @@ prevalence  2.0%: precision 8.6%</pre>
     <li><b>\(\hat{p}\)</b> is the observed share (sensitivity or specificity in the group) and <b>\(n\)</b> the number of women it is computed on: those with diabetes for sensitivity, those without for specificity.</li>
     <li>The plain interval \(\hat{p} \pm 1.96\sqrt{\hat{p}(1-\hat{p})/n}\) from <a href="../t7-probability/#ci">0.7</a> fails when \(n\) is small or \(\hat{p}\) is near 0 or 1. The formula above (Wilson, 1927) stays inside 0 and 1 and does not collapse to zero width at 100%.</li>
   </ul>
+  <p>A second case, with counts from the cross-validated scores. The youngest group has 84 women with diabetes, and the model finds 39. The sensitivity is 39/84 = 46.4%. The plain interval uses the standard error \(\sqrt{0.464 \times 0.536/84} = 0.054\) and gives 46.4% plus or minus 10.7 points, from 35.8% to 57.1%. The Wilson interval gives 36.2% to 57.0%. With 84 women and a share near one half, the two agree. They differ in the corners, near 0% and 100%.</p>
+  <p>The oldest group has 43 women with diabetes, and the model finds 34: 79.1%, with a Wilson interval of 64.8% to 88.6%. This does not overlap the youngest group's 36% to 57%, so the gap of 33 points is unlikely to be chance. The group aged 40 to 49 (40 of 65, 61.5%, interval 49% to 72%) overlaps the oldest group's interval, so these counts do not separate those two clearly.</p>
+  <p><b>In practice</b>, pick the groups before you look at the results, and report all of them. A 95% interval misses the truth one time in 20, so across 20 subgroup comparisons you should expect about one false gap. A group with fewer than about 30 positives gives a wide interval: 15 of 30 is 50%, with an interval from 33% to 67%. Print the counts beside the scores.</p>
   <div class="break">
     <p><b>Common belief.</b> If the overall accuracy is good, the model works for all groups.</p>
     <p><b>Why it fails.</b> An overall score is an average, and the largest group dominates it. A group with a different base rate or different features can have a much lower sensitivity and the overall number will hardly move.</p>
@@ -759,6 +819,7 @@ for name, lo, hi in [("under 40", 0, 39), ("40 and over", 40, 200)]:
     <p class="recall-h">Quick quiz</p>
     <details><summary>A group has 4 women with diabetes and the model finds 4. Is the model perfect for that group?</summary><p>No. Four cases cannot show that. The 95% Wilson interval for 4 of 4 runs from about 51% to 100%, so the true sensitivity could be much lower.</p></details>
     <details><summary>Why is the overall sensitivity (57%) close to the value for women aged 21 to 29 (46%) and far from the value for women aged 50 and over (79%)?</summary><p>The youngest group has 84 of the 268 women with diabetes, and the oldest 43. The overall number is a weighted average of the groups, so larger groups pull it harder.</p></details>
+    <details><summary>In the 154 held-out women, the youngest group has 18 with diabetes and the model finds 7. Does that conflict with the 46% from cross-validation?</summary><p>No. The model finds 39% (7 of 18), with a Wilson interval of 20% to 61%, and 46% lies inside it. Eighteen women cannot separate the two figures.</p></details>
   </div>
 </section>
 
