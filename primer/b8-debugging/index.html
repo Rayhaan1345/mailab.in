@@ -110,6 +110,26 @@ table.sym td:first-child { color: var(--ink); font-weight: 600; }
     <li><b>\(L_0\)</b> is the cross-entropy loss before training. <b>\(K\)</b> is the number of classes, 5 for the species.</li>
     <li>The formula assumes that the scores are all close to 0, so softmax gives all classes the probability \(1/K\) (<a href="../t7-probability/#softmax">0.7</a>). The figure shows what happens when they are not.</li>
   </ul>
+  <p><b>Why the loss grows with the score size.</b> Let the five starting scores be random with spread \(s\) around 0. For small \(s\), expand \(\ln\sum_k e^{z_k}\) to second order. It is \(\ln K + \bar z + \tfrac12\,\mathrm{var}(z)\), where \(\bar z\) is the mean of the \(K\) scores of a shark and \(\mathrm{var}(z)\) their variance across the classes. The loss of a shark is this minus the score of its true class. That score has mean 0, and the variance across classes averages \(s^2(1 - 1/K)\). So the loss is about \(\ln K + \tfrac12 s^2(1 - 1/K)\), which is \(1.609 + 0.4\,s^2\) here. For large \(s\) the largest score dominates, and the loss is about the gap between the largest of five random scores and the score of the true class. That gap averages \(1.16\,s\). The simulation is close to the first line up to \(s = 0.5\) and to the second only for large \(s\). At \(s = 0.1\) the first gives 1.613 against a simulated 1.614. At \(s = 5\) the second gives 5.8 against 6.0. At \(s = 2\) the simulation, 2.80, lies between the two formulas (3.21 and 2.32).</p>
+<pre class="code"><code>import numpy as np
+
+rng = np.random.default_rng(0)
+K = 5
+for s in [0.1, 0.5, 1, 2, 5]:                                 # spread of the random output scores
+    z = rng.normal(0, s, (200000, K)); y = rng.integers(0, K, 200000)
+    loss = np.log(np.exp(z).sum(1)) - z[np.arange(200000), y]
+    small = np.log(K) + 0.5 * s**2 * (1 - 1 / K)              # formula for small s
+    print("s = %.1f  simulated %.3f  small-s formula %5.3f  large-s formula %.2f" % (s, loss.mean(), small, 1.16 * s))
+
+shares = np.array([268, 200, 72, 57, 3]) / 600                # species shares of the 600 made-up records
+print("a network that knows only the shares scores %.3f" % -(shares * np.log(shares)).sum())</code></pre>
+<pre class="out">s = 0.1  simulated 1.614  small-s formula 1.613  large-s formula 0.12
+s = 0.5  simulated 1.706  small-s formula 1.709  large-s formula 0.58
+s = 1.0  simulated 1.974  small-s formula 2.009  large-s formula 1.16
+s = 2.0  simulated 2.804  small-s formula 3.209  large-s formula 2.32
+s = 5.0  simulated 6.012  small-s formula 11.609  large-s formula 5.80
+a network that knows only the shares scores 1.231</pre>
+  <p>The code also prints the loss of a network that knows only the species shares: 1.231, the entropy of the labels. <b>The same check for a regression.</b> A network whose outputs are near 0 starts with a mean squared error equal to the mean of the squared targets. For the weights of all 600 made-up sharks that is 19.1 kg\(^2\). The code of the clipping section prints 5.70 for 32 ordinary sharks and 346.83 for the 32 heaviest. The mean squared weights of those two groups are 5.3 and 344.7, so the printed losses are what an untrained network with outputs near 0 must show.</p>
   <p><b>Where it misleads.</b> A correct starting loss does not mean the network is right. In the last section a pipeline with three bugs has a starting loss of 1.613 against \(\ln 5 = 1.609\). The check catches a narrow set of faults: a wrong loss function, an output layer that starts large, inputs that are not scaled (the lab's first loss of 9.1). <b>In practice</b>, run it whenever you change the loss, the output layer or the number of classes, and write the expected value next to the printed one.</p>
   <div class="debug">
     <p><b>Debug tip.</b> If the starting loss is much lower than \(\ln K\), look for label leakage, because a network that starts far below chance can usually see the answer. If it is far above, look at the last layer's size and at the input scale.</p>
@@ -118,6 +138,7 @@ table.sym td:first-child { color: var(--ink); font-weight: 600; }
     <p class="recall-h">Quick quiz</p>
     <details><summary>A network with 10 classes starts with a loss of 2.3, and one with 1,000 classes. What should the second show?</summary><p>\(\ln 1000 = 6.91\). A loss of 2.3 there would mean the output is already far from uniform.</p></details>
     <details><summary>Why try to overfit 16 sharks before training on 480?</summary><p>On 16 sharks a correct loop can reach a loss near 0, because the network has far more weights than examples. If it cannot, the fault is in the model, the loss or the update step, and it is easier to find on 16 examples than on 480.</p></details>
+    <details><summary>A 5-class network starts at a loss of 2.8 on the species problem. Roughly how large are its output scores?</summary><p>Their spread is about 2. The simulation gives 2.80 for \(s = 2\), against \(\ln 5 = 1.61\) for scores near 0. The last layer starts too large, or the inputs are not scaled.</p></details>
   </div>
 </section>
 
@@ -149,6 +170,59 @@ table.sym td:first-child { color: var(--ink); font-weight: 600; }
   <p class="cap"><b>The final loss 1.2 appears in three runs for three different reasons. One has gradients near 1e-6 in the early layers (bad initialisation). One has gradients of 0 after a normal start (dead ReLUs). One has gradients of 0 after a start at 9.1 (raw inputs).</b> The network has four hidden layers of 24 units, trained on 480 made-up catch records with SGD and momentum 0.9; the regression run predicts weight in kg. One seed per run, so differences of a few points in accuracy are noise.</p>
   <p>Work through the six symptoms. For a symptom, look first at the loss and its first value. Then look at the gradient plot (a line is missing where the norm is 0), the update ratio and the dead-unit bars. Choose a diagnosis before you try a fix, then test it. A fix that works is evidence for a cause. A fix that changes no result is evidence against one. The lab also has fixes that look good and are not. Adam rescues the badly initialised network, but the cause is still there. A lower rate rescues the raw-input run (74%) but the first loss is still 9.1.</p>
   <p>The answer to the guess is three or more, and the lab shows three. Bad initialisation, raw inputs, and dead ReLUs after a learning rate of 0.5 all end near 1.23. This is why a rule such as "when training fails, lower the learning rate" does poorly. In this lab a lower rate fixes the NaN run and the dead-unit run, hides the raw-input problem, and leaves the shuffled labels and the exploding gradients as they were.</p>
+  <p><b>A diagnosis by numbers.</b> Take the badly initialised run. Its loss starts at 1.61, which is right, and ends at 1.24 with a validation accuracy of 48.3%, the lazy model. The gradient plot shows norms of about \(5\times10^{-7}\) in layers 1 to 3, and the update ratio of layer 1 is \(4\times10^{-7}\). The code below shows what the network learned. The spread of its output scores across the sharks is 0.0000 for all five species. The last-layer bias equals the log of the class share plus a constant, which is 2.1 to 2.2 for four species and 2.9 for the rarest. The softmax ignores a constant, so the biases alone say "45% spadenose, 33% milk, 12% bamboo" and so on. The network learned the base rates in its last bias and made no use of the inputs. A loss stuck at 1.23 is the sign of a network that has stopped using its inputs.</p>
+  <p>The raw-input run has a different story behind the same end. Its first loss is 9.14, and its output scores have a spread of 22, against 0.8 for the standardised inputs. At a rate of 0.05 the first step changes layer 1 by 11% of its size (gradient norm 13.8, weight norm 6.4). That is about 50 times the 0.002 of the standardised run at the same rate. By the end, 96% of the units in layer 1 are dead. The dead-unit run has a third story. Its loss starts at 1.48, its rate is 0.5, and at the end all the units of layers 3 and 4 are dead.</p>
+<pre class="code"><code>import json, math, numpy as np, torch, torch.nn as nn
+
+rec = json.load(open("catch.json"))["records"]
+species = ["spadenose", "milk", "bamboo", "hammerhead", "ganges"]
+cols = ["length_cm", "weight_kg", "girth_cm", "depth_m", "temp_c", "month"]
+X = np.array([[r[c] for c in cols] for r in rec], dtype=np.float32)
+y = torch.tensor([species.index(r["species"]) for r in rec])
+p = np.random.RandomState(0).permutation(len(rec)); tr, va = p[:480], p[480:]       # 480 for training, 120 for validation
+X_raw = torch.tensor(X)
+X_std = torch.tensor((X - X[tr].mean(0)) / X[tr].std(0))
+
+def network(spread=None, seed=0):                 # four hidden layers of 24 ReLU units
+    torch.manual_seed(seed)
+    net = nn.Sequential(nn.Linear(6, 24), nn.ReLU(), nn.Linear(24, 24), nn.ReLU(),
+                        nn.Linear(24, 24), nn.ReLU(), nn.Linear(24, 24), nn.ReLU(), nn.Linear(24, 5))
+    lins = [m for m in net if isinstance(m, nn.Linear)]
+    for k, m in enumerate(lins):
+        fan_in = m.weight.shape[1]
+        std = spread or math.sqrt((1 if k == len(lins) - 1 else 2) / fan_in)    # He, or one fixed spread
+        nn.init.normal_(m.weight, 0, std); nn.init.zeros_(m.bias)
+    return net
+
+def first_look(name, net, X):
+    """Numbers to read before the first update."""
+    loss = nn.functional.cross_entropy(net(X[tr]), y[tr])
+    net.zero_grad(); nn.functional.cross_entropy(net(X[tr[:32]]), y[tr[:32]]).backward()
+    g = [m.weight.grad.norm().item() for m in net if isinstance(m, nn.Linear)]
+    print(f"{name:17s} start loss {loss.item():5.2f}  gradient norms", " ".join("%.0e" % v for v in g))
+
+first_look("He, standardised", network(), X_std)
+first_look("spread 0.005", network(spread=0.005), X_std)
+first_look("He, raw inputs", network(), X_raw)
+
+net = network(spread=0.005)                                   # now train the badly started network
+opt = torch.optim.SGD(net.parameters(), lr=0.02, momentum=0.9)
+g = torch.Generator().manual_seed(0)
+for step in range(375):
+    i = torch.tensor(tr)[torch.randint(0, 480, (32,), generator=g)]
+    opt.zero_grad(); nn.functional.cross_entropy(net(X_std[i]), y[i]).backward(); opt.step()
+with torch.no_grad():
+    out = net(X_std[va])
+    print("after 375 steps: validation loss %.2f, accuracy %.3f" % (nn.functional.cross_entropy(out, y[va]).item(), (out.argmax(1) == y[va]).float().mean().item()))
+    print("spread of the scores across sharks:", out.std(0).numpy().round(4))
+    print("last-layer bias minus log class share:", (net[-1].bias.numpy() - np.log(np.bincount(y[tr].numpy()) / 480)).round(2))</code></pre>
+<pre class="out">He, standardised  start loss  1.48  gradient norms 3e-01 6e-01 6e-01 7e-01 1e+00
+spread 0.005      start loss  1.61  gradient norms 4e-08 5e-08 5e-08 6e-08 5e-08
+He, raw inputs    start loss  9.14  gradient norms 2e+01 3e+01 3e+01 5e+01 7e+01
+after 375 steps: validation loss 1.24, accuracy 0.483
+spread of the scores across sharks: [0. 0. 0. 0. 0.]
+last-layer bias minus log class share: [2.17 2.08 2.22 2.09 2.94]</pre>
+  <p>The first three lines are the numbers to read before the first update. A bad start shows in the starting loss (9.14), in the gradient norms (tiny, or in the tens) or in neither. The last three lines are the network after 375 steps of training.</p>
   <table class="sym">
     <thead><tr><th>Symptom</th><th>Likely causes</th><th>First check</th></tr></thead>
     <tbody>
@@ -171,6 +245,7 @@ table.sym td:first-child { color: var(--ink); font-weight: 600; }
     <p class="recall-h">Quick quiz</p>
     <details><summary>The shuffled-label run has healthy gradient norms and a falling training loss. What single number gives it away?</summary><p>The validation accuracy, 32%, which is below the lazy model's 48%. A network that only memorises random labels scores below the base rate on new sharks.</p></details>
     <details><summary>In the NaN run, clipping at norm 1.0 stops the NaN. Why is that not a fix?</summary><p>The steps are capped, but the learning rate is still far too high for this network. Most units die, the loss stays at 1.25 and accuracy is the lazy model's. The cause, the rate, was not changed.</p></details>
+    <details><summary>A network ends with a loss of 1.23. Name two quick checks that separate the badly initialised run from the dead-unit run.</summary><p>The gradient norm per layer: a bad start gives tiny norms (about \(10^{-7}\) in layers 1 to 3) after a normal-looking first loss. Dead units give gradients of 0 in the dead layers. The dead-unit bars: 25% and 54% in layers 3 and 4 for the bad start, and 100% in both for the dead-unit run.</p></details>
   </div>
 </section>
 
@@ -199,6 +274,32 @@ table.sym td:first-child { color: var(--ink); font-weight: 600; }
     <li><b>\(\eta\)</b> is the learning rate and <b>\(g\)</b> the gradient of the layer. With momentum \(\beta\) the steady step is up to \(1/(1-\beta)\) times larger, which is 10 times for \(\beta = 0.9\). The lab's logged values are 2 to 10 times the plain formula.</li>
   </ul>
   <p>The two boxes above are worked examples with numbers from the lab. The plain formula gives 0.0017 for the healthy layer, and the logged value is 0.0032, about 2 times higher because of momentum. For the badly initialised layer, whose weights have spread 0.005 and so a norm of only 0.06, the formula gives 1.9e-7 and the log says 3.7e-7. What matters is the gap between the two layers: a factor of about 10,000.</p>
+  <p><b>The ratio under Adam.</b> At its first step Adam moves a weight with slope \(g\) by \(\eta\,g/(\lvert g\rvert + \epsilon)\), where \(\epsilon\) is 10\(^{-8}\). Later steps use running averages in place of \(g\), and no step is much larger than \(\eta\). When \(\lvert g\rvert\) is far above \(\epsilon\), all weights move by about \(\eta\) at the first step. A layer of \(n\) weights then moves by \(\eta\sqrt n\) and has a norm of \(\sqrt n\,\bar w\), so \(r \approx \eta/\bar w\). Here \(\bar w\) is the root mean square weight. For later steps this is a ceiling. With \(\eta = 0.01\) and the lab's healthy first layer (\(\bar w = 0.54\)) it gives 0.019. The lab's run with He initialisation and Adam logs 0.019 at step 1 and about 0.004 near the end, when the slopes of different batches disagree. The bad start breaks the condition. In the lab's Adam run from the bad start (rate 0.01) the first-layer slope at step 1 is about \(3.6\times10^{-9}\) per weight, below \(\epsilon\). The step is only 26% of \(\eta\), and the ratio is 0.53, near the 0.46 that was logged. At step 2 the logged ratio is 0.83. Plain SGD in the same start had a ratio of \(10^{-8}\). Adam rescues the run because its step does not shrink with the slope until the slope falls below \(\epsilon\).</p>
+  <div class="eqn" role="img" aria-label="Worked example: slope 3.6e-9, divided by slope plus 1e-8 gives 0.26, a layer step of 0.01 times 0.26 times 12 is 0.032, divided by the weight norm 0.06 gives a ratio of 0.53"><span class="t c-navy"><b>3.6&times;10<sup>&minus;9</sup></b><i>slope per weight, layer 1</i></span><span class="op">&rarr;</span><span class="t c-sand"><b>0.26</b><i>g &divide; (g + 10<sup>&minus;8</sup>)</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>0.032</b><i>step of the layer: 0.01 &times; 0.26 &times; 12</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>0.53</b><i>&divide; 0.06, the weight norm</i></span></div>
+
+  <p>The code below logs the gradient norm and the update ratio of all five layers for 375 steps of SGD with momentum 0.9, in the healthy network and in the badly initialised one, and prints the medians. It continues the code of the lab section. The healthy network has medians near 0.4 to 0.5 for the gradient and 0.002 to 0.007 for the ratio. The bad start has \(5\times10^{-8}\) and \(2\times10^{-7}\) in layer 1, and \(7\times10^{-3}\) and \(5\times10^{-3}\) in layer 5. Only the last layer learns, which is the base-rate network above. These medians run over all 375 steps, so they are lower than the figure, which logs the largest value in an interval near the end of the run.</p>
+<pre class="code"><code># continues the lab code above
+def log_run(net, X, lr=0.02, steps=375):
+    opt = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9)
+    lins = [m for m in net if isinstance(m, nn.Linear)]
+    g = torch.Generator().manual_seed(0); norms, ratios = [], []
+    for _ in range(steps):
+        i = torch.tensor(tr)[torch.randint(0, 480, (32,), generator=g)]
+        before = [m.weight.detach().clone() for m in lins]
+        opt.zero_grad(); nn.functional.cross_entropy(net(X[i]), y[i]).backward()
+        norms.append([m.weight.grad.norm().item() for m in lins])
+        opt.step()
+        ratios.append([((m.weight.detach() - b).norm() / b.norm()).item() for m, b in zip(lins, before)])
+    return np.array(norms), np.array(ratios)
+
+for name, net in [("He", network()), ("spread 0.005", network(spread=0.005))]:
+    n, r = log_run(net, X_std)
+    print("%-12s median gradient norm" % name, " ".join("%.0e" % v for v in np.median(n, 0)))
+    print("%-12s median update ratio " % name, " ".join("%.0e" % v for v in np.median(r, 0)))</code></pre>
+<pre class="out">He           median gradient norm 4e-01 5e-01 5e-01 4e-01 5e-01
+He           median update ratio  3e-03 3e-03 3e-03 2e-03 7e-03
+spread 0.005 median gradient norm 5e-08 4e-08 4e-08 3e-06 7e-03
+spread 0.005 median update ratio  2e-07 7e-08 5e-08 2e-06 5e-03</pre>
   <div class="debug">
     <p><b>Debug tip.</b> If a layer's gradient is 0 for many steps, count its dead units before you touch the rate. A gradient that is small but not 0 points at the scale of the weights. A gradient of 0 points at dead units or a disconnected part of the graph.</p>
   </div>
@@ -206,6 +307,7 @@ table.sym td:first-child { color: var(--ink); font-weight: 600; }
     <p class="recall-h">Quick quiz</p>
     <details><summary>Rate 0.01, gradient norm 2, weight norm 40. Plain SGD. What is the ratio and is it in the usual range?</summary><p>\(0.01 \times 2/40 = 5\times10^{-4}\). That is a little below \(10^{-3}\), so the layer moves slowly, though still within a factor of 2 of the usual value.</p></details>
     <details><summary>Why can gradient norms of different layers differ by 10 times in a healthy network?</summary><p>Layers have different sizes and different weight norms. A comparison of layers is meaningful in the ratio of step to weight, which divides out the size, more than in the raw norm.</p></details>
+    <details><summary>Adam with \(\eta = 0.001\) trains a layer whose typical weight is 0.05. What ratio do you expect, and is it in the usual range?</summary><p>\(r \approx \eta/\bar w = 0.001/0.05 = 0.02\) at most. That is up to 20 times the usual \(10^{-3}\), so the layer may move fast. Log the ratio to see, then lower the rate or check why the weights are so small.</p></details>
   </div>
 </section>
 
@@ -273,6 +375,7 @@ the 32 heaviest     loss  346.83  layers [19.6 77.1 47. ]  total 92.4
 clip_grad_norm_ returned 95.52; norm after clipping 1.00</pre>
   <p>The code prints one network at the start of training, on made-up records. The heaviest batch has a gradient about 23 times larger than the ordinary one (92.4 against 4.1), so one step on it would move the weights 23 times farther. The function returns the norm before clipping, 95.5 (it also counts the bias terms, hence a little above the 92.4 of the weight matrices), and the norm after is 1.00.</p>
   <p><b>Where it misleads.</b> Clipping treats the symptom. Another fix in the lab treats the cause. Predicting the log of the weight removes the heavy tail (as in <a href="../a2-linear-regression/#loglog">A2</a>), and the loss falls smoothly with no clipping at all. Its numbers are in log units, so compare the behaviour of the curves, not the values. A threshold that is too low acts like a smaller learning rate on all batches. <b>In practice</b>, log the norm before clipping and look at its distribution over a few hundred steps. Choose \(c\) a little above the typical norm so that only the extreme batches are cut. If the clip is active on most steps, the threshold is too low, the rate is too high, or the data has a problem to fix first. Values near 1 are a common starting point.</p>
+  <p><b>Choosing the threshold.</b> The exploding run was repeated with six thresholds (one seed, SGD with momentum 0.9, rate 0.003, validation error after 372 steps). With no clipping the error is 1.78. At \(c = 30\) it is 10.7 and at 10 it is 6.8, both worse. At 3 it is 0.88, at 1 it is 0.13 and at 0.3 it is 0.32. The unclipped gradient norms of this run have a median of 3.2, a 90th percentile of 28 and a maximum of 284. At \(c = 1\) the clip is active on 79% of the steps. By the rule of this section that points to another fault. Here it is the target: the weights run from 0.02 to 59 kg, and the log target is the better cure. One seed is a weak basis for a rule. Repeated for seeds 0 to 4, the median error is 4.1 with no clip, 1.2 at \(c = 30\), 0.74 at 10, 0.62 at 3 and 0.09 at 1. The high thresholds are then not worse than no clip in the median, but the runs at \(c = 30\) range from 0.25 to 53. Only the low threshold is reliably good.</p>
   <div class="debug">
     <p><b>Debug tip.</b> Clip after <code>backward()</code> and before <code>step()</code>. Clipping after the step has no effect, and clipping before the backward pass has no gradient to rescale.</p>
   </div>
@@ -280,6 +383,7 @@ clip_grad_norm_ returned 95.52; norm after clipping 1.00</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>The gradient is (3, 4) and \(c = 2\). Give the result of clipping by norm and by value.</summary><p>The norm is 5, so by norm the factor is 0.4 and the result is (1.2, 1.6), with norm 2. By value both components are cut to 2: (2, 2), whose direction is 45 degrees against 53 degrees for the original.</p></details>
     <details><summary>Why does clipping not hide a learning rate that is too high?</summary><p>It caps the size of one step, but a rate that is too high also causes oscillation and dead units in steps below the cap. In the lab's NaN run the clipped network still stays at the base-rate loss.</p></details>
+    <details><summary>The threshold test shows clipping at \(c = 30\) ending worse than no clipping. What should you do before you conclude that high thresholds hurt?</summary><p>Repeat the test with several seeds. The result is one run, and seed-to-seed spread is large (the reproducibility section). With seeds 0 to 4 the median error at \(c = 30\) is 1.2, against 4.1 with no clip. Also log how often the clip fires, because a threshold that never fires and one that fires on most steps are different faults.</p></details>
   </div>
 </section>
 
@@ -300,6 +404,35 @@ clip_grad_norm_ returned 95.52; norm after clipping 1.00</pre>
   </div>
   <p class="cap"><b>The loss is nearly flat below 0.0003, falls steeply from 0.003 to 0.03, is lowest near 0.07 and rises again above 0.4. Rates of 0.003 and 0.01 give the best validation loss (0.65 and 0.68), and rates of 0.3 and above stick between 1.2 and 1.3.</b> Click the left plot or use the slider to see the training run for ten fixed rates. SGD with momentum 0.9 on the 480 made-up records, one seed.</p>
   <p>The answer to the guess is "well before". The lowest point of the range test is reached while the rate is still rising, so the network has not had time to settle at that rate. The common rule is to take a rate about ten times below the lowest point, here 0.007. The runs on the right agree. Validation loss at 0.003 is 0.65, at 0.01 it is 0.68, and at 0.1 it is 0.84 (a rate near the lowest point of the test). At 0.3 the run has died (loss 1.23). Smith (2017; first posted in 2015) described the test in the paper on cyclical learning rates, as a way to find the bounds of a good range.</p>
+  <p><b>Two ways to read the curve.</b> The first rule takes a tenth of the rate at the lowest smoothed loss. That loss is 0.71 at a rate of 0.071, so the rule gives 0.007. The second rule takes the rate where the loss falls fastest per tenfold rise of the rate. The code below finds it near 0.023, where the smoothed loss falls by 1.2 per tenfold rise (the figure's own run puts it near 0.018, because its batch order differs). Compare both with the fixed-rate runs. The validation loss is 0.65 at 0.003, 0.68 at 0.01 and 0.77 at 0.03. The first rule gives a rate between the two best rates, 0.003 and 0.01. The second gives one between 0.01 and 0.03. Both are in the good band. Neither rate was run itself. The first lies between the two best runs. The second lies between the runs with losses 0.68 and 0.77. So the first looks safer, though another seed could change the order.</p>
+  <p>The ramp itself has a meaning. The rate rises by 6.5% per step. It takes 73 steps to go from \(10^{-5}\) to \(10^{-3}\), more than a third of the run, and the loss hardly moves there. The lowest point comes at step 140, which is where \(10^{-5}\times1.065^{140} = 0.07\). The useful part of a 200-step test is the last 100 steps.</p>
+<pre class="code"><code># continues the lab code above
+def range_test(lo=1e-5, hi=3.0, steps=200, batch=32):
+    net = network()
+    opt = torch.optim.SGD(net.parameters(), lr=lo, momentum=0.9)
+    g = torch.Generator().manual_seed(0); order = torch.randperm(480, generator=g); pos = 0
+    rates, smooth, ema = [], [], None
+    for t in range(steps):
+        lr = lo * (hi / lo) ** (t / (steps - 1))                  # the rate rises by the same factor at every step
+        for group in opt.param_groups: group["lr"] = lr
+        if pos + batch &gt; 480: order = torch.randperm(480, generator=g); pos = 0
+        i = torch.tensor(tr)[order[pos:pos + batch]]; pos += batch
+        opt.zero_grad(); loss = nn.functional.cross_entropy(net(X_std[i]), y[i]); loss.backward(); opt.step()
+        ema = loss.item() if ema is None else 0.9 * ema + 0.1 * loss.item()       # smoothed loss
+        rates.append(lr); smooth.append(ema)
+    return np.array(rates), np.array(smooth)
+
+rates, smooth = range_test()
+low = smooth.argmin()
+slope = np.gradient(smooth, np.log10(rates))                      # change of the smoothed loss per tenfold rise of the rate
+steep = slope[:low + 1].argmin()
+print("lowest smoothed loss %.3f at rate %.3f" % (smooth[low], rates[low]))
+print("rule 1, a tenth of the lowest point: %.4f" % (rates[low] / 10))
+print("rule 2, steepest fall: rate %.4f (loss falls %.2f per tenfold rise)" % (rates[steep], -slope[steep]))</code></pre>
+<pre class="out">lowest smoothed loss 0.707 at rate 0.071
+rule 1, a tenth of the lowest point: 0.0071
+rule 2, steepest fall: rate 0.0228 (loss falls 1.16 per tenfold rise)</pre>
+
   <div class="eqn" role="img" aria-label="Worked example: factor per step is 3 over 1e-5 to the power 1 over 199, about 1.065; at step 100 the rate is 0.0057"><span class="t c-navy"><b>(3 &divide; 10<sup>&minus;5</sup>)<sup>1/199</sup></b><i>200 steps, 10&minus;5 to 3</i></span><span class="op">=</span><span class="t c-teal"><b>1.065</b><i>6.5% more per step</i></span><span class="op">|</span><span class="t c-navy"><b>10<sup>&minus;5</sup> &times; 1.065<sup>100</sup></b><i>at step 100</i></span><span class="op">=</span><span class="t c-coral"><b>0.0057</b><i>rate at the middle of the test</i></span></div>
   <p class="math">\[ \eta_t \;=\; \eta_{\min}\Big(\frac{\eta_{\max}}{\eta_{\min}}\Big)^{t/T} \]</p>
   <ul class="math-notes">
@@ -312,6 +445,7 @@ clip_grad_norm_ returned 95.52; norm after clipping 1.00</pre>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why is the range test's lowest point not the rate to use?</summary><p>The loss at a rate was measured while the rate was rising and the weights were still near the start. A rate that is best for 200 steps on a ramp is often too high to stay stable for thousands of steps. A tenth of it is a safer first try.</p></details>
+    <details><summary>With the ramp of the worked example, at which step is the rate 0.07, and why does the lowest loss come after the steep fall?</summary><p>The rate is \(10^{-5}\times1.065^{t}\), so \(t = \ln(7000)/\ln(1.065) = 140\). The loss falls while the rate is useful and bottoms out when the steps get too long to settle. The smoothed value lags the rate by a few steps, so its lowest point comes a little after the best rate.</p></details>
     <details><summary>What would a range test with a loss that falls until the end of the ramp tell you?</summary><p>The ramp stopped too early. Extend the top rate until the loss breaks, otherwise you know only the lower end of the good range.</p></details>
   </div>
 </section>
@@ -336,11 +470,33 @@ clip_grad_norm_ returned 95.52; norm after clipping 1.00</pre>
   <p class="cap"><b>The too simple model has training error 0.25 and validation error 0.29 at 384 sharks: both curves are flat and above the target. The too flexible model has training error 0.00 and validation error 0.30, and its validation curve is still falling. The middle model has 0.18 and 0.26.</b> Means of 10 networks on the made-up records; the validation set has 120 sharks. The target of 0.20 is a made-up working goal, close to the error of the trees of A5 and A6.</p>
   <p>The answer to the guess is "not at all". Training error 25% and validation error 29% means the model is far from the target already on the sharks it has seen. More sharks would raise the training error and not lower it. This is Ng's argument in <i>Machine Learning Yearning</i> (chapters 20 to 32). The training error shows bias, and the difference between validation and training error shows variance. If the training error is already above the desired level, more data cannot repair that. Try the three models. In the flexible model the training error is 0 for all sizes while the validation error falls from 0.40 to 0.30 and has not stopped. Here more data helps, and so does a penalty or a smaller network.</p>
   <p>Ng's decomposition takes the best achievable error (his "optimal error rate") into account. Total error is optimal error plus avoidable bias plus variance. Avoidable bias is training error minus optimal error, and variance is validation error minus training error. In the figure the target of 0.20 replaces the optimal error. For the simple model at 384 sharks, the avoidable bias is \(0.25 - 0.20 = 0.05\) and the variance is \(0.29 - 0.25 = 0.04\). Both are modest, and the model is limited by its inputs. It uses the length only, while the other models also see girth, weight, depth and month. For the flexible model the avoidable bias is 0 (training error is below the target) and the variance is 0.30. The remedies are short. For high avoidable bias, try a bigger model, new inputs, or longer training. For high variance, try more data, a penalty (<a href="../b7-continual-learning/#reg">B7</a>), augmentation, or a smaller model.</p>
+  <p><b>The other two models by the numbers.</b> The simple model improves from 0.358 to 0.291 as the data grows from 12 to 48 sharks, then stays between 0.291 and 0.294 up to 384. Eight times more sharks changed the validation error by 0.003, and its training error is already 0.25. This is the case of the guess: it needs a better model or new inputs. For the medium model, the validation error falls by 0.027 from 96 to 192 sharks (0.304 to 0.277) and by 0.019 from 192 to 384 (to 0.258). The gains shrink as the data doubles. If the next doubling gave about 0.013, the error would be near 0.245, still above the target of 0.20. That is an extrapolation and not a measurement, but it says that more data alone will be slow.</p>
+<pre class="code" data-run><code>import numpy as np
+
+# training and validation error at 12, 24, 48, 96, 192 and 384 sharks (mean of 10 networks, made-up records)
+curves = {
+    "simple":   ([.233, .250, .258, .261, .264, .249], [.358, .308, .291, .294, .293, .294]),
+    "medium":   ([.000, .021, .083, .133, .173, .178], [.387, .328, .332, .304, .277, .258]),
+    "flexible": ([.000, .000, .000, .000, .000, .002], [.396, .356, .358, .345, .336, .298]),
+}
+target = 0.20                                    # a made-up working goal
+for name, (train, val) in curves.items():
+    train, val = np.array(train), np.array(val)
+    bias = max(train[-1] - target, 0)            # avoidable bias: training error above the target
+    variance = val[-1] - train[-1]               # gap between validation and training error
+    gain = val[-2] - val[-1]                     # what the last doubling of the data bought
+    advice = "more sharks will not help" if gain &lt; 0.005 else "more sharks help"
+    print("%-8s bias %.3f  variance %.3f  gain from 192 to 384 sharks %+.3f  -&gt; %s" % (name, bias, variance, gain, advice))</code></pre>
+<pre class="out">simple   bias 0.049  variance 0.045  gain from 192 to 384 sharks -0.001  -&gt; more sharks will not help
+medium   bias 0.000  variance 0.080  gain from 192 to 384 sharks +0.019  -&gt; more sharks help
+flexible bias 0.000  variance 0.296  gain from 192 to 384 sharks +0.038  -&gt; more sharks help</pre>
+  <p>The last number of a line is the one to watch. It is the gain from the most recent doubling of the data, and when it falls under half a point the curve has flattened.</p>
   <p><b>Where it misleads.</b> The optimal error is unknown and is often not 0: some sharks in the made-up table look alike in all six measurements, so even a perfect model makes errors. Curves from few runs are noisy (Ng recommends averaging or plotting more sizes), and a validation set of 120 sharks gives an interval of several points (<a href="../a4-grading-models/#subgroups">A4</a>). The diagnosis also assumes the training and validation sets come from the same source. If they do not, a gap can come from the shift and not from variance. <b>In practice</b>, plot the curve before collecting more data, because collecting is expensive and the curve is cheap.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A model has training error 0.02, validation error 0.22, target 0.10. Avoidable bias and variance? What would you try first?</summary><p>Avoidable bias 0 (0.02 is below the target); variance \(0.22 - 0.02 = 0.20\). Try more data, a weight penalty, augmentation, or a smaller model.</p></details>
     <details><summary>Why does the training error rise as you add data for the flexible model?</summary><p>With 12 sharks a large network can memorise all of them. With 384 it cannot fit all noise, so training error rises slightly (0.002 at 384). Ng notes that training error usually rises as the training set grows.</p></details>
+    <details><summary>A model has training error 0.30 and validation error 0.32, and the target is 0.10. The last doubling of the data lowered the validation error by 0.001. What do you try?</summary><p>The avoidable bias is 0.20 and the variance is 0.02, so the model is limited by its own fit. More data cannot help. Try a bigger model, better inputs or longer training.</p></details>
   </div>
 </section>
 
@@ -366,11 +522,30 @@ seed 0, run 2: validation accuracy 0.750
 same split, network seeds 1 to 6: 0.750 0.800 0.758 0.775 0.750 0.750
 same network seed, splits 1 to 6: 0.783 0.858 0.792 0.817 0.808 0.800</pre>
   <p>These four lines come from the repaired pipeline of the next section, run 14 times with the numbers in <code>np.random.default_rng(...)</code> and <code>torch.manual_seed(...)</code> changed. Two identical runs give identical numbers, because all sources of randomness have a seed: <code>torch.manual_seed</code> for the weights and dropout, a seeded NumPy generator for the shuffle and the split. The first two lines of the output show this.</p>
+  <p><b>The paired interval, step by step, and how many seeds you need.</b> The code below takes the 20 scores of both rates and subtracts them seed by seed. The differences have a mean of \(-0.5\) points and a standard deviation of 3.18, so the standard error is \(3.18/\sqrt{20} = 0.71\) and the 95% interval is \(\pm 1.4\). Treating the two groups as unrelated gives a standard error of 1.29, because that keeps the seed-to-seed spread which pairing removes. The same 20 seeds give an interval 1.8 times narrower when they are paired. To see a gain of \(\delta\) points you need an interval narrower than \(\delta\). That means \(1.96\,s/\sqrt n \le \delta\), so \(n \ge (1.96\,s/\delta)^2\). With \(s = 3.2\) that is at least 5 seeds for a 3-point gain and 10 for a 2-point gain. These counts are floors. With so few seeds the multiplier 1.96 should be a t-value (2.8 for 5 seeds), which raises them to 7 and 13. A gain equal to the half-width of the interval is also found only about half the time.</p>
+<pre class="code" data-run><code>import numpy as np
+
+# validation accuracy in %, 20 seeds, at rate 0.02 and rate 0.03 (made-up records; the same seed in the same position)
+a = np.array([74.2, 69.2, 65.8, 68.3, 78.3, 76.7, 72.5, 75.0, 67.5, 67.5, 65.8, 65.8, 75.8, 72.5, 72.5, 75.8, 79.2, 75.8, 70.8, 68.3])
+b = np.array([71.7, 69.2, 67.5, 72.5, 75.8, 78.3, 70.8, 73.3, 69.2, 71.7, 65.0, 66.7, 78.3, 74.2, 69.2, 72.5, 75.0, 68.3, 66.7, 71.7])
+d = b - a                                                # one difference per seed
+se = d.std(ddof=1) / np.sqrt(len(d))                     # standard error of the mean difference
+print("means %.1f and %.1f; spread of one setting %.1f points" % (a.mean(), b.mean(), a.std(ddof=1)))
+print("paired difference %.1f, sd %.1f, standard error %.2f, interval +-%.1f" % (d.mean(), d.std(ddof=1), se, 1.96 * se))
+print("unpaired standard error of the difference: %.2f" % np.sqrt(a.var(ddof=1) / 20 + b.var(ddof=1) / 20))
+for gain in (3, 2):                                      # seeds needed so that the interval is narrower than the gain
+    print("to see a %d-point gain with paired sd %.1f you need at least %d seeds" % (gain, d.std(ddof=1), np.ceil((1.96 * d.std(ddof=1) / gain) ** 2)))</code></pre>
+<pre class="out">means 71.9 and 71.4; spread of one setting 4.4 points
+paired difference -0.5, sd 3.2, standard error 0.71, interval +-1.4
+unpaired standard error of the difference: 1.29
+to see a 3-point gain with paired sd 3.2 you need at least 5 seeds
+to see a 2-point gain with paired sd 3.2 you need at least 10 seeds</pre>
   <p><b>Where it misleads.</b> Seeds do not make a run reproducible on another machine. Some GPU operations are not deterministic, data loaders that use several workers can change the order, and library versions change the numbers. PyTorch has an option to ask for deterministic algorithms, at a cost in speed. Twenty seeds is also a lot for a large model. <b>In practice</b>: log the seed, the settings and the code version of a run. Change one setting at a time. Use at least 3 to 5 seeds for any comparison whose effect is a few points. Report the spread and not the best run. Selecting the best of many seeds and reporting it is a form of peeking at the validation set (<a href="../a4-grading-models/#leak">A4</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Two settings differ by 2 points with a seed spread of 4 points and 3 seeds per setting. Do you accept the difference?</summary><p>No. With 3 seeds the standard error of a mean is about \(4/\sqrt3 = 2.3\) points, so a 2-point difference is within the noise. Run more seeds, or pair them.</p></details>
     <details><summary>Why is the paired comparison tighter than comparing two means?</summary><p>A pair shares the seed, so luck that helps both runs, such as a good initial draw, cancels in the difference. The spread of the differences (3.2 points) is then smaller than the spread of the scores combined.</p></details>
+    <details><summary>Two settings differ by 3 points on average over 5 paired seeds, and the differences have a standard deviation of 3.2. Give the 95% interval. Is the gain shown?</summary><p>The standard error is \(3.2/\sqrt5 = 1.43\). With the multiplier 1.96 the interval is \(3 \pm 2.8\), from 0.2 to 5.8. For 5 seeds the right multiplier is the t-value 2.78, which gives \(3 \pm 4.0\), from \(-1.0\) to 7.0. It contains 0, so the gain is suggested and not shown. Run more seeds.</p></details>
   </div>
 </section>
 
@@ -424,6 +599,7 @@ print(f"validation accuracy {acc:.3f}")</code></pre>
   <p class="cap"><b>Six of the eight tests fail. Five of them point at a specific bug, and between them they name all four. The two that pass, the starting loss and the array sizes, are the ones that all four bugs get past.</b> The outputs are from running the code above; the pipeline's numbers are 0.450 buggy and 0.750 fixed on 120 validation sharks.</p>
   <p>The answer to the guess is four: the data check (bug 1), the gradient test (bug 3), the evaluation-mode test (bug 4) and the output print (bug 2). The overfit test also sees bugs 2 and 3, but it cannot say which is which. The tests were chosen so that a test looks at one component. The data test reads the input and its label. The starting-loss test reads the model and loss together. The overfit test reads the whole loop on a tiny batch. The gradient test isolates <code>backward</code> and <code>zero_grad</code>, the mode test isolates dropout, and the output print isolates the last layer. Tick them in any order. The lazy-baseline test says that the model has learned no more than a guess, and not why. That is the usual value of a baseline: it tells you whether to keep looking.</p>
   <p>Fix the bugs one at a time, and test again after a fix. The scores after the fixes are worth seeing. Fixing the shuffle gives 0.55. Removing the softmax as well gives 0.06, because the missing <code>zero_grad</code> now lets the gradients grow without limit. Adding <code>zero_grad</code> gives 0.77, and switching to evaluation mode gives 0.75. A fix can make the score fall before it rises, because it uncovers a bug that was hiding behind another. This is the practical reason for the one-component-at-a-time rule: with four changes at once you would not know which one helped.</p>
+  <p><b>One bug at a time.</b> A second experiment puts one bug at a time back into the repaired pipeline. Validation accuracy is 0.450 with only the two separate shuffles, the lazy model, so that bug alone ends learning. With only the missing <code>zero_grad</code> it is 0.433. With only the double softmax it is 0.775, and with only the dropout left on during validation it is 0.767, against 0.750 for the repaired pipeline. The last two stay inside the range of the six network seeds above (75.0% to 80.0%), so no accuracy check would find them. The tests do, because a test reads one component. A bug that leaves the score alone on this data can matter elsewhere. The double softmax squeezes the scores into the range 0 to 1, which flattens the loss, and dropout during validation adds noise to all the numbers you compare. Starting from the broken pipeline, fixing a single bug raises the score only for the shuffle (0.55).</p>
   <div class="break">
     <p><b>Common belief.</b> If the starting loss matches \(\ln K\) and the code runs without errors, the pipeline is correct.</p>
     <p><b>Why it fails.</b> The starting loss only checks the model and loss at initialisation. The shuffled labels, the missing <code>zero_grad</code> and the dropout in evaluation do not change it, and none of them raises an error.</p>
@@ -436,6 +612,7 @@ print(f"validation accuracy {acc:.3f}")</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>Which two tests would have caught the label bug before any training?</summary><p>Reading one known example (Tag 5519) and its label, and a lazy-baseline comparison after a short run. The first catches it directly.</p></details>
     <details><summary>The softmax bug did not change the starting loss. Why?</summary><p>The outputs after the first softmax are close to 0.2, and a second softmax of numbers near 0.2 is still close to uniform. The loss starts near \(\ln 5\) either way.</p></details>
+    <details><summary>The double softmax alone leaves the accuracy at 0.775, above the repaired pipeline. Why is it still worth fixing?</summary><p>It squeezes the scores into the range 0 to 1, so the loss is flat and the slopes are small. With five classes the second softmax gives the true class at most \(e/(e+4) = 0.40\), so the loss cannot fall below 0.90. Training is slower and the printed probabilities are not what the loss treats as scores. Here the data is easy enough to hide this, and a harder problem would not.</p></details>
   </div>
 </section>
 
