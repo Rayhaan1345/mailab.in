@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data, fairness and privacy | How AI Learns</title>
+<meta name="description" content="Who is in the data and who is missing, why no threshold can equalise all the scores between two groups, stereotypes learned from text, how a few columns can point to one person, and why a printed probability can mislead. The topics have interactive figures.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Local additions for this chapter only. */
+code { overflow-wrap: anywhere; }
+.math { position: relative; }
+.refs li { overflow-wrap: anywhere; }
+.card .bar .label { margin-right: 4px; }
+.card .bar { row-gap: 8px; }
+.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
+.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
+.card .bar select, .card .controls select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.card .bar label:has(select) { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
+.mini-note { max-width: 46em; font-size: 14.5px; color: var(--muted); margin: 6px 0 0; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; margin: 6px 0 0; }
+.tbl th, .tbl td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; vertical-align: top; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { font-weight: 500; color: var(--muted); }
+.tbl td.gap { color: var(--coral); font-weight: 600; }
+.tbl .cell-note { font-size: 12.5px; color: var(--muted); }
+.tbl.words td, .tbl.words th { text-align: left; font-feature-settings: normal; }
+.tbl.words td:first-child { white-space: nowrap; color: var(--ink); font-weight: 600; }
+.counts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.counts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 760px) { .counts.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } .counts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } .counts.three span { font-size: 12.5px; } }
+.bridge { max-width: 46em; margin: 16px 0; padding: 8px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--sand); border-radius: 0 6px 6px 0; background: var(--paper); }
+.bridge p { margin: 5px 0; color: var(--ink-2); }
+.bridge b { color: var(--ink); }
+.vbar { display: grid; grid-template-columns: 150px 1fr 52px; align-items: center; gap: 8px; margin: 5px 0; font-size: 14.5px; color: var(--ink-2); }
+.vbar .tr { height: 16px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+.vbar .fl { height: 100%; border-radius: 3px; }
+.vbar b { color: var(--ink); text-align: right; font-feature-settings: "tnum" 1, "lnum" 1; }
+@media (max-width: 600px) { .vbar { grid-template-columns: 110px 1fr 46px; } .hide-s { display: none; } .tbl { font-size: 13px; } .tbl th, .tbl td { padding: 4px 4px; } }
+#pv-table tr[data-i] { cursor: pointer; }
+#pv-table tr.uniq td { background: color-mix(in srgb, var(--coral) 18%, transparent); }
+#pv-table tr.homo td { background: color-mix(in srgb, var(--sand) 22%, transparent); }
+#pv-table tr.pick td { box-shadow: inset 0 2px 0 var(--ink), inset 0 -2px 0 var(--ink); font-weight: 600; }
+#pv-table td, #pv-table th { text-align: left; padding: 3px 8px; }
+#pv-table td:last-child, #pv-table td:nth-last-child(2), #pv-table th:last-child, #pv-table th:nth-last-child(2) { text-align: right; }
+#pv-table s { color: var(--muted); }
+.plot.bias { min-height: 760px; }
+.legend-line { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 0 0; font-size: 14px; color: var(--ink-2); }
+.legend-line span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--c, var(--navy)); border: 2px solid var(--c, var(--navy)); }
+.legend-line span.ring::before { background: none; }
+.legend-line span.sq::before { border-radius: 2px; }
+.card .group { border-radius: 16px; }
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="f1">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part F, AI in the world</span><span>Chapter F1</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part F &middot; Chapter F1</p>
+  <h1>Data, fairness and privacy</h1>
+  <p class="subtitle">Who is in the data, who is missing, and what a model can leak or get wrong.</p>
+</header>
+
+<div class="tldr">
+  <p>A model learns from the people who happen to be in its data. This chapter follows the clinic story of A4 into a Mumbai neighbourhood. You will test a model trained on Pima women against a visitor who looks little like them. You will check whether it works equally well for two groups of women. Then you will see why no threshold can equalise all the scores when the groups differ in how common diabetes is.</p>
+  <p>Then the chapter turns to what data and models can leak or get wrong. Word vectors pick up stereotypes from text. A table with the names removed can still point to one person. A printed probability can look far more certain than it is. The topics have figures you can push until they break.</p>
+</div>
+<p class="youneed"><b>You will need:</b> the confusion matrix and its scores from <a href="../a4-grading-models/#matrix">A4</a>, with its sections on <a href="../a4-grading-models/#screening">base rates</a> and <a href="../a4-grading-models/#subgroups">subgroups</a>. From the toolkit, <a href="../t7-probability/#bayes">Bayes' rule</a>. For the text section, the <a href="../d2-embeddings/#analogy">word vectors of D2</a>. <a href="../c3-domain-shift/#water">C3</a> explains why a model fails when the world changes.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#missing">Who is in the data?</a></li>
+    <li><a href="#groups">Fair for whom? Two groups, one threshold per group</a></li>
+    <li><a href="#text">Stereotypes learned from text</a></li>
+    <li><a href="#privacy">Privacy and consent</a></li>
+    <li><a href="#trust">A number that looks certain</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. who is in the data ============================ -->
+<section id="missing" aria-labelledby="missing-h">
+  <h2 id="missing-h">Who is in the data?</h2>
+  <p class="ask"><b>Guess first.</b> The clinic model of A4 learned from 768 women of Pima heritage, measured in the United States. A woman visits a Mumbai clinic with a body mass index (BMI) of 24. Among the 768 women, about how many had a BMI below 24: 1 in 100, 1 in 10, or 1 in 3?</p>
+  <dl class="terms">
+    <div><dt>training population</dt><dd>the people whose records the model learned from</dd></div>
+    <div><dt>coverage</dt><dd>how many training records lie close to a new input</dd></div>
+    <div><dt>dataset shift</dt><dd>the people or conditions at use time differ from those in the data (<a href="../c3-domain-shift/#water">C3</a>)</dd></div>
+    <div><dt>learned base rate</dt><dd>the share of positives in the training data, which the model builds into its intercept (<a href="../t7-probability/#bayes">0.7</a>)</dd></div>
+  </dl>
+  <p class="claim">A model only knows the people it has seen. Where the data are thin, its answer is a guess, and the printed probability does not say so.</p>
+  <div class="card" id="mi">
+    <div class="bar"><span class="label">Try a visitor</span><span id="mi-bar"></span></div>
+    <div class="controls" id="mi-controls"></div>
+    <div class="plot" id="mi-plot" role="img" aria-label="Scatter of age and BMI for the 768 Pima women, navy for no diabetes and coral for diabetes, with a star for a visitor, a box around the women nearby, and dotted lines at BMI 23 and 27.5. Few Pima women have a low BMI."></div>
+    <div class="legend-line"><span style="--c: var(--navy)">no diabetes</span><span class="sq" style="--c: var(--coral)">diabetes</span><span style="--c: var(--teal)">visitor and neighbourhood box</span></div>
+    <div class="controls" id="mi-controls2" style="margin-top: 12px"></div>
+    <div class="counts four">
+      <div><b id="mi-p">0%</b><span>the model's chance of diabetes for the visitor</span></div>
+      <div class="on"><b id="mi-ps">0%</b><span>the same evidence where the share with diabetes is the one you chose</span></div>
+      <div><b id="mi-n">0</b><span>Pima women in the neighbourhood box</span></div>
+      <div><b id="mi-share">0%</b><span>of them have diabetes</span></div>
+    </div>
+    <p class="status" id="mi-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>Few Pima women look like a 45-year-old with a BMI of 24: only 9 lie within 5 years and 3 BMI points, and about 1 woman in 10 has a lower BMI than that.</b> The model still prints a chance (17%) and does not say how little it has seen. The three made-up visitors are not people; the dotted lines mark BMI 23 and 27.5, the extra action points proposed by a WHO expert consultation for Asian populations.</p>
+  <p>A dot is a woman in the training data. The star is a visitor and the teal box is the neighbourhood: the women within 5 years of age and 3 BMI points. Drag the BMI down towards 22 and the box leaves the cloud. The count of women in it drops to single figures, yet the model returns a number for any input. A new input far from the training data is called extrapolation, and a logistic regression extrapolates along a straight line in the log-odds. The line is only a guess outside the data.</p>
+  <p>The BMI case has a known reason to worry. A WHO expert consultation reviewed the evidence and reported in 2004 that Asian populations differ from European ones in how BMI relates to body fat and health risk. Many Asian people are at high risk of type 2 diabetes at a BMI below 25. The consultation proposed extra action points at 23 and 27.5 and did not set one cut-off for all Asians (WHO Expert Consultation, 2004). The Pima women are neither of those groups, and their mean BMI is 32.5. The model learned its BMI slope in a population where a BMI of 24 is rare. The Pima table cannot tell you how that slope would change in another population.</p>
+  <h3 class="sub-h3" style="margin: 22px 0 8px; font-size: 19px; font-weight: 600">The same disease, a different place</h3>
+  <p>The table compares the training sample with a clinic in Mumbai. The clinic is a story. Its entries say what is known and what you would have to count before using the model there.</p>
+  <table class="tbl words" aria-label="The Pima sample compared with a Mumbai clinic">
+    <thead><tr><th></th><th>Pima sample (the data)</th><th>A Mumbai clinic (the story)</th></tr></thead>
+    <tbody>
+      <tr><td>Who</td><td>768 women of Pima heritage, aged 21 or older, from one study near Phoenix, Arizona</td><td>Women and men, children and adults, from many communities</td></tr>
+      <tr><td>Who is missing</td><td>Men, children, people under 21, people of other heritage</td><td>Unknown until you count the clinic's own patients</td></tr>
+      <tr><td>Body size</td><td>Mean BMI 32.5; about 1 woman in 10 below 24</td><td>Unknown; the WHO consultation found risk at lower BMI in many Asian populations</td></tr>
+      <tr><td>Diabetes</td><td>34.9% of the women (268 of 768)</td><td>Unknown. For comparison, a national survey of adults aged 20 and over (ICMR-INDIAB, Anjana and others, 2023; 113,043 participants) found 11.4% across India. It covers men and women from the whole country and is not this clinic. A clinic could see more or fewer.</td></tr>
+      <tr><td>Measurements</td><td>A 2-hour glucose test in a research study</td><td>Whatever tests the clinic runs, on whoever comes in</td></tr>
+      <tr><td>When</td><td>Described in 1988</td><td>Today</td></tr>
+    </tbody>
+  </table>
+  <p>The last number to look at is the base rate. The model's intercept contains the 34.9% it saw in training. Move the share-with-diabetes slider to 11.4%. This is the national survey figure, used here in place of the clinic's unknown rate. The printed chance for the same evidence falls by more than half. The fix is a shift of the log-odds. It assumes the only difference between the places is how common the disease is. The coverage box shows that this assumption is generous: the women also differ in body size.</p>
+  <div class="eqn" role="img" aria-label="Worked example: shifting the log-odds from the training base rate to the clinic's base rate"><span class="t c-navy"><b id="mi-eq-z">0</b><i>log-odds from the model, z</i></span><span class="op">+</span><span class="t c-coral"><b id="mi-eq-new">0</b><i>log-odds of the new share</i></span><span class="op">&minus;</span><span class="t c-sand"><b id="mi-eq-old">0</b><i>log-odds of the training share (34.9%)</i></span><span class="op">=</span><span class="t c-teal"><b id="mi-eq-zs">0</b><i>shifted log-odds</i></span><span class="op">&rarr;</span><span class="t"><b id="mi-eq-p">0%</b><i>printed chance</i></span><span class="op">&rarr;</span><span class="t c-teal"><b id="mi-eq-ps">0%</b><i>chance after the shift</i></span></div>
+  <p class="math">\[ z' = z + \ln\frac{\pi'}{1-\pi'} - \ln\frac{\pi}{1-\pi} \qquad p' = \sigma(z') = \frac{1}{1+e^{-z'}} \]</p>
+  <ul class="math-notes">
+    <li><b>\(z\)</b> is the model's log-odds for the woman, and <b>\(p = \sigma(z)\)</b> the chance it prints (<a href="../a3-logistic-regression/#sigmoid">A3</a>).</li>
+    <li><b>\(\pi\)</b> is the share of women with diabetes in the training data (34.9%) and <b>\(\pi'\)</b> the share where the model is used. \(\ln\frac{\pi}{1-\pi}\) is the log-odds of a share.</li>
+    <li>The formula is Bayes' rule (<a href="../t7-probability/#bayes">0.7</a>) in log-odds form. It is accurate only if the measurements of sick and of healthy women look the same in both places and the model was well calibrated to begin with.</li>
+  </ul>
+  <p>A second example: visitor 2, aged 62 with a BMI of 22.5 and a glucose of 140, gets a printed 28%. At an 11.4% share the shifted chance is 9%. Only 10 Pima women lie in her box. Both numbers rest on a model that has little to say about women like her.</p>
+  <div class="bridge">
+    <p><b>Bridge to Rayhaan's diabetes project.</b> Rayhaan built a diabetes risk screening app on this Pima data and checked results across demographic subgroups for bias. The lesson he draws is that a model trained on one population may not suit another: the app flagged his mother, who is not from that population. See the <a href="https://rayhaan1345.github.io/projects/diabetes-screening/">project page</a>.</p>
+  </div>
+  <div class="break">
+    <p><b>Common belief.</b> A model trained on diabetes data works for anyone who might have diabetes.</p>
+    <p><b>Why it fails.</b> The model learned how its inputs relate to diabetes in one group. In another group the inputs can mean something else, and the disease can be more or less common.</p>
+    <p><b>Better account.</b> Ask who is in the training data and who is not. Count the training records near the new input. Measure the model on local patients before relying on it.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Before you trust a score, count the training rows near the input, as the neighbourhood box does. A model gives a number for any input, including inputs far from all it saw. A score with few neighbours is a guess, whatever the digits say.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+
+# 12 made-up training women: age and BMI
+age = np.array([23, 25, 29, 31, 34, 38, 41, 45, 47, 52, 58, 63])
+bmi = np.array([36, 31, 29, 38, 33, 41, 35, 30, 34, 37, 32, 39])
+
+# coverage: training women within 5 years and 3 BMI points of a visitor
+near = (np.abs(age - 45) &lt;= 5) &amp; (np.abs(bmi - 24) &lt;= 3)
+print("women near a 45-year-old with BMI 24:", near.sum())
+
+def shift(p, old, new):
+    z = np.log(p / (1 - p)) + np.log(new / (1 - new)) - np.log(old / (1 - old))
+    return 1 / (1 + np.exp(-z))
+
+print("printed 0.70 at 34.9% becomes", round(shift(0.70, 0.349, 0.114), 3), "at 11.4%")</code></pre>
+  <pre class="out">women near a 45-year-old with BMI 24: 0
+printed 0.70 at 34.9% becomes 0.359 at 11.4%</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The neighbourhood box around a visitor contains 3 training women. What does that tell you about the model's probability for her?</summary><p>The model has little to learn from near her, so the probability is an extrapolation. Its digits look the same as for a woman with 100 neighbours, which is why you check coverage yourself.</p></details>
+    <details><summary>A model was trained where 35% of people have a disease and is used where 10% do. Which of its numbers change meaning: sensitivity, specificity, or the printed probability?</summary><p>The printed probability. Sensitivity and specificity describe how the model treats sick and healthy people, so they stay valid if those groups look the same. The probability mixes in the base rate, which changed (<a href="../a4-grading-models/#screening">A4</a>).</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. two groups ============================ -->
+<section id="groups" aria-labelledby="groups-h">
+  <h2 id="groups-h">Fair for whom? Two groups, one threshold per group</h2>
+  <p class="ask"><b>Guess first.</b> In a table of 768 women, 21% of those under 30 have diabetes and 50% of those 30 and over. You want the clinic model to be equally good for both. You ask for three things. Sick women are found equally often in both groups. A flagged woman is equally likely to be sick in both groups. Healthy women are flagged equally often in both groups. Can some choice of thresholds give you all three?</p>
+  <dl class="terms">
+    <div><dt>fairness metric</dt><dd>a score computed for the groups and compared across them</dd></div>
+    <div><dt>equal opportunity</dt><dd>the same sensitivity in both groups: sick women are found equally often</dd></div>
+    <div><dt>predictive parity</dt><dd>the same precision in both groups: a flag means the same thing</dd></div>
+    <div><dt>equalised odds</dt><dd>the same sensitivity and the same false positive rate in both groups</dd></div>
+  </dl>
+  <p class="claim">When two groups differ in how common the condition is, a model that raises false alarms and finds some sick women cannot equalise sensitivity, precision and false positive rate between them at once.</p>
+  <div class="card" id="gp">
+    <div class="bar"><span id="gp-bar"></span></div>
+    <div class="bar"><span id="gp-bar2"></span></div>
+    <div class="controls" id="gp-controls"></div>
+    <div class="split2">
+      <div>
+        <div class="plot" id="gp-plot" role="img" aria-label="ROC curves of the two groups with one operating point per group. Dashed lines through the origin mark where a point would have the same precision. The two groups need different lines, so equal sensitivity and equal false positive rate cannot come with equal precision."></div>
+        <p class="mini-note" id="gp-aucs"></p>
+      </div>
+      <div>
+        <table class="tbl" id="gp-table"></table>
+      </div>
+    </div>
+    <p class="mini-note">Sensitivity intervals are 95% Wilson intervals (<a href="../a4-grading-models/#subgroups">A4</a>). A gap of 5 points or more is marked in coral.</p>
+    <div class="eqn" id="gp-eqA" aria-live="polite"></div>
+    <div class="eqn" id="gp-eqB" aria-live="polite"></div>
+    <div class="eqn" id="gp-eqR" aria-live="polite"></div>
+    <p class="status" id="gp-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>At a threshold of 0.5 for both groups, the model finds 46% of the sick women under 30 and 62% of the older ones. Their false positive rates are 6% and 22%.</b> Match the sensitivities and the false positive rates become 6% and 10%, and the precisions 66% and 82%. Match the false positive rates and sensitivity falls to 33% against 46%. The scores are out of fold, from the model of A4, on the published Pima women.</p>
+  <p>The ROC curve of a group (<a href="../a4-grading-models/#roc">A4</a>) shows all the trade-offs its threshold allows. A dot is one threshold. Height is sensitivity, and distance from the left edge is the false positive rate. Equal sensitivity means two dots at one height, and equal false positive rate means two dots at one distance from the left edge. The Match buttons move the dots of group B to line up with group A on one of these. Match sensitivity, and the table shows what is left over: precision differs by 15 points and the false positive rate by 4.</p>
+  <p>Try the buttons in turn. Match sensitivity and the older group is flagged less, so its precision rises while its false positive rate stays above the younger group's. Match precision and group B's sensitivity jumps to 79%, with a false positive rate of 40%. Match the false positive rates and group B's sensitivity drops to 33%. No setting makes the three rows equal at once. The dashed lines show why. Along a dashed line the precision is the same, and the lines for the two groups have different slopes.</p>
+  <div class="eqn" role="img" aria-label="Worked example: false positive rate from base rate, precision and sensitivity for a group with a 21 percent base rate"><span class="t c-navy"><b>0.27</b><i>odds of diabetes, 0.212/0.788</i></span><span class="op">&times;</span><span class="t c-navy"><b>0.51</b><i>(1&minus;0.661)/0.661</i></span><span class="op">&times;</span><span class="t c-navy"><b>0.46</b><i>sensitivity</i></span><span class="op">=</span><span class="t c-navy"><b>0.064</b><i>false positive rate</i></span></div>
+  <p class="math">\[ \mathrm{FPR} = \frac{p}{1-p}\cdot\frac{1-\mathrm{PPV}}{\mathrm{PPV}}\cdot \mathrm{TPR} \qquad \frac{\mathrm{FPR}_B}{\mathrm{FPR}_A} = \frac{p_B/(1-p_B)}{p_A/(1-p_A)} \quad\text{if}\quad \mathrm{PPV}_A=\mathrm{PPV}_B,\ \mathrm{TPR}_A=\mathrm{TPR}_B \]</p>
+  <ul class="math-notes">
+    <li><b>\(p\)</b> is the group's base rate, <b>PPV</b> its precision (positive predictive value) and <b>TPR</b> its sensitivity. These are the scores of <a href="../a4-grading-models/#matrix">A4</a>, computed for one group.</li>
+    <li>The identity follows from \(\mathrm{PPV} = \dfrac{p\,\mathrm{TPR}}{p\,\mathrm{TPR} + (1-p)\,\mathrm{FPR}}\) (Bayes, as in <a href="../a4-grading-models/#screening">A4</a>): solve for FPR. Chouldechova (2017) wrote it as equation 2.6, with \(1-\mathrm{FNR}\) in place of TPR.</li>
+    <li>For the two groups here the base rates are 21.2% and 49.5%. Their odds are 0.27 and 0.98, a ratio of 3.6. If precision and sensitivity matched, the older group's false positive rate would have to be 3.6 times the younger group's.</li>
+  </ul>
+  <p>The identity is the whole argument. It is true for any classifier, at any threshold. It does not depend on age or on diabetes. When the base rates are equal, the first factor is the same in both groups and all three scores can be matched. When they differ, the three are tied together by a fixed ratio. Chouldechova (2017) derived it and applied it to recidivism risk scores. Kleinberg, Mullainathan and Raghavan (2016) proved a related result for risk scores. Three natural conditions cannot all be true together. The first is calibration within a group: among people given the score <i>s</i>, a share <i>s</i> have the condition. The other two are balance for the positive class and for the negative class: sick people get the same average score in both groups, and so do healthy people. The exceptions are two special cases, a perfect predictor and equal base rates.</p>
+  <p>This leaves a choice, and the choice is about people. A screening test that must not miss sick women points to equal sensitivity. A clinic that cannot afford many follow-up tests points to a similar false positive rate. A flag that doctors should read the same way for all women points to equal precision. All three are defensible. None is neutral. Hardt, Price and Srebro (2016) defined equal opportunity and equalised odds and showed how to adjust a trained predictor to meet them. Equalised odds needs two rates to match, which one threshold per group usually cannot do, so their adjustment may flip some answers at random. It fixes the rows you chose to equalise and does not fix the others.</p>
+  <div class="break">
+    <p><b>Common belief.</b> If we remove the age column, the model cannot treat the age groups differently.</p>
+    <p><b>Why it fails.</b> Other columns contain much of the same information. Untick "the model sees age" and watch the table: the sensitivities move by 1 or 2 points. Pregnancies, glucose and BMI all rise with age, so the model recovers most of the signal. Removing a column hides the group from the model. The information stays in the other columns.</p>
+    <p><b>Better account.</b> Keep the group label for checking, even when the model does not use it. Compute the scores per group, as here, and decide which gap you will accept.</p>
+  </div>
+  <p>The label is also a source of unfairness that no threshold repairs. Obermeyer and colleagues (2019) studied a commercial algorithm used to decide which patients get extra care. It predicted health care cost as a proxy for illness. Black patients had less money spent on them at the same level of illness, so at a given risk score they were considerably sicker than White patients. They estimated that correcting the disparity would raise the share of Black patients receiving extra help from 17.7% to 46.5%. The error was in what the model was asked to predict. Cost looked like a good proxy for illness by some measures of accuracy, and the bias came from unequal spending.</p>
+  <div class="debug">
+    <p><b>Debug tip.</b> Report the base rate, the group sizes and all three scores for all groups, not one. A gap in sensitivity with a different base rate is not the same finding as a gap in AUC. Check the counts behind the dots. With 84 sick women under 30 and 184 aged 30 or more, an interval of several points is normal. A gap smaller than the interval is not yet a finding.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+
+# 20 made-up women: group (0 = A, 1 = B), has diabetes (y), model flagged her
+group = np.array([0]*10 + [1]*10)
+y     = np.array([0,0,0,0,0,0,0,1,1,1,  0,0,0,0,1,1,1,1,1,1])
+flag  = np.array([0,0,0,1,0,0,0,1,1,0,  0,0,1,0,1,1,1,1,0,0])
+
+for g in (0, 1):
+    m = group == g
+    tp = (flag[m] &amp; y[m]).sum();  fp = (flag[m] &amp; (1 - y[m])).sum()
+    fn = ((1 - flag[m]) &amp; y[m]).sum();  tn = ((1 - flag[m]) &amp; (1 - y[m])).sum()
+    print(f"group {g}: base rate {y[m].mean():.2f}, sensitivity {tp/(tp+fn):.2f}, "
+          f"precision {tp/(tp+fp):.2f}, false positive rate {fp/(fp+tn):.2f}")</code></pre>
+  <pre class="out">group 0: base rate 0.30, sensitivity 0.67, precision 0.67, false positive rate 0.14
+group 1: base rate 0.60, sensitivity 0.67, precision 0.80, false positive rate 0.25</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Two groups have the same sensitivity and the same precision. The first has a base rate of 20% and the second 40%. Which has the higher false positive rate, and by how much?</summary><p>The second. The odds are 0.25 and 0.67, so its false positive rate is 0.67/0.25 = 2.7 times the first group's.</p></details>
+    <details><summary>The two groups have equal base rates. Does the impossibility remain?</summary><p>No. With equal base rates the first factor of the identity is the same, so one threshold choice can match all three. The conflict needs both a difference in base rates and an imperfect model.</p></details>
+    <details><summary>Why can a dropped column not make a model fair to that column's groups?</summary><p>Other columns correlate with it, so the model can rebuild the information. Pregnancies and BMI rise with age in the Pima data, and removing age moved the group scores by about 1 or 2 points.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. text ============================ -->
+<section id="text" aria-labelledby="text-h">
+  <h2 id="text-h">Stereotypes learned from text</h2>
+  <p class="ask"><b>Guess first.</b> In D2, the vectors of GloVe answered "doctor &minus; man + woman" with "nurse". The words were never labelled by gender. Among 42 occupation words, how many lean towards "she" or "he" more strongly than a random direction in the same space would suggest: about 40, about 20, or about 10?</p>
+  <dl class="terms">
+    <div><dt>direction</dt><dd>a unit vector in the embedding space, here the line from "she" to "he"</dd></div>
+    <div><dt>score on a direction</dt><dd>the cosine between a word's vector and the direction (<a href="../t5-vectors-matrices/#cosine">0.5</a>)</dd></div>
+    <div><dt>stereotype</dt><dd>an association in the text that goes beyond what a word means</dd></div>
+    <div><dt>null band</dt><dd>the spread of one word's score over random directions: what no meaning at all would give</dd></div>
+  </dl>
+  <p class="claim">Word vectors learn from the text they are given. If the text links "nurse" with "she" more than "doctor", the vectors do too. The measure shows an association in text and is a weak guide to harm.</p>
+  <div class="card" id="bi">
+    <div class="bar"><span id="bi-bar"></span></div>
+    <div class="bar"><span id="bi-bar2"></span></div>
+    <div class="plot bias" id="bi-plot" role="img" aria-label="Forty-two occupation words placed on a she-to-he direction in GloVe vectors. Midwife, maid, receptionist, nurse and babysitter lean strongly towards she. Manager, architect, secretary, engineer and politician lean towards he. Most words lie inside a grey band that a random direction would also produce."></div>
+    <div class="counts three">
+      <div><b id="bi-out">0</b><span>occupations outside the grey band</span></div>
+      <div><b id="bi-nd">0</b><span>score gap, doctor minus nurse</span></div>
+      <div><b id="bi-rho">0</b><span>rank agreement with the he &minus; she direction</span></div>
+    </div>
+    <div class="vbar" style="margin-top: 12px"><span>A classifier guesses the side of a word</span><span class="tr"><span class="fl" id="bi-v1" style="display: block; width: 100%; background: var(--teal)"></span></span><b id="bi-v1n">100%</b></div>
+    <p class="mini-note" id="bi-near"></p>
+    <p class="status" id="bi-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>With a direction built from ten pairs of words, 14 of the 42 occupations lie outside the band that random directions fill, and "doctor" and "nurse" differ by 0.29. Remove the direction from all vectors and a linear classifier can still tell which side the 1,000 most gendered words came from, with 80% accuracy.</b> The vectors are the 50-number GloVe vectors of D2, trained on Wikipedia and newswire text.</p>
+  <p>The dots show where a word falls on the line from "she" to "he". Coral diamonds lean towards she and navy circles towards he. A filled dot lies outside the grey band. The band is the spread of a single word's score over 2,000 random directions built from two random common words (0.165). Inside the band, a gender direction says no more than a direction made of two unrelated words. Midwife, maid, receptionist, nurse and babysitter lie well outside it on one side. Manager, architect, secretary, engineer and politician lie outside it on the other. Doctor, with a score of &minus;0.04, falls inside it.</p>
+  <p>The gap between the two words you met in D2 is large. With the ten-pair direction, doctor minus nurse is 0.29. For two random words and random directions, a gap that large is rare: 3 times in 2,000 directions in this test. So the association between "nurse" and "she" is not noise. Bolukbasi and colleagues (2016) found the same kind of pattern in vectors trained on Google News and named it in the title of their paper. This page uses a smaller set of vectors and a different list of words, and it does not repeat their method. Garg and colleagues (2018) used embeddings trained on 100 years of text and found that changes in the vectors tracked demographic and occupation shifts in US census data. The vectors record the statistics of the text, and the text records the world its writers lived in.</p>
+  <div class="eqn" role="img" aria-label="Worked example: the score of nurse on the direction from she to he"><span class="t c-sand"><b id="bi-eq-dot">0</b><i>nurse &middot; (he &minus; she)</i></span><span class="op">&divide;</span><span class="t c-navy"><b id="bi-eq-nw">0</b><i>length of nurse</i></span><span class="op">&divide;</span><span class="t c-navy"><b id="bi-eq-d">0</b><i>length of (he &minus; she)</i></span><span class="op">=</span><span class="t c-coral"><b id="bi-eq-cos">0</b><i>score of nurse (negative: towards she)</i></span><span class="op">and</span><span class="t c-teal"><b id="bi-eq-dcos">0</b><i>score of doctor</i></span></div>
+  <p class="math">\[ \mathrm{score}(w) = \frac{\mathbf{e}_w \cdot \mathbf{d}}{\lVert \mathbf{e}_w \rVert\,\lVert \mathbf{d} \rVert} \qquad \mathbf{d} = \mathbf{e}_{\text{he}} - \mathbf{e}_{\text{she}} \ \text{ or the mean of ten such differences} \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{e}_w\)</b> is the 50-number embedding of the word \(w\) (<a href="../d2-embeddings/#onehot">D2</a>), and <b>\(\mathbf{d}\)</b> the direction. The score is a cosine, between &minus;1 and 1 (<a href="../t5-vectors-matrices/#cosine">0.5</a>). Positive leans towards he.</li>
+    <li>The ten pairs are she and he, her and his, woman and man, Mary and John, herself and himself, daughter and son, mother and father, gal and guy, girl and boy, female and male.</li>
+  </ul>
+  <p>Now the limits, which matter as much as the finding. The first is the choice of words that define the direction. The four directions in the figure agree on the rank order (correlations from 0.78 to 0.99) and differ in the size of the scores. With he minus she, "carpenter" leans slightly towards she (&minus;0.10). With the other three directions it leans towards he (0.05 to 0.10). The second is the scale. Two random vectors in 50 dimensions have a typical cosine of about 0.14, so scores of 0.1 mean little and the order in the middle of the list is noise. The third is the unit of the vector. GloVe gives one vector per spelling, so "secretary" mixes the office worker and the minister. Look inside it: its nearest words are deputy, vice, affairs and general. Much of its he-leaning score probably comes from the political sense.</p>
+  <p>The fourth limit concerns the fix. A common repair removes the direction from all vectors, which sets all the scores above to zero by construction. Gonen and Goldberg (2019) argued that such methods mostly hide the bias and do not remove it. Tick the box to try it. The scores collapse, and a linear classifier trained on the other 49 numbers still separates the 500 most she-leaning from the 500 most he-leaning words with 80% accuracy. Among the 50,000 most common words, the most he-leaning include patriots, defensive, ravens and backfield, which come from American football. The most she-leaning include breastfeeding, uterus and newborns. The direction is partly a direction of topic, and deleting one line does not remove a topic.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A bias score measures how biased a model is, and a score of zero means it is safe.</p>
+    <p><b>Why it fails.</b> The score measures one association in one set of vectors for one word list. A zero can be reached by hiding the signal, and a large score does not say what a program built on the vectors will do to people.</p>
+    <p><b>Better account.</b> Treat the score as a flag for a closer look. Test the program you build, with its own data, on the groups it will affect, as in the last section.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Compare any bias score with the same score on random directions or random word pairs. If a random direction gives a score as large, the finding is noise. Then check a second word list and a second set of vectors before you write a sentence about the result.</p>
+  </div>
+  <pre class="code"><code>from gensim.models import KeyedVectors
+import numpy as np
+
+kv = KeyedVectors.load("glove-wiki-gigaword-50.model")   # the vectors of chapter D2
+unit = lambda v: v / np.linalg.norm(v)
+d = unit(kv["he"] - kv["she"])                            # the direction from she to he
+
+for w in ["nurse", "doctor", "engineer", "teacher"]:
+    print(w, round(float(unit(kv[w]) @ d), 2))</code></pre>
+  <pre class="out">nurse -0.38
+doctor -0.12
+engineer 0.13
+teacher -0.1</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A friend says the vectors prove that the text's writers were prejudiced. What does the figure support and what does it not?</summary><p>It supports the claim that the text links some occupation words with she and others with he more than chance would. It cannot tell why: who wrote the text, which jobs people held, or what a sentence meant. It also says little about how any program built on the vectors would treat a person.</p></details>
+    <details><summary>After the direction is removed, all words score 0. Why does a classifier still tell the sides apart?</summary><p>The word vectors of gendered words differ in many directions, not one. Removing a single line leaves the topic, the style and the neighbours of the word, and the classifier reads those.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. privacy ============================ -->
+<section id="privacy" aria-labelledby="privacy-h">
+  <h2 id="privacy-h">Privacy and consent</h2>
+  <p class="ask"><b>Guess first.</b> A clinic releases a table of its patients with the names removed. It keeps age, sex and the neighbourhood. In a town of 100,000 people, would you expect most patients to share those three values with several others, or to be the only one?</p>
+  <dl class="terms">
+    <div><dt>quasi-identifier</dt><dd>a column other than a name that helps to pick out a person, such as age, sex or neighbourhood</dd></div>
+    <div><dt>re-identification</dt><dd>finding which row of a de-identified table belongs to a known person</dd></div>
+    <div><dt>group size \(k\)</dt><dd>the number of rows that share the same released values; \(k=1\) means one row is unique</dd></div>
+    <div><dt>consent</dt><dd>a person's informed agreement to a stated use of their data</dd></div>
+  </dl>
+  <p class="claim">Removing names does not make a table anonymous. A few ordinary columns are often enough to single out one row.</p>
+  <div class="card" id="pv">
+    <div class="bar"><span id="pv-bar"></span></div>
+    <div class="controls" id="pv-controls"></div>
+    <p class="mini-note">Made-up table: 24 invented patients with invented diagnoses. The rows are not data from any clinic.</p>
+    <table class="tbl" id="pv-table" aria-label="A made-up table of 24 patients with the released columns and the size of the row's group. Rows alone in their group are shaded coral."></table>
+    <div class="counts four">
+      <div class="miss"><b id="pv-unique">0</b><span>rows alone in their group (k = 1)</span></div>
+      <div><b id="pv-k">0</b><span>smallest group size, k</span></div>
+      <div><b id="pv-groups">0</b><span>different groups</span></div>
+      <div class="miss"><b id="pv-rev">0</b><span>rows whose diagnosis an outsider learns</span></div>
+    </div>
+    <div class="legend-line"><span class="sq" style="--c: var(--coral)">alone in the group</span><span class="sq" style="--c: var(--sand)">group where all rows share one diagnosis</span></div>
+    <p class="status" id="pv-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>With age in single years, sex and neighbourhood, all 24 rows of this made-up table are alone in their group, so a neighbour who knows those three facts about a person reads off the diagnosis.</b> With ten-year age bands and three zones, 11 rows are still alone. Dropping age gives groups of two or more, at the price of a table that cannot say how age and diabetes go together. The patients, columns and diagnoses are made up and are not data from any clinic.</p>
+  <p>Release the table as it comes, with names removed. Click a row to play a neighbour who knows that person's age, sex and area. The matching rows are shaded, and the status line says what the neighbour learns. Then coarsen the columns. Widen the age bands, merge neighbourhoods into zones, drop a column. The group sizes grow and the coral rows disappear. But look at the last box. A group of three people who all have diabetes tells the neighbour the diagnosis even though no row is unique. The sand shading marks these groups.</p>
+  <p>Latanya Sweeney (2000) showed how little is needed. She used 1990 US census summary data. She estimated that 87% of the US population (216 million of 248 million) had a combination of 5-digit ZIP code, gender and date of birth that was likely unique. Coarser places gave lower numbers: 53% for city, gender and date of birth, and 18% for county. She also bought the voter list of Cambridge, Massachusetts. It held name, address, ZIP code, birth date and gender, which are columns that health records released without names often keep. The two tables can be linked on those columns. The voter list had 365,000 possible combinations of gender, ZIP code and birth date for 54,805 voters. When combinations outnumber people by that much, most people are alone in theirs. The term <i>k</i>-anonymity comes from Sweeney (2002). A release has it when a person's information cannot be told apart from that of at least <i>k</i> &minus; 1 others.</p>
+  <h3 class="sub-h3" style="margin: 22px 0 8px; font-size: 19px; font-weight: 600">The same count on the Pima table</h3>
+  <p>The Pima file has no names. It has eight measurements per woman. How many of the 768 women are the only one with their values of age, pregnancies and BMI? Tick the columns to find out. The women are people in a published study, and the count says only how much a few measurements reveal. It does not name anyone.</p>
+  <div class="card" id="pu">
+    <div class="bar"><span id="pu-bar"></span></div>
+    <div class="bar"><span id="pu-bar2"></span></div>
+    <svg id="pu-svg" role="img" aria-label="An array of 768 circles, one per Pima woman. Coral circles mark women who are alone in their group for the chosen columns; navy outlines are women who share their values with at least one other."></svg>
+    <div class="counts four">
+      <div class="miss"><b id="pu-unique">0</b><span>women alone in their group</span></div>
+      <div><b id="pu-share">0%</b><span>of the 768</span></div>
+      <div><b id="pu-groups">0</b><span>different groups</span></div>
+      <div><b id="pu-k">0</b><span>smallest group size, k</span></div>
+    </div>
+    <p class="status" id="pu-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>Age alone leaves 5 women unique. Age and pregnancies leave 153. Add BMI to the nearest whole number and 615 of the 768 women, 80%, are the only one with their combination. Add a glucose band and the count is 740.</b> The combinations multiply: 52 ages, 17 pregnancy counts and 39 BMI values give 34,476 cells for 768 women, so most cells contain at most one woman.</p>
+  <div class="eqn" role="img" aria-label="Worked example: number of cells compared with number of women"><span class="t c-navy"><b>52</b><i>different ages</i></span><span class="op">&times;</span><span class="t c-navy"><b>17</b><i>pregnancy counts</i></span><span class="op">&times;</span><span class="t c-navy"><b>39</b><i>BMI values</i></span><span class="op">=</span><span class="t c-coral"><b>34,476</b><i>possible cells</i></span><span class="op">&divide;</span><span class="t"><b>768</b><i>women</i></span><span class="op">&asymp;</span><span class="t c-sand"><b>45</b><i>cells per woman</i></span></div>
+  <p class="math">\[ k = \min_{g}\, n_g \qquad \text{cells} = L_1 \times L_2 \times \cdots \times L_c \]</p>
+  <ul class="math-notes">
+    <li><b>\(n_g\)</b> is the number of rows in group \(g\), a set of rows with the same released values. <b>\(k\)</b> is the smallest of them. A table is called \(k\)-anonymous when all rows share their values with at least \(k-1\) others (Sweeney, 2002).</li>
+    <li><b>\(L_i\)</b> is the number of values column \(i\) can take, and <b>\(c\)</b> the number of columns. The product counts the possible cells. When it is far above the number of rows, most rows end up alone.</li>
+    <li>The count of cells is an upper bound on how many groups there are. The actual number of groups is smaller, because ages and BMI cluster. The figure counts the actual groups.</li>
+  </ul>
+  <p>Consent is the other half of privacy. It decides what may be done with the data of people who are known. The Digital Personal Data Protection Act, 2023 of India says that consent must be free, specific, informed, unconditional and unambiguous, given by a clear affirmative action. It must be limited to the personal data needed for the stated purpose. The Act also says a person may withdraw consent at any time (sections 5 and 6 of the Act; this primer explains the idea and is not legal advice). For a clinic that trains a model, this raises plain questions. Did the patients agree to a model being trained? Can one patient leave? Does the next use of the data, perhaps by another team, match what they agreed to? Removing names answers none of them.</p>
+  <div class="break">
+    <p><b>Common belief.</b> If the names are removed, the data are anonymous and can be shared freely.</p>
+    <p><b>Why it fails.</b> A person is rarely the only one with their name and often the only one with their combination of age, sex, place and a few measurements. Anyone who knows those facts, such as a neighbour, an employer or a data broker with a second table, can join the two tables.</p>
+    <p><b>Better account.</b> Count the group sizes before release. Coarsen or drop columns until the smallest group is large enough, and check that groups are not uniform in the sensitive column. Share less where you can, and keep patients' agreement for any new use.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Before releasing a table, compute the group sizes for all the columns a neighbour could know, including those you do not think of as identifying. Rare values, such as an age of 83 or an unusual job, are the first to make a row unique. Then test the table the way an attacker would: pick a person and see how many rows match.</p>
+  </div>
+  <pre class="code" data-run><code>from collections import Counter
+
+# five made-up rows: (age band, sex, area)
+rows = [("30 to 39", "F", "Vashi"), ("30 to 39", "F", "Vashi"), ("30 to 39", "M", "Nerul"),
+        ("40 to 49", "F", "Nerul"), ("40 to 49", "F", "Vashi")]
+size = Counter(rows)
+print("group sizes:", [size[r] for r in rows])
+print("smallest group, k:", min(size.values()))
+print("rows alone in their group:", sum(size[r] == 1 for r in rows))</code></pre>
+  <pre class="out">group sizes: [2, 2, 1, 1, 1]
+smallest group, k: 1
+rows alone in their group: 3</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A released table has k = 5. Can an outsider still learn a patient's diagnosis?</summary><p>Yes, if the five rows that match share one diagnosis. Group size says how many rows match, not how varied the sensitive column is within them.</p></details>
+    <details><summary>Why does adding one more column make re-identification easier, not harder?</summary><p>A column splits the groups further. The number of cells multiplies, so more rows become the only member of their group.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. trust ============================ -->
+<section id="trust" aria-labelledby="trust-h">
+  <h2 id="trust-h">A number that looks certain</h2>
+  <p class="ask"><b>Guess first.</b> The model prints "chance of diabetes: 70%" for a woman. Where it is used, 11% of women have diabetes. Of the women who get a printed 70%, how many do you expect to have it: about 70%, about 36%, or about 11%?</p>
+  <dl class="terms">
+    <div><dt>calibrated</dt><dd>a printed chance matches the share who have the condition among women with that printed chance (<a href="../a4-grading-models/#threshold">A4</a>)</dd></div>
+    <div><dt>automation bias</dt><dd>the tendency to over-rely on advice from an automated system</dd></div>
+    <div><dt>hallucination</dt><dd>a fluent output of a language model that is not supported by facts or by its source (<a href="../d7-assistants/">D7</a>)</dd></div>
+    <div><dt>reweighting</dt><dd>counting records with weights so that a group has the share it would have in another place</dd></div>
+  </dl>
+  <p class="claim">A probability with two digits looks reliable. It describes one population, and it changes when the base rate changes.</p>
+  <div class="card" id="rl">
+    <div class="bar"><span id="rl-bar"></span></div>
+    <div class="controls" id="rl-controls"></div>
+    <div class="plot" id="rl-plot" role="img" aria-label="Calibration of the clinic model: the share of Pima women with diabetes against the chance the model printed, close to the diagonal, and the same curve reweighted to a clinic where fewer women have diabetes, lying far below the diagonal."></div>
+    <div class="eqn" id="rl-eqn" role="img" aria-label="Worked example: a printed chance shifted to another base rate"><span class="t c-teal"><b id="rl-eq-p">0%</b><i>printed chance</i></span><span class="op">&rarr;</span><span class="t c-navy"><b id="rl-eq-z">0</b><i>log-odds</i></span><span class="op">+</span><span class="t c-coral"><b id="rl-eq-shift">0</b><i>shift: log-odds of the new share minus the training share</i></span><span class="op">=</span><span class="t c-sand"><b id="rl-eq-zs">0</b><i>shifted log-odds</i></span><span class="op">&rarr;</span><span class="t c-coral"><b id="rl-eq-ps">0%</b><i>chance where the model is used</i></span></div>
+    <p class="status" id="rl-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>Among Pima women, a printed chance of 70% to 80% matched the share with diabetes (75%). Where 11.4% of the women have diabetes (India's national figure, used here in place of a clinic's rate), the same printed 70% corresponds to about 36%.</b> Dot size shows how many women lie behind a point. The coral curve is a reweighting of the Pima women, and it assumes that only the base rate differs.</p>
+  <p>The navy curve is the model's calibration on the Pima women: it follows the diagonal, so a printed chance means what it says there. Slide the share of women with diabetes down. The coral curve sinks below the diagonal. The women are the same, and so are the printed chances. The meaning changed, because fewer of the flagged women are sick (<a href="../a4-grading-models/#screening">A4</a>). The teal line is the printed chance you choose, and the equation shows the log-odds shift that moves it to the new rate. The sentence under the figure gives the same change from the reweighted women, as a check on the formula. It uses the whole bin from 70% to 80%, whose women average a printed chance of 75%, so it reads 42% where the equation for a printed 70% reads 36%.</p>
+  <p>A person who receives a probability needs to know what population it describes. A doctor who sees "70%" may take it at face value. Goddard, Roudsari and Wyatt (2012) reviewed 74 studies of automation bias in clinical decision support. People tended to over-rely on the system, more so when workload, task complexity and time pressure rose. Training, accountability and design choices reduced it. The design choices included where the advice appears on screen and how confidence levels are shown.</p>
+  <p>Language models add a second risk. A model can write a dose, a study or a diagnosis in the same calm tone as a correct answer. Ji and colleagues survey this hallucination: generated text that is unintended or unsupported. <a href="../d7-assistants/">D7</a> says why it happens. For health the rule is plain. Treat the answer as a lead and check it against a source you can open. A reference that the model supplies is itself a claim to check, because a model can produce a plausible citation that does not exist.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A model that is right 88% of the time on healthy women is 88% right about the woman in front of me.</p>
+    <p><b>Why it fails.</b> The 88% is a rate over healthy women in the test data. For one flagged woman the question is different: how likely is she to be sick, given the flag and the local base rate. That is precision, and it can be far lower.</p>
+    <p><b>Better account.</b> Give the person three things: the printed chance, the population it was measured on, and what it becomes in the place where it is used.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Plot a calibration curve on local data before deployment. If the curve lies below the diagonal, the model over-states risk there. Fix the base rate, then check coverage again. Both can be wrong at once.</p>
+  </div>
+  <p>A clinic that uses a model like this one can ask five questions. Who was in the training data, and who is not? How many training women are like the person in front of you? What are the sensitivity, precision and false positive rate for the groups that matter, with counts? What does a printed probability become at the clinic's own rate, which the clinic must count? Who is accountable when the model is wrong, and do they have the time to disagree with it?</p>
+  <pre class="code" data-run><code>import numpy as np
+
+# 100 made-up women whose printed chance was 0.70: 70 have diabetes (a calibrated bin)
+y = np.array([1] * 70 + [0] * 30)
+old, new = 0.349, 0.114              # base rate in training, base rate where used
+
+w = np.where(y == 1, new / old, (1 - new) / (1 - old))   # weight of one woman
+print("share with diabetes at the new base rate:", round((w * y).sum() / w.sum(), 3))</code></pre>
+  <pre class="out">share with diabetes at the new base rate: 0.359</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A printed 70% is calibrated on Pima women. At a 5% base rate, is the printed 70% too high or too low, and why?</summary><p>Too high. A 5% base rate means far fewer sick women among those flagged. The shifted chance is about 19%. The printed value still describes the Pima women.</p></details>
+    <details><summary>Why is a reference supplied by a language model not a source?</summary><p>The model produces text that looks like a citation. It may match an existing paper or invent one. You have to open it and check that it exists and says what the model claims.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> Two groups have the same sensitivity, 0.60, and the same precision, 0.70. Group A has a base rate of 20% and group B of 45%. Use \(\mathrm{FPR} = \frac{p}{1-p}\cdot\frac{1-\mathrm{PPV}}{\mathrm{PPV}}\cdot\mathrm{TPR}\) to find both false positive rates and their ratio.</p>
+        <details class="hint"><summary>Hint</summary><p>The middle factor is the same for both groups. Only the odds \(p/(1-p)\) differ.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> Derive the identity of the previous exercise from the definition of precision \(\mathrm{PPV} = \frac{p\,\mathrm{TPR}}{p\,\mathrm{TPR} + (1-p)\,\mathrm{FPR}}\). Then explain in one sentence what happens to the identity when \(p_A = p_B\).</p></li>
+      <li><p><span class="ex-tag">theory</span> A model prints a chance of 0.60 in a place where 30% of women have the disease. A clinic where 10% have it wants to use it. Work out the shifted chance by the log-odds rule, step by step, and state the assumption you need.</p></li>
+      <li><p><span class="ex-tag">theory</span> A released table has 4 rows, all in one group, and all four patients have the same diagnosis. What is \(k\)? Is it safe to release? Give a better test than \(k\).</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Load <code>data/clinic.json</code> from this chapter. Split the women by BMI (under 30 and 30 or more). With a threshold of 0.5 on <code>sigmoid(zcv)</code>, compute the base rate, sensitivity, precision and false positive rate of both groups with NumPy.</p>
+        <details class="hint"><summary>Hint</summary><p>Build boolean masks for the group, the flag and the label, and use the code of the second section as a template.</p></details></li>
+      <li><p><span class="ex-tag">practice</span> For the same split, search thresholds from 0.05 to 0.95 for the one that gives group B the same sensitivity as group A at 0.5. Report B's precision and false positive rate there. Is the conflict smaller or larger than for age?</p></li>
+      <li><p><span class="ex-tag">practice</span> Load <code>pima.json</code> from the shared data folder. Count the women who are alone in their group for (a) age and glucose in bands of 10, and (b) age in 5-year bands and pregnancies. Which is more identifying?</p></li>
+      <li><p><span class="ex-tag">practice</span> With <code>gensim</code> and the GloVe vectors of D2, score ten occupation words of your choice on the she-to-he direction. Compare your scores with those of 1,000 random directions to see which lie outside the null band.</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> <b>Societal impact.</b> A clinic in Mumbai wants to screen women who visit for other reasons, using an app trained on the Pima data. Who gains if it works well? Who is harmed by a false alarm, and who by a missed case? Who should choose the threshold, and who should be asked before they do?</p>
+        <details class="hint"><summary>Hint</summary><p>List the people involved: the woman, her family, the doctor, the clinic, the app maker. Then ask what they lose from a false alarm and from a missed case.</p></details></li>
+      <li><p><span class="ex-tag">open</span> You can collect data on 200 local women before the clinic uses the model. Which columns would you collect, how would you choose the women, and what result would make you decide not to deploy?</p></li>
+      <li><p><span class="ex-tag">open</span> A hospital wants to release patient records to students for a competition. List what could go wrong even if names are removed, what the patients should have been told, and two changes that would lower the risk.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <div class="recall comeback">
+    <details><summary>Try after two days. In A4 the model's precision fell from 71% to 34% when the base rate went from 35% to 10%. Which fairness criterion of this chapter does that make hard to keep across places, and which two scores stayed put?</summary><p>Predictive parity (equal precision) is hard to keep, because precision depends on the base rate. Sensitivity and specificity stayed put, provided the sick and healthy women look the same in both places (<a href="../a4-grading-models/#screening">A4</a>).</p></details>
+    <details><summary>Try after a week. In B9, painting the dolphin out of its photo raised the great white shark score from 41% to 93%, because of the water. In this chapter "nurse" leans towards "she". What do the two failures share, and what check did both chapters suggest?</summary><p>Both models learned an association from the data that does not mean what it seems: the water for the shark, the wording of the text for the occupation. Both chapters suggest a control: edit or remove the suspected cue and see whether the score changes (<a href="../b9-explaining/#shortcut">B9</a>), or compare against random directions.</p></details>
+    <details><summary>Try after a week. C3 showed a model failing when the water changed. Name a change of "water" for the clinic model and one check from this chapter that would catch it.</summary><p>The patients change: different heritage, body size, age or disease rate. Count the training records near the new patient (coverage) and compare the printed chance with the observed share on local data (calibration). See <a href="../c3-domain-shift/#water">C3</a>.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Smith, J. W., Everhart, J. E., Dickson, W. C., Knowler, W. C. and Johannes, R. S. (1988). Using the ADAP learning algorithm to forecast the onset of diabetes mellitus. <i>Proceedings of the Annual Symposium on Computer Application in Medical Care</i>, 261&ndash;265. The Pima data used throughout.</li>
+    <li>Chouldechova, A. (2017). Fair prediction with disparate impact: a study of bias in recidivism prediction instruments. <i>Big Data</i> 5(2), 153&ndash;163. arXiv:1703.00056. The identity relating false positive rate, precision, sensitivity and base rate (equation 2.6) and the term predictive parity.</li>
+    <li>Kleinberg, J., Mullainathan, S. and Raghavan, M. (2016). Inherent trade-offs in the fair determination of risk scores. <i>Innovations in Theoretical Computer Science (ITCS)</i> 2017. arXiv:1609.05807.</li>
+    <li>Hardt, M., Price, E. and Srebro, N. (2016). Equality of opportunity in supervised learning. <i>Advances in Neural Information Processing Systems 29 (NIPS 2016)</i>. arXiv:1610.02413. Equal opportunity and equalised odds.</li>
+    <li>Obermeyer, Z., Powers, B., Vogeli, C. and Mullainathan, S. (2019). Dissecting racial bias in an algorithm used to manage the health of populations. <i>Science</i> 366(6464), 447&ndash;453.</li>
+    <li>WHO Expert Consultation (2004). Appropriate body-mass index for Asian populations and its implications for policy and intervention strategies. <i>The Lancet</i> 363(9403), 157&ndash;163.</li>
+    <li>Anjana, R. M. and others (2023). Metabolic non-communicable disease health report of India: the ICMR-INDIAB national cross-sectional study (ICMR-INDIAB-17). <i>The Lancet Diabetes &amp; Endocrinology</i> 11(7), 474&ndash;489. A national cross-sectional survey of adults aged 20 and over; 113,043 people took part. The weighted prevalence of diabetes was 11.4% (95% confidence interval 10.2 to 12.5), by WHO criteria.</li>
+    <li>Bolukbasi, T., Chang, K.-W., Zou, J., Saligrama, V. and Kalai, A. (2016). Man is to computer programmer as woman is to homemaker? Debiasing word embeddings. <i>Advances in Neural Information Processing Systems 29 (NIPS 2016)</i>. arXiv:1607.06520.</li>
+    <li>Garg, N., Schiebinger, L., Jurafsky, D. and Zou, J. (2018). Word embeddings quantify 100 years of gender and ethnic stereotypes. <i>Proceedings of the National Academy of Sciences</i>. arXiv:1711.08412.</li>
+    <li>Gonen, H. and Goldberg, Y. (2019). Lipstick on a pig: debiasing methods cover up systematic gender biases in word embeddings but do not remove them. <i>NAACL</i>. arXiv:1903.03862.</li>
+    <li>Pennington, J., Socher, R. and Manning, C. D. (2014). GloVe: global vectors for word representation. <i>EMNLP</i>. The 50-number vectors are the ones used in D2.</li>
+    <li>Sweeney, L. (2000). Simple demographics often identify people uniquely. Carnegie Mellon University, Data Privacy Working Paper 3. The 87%, 53% and 18% figures and the Cambridge voter list.</li>
+    <li>Sweeney, L. (2002). k-anonymity: a model for protecting privacy. <i>International Journal on Uncertainty, Fuzziness and Knowledge-Based Systems</i> 10(5), 557&ndash;570. The definition of <i>k</i>-anonymity.</li>
+    <li>Government of India (2023). The Digital Personal Data Protection Act, 2023 (Act number 22 of 2023). <i>The Gazette of India</i>, 11 August 2023, sections 5 and 6 (copy on trai.gov.in).</li>
+    <li>Goddard, K., Roudsari, A. and Wyatt, J. C. (2012). Automation bias: a systematic review of frequency, effect mediators, and mitigators. <i>Journal of the American Medical Informatics Association</i> 19(1), 121&ndash;127.</li>
+    <li>Ji, Z. and others (2023). Survey of hallucination in natural language generation. <i>ACM Computing Surveys</i>. arXiv:2202.03629.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="f1-fairness.js?v=1" defer></script>
+</body>
+</html>

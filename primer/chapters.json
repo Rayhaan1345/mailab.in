@@ -395,7 +395,7 @@
    "title": "Data, fairness and privacy",
    "blurb": "Who is in the data, and who is missing.",
    "part": "F",
-   "live": false
+   "live": true
   },
   {
    "id": "f2",
@@ -404,7 +404,7 @@
    "title": "AI on a robot",
    "blurb": "Sense, decide, act, on a small computer.",
    "part": "F",
-   "live": false
+   "live": true
   },
   {
    "id": "f3",
