@@ -350,7 +350,7 @@
    "title": "Practice set: language",
    "blurb": "Timed questions on Part D.",
    "part": "D",
-   "live": false
+   "live": true
   },
   {
    "id": "e1",
