@@ -335,7 +335,7 @@ code { overflow-wrap: anywhere; }
     <div class="fails" id="fl-grid"></div>
   </div>
   <p class="cap"><b>All three failures in the guess depend on the test set. Leakage hides in a test set that shares sharks with the training set. Murky water appears only if the test photos include murky water. Forgetting appears only if you test the old task again.</b> A card gives a symptom with its numbers. Choose the tool you would reach for, then read the cause, the debug tip and the chapter.</p>
-  <p>The eight cards are the failures this book showed in miniature. Leakage and overfitting (A4, B8) inflate the number you report. Murky water (C3) and forgetting (B7) change the data or the model after you have measured. Spurious cues (B9) and hallucination (D7, E4) make an answer look better supported than it is. Subgroup gaps (F1) hide behind an average. Quantisation flips (F2) hide behind an accuracy that barely moves. Hallucination in a vision-language model follows the same logic as D7's GPT-2 examples, and the E3 and E4 chapters (<a href="../e3-cross-attention/">cross-attention</a> and <a href="../e4-vlms/">vision-language models</a>) show what the image adds.</p>
+  <p>The eight cards are the failures this book showed in miniature. Leakage and overfitting (A4, B8) inflate the number you report. Murky water (C3) and forgetting (B7) change the data or the model after you have measured. Spurious cues (B9) and hallucination (D7, E4) make an answer look better supported than it is. Subgroup gaps (F1) hide behind an average. Quantisation flips (F2) hide behind an accuracy that barely moves. Hallucination in a vision-language model follows the same logic as D7's GPT-2 examples, and the E3 and E4 chapters (<a href="../e3-cross-attention/#occ">cross-attention</a> and <a href="../e4-vlms/#fail">vision-language models</a>) show what the image adds.</p>
   <p>The program below joins two stages and finds one failure of the list in a few lines. The first stage is a logistic score fitted by gradient descent (A3). The second stage is a threshold followed by a check by site (A4, F1). Murky water is modelled as a noisier reading of the shark's length at the dive site. All data are made up.</p>
   <pre class="code" data-run><code>import numpy as np
 
@@ -543,6 +543,6 @@ largest gap between sites: 23 points -> check before release</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
 <script src="../assets/kit.js?v=2" defer></script>
-<script src="f3-sharkcam.js?v=1" defer></script>
+<script src="f3-sharkcam.js?v=2" defer></script>
 </body>
 </html>

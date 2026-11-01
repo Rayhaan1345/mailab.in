@@ -377,7 +377,7 @@
    "title": "Cross-attention",
    "blurb": "Words looking at image patches.",
    "part": "E",
-   "live": false
+   "live": true
   },
   {
    "id": "e4",
@@ -386,7 +386,7 @@
    "title": "Vision-language models",
    "blurb": "From a photo to an answer.",
    "part": "E",
-   "live": false
+   "live": true
   },
   {
    "id": "f1",
@@ -422,7 +422,7 @@
    "title": "Practice set: vision, language and the world",
    "blurb": "Timed questions on Parts E and F.",
    "part": "F",
-   "live": false
+   "live": true
   }
  ]
 }

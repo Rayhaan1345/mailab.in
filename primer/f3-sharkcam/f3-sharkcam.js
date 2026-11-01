@@ -135,7 +135,7 @@
     vlm: { name: "Vision-language model", short: ["VLM answers", "E3, E4"], ch: "E3, E4", kind: "model", runs: "shore",
       takes: "A photo as image tokens and a question as text tokens.", gives: "A sentence that answers the question.", model: "An image encoder, a connection (a projector or cross-attention) and a language model.",
       number: "A 224 by 224 photo becomes 196 image tokens (E1). A 40-minute dive at one frame a second would be 470,400 (D6).", cite: "E1, D6", citeHref: "../e1-vision-transformers/#cut",
-      fail: "Hallucination again. The sentence can name a status or a species that the photo does not support. Check its claims against a table (D7).", href: "../e4-vlms/", hrefText: "E4: vision-language models", href2: "../e3-cross-attention/", hrefText2: "E3: cross-attention" },
+      fail: "Hallucination again. The sentence can name a status or a species that the photo does not support. Check its claims against a table (D7).", href: "../e4-vlms/#fail", hrefText: "E4: vision-language models", href2: "../e3-cross-attention/#occ", hrefText2: "E3: cross-attention" },
     decide: { name: "Decision", short: ["Decision", "rules"], ch: "A4, D7, F1", kind: "answer", runs: "shore",
       takes: "Species chances from three sources, a maturity score and the results of the checks.", gives: "A record to write, or a case sent to a person.", model: "A rule, not a trained model: multiply the chances, then accept or ask.",
       number: "For Tag 4127 the product gives about 99.6% for the grey bamboo shark (computed in section 2, with the controls as they load).", cite: "section 2", citeHref: "#trace",
@@ -381,7 +381,7 @@
     // 5 vlm
     var vlmOK = S.photo === 4, spC = D.species.bamboo, say = "This looks like a young grey bamboo shark, Chiloscyllium griseum. The dark bands across its back fit a young animal. The IUCN Red List lists the species as " + (S.vlmBad ? "Endangered" : "Vulnerable") + ".";
     var claimSpecies = dec.win === 2, claimStatus = !S.vlmBad && spC.iucn === "Vulnerable";
-    h += '<div class="step">' + head(5, "Vision-language model", link("../e3-cross-attention/", "E3") + ", " + link("../e4-vlms/", "E4"), badge("script", "scripted")) + '<div class="step-body">' +
+    h += '<div class="step">' + head(5, "Vision-language model", link("../e3-cross-attention/#sources", "E3") + ", " + link("../e4-vlms/#pipeline", "E4"), badge("script", "scripted")) + '<div class="step-body">' +
       '<p>Question: "Which shark is this, and how threatened is it?"</p>' +
       (vlmOK ? '<div class="say">' + esc(say) + '</div><p class="ck"><b class="' + (claimSpecies ? "ok" : "no") + '">' + (claimSpecies ? "pass" : "fail") + '</b> The species in the answer ' + (claimSpecies ? "matches" : "does not match") + ' the fused call of step 6 (' + esc(D.species[SPECIES[dec.win]].common) + ').</p>' +
         '<p class="ck"><b class="' + (claimStatus ? "ok" : "no") + '">' + (claimStatus ? "pass" : "fail") + '</b> The status in the answer is checked against the species table: ' + esc(spC.common) + ', ' + esc(spC.iucn) + ' (' + esc(spC.iucn_code) + ', ' + esc(spC.criteria) + ', assessed ' + esc(String(spC.assessed).slice(0, 4)) + ').</p>' :

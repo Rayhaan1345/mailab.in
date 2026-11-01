@@ -329,7 +329,7 @@ with positions: False</pre>
     <div><dt>decoder-only</dt><dd>a model with the causal mask, trained to predict the next token (GPT-2)</dd></div>
     <div><dt>encoder-only</dt><dd>a model with no mask, so all tokens read all tokens (BERT, Devlin and others, 2019)</dd></div>
     <div><dt>masked-token prediction</dt><dd>hide about 15% of the tokens and ask the model for them, using both sides</dd></div>
-    <div><dt>encoder-decoder</dt><dd>an encoder reads the input and a decoder writes the output, also reading the encoder (<a href="../e3-cross-attention/">E3</a>)</dd></div>
+    <div><dt>encoder-decoder</dt><dd>an encoder reads the input and a decoder writes the output, also reading the encoder (<a href="../e3-cross-attention/#sources">E3</a>)</dd></div>
   </dl>
   <p class="claim">The mask encodes the task. A decoder reads the left only, so it can write. An encoder reads both sides, so it can fill gaps and describe tokens, and it cannot continue a text.</p>
   <div class="card" id="fm">
