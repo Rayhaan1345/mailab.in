@@ -39,6 +39,9 @@ details.misses summary { cursor: pointer; color: var(--link); font-size: 15px; }
 .dv-step .math { margin: 6px 0; }
 .dv-step .dvn { font-size: 14.5px; color: var(--muted); }
 .dv-step .dvn b { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.tab-wrap { overflow-x: auto; max-width: 46em; margin: 8px 0 14px; }
+.mtable.txtlast td:last-child, .mtable.txtlast th:last-child { text-align: left; padding-left: 14px; }
+.mtable.narrow { max-width: 30em; }
 .rtab { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 15px; font-feature-settings: "tnum" 1, "lnum" 1; }
 .rtab th, .rtab td { padding: 5px 9px; border-bottom: 1px solid var(--rule); text-align: right; color: var(--ink-2); }
 .rtab th { color: var(--muted); font-weight: 500; font-size: 13.5px; }
@@ -112,6 +115,10 @@ details.misses summary { cursor: pointer; color: var(--link); font-size: 15px; }
     <li><b>\(r_i\)</b> is the residual of shark \(i\), and <b>\(m\)</b> is the number of sharks. <b>\(L\)</b> is the MSE, the loss of <a href="../a1-what-is-a-model/#search">A1</a> with a formula.</li>
     <li>The unit of \(L\) is kg squared. Its square root, \(\sqrt{L}\), is a typical miss in kg.</li>
   </ul>
+  <p><b>A second worked example: where the squares come from.</b> Take the best line for the twelve sharks, \(w = 0.01488\) and \(b = -0.3562\). Tag 9585 is the longest shark, 55.4 cm and 0.578 kg. The line predicts \(0.01488 \times 55.4 - 0.3562 = 0.468\) kg, so the residual is \(+0.110\) kg and its square is 0.0121. The twelve squares add to 0.0263, and \(0.0263/12 = 0.00219\) is the MSE. The boxes show the same steps:</p>
+  <div class="eqn" role="img" aria-label="Tag 9585: true weight 0.578 kg minus prediction 0.468 kg is a residual of 0.110, whose square is 0.0121, which is 46 percent of the sum of all twelve squares, 0.0263"><span class="t c-navy"><b>0.578</b><i>true weight, kg</i></span><span class="op">&minus;</span><span class="t c-teal"><b>0.468</b><i>prediction, kg</i></span><span class="op">=</span><span class="t c-coral"><b>+0.110</b><i>residual r</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>0.0121</b><i>r&sup2;, the square</i></span><span class="op">&divide;</span><span class="t c-sand"><b>0.0263</b><i>all twelve squares added</i></span><span class="op">=</span><span class="t c-teal"><b>46%</b><i>from this one shark</i></span></div>
+  <p>This one shark supplies almost half of the total. Squaring magnifies big misses, so a mistyped weight or an odd animal can steer the line. When extreme rows are likely, use the average gap, or a loss that grows more slowly for big misses, such as the Huber loss.</p>
+  <p><b>In practice.</b> Quote the typical miss in the units of the label, next to the lazy model's: 0.047 kg for the line against 0.14 kg for always saying the average. The size of an MSE depends on the units. The same line has an MSE of 0.0022 in kg<sup>2</sup> and 2,200 in g<sup>2</sup>, so compare MSE values only when the units match.</p>
   <div class="break">
     <p><b>Common belief.</b> The best line passes through as many dots as possible.</p>
     <p><b>Why it fails.</b> A line through two dots can leave large squares at the others. The best line often passes through no dot at all.</p>
@@ -137,11 +144,25 @@ print("the best line     :", round(mse(w, b), 5), "with w =", round(w, 4), "and 
   <pre class="out">always the average: 0.01947
 a line by eye     : 0.00256
 the best line     : 0.00219 with w = 0.0149 and b = -0.3562</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+x = np.array([23.8, 27.8, 31.1, 33.9, 35.8, 37.9, 39.9, 41.0, 44.6, 46.8, 49.7, 55.4])
+y = np.array([0.049, 0.068, 0.106, 0.122, 0.146, 0.207, 0.289, 0.228, 0.269, 0.288, 0.335, 0.578])
+
+w, b = np.polyfit(x, y, 1)
+squares = (y - (w * x + b)) ** 2           # one square per shark
+print("sum of squares:", squares.sum().round(4), " MSE:", squares.mean().round(5))
+print("Tag 9585, the longest shark:", squares[-1].round(4), "=", f"{squares[-1] / squares.sum():.0%} of the total")
+print("typical miss (RMSE):", np.sqrt(squares.mean()).round(3), "kg  against", y.std().round(3), "kg for the lazy model")</code></pre>
+  <pre class="out">sum of squares: 0.0263  MSE: 0.00219
+Tag 9585, the longest shark: 0.0121 = 46% of the total
+typical miss (RMSE): 0.047 kg  against 0.14 kg for the lazy model</pre>
   <p class="used"><b>Used in:</b> the loss \(L\) is the quantity gradient descent lowers (next sections), and the same two dials return as the weight and bias of a neuron (<a href="../b1-one-neuron/#neuron">B1</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A shark is 0.1 kg heavier than the line predicts. What is its residual, and what is the area of its square?</summary><p>The residual is +0.1 kg (truth minus prediction). The square has area \(0.1^2 = 0.01\) kg<sup>2</sup>.</p></details>
     <details><summary>Line A misses two sharks, both by 0.1 kg. Line B misses one shark by 0.2 kg and the other by 0. Which has the larger MSE?</summary><p>Line B. Its squares add to \(0.2^2 = 0.04\), against \(0.1^2 + 0.1^2 = 0.02\) for line A. Squaring punishes one large miss more than two small ones.</p></details>
+    <details><summary>A line has an MSE of 0.0022 in kg<sup>2</sup>. A friend quotes 2,200 for the same line. What happened?</summary><p>The friend measured the weights in grams. A square kilogram is 1,000,000 square grams, so 0.0022 kg<sup>2</sup> is 2,200 g<sup>2</sup>. The typical miss is the same in both: 0.047 kg or 47 g.</p></details>
   </div>
 </section>
 
@@ -172,7 +193,14 @@ the best line     : 0.00219 with w = 0.0149 and b = -0.3562</pre>
     <li>The top of the first fraction adds, over the sharks, the length deviation times the weight deviation. It is large and positive when long sharks are heavy. The bottom adds the squared length deviations.</li>
     <li>The second formula says \(\bar{y} = w\bar{x} + b\): the line passes through the average shark.</li>
   </ul>
-  <p>These two formulas come from asking where the loss stops falling, that is where its slopes are zero. The next section finds those slopes.</p>
+  <p>These two formulas come from asking where the loss stops falling, that is where its slopes are zero. The next section finds those slopes. A shorter route needs only the mean.</p>
+  <p><b>The missing steps.</b> Fix the slope \(w\). The loss then depends on \(b\) alone. Take any list \(u_i\) with mean \(\bar u\). Then \(\sum_i (u_i - b)^2 = \sum_i (u_i - \bar u)^2 + m(\bar u - b)^2\), so the sum is smallest at \(b = \bar u\). With \(u_i = y_i - w x_i\) this is \(b = \bar y - w\bar x\).</p>
+  <p>Write \(\tilde x_i = x_i - \bar x\) and \(\tilde y_i = y_i - \bar y\). The loss becomes a parabola in \(w\).</p>
+  <p class="math">\[ L(w) = \frac{1}{m}\sum_i (\tilde y_i - w\,\tilde x_i)^2 = \frac{1}{m}\Bigl[\sum_i \tilde y_i^{2} \;-\; 2w\sum_i \tilde x_i\tilde y_i \;+\; w^{2}\sum_i \tilde x_i^{2}\Bigr] \]</p>
+  <p>A parabola \(C - 2Bw + Aw^2\) has its lowest point at \(w = B/A\). Here \(B = \sum_i \tilde x_i\tilde y_i\) and \(A = \sum_i \tilde x_i^{2}\), the top and bottom of the formula for \(w\).</p>
+  <p><b>A second worked example, with all 268 sharks.</b> The formulas give \(w = 0.01545\) kg per cm and \(b = -0.3789\) kg. Tag 3305, at 41.0 cm, gets \(0.01545 \times 41.0 - 0.3789 = 0.255\) kg. Its true weight is 0.228 kg, so the line is 0.027 kg too high. The average shark (39.14 cm, 0.2258 kg) lies on the line: \(0.01545 \times 39.14 - 0.3789 = 0.2258\).</p>
+  <p><b>Why a far shark pulls, and when the formula fails.</b> The slope adds up the labels after multiplying them by factors, \(w = \sum_i c_i\,y_i\) with \(c_i = \tilde x_i / \sum_j \tilde x_j^{2}\). The pull \(c_i\) grows with the distance from the average length. In the twelve-shark sample Tag 9585 pulls hardest (\(c_i = 0.0175\)), and dropping it cuts the slope from 0.0149 to 0.0118. If all the sharks had one length, the bottom of the formula would be 0 and \(w\) undefined.</p>
+  <p><b>In practice.</b> Nobody types these formulas for a project. Call <code>np.polyfit</code>, <code>np.linalg.lstsq</code> or scikit-learn's <code>LinearRegression</code>, which solve the same problem with numerically stable methods. Then run the free check from the debug tip: the residuals should average to zero.</p>
   <div class="break">
     <p><b>Common belief.</b> If a formula gives the best line, gradient descent is pointless.</p>
     <p><b>Why it fails.</b> The formula exists for this model. For a logistic model (<a href="../a3-logistic-regression/#train">A3</a>) or a network (<a href="../b3-loss-gradient-descent/#landscape">B3</a>) no such formula exists. Even for a line with many inputs, the formula needs a matrix inverse, whose cost grows fast with the number of inputs (<a href="../t2-algorithms/#bigo">0.2</a>).</p>
@@ -195,11 +223,25 @@ print("mean residual:", abs(round((y - (w * x + b)).mean(), 10)))</code></pre>
   <pre class="out">by formula : 0.01488 -0.3562
 np.polyfit : [ 0.01488 -0.35616]
 mean residual: 0.0</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+x = np.array([23.8, 27.8, 31.1, 33.9, 35.8, 37.9, 39.9, 41.0, 44.6, 46.8, 49.7, 55.4])
+y = np.array([0.049, 0.068, 0.106, 0.122, 0.146, 0.207, 0.289, 0.228, 0.269, 0.288, 0.335, 0.578])
+
+d = x - x.mean()
+c = d / (d ** 2).sum()                     # how much the weight y_i of shark i counts in the slope
+print("slope =", (c * y).sum().round(5))
+print("pull of the shortest and the longest shark:", c[0].round(4), c[-1].round(4))
+print("slope without the longest shark:", np.polyfit(x[:-1], y[:-1], 1)[0].round(5))</code></pre>
+  <pre class="out">slope = 0.01488
+pull of the shortest and the longest shark: -0.0162 0.0175
+slope without the longest shark: 0.01182</pre>
   <p class="used"><b>Used in:</b> the matrix version of this formula appears at the end of the chapter, and its limits explain why <a href="../b3-loss-gradient-descent/#landscape">B3</a> trains networks by gradient descent.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The average length is 40 cm and the average weight 0.25 kg. The slope is 0.015 kg per cm. What is the bias?</summary><p>\(b = \bar{y} - w\bar{x} = 0.25 - 0.015 \times 40 = -0.35\) kg.</p></details>
     <details><summary>Why does a shark far from the average length tilt the line more than a shark near it?</summary><p>Its length deviation is large, so it contributes a large term to both sums. A square grows fast, so a far point also contributes more to the denominator, and the line has to move toward it to keep that square small.</p></details>
+    <details><summary>Suppose all twelve sharks had the same length. What would the formula for \(w\) give?</summary><p>The bottom, \(\sum_i (x_i - \bar x)^2\), would be 0, so \(w\) would be 0 divided by 0, which is undefined. Sharks of one length cannot show how weight changes with length.</p></details>
   </div>
 </section>
 
@@ -270,6 +312,10 @@ mean residual: 0.0</pre>
     <li>The last form shows what an update does. If the residuals are mostly positive (the line is too low), \(b\) rises. If long sharks have positive residuals, \(w\) rises.</li>
   </ul>
   <p>Setting \(\partial L/\partial b = 0\) gives \(\sum_i r_i = 0\): the residuals average to zero. That is the line through the average shark from the last section.</p>
+  <p><b>A second worked example: one step on the twelve sharks.</b> Use the data of the code below, with lengths in spreads, the start \((w, b) = (0, 0.55)\) and \(\eta = 0.1\). The residuals average \(-0.326\), because the line starts too high. The average of residual times input is \(+0.1315\). Step 5 of the derivation then gives the two slopes, and the update gives the new dials:</p>
+  <div class="eqn" role="img" aria-label="Step one on twelve sharks: the slope along w is minus 2 times 0.1315, which is minus 0.263; the slope along b is minus 2 times minus 0.3263, which is 0.6525; the new w is 0.0263 and the new b is 0.4848; the loss falls from 0.1259 to 0.0814"><span class="t c-navy"><b>&minus;0.263</b><i>&part;L/&part;w = &minus;2 &times; 0.1315</i></span><span class="t c-coral"><b>+0.6525</b><i>&part;L/&part;b = &minus;2 &times; (&minus;0.3263)</i></span><span class="op">&rarr;</span><span class="t c-navy"><b>0.0263</b><i>new w = 0 &minus; 0.1 &times; (&minus;0.263)</i></span><span class="t c-coral"><b>0.4848</b><i>new b = 0.55 &minus; 0.1 &times; 0.6525</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>0.0814</b><i>loss, down from 0.1259</i></span></div>
+  <p>The bias moves further than the slope because its slope is larger. Why does the loss fall? For a small step the loss changes by about \(-\eta\) times the sum of the squared slopes. Here that is \(0.1 \times (0.263^2 + 0.6525^2) = 0.0495\), against an actual fall of 0.0445. A longer step overshoots this guess, as the next section shows.</p>
+  <p><b>In practice.</b> Stop when the loss falls by less than a small amount between steps (say \(10^{-6}\)), or after a fixed number of steps. A common slip is to use the sum of the squared residuals instead of their mean. The slopes are then \(m\) times larger, 268 times for the figure above, and \(\eta\) must be 268 times smaller. Full-batch descent, as here, uses all the records in one step. <a href="../b3-loss-gradient-descent/#batches">B3</a> shows how networks use small batches.</p>
   <div class="break">
     <p><b>Analogy.</b> Gradient descent is a ball rolling down a bowl, or a walker feeling the slope in fog.</p>
     <p><b>Where it breaks.</b> A ball has momentum, and a walker can look around. Gradient descent sees only the slope under its feet. The bowl of a line has one bottom, so it cannot get stuck. The loss of a neural network can have many dips and flat patches (<a href="../t6-gradients/#gradient">0.6</a>, <a href="../b3-loss-gradient-descent/#landscape">B3</a>), and there the walk can end somewhere other than the lowest point.</p>
@@ -303,11 +349,30 @@ step  10: w = 0.1173, b = 0.2588, loss = 0.00361
 step  20: w = 0.1299, b = 0.2275, loss = 0.00220
 step 100: w = 0.1315, b = 0.2238, loss = 0.00219
 closed form : [0.1315 0.2237]</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+x = np.array([23.8, 27.8, 31.1, 33.9, 35.8, 37.9, 39.9, 41.0, 44.6, 46.8, 49.7, 55.4])
+y = np.array([0.049, 0.068, 0.106, 0.122, 0.146, 0.207, 0.289, 0.228, 0.269, 0.288, 0.335, 0.578])
+z = (x - x.mean()) / x.std()
+
+w, b, eta = 0.0, 0.55, 0.1
+r = y - (w * z + b)
+gw, gb = -2 * (r * z).mean(), -2 * r.mean()          # the two slopes
+loss0 = (r ** 2).mean()
+w_new, b_new = w - eta * gw, b - eta * gb
+loss1 = ((y - (w_new * z + b_new)) ** 2).mean()
+print(f"mean residual {r.mean():.4f}, slopes {gw:.4f} and {gb:.4f}")
+print(f"new dials {w_new:.4f} and {b_new:.4f}")
+print(f"loss {loss0:.4f} -> {loss1:.4f}: fall {loss0 - loss1:.4f}, first-order guess {eta * (gw ** 2 + gb ** 2):.4f}")</code></pre>
+  <pre class="out">mean residual -0.3263, slopes -0.2629 and 0.6525
+new dials 0.0263 and 0.4848
+loss 0.1259 -> 0.0814: fall 0.0445, first-order guess 0.0495</pre>
   <p class="used"><b>Used in:</b> the same loop trains the models of this primer. A network replaces the two slopes with one per weight, found by backpropagation (<a href="../b4-backpropagation/#backward">B4</a>), and better step rules replace the plain update (<a href="../b5-optimisers/#race">B5</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The slope of the loss along \(w\) is +2 and \(\eta = 0.1\). How does \(w\) change in one step?</summary><p>\(w\) falls by \(0.1 \times 2 = 0.2\). A positive slope means the loss rises as \(w\) rises, so the step goes the other way.</p></details>
     <details><summary>Why does the update subtract \(\eta\,\partial L/\partial w\) and not add it?</summary><p>The slope points uphill. The aim is a lower loss, so the dials move against their slopes.</p></details>
+    <details><summary>The slopes are &minus;0.263 along \(w\) and +0.6525 along \(b\), and \(\eta = 0.1\). Which dial moves further, and in which direction do the two dials move?</summary><p>The bias moves further: \(0.1 \times 0.6525 = 0.065\), against \(0.1 \times 0.263 = 0.026\) for \(w\). The slope of \(w\) is negative, so \(w\) rises. The slope of \(b\) is positive, so \(b\) falls.</p></details>
   </div>
 </section>
 
@@ -337,10 +402,25 @@ closed form : [0.1315 0.2237]</pre>
   <p>The numbers follow from the form of this bowl. The loss here is a sum of two squared distances from the bottom \((w^{*}, b^{*})\), so a slope is twice the matching distance. One step then multiplies both distances by \(1 - 2\eta\).</p>
   <p class="math">\[ L(w, b) = L_{\min} + (w - w^{*})^{2} + (b - b^{*})^{2} \qquad w_{t+1} - w^{*} = (1 - 2\eta)\,(w_t - w^{*}) \]</p>
   <ul class="math-notes">
-    <li><b>\(w^{*}\), \(b^{*}\)</b> are the best dial values, and <b>\(L_{\min}\)</b> is the loss there (0.00218).</b></li>
+    <li><b>\(w^{*}\), \(b^{*}\)</b> are the best dial values, and <b>\(L_{\min}\)</b> is the loss there (0.00218).</li>
     <li><b>\(1 - 2\eta\)</b> is the factor per step. It must lie between &minus;1 and 1 for the distance to shrink, so \(\eta < 1\). A negative factor means the step overshoots.</li>
     <li>The 2 is the curvature of this bowl (<a href="../t6-gradients/#curvature">0.6</a>). The general limit is \(\eta < 2/k\) for curvature \(k\).</li>
   </ul>
+  <p><b>A second worked example: counting the steps.</b> The start is \((w, b) = (0, 0.55)\) and the bottom is at \(w^{*} = 0.1331\), \(b^{*} = 0.2258\). The start is 0.1331 away in \(w\) and 0.3242 away in \(b\), so the loss starts \(0.1331^2 + 0.3242^2 = 0.1228\) above its lowest value, 0.00218. After \(n\) steps that gap is \(0.1228\,(1-2\eta)^{2n}\). The loss is within 1% of the best when the gap falls below \(0.01 \times 0.00218\). Solving for \(n\) gives</p>
+  <p class="math">\[ n \;\ge\; \frac{\ln\bigl(0.01 \times 0.00218 \,/\, 0.1228\bigr)}{\ln\bigl((1-2\eta)^{2}\bigr)} = \frac{-8.63}{\ln\bigl((1-2\eta)^{2}\bigr)} \]</p>
+  <div class="tab-wrap"><table class="mtable txtlast" aria-label="For six learning rates: the factor on the distance per step, the factor on the loss gap, the steps to come within 1 percent of the best loss, and what happens">
+    <thead><tr><th>&eta;</th><th>distance factor 1 &minus; 2&eta;</th><th>gap factor</th><th>steps to within 1%</th><th>what happens</th></tr></thead>
+    <tbody>
+      <tr><td>0.02</td><td>0.96</td><td>0.9216</td><td>106</td><td>slow: 3.1 times the best loss after 40 steps</td></tr>
+      <tr><td>0.3</td><td>0.40</td><td>0.16</td><td>5</td><td>fast, no bounce</td></tr>
+      <tr><td>0.5</td><td>0</td><td>0</td><td>1</td><td>the first step reaches the bottom</td></tr>
+      <tr><td>0.9</td><td>&minus;0.80</td><td>0.64</td><td>20</td><td>the dial alternates sides</td></tr>
+      <tr><td>1.0</td><td>&minus;1</td><td>1</td><td>never</td><td>bounces between two points</td></tr>
+      <tr><td>1.05</td><td>&minus;1.10</td><td>1.21</td><td>never</td><td>diverges</td></tr>
+    </tbody>
+  </table></div>
+  <p>The negative factors are overshoots. At \(\eta = 0.9\) the distance of \(b\) from its bottom goes \(+0.324\), \(-0.259\), \(+0.207\), \(-0.166\): it alternates in sign and shrinks by 20% per step. At \(\eta = 0.02\) it shrinks by only 4% per step.</p>
+  <p><b>In practice.</b> Run a few steps first and look at the loss curve before a long run. On this round bowl any \(\eta\) below 1 converges and 0.3 to 0.5 is fast. Networks use smaller values, often between 0.1 and 0.0001, depending on the optimiser (<a href="../b5-optimisers/#schedule">B5</a>).</p>
   <div class="break">
     <p><b>Common belief.</b> A bigger learning rate always trains faster.</p>
     <p><b>Why it fails.</b> Speed rises with \(\eta\) up to the bounce point and then collapses into divergence. In a bowl that is steep in one direction, the steep direction sets the limit.</p>
@@ -367,11 +447,35 @@ for eta in [0.02, 0.3, 0.9, 1.05]:
 eta = 0.30: loss after 20 steps = 0.00219
 eta = 0.90: loss after 20 steps = 0.00220
 eta = 1.05: loss after 20 steps = 5.60176</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+x = np.array([23.8, 27.8, 31.1, 33.9, 35.8, 37.9, 39.9, 41.0, 44.6, 46.8, 49.7, 55.4])
+y = np.array([0.049, 0.068, 0.106, 0.122, 0.146, 0.207, 0.289, 0.228, 0.269, 0.288, 0.335, 0.578])
+z = (x - x.mean()) / x.std()
+
+ws, bs = np.polyfit(z, y, 1)                       # the bottom of the bowl
+lmin = ((y - (ws * z + bs)) ** 2).mean()
+gap0 = (0 - ws) ** 2 + (0.55 - bs) ** 2            # loss above the bottom at the start (0, 0.55)
+for eta in [0.02, 0.3, 0.9]:
+    f = (1 - 2 * eta) ** 2                         # factor per step on the loss above the bottom
+    formula = np.ceil(np.log(0.01 * lmin / gap0) / np.log(f))
+    w, b, n = 0.0, 0.55, 0
+    while ((y - (w * z + b)) ** 2).mean() > 1.01 * lmin:
+        r = y - (w * z + b)
+        w += eta * 2 * (r * z).mean()
+        b += eta * 2 * r.mean()
+        n += 1
+    print(f"eta = {eta:4.2f}: formula says {int(formula):3d} steps, the loop needs {n:3d}")</code></pre>
+  <pre class="out">eta = 0.02: formula says 106 steps, the loop needs 106
+eta = 0.30: formula says   5 steps, the loop needs   5
+eta = 0.90: formula says  20 steps, the loop needs  20</pre>
+  <p>The code uses the twelve sharks. Their bottom is at \(w^{*} = 0.1315\), \(b^{*} = 0.2237\), close to the 268-shark bottom of the table, and the step counts are the same.</p>
   <p class="used"><b>Used in:</b> the learning rate is the first setting to tune in any network (<a href="../b3-loss-gradient-descent/#landscape">B3</a>). Its schedules and warm-up are in <a href="../b5-optimisers/#schedule">B5</a>, and finding a good value is part of the recipe in <a href="../b8-debugging/#lrtest">B8</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>With \(\eta = 0.25\) on this bowl, by what factor does the distance to the bottom change per step?</summary><p>\(1 - 2 \times 0.25 = 0.5\). The distance halves in one step.</p></details>
     <details><summary>The loss goes 0.12, 0.15, 0.18, 0.22, 0.27. What is wrong, and what do you try first?</summary><p>It is diverging. The steps overshoot, and the loss grows from step to step. Lower the learning rate by a factor of 10 and run again.</p></details>
+    <details><summary>At \(\eta = 0.9\) the factor per step is &minus;0.8. A dial starts 0.324 above its bottom. Where is it after two steps?</summary><p>After one step it is \(0.324 \times (-0.8) = -0.259\), below the bottom. After two it is \(-0.259 \times (-0.8) = +0.207\), above the bottom again and closer to it than at the start.</p></details>
   </div>
 </section>
 
@@ -405,6 +509,12 @@ eta = 1.05: loss after 20 steps = 5.60176</pre>
     <li><b>\(\bar{x}\)</b> is the mean and <b>\(s\)</b> the spread (standard deviation) of the input column, computed on the training data.</li>
     <li><b>\(\lambda_{\max}\), \(\lambda_{\min}\)</b> are the largest and smallest curvatures of the bowl. For the line they are the eigenvalues of a 2 by 2 matrix built from the lengths (<a href="../t5-vectors-matrices/#eigen">0.5</a>).</li>
   </ul>
+  <p><b>A second worked example: the curvatures from the data.</b> Write \(x\) for the raw length. The first row of the 2 by 2 table has twice the average of \(x^2\) and of \(x\). The second row has twice the average of \(x\) and 1. For the 268 sharks the average of \(x^2\) is \(\bar x^2 + s^2 = 39.138^2 + 8.614^2 = 1606.0\). The table and its curvatures are:</p>
+  <p class="math">\[ \begin{pmatrix} 3211.98 & 78.28 \\ 78.28 & 2 \end{pmatrix} \qquad \lambda_{\max} = 3213.9 \qquad \lambda_{\min} = \frac{\det}{\lambda_{\max}} = \frac{296.8}{3213.9} = 0.0924 \]</p>
+  <p>Centring removes the 78.28 and leaves 148.4 (twice the variance, \(2\times 74.2\)) and 2. Standardising makes both 2. The ratio \(\lambda_{\max}/\lambda_{\min}\) is about 35,000 for raw lengths, 74 for centred lengths and 1 for standardised lengths. At \(\eta = 1/\lambda_{\max} = 0.00031\) the flat direction shrinks by 0.99997 per step, and halving the distance takes about 24,000 steps.</p>
+  <p>Scaling does not change the answer. Tag 3305 is 41.0 cm, so its standardised length is \((41.0 - 39.138)/8.614 = 0.216\). The standardised fit gives \(0.1331 \times 0.216 + 0.2258 = 0.2546\) kg. The raw fit gives \(0.01545 \times 41.0 - 0.3789 = 0.2546\) kg.</p>
+  <p><b>Where scaling helps and where it stops.</b> Scaling cures inputs of different sizes. It cannot cure two inputs that move together (<a href="#many">section 8</a>), and outliers distort the mean and the spread. A column with one value in all rows has spread 0 and cannot be divided.</p>
+  <p><b>In practice.</b> Compute the mean and the spread on the training sharks only, store them with the model and reuse them for new sharks. Scikit-learn's <code>StandardScaler</code> does this. Scale the label only if you convert the predictions back. Trees (<a href="../a5-decision-trees/">A5</a>) need no scaling, because a cut-off orders the sharks the same way in any units.</p>
   <div class="break">
     <p><b>Common belief.</b> Scaling the inputs changes what the model learns.</p>
     <p><b>Why it fails.</b> The best line is the same line. In spreads it has \(w = 0.1331\) kg per spread and \(b = 0.2258\) kg. Divide the slope by 8.614 cm per spread to get 0.01545 kg per cm. The bias is \(0.2258 - 0.01545 \times 39.14 = -0.3789\) kg. These are the values from the unscaled fit.</p>
@@ -436,6 +546,7 @@ curvatures [2. 2.], eta 0.50000, loss after 1000 steps 0.00219</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>A column of depths runs from 0 to 5,000 m and another of temperatures from 20 to 30 C. Which needs scaling?</summary><p>Both, and the depth most. Without scaling, the depth direction is far steeper than the temperature direction, so the bowl is a canyon again.</p></details>
     <details><summary>After standardising, the fitted slope is 0.133 kg per spread. A spread is 8.6 cm. What is the slope in kg per cm?</summary><p>\(0.133/8.6 = 0.0155\) kg per cm.</p></details>
+    <details><summary>A new shark is 50 cm long. Use the mean 39.138, the spread 8.614, the slope 0.1331 and the bias 0.2258 to find its standardised length and its predicted weight.</summary><p>\(z = (50 - 39.138)/8.614 = 1.261\) spreads. The prediction is \(0.1331 \times 1.261 + 0.2258 = 0.394\) kg. The raw line agrees: \(0.01545 \times 50 - 0.3789 = 0.394\) kg.</p></details>
   </div>
 </section>
 
@@ -465,6 +576,22 @@ curvatures [2. 2.], eta 0.50000, loss after 1000 steps 0.00219</pre>
     <li><b>\(r_i\)</b> is the residual, the same quantity that the loss squares.</li>
     <li>The lazy model says the average weight for all sharks, so its MSE is the variance of the weights. \(R^2 = 0\) means no better than lazy, and \(R^2 = 1\) means no residuals.</li>
   </ul>
+  <p><b>A second worked example: R² and the U by hand.</b> For the twelve sharks the lazy model has an MSE of 0.01947 and the line has 0.00219, so \(R^2 = 0.888\). For all 268 sharks the numbers are 0.01990 and 0.002185:</p>
+  <div class="eqn" role="img" aria-label="R squared of the straight line on 268 sharks: 1 minus 0.002185 divided by 0.01990 is 0.890"><span class="t"><b>1</b></span><span class="op">&minus;</span><span class="t c-coral"><b>0.002185</b><i>MSE of the line</i></span><span class="op">&divide;</span><span class="t c-navy"><b>0.01990</b><i>MSE of the lazy model</i></span><span class="op">=</span><span class="t c-teal"><b>0.890</b><i>R&sup2;</i></span></div>
+  <p>The five coral points of the figure are band averages of the residual. The U is in these five numbers:</p>
+  <div class="tab-wrap"><table class="mtable narrow" aria-label="Average residual of the straight line in five length bands: positive for the shortest, negative in the middle, positive for the longest">
+    <thead><tr><th>length band, cm</th><th>sharks</th><th>average residual, kg</th></tr></thead>
+    <tbody>
+      <tr><td>16 to 30</td><td>40</td><td>+0.039</td></tr>
+      <tr><td>30 to 36</td><td>62</td><td>&minus;0.009</td></tr>
+      <tr><td>36 to 42</td><td>66</td><td>&minus;0.026</td></tr>
+      <tr><td>42 to 48</td><td>56</td><td>&minus;0.009</td></tr>
+      <tr><td>48 to 62</td><td>44</td><td>+0.028</td></tr>
+    </tbody>
+  </table></div>
+  <p>The line also crosses zero at \(0.3789/0.01545 = 24.5\) cm. A 20 cm shark gets \(0.01545 \times 20 - 0.3789 = -0.070\) kg, and 8 sharks in the records are shorter than 24.5 cm.</p>
+  <p><b>Why R² can mislead.</b> It compares the model with the lazy model on the same sharks. It rises when you add inputs, even useless ones, and it cannot tell you whether the form is right. On the sharks the model was fitted to it is also optimistic (<a href="../a4-grading-models/#splits">A4</a>).</p>
+  <p><b>In practice.</b> Report the typical miss in kg together with \(R^2\). The first says how far off a prediction can be. The second says how much better the model is than the lazy one.</p>
   <div class="break">
     <p><b>Common belief.</b> A high \(R^2\) means the model is right.</p>
     <p><b>Why it fails.</b> This line has \(R^2 = 0.89\), and its residuals still bend and it predicts negative weights.</p>
@@ -495,6 +622,7 @@ R squared: 0.888</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>A residual plot shows points scattered evenly above and below zero, but the spread doubles from short sharks to long ones. What does that say?</summary><p>The model is right on average at all lengths, and its errors grow with the size of the shark. That fan suggests that errors are proportional to size, which is the case for weights. Fitting in logs fixes it (next section).</p></details>
     <details><summary>A model has \(R^2 = 0\). What does it say about the model?</summary><p>Its MSE equals the lazy model's. It explains none of the spread, and it is no better than always saying the average.</p></details>
+    <details><summary>The lazy model has an MSE of 0.02 and a model has an MSE of 0.005. What is \(R^2\)?</summary><p>\(R^2 = 1 - 0.005/0.02 = 0.75\). The model removes three quarters of the lazy model's squared miss.</p></details>
   </div>
 </section>
 
@@ -525,6 +653,13 @@ R squared: 0.888</pre>
     <li><b>\(w\)</b> is the exponent, and <b>\(a = e^{b}\)</b> is the weight in kg of a 1 cm shark on this curve. The value has no physical meaning outside the data, as 1 cm is far below any length recorded.</li>
     <li>The fitted line in logs is \(\ln \hat W = 2.915\,\ln L - 12.313\), so \(\hat W = 4.49\times 10^{-6}\,L^{2.915}\) kg. The published law for spadenose has \(b = 2.923\) (<a href="../t3-algebra-functions/#logs">0.3</a>).</li>
   </ul>
+  <p><b>The missing step.</b> Take the log of both sides of \(W = aL^{w}\). The log of a product is the sum of the logs, and the log of a power brings the exponent down (<a href="../t3-algebra-functions/#logs">0.3</a>).</p>
+  <p class="math">\[ \ln W = \ln\bigl(a\,L^{w}\bigr) = \ln a + \ln\bigl(L^{w}\bigr) = \ln a + w\,\ln L \]</p>
+  <p><b>A second worked example: Tag 3305.</b> The fit to the 268 records is \(\ln \hat W = 2.915\,\ln L - 12.313\). The steps for 41.0 cm are:</p>
+  <div class="eqn" role="img" aria-label="Tag 3305 by the power law: the natural log of 41.0 is 3.714, times 2.915 is 10.826, minus 12.313 is minus 1.487, and e to that power is 0.226 kg"><span class="t c-navy"><b>3.714</b><i>ln 41.0</i></span><span class="op">&times;</span><span class="t c-teal"><b>2.915</b><i>exponent w</i></span><span class="op">&minus;</span><span class="t c-sand"><b>12.313</b><i>log-bias b</i></span><span class="op">=</span><span class="t"><b>&minus;1.487</b><i>ln of the weight</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>0.226 kg</b><i>e<sup>&minus;1.487</sup>, the prediction</i></span></div>
+  <p>The true weight is 0.228 kg, so the miss is 0.002 kg. The straight line gave 0.255 kg, a miss of 0.027 kg. For a 20 cm shark the curve gives 0.028 kg, while the line gives \(-0.070\) kg.</p>
+  <p><b>Why it works, and where it misleads.</b> A fit in logs scores a miss as a share of the weight, so a 20 cm shark and a 55 cm shark count alike. Undoing the log gives the median weight, not the mean. The mean is higher by \(e^{s^2/2}\), where \(s = 0.143\) is the spread of the residuals in logs, a factor of 1.01. The exponent also depends on the sharks you use: the twelve-shark sample gives 2.84 instead of 2.92.</p>
+  <p><b>In practice.</b> Fisheries papers report \(a\) and the exponent of \(W = aL^{b}\). An exponent near 3 means the body keeps similar proportions as it grows, and the spadenose value 2.92 is close. Fit in logs when errors grow in proportion to size.</p>
   <div class="break">
     <p><b>Common belief.</b> Linear regression can fit only straight lines.</p>
     <p><b>Why it fails.</b> "Linear" describes the dials: the prediction is a weighted sum of the inputs. The inputs and the label may be transformed first. Here the log of both columns turns a curve into a line.</p>
@@ -550,11 +685,22 @@ typical miss in kg: 0.0348
 weight of a 41.0 cm shark: 0.226 kg
 doubling the length multiplies the weight by 7.14</pre>
   <p>These are the twelve sharks of the first figure, so the exponent differs a little from the 2.915 of all 268 records.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+w_line, b_line = 0.01545, -0.3789            # straight line fitted to all 268 records
+w_pow, b_pow = 2.915, -12.313                # ln W = w ln L + b fitted to the same records
+for length, name in [(20.0, "a 20 cm shark"), (41.0, "Tag 3305, 41.0 cm")]:
+    line = w_line * length + b_line
+    power = np.exp(b_pow + w_pow * np.log(length))
+    print(f"{name:18s} line {line:6.3f} kg   power curve {power:.3f} kg")</code></pre>
+  <pre class="out">a 20 cm shark      line -0.070 kg   power curve 0.028 kg
+Tag 3305, 41.0 cm  line  0.255 kg   power curve 0.226 kg</pre>
   <p class="used"><b>Used in:</b> log-log plots reappear for the cost of attention (<a href="../d6-long-context/#cost">D6</a>) and wherever sizes span orders of magnitude (<a href="../t8-charts/#scales">0.8</a>). The idea of transforming inputs so that a simple model fits returns as hidden layers in <a href="../b2-non-linearity/#lift">B2</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>On log axes a power law has slope 3. A shark becomes 3 times as long. By what factor does its weight grow?</summary><p>\(3^3 = 27\). A slope of 3 on log axes means that multiplying the length by any factor multiplies the weight by that factor cubed.</p></details>
     <details><summary>Why is a fit in logs a poor choice if some weights in your data are zero?</summary><p>The log of zero is undefined, and the log of a tiny positive number is a huge negative one. Such rows would break the fit or dominate it. You would drop them, add a small constant or choose another model.</p></details>
+    <details><summary>For a 20 cm shark the straight line predicts &minus;0.070 kg and the power curve 0.028 kg. Which do you trust, and why?</summary><p>The power curve. A weight cannot be negative, and the line falls below zero for lengths under 24.5 cm. The curve has the form of a physical law and stays positive at all lengths.</p></details>
   </div>
 </section>
 
@@ -589,6 +735,16 @@ doubling the length multiplies the weight by 7.14</pre>
     <li><b>\(X^{\top}\)</b> is the transpose (<a href="../t5-vectors-matrices/#products">0.5</a>). The product \(X^{\top}\mathbf{r}\) gives all the sums at once. The bias has its own slope, \(-\frac{2}{m}\sum_i r_i\), as before.</li>
     <li>The closed form is \(\mathbf{w} = (X^{\top}X)^{-1}X^{\top}\mathbf{y}\), with a column of ones added for the bias. It needs the inverse of <a href="../t5-vectors-matrices/#inverse">0.5</a>, which does not exist when an input is a copy of another.</li>
   </ul>
+  <p><b>The closed form, step by step.</b> Add a column of ones to \(X\) for the bias. The residuals are \(\mathbf{r} = \mathbf{y} - X\mathbf{w}\). The loss is lowest where all the slopes are zero, that is \(X^{\top}\mathbf{r} = 0\):</p>
+  <p class="math">\[ X^{\top}(\mathbf{y} - X\mathbf{w}) = 0 \;\Longrightarrow\; X^{\top}X\,\mathbf{w} = X^{\top}\mathbf{y} \;\Longrightarrow\; \mathbf{w} = (X^{\top}X)^{-1}X^{\top}\mathbf{y} \]</p>
+  <p><b>A second worked example, in spreads.</b> Standardise length and girth. Once the inputs are centred, the bias is the average weight, 0.2258. The table \(X^{\top}X/m\) has 1 on its diagonal and the correlation 0.926 off it. The right-hand side is 0.1331 for length and 0.1332 for girth, the slopes of the one-input fits:</p>
+  <p class="math">\[ \begin{pmatrix}1 & 0.926\\ 0.926 & 1\end{pmatrix}\begin{pmatrix}w_1\\ w_2\end{pmatrix} = \begin{pmatrix}0.1331\\ 0.1332\end{pmatrix} \;\Longrightarrow\; w_1 = 0.0683, \quad w_2 = 0.0699 \]</p>
+  <p>Divide by the spreads, 8.614 cm and 2.455 cm, to return to kg per cm: 0.00793 and 0.0285, the weights of the plane in the figure. The table has eigenvalues 1.93 and 0.07, so the loss valley is 26 times flatter along the direction that trades one input for the other.</p>
+  <p>Now predict with the plane. Tag 9585 has length 55.4 cm, girth 16.2 cm and weight 0.578 kg:</p>
+  <div class="eqn" role="img" aria-label="Tag 9585 by the plane: 0.00793 times 55.4 plus 0.02849 times 16.2 minus 0.3977 is 0.503 kg, a miss of 0.075 kg; the straight line gives 0.477 kg, a miss of 0.101 kg"><span class="t c-navy"><b>0.439</b><i>0.00793 &times; 55.4</i></span><span class="op">+</span><span class="t c-teal"><b>0.462</b><i>0.02849 &times; 16.2</i></span><span class="op">&minus;</span><span class="t c-sand"><b>0.398</b><i>the bias</i></span><span class="op">=</span><span class="t c-teal"><b>0.503 kg</b><i>plane, miss 0.075</i></span><span class="op">vs</span><span class="t c-coral"><b>0.477 kg</b><i>straight line, miss 0.101</i></span></div>
+  <p>Both are low for the heaviest shark. The plane is closer because girth adds information.</p>
+  <p><b>Why the weights can mislead.</b> A weight says how the prediction changes when its input rises by one unit and the others stay put. With length and girth moving together (correlation 0.93) that case hardly occurs in the data. The second code block adds a noisy copy of the length and fits three times with different noise. The weights swing, and their sum stays near 0.015.</p>
+  <p><b>In practice.</b> Standardise the inputs, look at their correlations, and keep the number of inputs well below the number of examples. Use <code>np.linalg.lstsq</code>, which copes with nearly copied inputs, rather than an explicit inverse. Judge a new input by what it adds on sharks the model has not seen (<a href="../a4-grading-models/#splits">A4</a>).</p>
   <div class="break">
     <p><b>Common belief.</b> More inputs always make a better model.</p>
     <p><b>Why it fails.</b> On the training records, more inputs never raise the error, even when they are noise. Here girth helps for a particular reason: in this made-up table, girth was computed from weight, so it gives part of the answer away. A girth measured with a tape on an actual animal would help less.</p>
@@ -616,11 +772,26 @@ A = np.c_[X, np.ones(len(y))]
 print("least squares   :", np.linalg.lstsq(A, y, rcond=None)[0].round(3))</code></pre>
   <pre class="out">gradient descent: [0.026 0.11 ] 0.224
 least squares   : [0.026 0.11  0.224]</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+x = np.array([23.8, 27.8, 31.1, 33.9, 35.8, 37.9, 39.9, 41.0, 44.6, 46.8, 49.7, 55.4])
+y = np.array([0.049, 0.068, 0.106, 0.122, 0.146, 0.207, 0.289, 0.228, 0.269, 0.288, 0.335, 0.578])
+
+for seed in range(3):
+    rng = np.random.default_rng(seed)
+    copy = x + rng.normal(0, 0.3, len(x))            # a second length reading, with 0.3 cm of noise
+    A = np.c_[x, copy, np.ones(len(x))]
+    w1, w2, b = np.linalg.lstsq(A, y, rcond=None)[0]
+    print(f"seed {seed}: w1 = {w1:7.4f}, w2 = {w2:7.4f}, sum = {w1 + w2:.4f}")</code></pre>
+  <pre class="out">seed 0: w1 = -0.0993, w2 =  0.1150, sum = 0.0157
+seed 1: w1 = -0.0005, w2 =  0.0154, sum = 0.0149
+seed 2: w1 =  0.0377, w2 = -0.0227, sum = 0.0150</pre>
   <p class="used"><b>Used in:</b> a neuron computes \(\mathbf{w}\cdot\mathbf{x} + b\) and then bends the result (<a href="../b1-one-neuron/#neuron">B1</a>). A layer does it for many neurons at once with a matrix (<a href="../b2-non-linearity/#bend">B2</a>). Logistic regression adds a squash to the same sum (<a href="../a3-logistic-regression/#sigmoid">A3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A model has 5 inputs. How many dials does it have, and how many partial derivatives does one step of gradient descent need?</summary><p>Six dials: five weights and one bias. One step needs six partial derivatives.</p></details>
     <details><summary>Two inputs are identical copies. What goes wrong with the closed form, and does gradient descent still work?</summary><p>\(X^{\top}X\) has no inverse, because many weight pairs give the same predictions. Gradient descent still runs and finds one of them. Started from equal weights, it splits the weight between the copies equally.</p></details>
+    <details><summary>The plane has \(w_1 = 0.00793\), \(w_2 = 0.02849\) and \(b = -0.3977\). What does it predict for a shark of 40 cm with a girth of 11 cm?</summary><p>\(0.00793 \times 40 + 0.02849 \times 11 - 0.3977 = 0.3172 + 0.3134 - 0.3977 = 0.233\) kg.</p></details>
   </div>
 </section>
 

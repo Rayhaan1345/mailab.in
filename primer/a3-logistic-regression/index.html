@@ -24,6 +24,13 @@
 .dv-step p { margin: 6px 0; color: var(--ink-2); }
 .dv-step b { color: var(--ink); }
 .dv-step .math { margin: 6px 0; }
+.wtab-wrap { overflow-x: auto; max-width: 46em; margin: 8px 0 14px; }
+.wtab { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.wtab th, .wtab td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: right; color: var(--ink-2); }
+.wtab th { font-weight: 500; font-size: 13px; color: var(--muted); }
+.wtab td:first-child, .wtab th:first-child { text-align: left; }
+.wtab tr.best td { background: var(--mark); color: var(--ink); font-weight: 600; }
+@media (max-width: 760px) { .wtab { font-size: 12.5px; } .wtab th, .wtab td { padding: 3px 4px; } }
 .sm-wrap { overflow-x: auto; margin: 10px 0 0; }
 .sm-table { width: 100%; border-collapse: collapse; font-size: 14px; font-feature-settings: "tnum" 1, "lnum" 1; }
 .sm-table th, .sm-table td { padding: 5px 7px; border-bottom: 1px solid var(--rule); text-align: right; color: var(--ink-2); white-space: nowrap; }
@@ -103,6 +110,20 @@
     <li><b>\(\sigma(z)\)</b> is 0.5 at \(z = 0\), tends to 1 for large positive \(z\) and to 0 for large negative \(z\). It undoes the last formula: the score is the log of the odds \(p/(1-p)\). A probability of 0.8 is odds of 4 to 1, so \(z = \ln 4 = 1.39\) (<a href="../t3-algebra-functions/#inverse">0.3</a>).</li>
     <li>The predicted class is "adult" when \(p \ge 0.5\), which is the same as \(z \ge 0\).</li>
   </ul>
+  <p><b>A second worked example: five sharks, step by step.</b> The fit has a steepness of 0.535 per cm and a midpoint of 34.5 cm. For a 30.0 cm shark the score is \(z = 0.535 \times (30.0 - 34.5) = -2.41\). Then \(e^{-z} = e^{2.41} = 11.1\), the denominator is \(1 + 11.1 = 12.1\), and \(p = 1/12.1 = 0.083\). The table does the same for five lengths and adds the odds \(p/(1-p)\), which equal \(e^{z}\).</p>
+  <div class="wtab-wrap"><table class="wtab" aria-label="Five lengths with the score, e to the minus z, the probability of adult and the odds. At 34.5 cm the score is 0 and the probability is 0.5.">
+    <thead><tr><th>length, cm</th><th>score z</th><th>e<sup>&minus;z</sup></th><th>p(adult)</th><th>odds</th></tr></thead>
+    <tbody>
+      <tr><td>30.0</td><td>&minus;2.41</td><td>11.11</td><td>0.083</td><td>0.09</td></tr>
+      <tr class="best"><td>34.5</td><td>0</td><td>1.00</td><td>0.500</td><td>1.00</td></tr>
+      <tr><td>36.0</td><td>0.80</td><td>0.45</td><td>0.691</td><td>2.23</td></tr>
+      <tr><td>41.0 (Tag 3305)</td><td>3.48</td><td>0.031</td><td>0.970</td><td>32.4</td></tr>
+      <tr><td>44.0 (Tag 4127)</td><td>5.08</td><td>0.006</td><td>0.994</td><td>161</td></tr>
+    </tbody>
+  </table></div>
+  <p>A step of \(1/0.535 = 1.87\) cm in length multiplies the odds by \(e = 2.72\), and 10 cm multiplies them by about 210. That is the one assumption of the sigmoid: the log-odds change at a steady rate with length.</p>
+  <p><b>Where the assumption bends.</b> The made-up table sets the female midpoint at 35.8 cm and the male at 33.8 cm. The model has no sex input, so it settles between them, at 34.5 cm. Fitted to the sexes separately, the midpoints come out as 35.6 cm and 33.1 cm. The probability 0.97 for Tag 3305 is the model's own number. Whether 97 of 100 such sharks are adults is a separate check (<a href="../a4-grading-models/#threshold">A4</a>).</p>
+  <p><b>In practice.</b> Fisheries studies summarise maturity by \(L_{50}\), the length at which half the animals are mature, and the female and male midpoints above are such numbers. In code, use a library sigmoid such as <code>scipy.special.expit</code>, which returns 0 or 1 for very large scores without an overflow warning.</p>
   <div class="break">
     <p><b>Common belief.</b> Fit a straight line to the 0 and 1 labels and clip the output to the range 0 to 1.</p>
     <p><b>Why it fails.</b> A line's slope is pulled by sharks far from the boundary, so easy cases change where the line crosses 0.5. The 100 long adults move that point by almost 6 cm. A sigmoid flattens out beyond the transition, so far-off sharks hardly move the boundary.</p>
@@ -131,6 +152,7 @@ for length, label in [(41.0, 1), (44.0, 0)]:
     <p class="recall-h">Quick quiz</p>
     <details><summary>A model gives a score \(z = 0\). What probability does the sigmoid give, and what does the shark's call depend on?</summary><p>\(p = 0.5\). The shark lies on the decision boundary, and the model has no preference. A score above 0 gives adult and below 0 gives juvenile.</p></details>
     <details><summary>The midpoint is 34.5 cm and the steepness 0.535 per cm. What is the score of a 41.0 cm shark?</summary><p>\(z = 0.535 \times (41.0 - 34.5) = 3.48\). The probability is \(\sigma(3.48) = 0.97\).</p></details>
+    <details><summary>A shark is 1.87 cm longer than the midpoint, with a steepness of 0.535 per cm. What are its score, its odds and its probability of adult?</summary><p>The score is \(0.535 \times 1.87 = 1.0\). The odds are \(e^{1} = 2.72\), and the probability is \(\sigma(1) = 0.731\).</p></details>
   </div>
 </section>
 
@@ -162,6 +184,18 @@ for length, label in [(41.0, 1), (44.0, 0)]:
     <li>The boundary is a straight line with slope \(-w_1/w_2\) in the scaled map. The vector \(\mathbf{w}\) points across it, towards the adult side. With three inputs the boundary is a flat plane.</li>
     <li>The size of \(\mathbf{w}\) sets how fast the colour fades. Large weights give a sharp edge. Small weights give a gradual change.</li>
   </ul>
+  <p><b>A second worked example: the boundary in centimetres.</b> The fitted weights belong to scaled inputs, so the boundary \(4.732\,x_1 - 0.1215\,x_2 + 2.4811 = 0\) is written in spreads. To draw it on the map, choose a girth, scale it to get \(x_2\), solve for \(x_1\) and scale back. At a girth of 11.0 cm, \(x_2 = (11.0 - 10.993)/2.455 = 0.003\), so \(x_1 = -(2.4811 - 0.1215\times 0.003)/4.732 = -0.524\). The length is \(39.138 - 0.524\times 8.614 = 34.62\) cm. The table repeats the steps for three girths.</p>
+  <div class="wtab-wrap"><table class="wtab" aria-label="The decision boundary in centimetres for three girths: 34.35 cm at girth 8, 34.62 cm at girth 11 and 34.89 cm at girth 14">
+    <thead><tr><th>girth, cm</th><th>scaled girth x<sub>2</sub></th><th>scaled length x<sub>1</sub></th><th>boundary length, cm</th></tr></thead>
+    <tbody>
+      <tr><td>8.0</td><td>&minus;1.219</td><td>&minus;0.556</td><td>34.35</td></tr>
+      <tr><td>11.0</td><td>0.003</td><td>&minus;0.524</td><td>34.62</td></tr>
+      <tr><td>14.0</td><td>1.225</td><td>&minus;0.493</td><td>34.89</td></tr>
+    </tbody>
+  </table></div>
+  <p>A change of 6 cm in girth moves the boundary by only 0.54 cm, so the line is almost vertical, as the figure shows.</p>
+  <p><b>Why 90.3% and not 100%.</b> The 26 sharks on the wrong side measure 30.3 to 40.9 cm, and 24 of them lie between 30 and 40 cm, around the midpoint. In this made-up table maturity is drawn from a curve around a length, so sharks of the same length differ. No line on length and girth can sort them. A score of 100% would point to a leak or to overfitting (<a href="../a4-grading-models/#overfit">A4</a>).</p>
+  <p><b>In practice.</b> Scale the inputs first, so that the weights are comparable, and read a weight only when the inputs do not move together. The weight of girth here, &minus;0.12, looks like "a thicker shark is less likely to be an adult". It is only what remains after length has done the work, because length and girth have a correlation of 0.93.</p>
   <div class="break">
     <p><b>Common belief.</b> The model has learned what makes a shark an adult.</p>
     <p><b>Why it fails.</b> It learned where spadenose sharks mature, about 34.5 cm. Tag 4127 is a juvenile bamboo shark of 44 cm, and bamboo sharks in the table mature near 53 cm. The model gives it a 99% chance of being an adult. Tag 5519, a juvenile hammerhead of 82 cm, gets 100%.</p>
@@ -191,11 +225,25 @@ for name, (length, girth) in sharks.items():
 Tag 4127     z =   5.08  p(adult) = 0.994  call: adult
 Tag 5519     z =  25.20  p(adult) = 1.000  call: adult
 a small one  z =  -2.39  p(adult) = 0.084  call: juvenile</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+# the fitted weights on scaled inputs: (value - mean) / spread
+w = np.array([4.732, -0.1215]); b = 2.4811
+mean = np.array([39.138, 10.993]); spread = np.array([8.614, 2.455])
+
+for girth in [8.0, 11.0, 14.0]:
+    x2 = (girth - mean[1]) / spread[1]          # scaled girth
+    x1 = -(b + w[1] * x2) / w[0]                # solve w1*x1 + w2*x2 + b = 0 for the scaled length
+    print(f"girth {girth:4.1f} cm: x2 = {x2:6.3f}, x1 = {x1:6.3f}, boundary at length {mean[0] + x1 * spread[0]:.2f} cm")</code></pre>
+  <pre class="out">girth  8.0 cm: x2 = -1.219, x1 = -0.556, boundary at length 34.35 cm
+girth 11.0 cm: x2 =  0.003, x1 = -0.524, boundary at length 34.62 cm
+girth 14.0 cm: x2 =  1.225, x1 = -0.493, boundary at length 34.89 cm</pre>
   <p class="used"><b>Used in:</b> the same boundary picture explains a neuron's decision (<a href="../b1-one-neuron/#neuron">B1</a>), and a boundary that bends is the reason for hidden layers (<a href="../b2-non-linearity/#bend">B2</a>). Moving the threshold along the probability scale is the topic of <a href="../a4-grading-models/#threshold">A4</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The scores of three sharks are +2, 0 and &minus;1. Which side of the boundary are they on, and which is closest to the boundary?</summary><p>The first is on the adult side, the third on the juvenile side, and the second lies on the boundary itself. A smaller \(|z|\) means closer to the boundary and a less certain call.</p></details>
     <details><summary>You multiply all three numbers \(w_1\), \(w_2\) and \(b\) by 2. What happens to the boundary and to the probabilities?</summary><p>The boundary does not move, because \(z = 0\) at the same points. The probabilities become more extreme, since all scores double. The map gets a sharper edge.</p></details>
+    <details><summary>You add 1 to the bias \(b\) and leave the weights alone. Which way does the boundary move, and by how many centimetres at a fixed girth?</summary><p>The score rises by 1 for all sharks, so the sharks that were on the boundary now have \(z = 1\) and are called adults. The boundary moves to shorter lengths by \(1/4.732 = 0.211\) spreads, which is \(0.211 \times 8.614 = 1.8\) cm.</p></details>
   </div>
 </section>
 
@@ -228,6 +276,12 @@ a small one  z =  -2.39  p(adult) = 0.084  call: juvenile</pre>
     <li><b>\(\ell\)</b> is the loss for one shark and <b>\(L\)</b> the average over \(m\) sharks, as in <a href="../a2-linear-regression/#line">A2</a>. Log loss is the cross-entropy of <a href="../t7-probability/#crossent">0.7</a> for two classes.</li>
     <li>The slope \(p - y\) is derived in the next section. It is 0 when \(p = y\) and has size close to 1 when the model is wrong with confidence.</li>
   </ul>
+  <p><b>A second worked example: three sharks and a baseline.</b> The loss of a shark is minus the log of the probability given to its true label. Tag 3305 is an adult with \(p = 0.970\). Tag 4127 is a juvenile with \(p\) of adult 0.99383, so 0.00617 for its true label. A third shark, a 30 cm juvenile with a girth of 8 cm, has \(p = 0.084\), so 0.916 for its true label. The losses and their average are:</p>
+  <div class="eqn" role="img" aria-label="Average log loss of three sharks: 0.03 plus 5.09 plus 0.09 is 5.21, and 5.21 divided by 3 is 1.74"><span class="t c-teal"><b>0.03</b><i>Tag 3305: &minus;ln 0.970</i></span><span class="op">+</span><span class="t c-coral"><b>5.09</b><i>Tag 4127: &minus;ln 0.00617</i></span><span class="op">+</span><span class="t c-teal"><b>0.09</b><i>30 cm juvenile: &minus;ln 0.916</i></span><span class="op">=</span><span class="t"><b>5.21</b><i>sum of the three</i></span><span class="op">&divide;</span><span class="t"><b>3</b><i>sharks</i></span><span class="op">=</span><span class="t c-sand"><b>1.74</b><i>average log loss</i></span></div>
+  <p>A single confident mistake supplies 98% of the total. Squared loss would charge it at most 1. The log makes a certain wrong answer very expensive.</p>
+  <p><b>Why the log.</b> The probability a model gives to the true labels of a set of sharks is the product of the probabilities it gives to the individual sharks. For Tag 3305 and Tag 4127 that is \(0.970 \times 0.00617 = 0.0060\). A product of hundreds of such numbers is far too small to handle, while its negative log is a sum: \(-\ln 0.0060 = 5.12 = 0.03 + 5.09\). Minimising the average log loss therefore makes the true labels as probable as possible under the model. This is called maximum likelihood.</p>
+  <p><b>The baseline in log loss.</b> The lazy model has no inputs, so it gives all sharks the adult share, \(p = 181/268 = 0.675\). Its log loss is \(-(0.675\ln 0.675 + 0.325\ln 0.325) = 0.630\). The fitted model's 0.232 should be compared with 0.630, not with 0.</p>
+  <p><b>In practice.</b> Libraries combine the sigmoid and the log loss in one function that takes the score \(z\), such as PyTorch's <code>BCEWithLogitsLoss</code>. It is more stable than computing \(p\) first. Log loss has no ceiling, so after a fit, list the sharks with the largest losses and check their labels. A mislabelled shark can cost 5 or more and pulls the fit.</p>
   <div class="break">
     <p><b>Common belief.</b> Squared error worked for lines, so it will work here too.</p>
     <p><b>Why it fails.</b> It runs into the sigmoid's flat tails: the squared loss through a sigmoid has almost no slope where the model is most wrong, so gradient descent can stall there. It also never charges more than 1 for any mistake.</p>
@@ -250,11 +304,29 @@ for z in [-6.0, -2.0, 0.0, 2.0]:
 z =  -2.0  p = 0.1192  log loss  2.127 slope -0.8808 | squared loss 0.776 slope -0.18496
 z =   0.0  p = 0.5000  log loss  0.693 slope -0.5000 | squared loss 0.250 slope -0.25000
 z =   2.0  p = 0.8808  log loss  0.127 slope -0.1192 | squared loss 0.014 slope -0.02503</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+sigmoid = lambda z: 1 / (1 + np.exp(-z))
+# scores z of Tag 3305 (adult), Tag 4127 (juvenile) and a 30 cm, 8 cm girth juvenile, from the fitted weights
+z = np.array([3.4789, 5.0823, -2.3906])
+y = np.array([1, 0, 0])
+p = sigmoid(z)
+losses = -np.log(np.where(y == 1, p, 1 - p))       # minus the log of the probability given to the true label
+print("p(adult):", p.round(3), " losses:", losses.round(3))
+print("average:", losses.mean().round(3), " share from Tag 4127:", f"{losses[1] / losses.sum():.0%}")
+
+base = 181 / 268                                   # adult share of the 268 spadenose records
+lazy = -(base * np.log(base) + (1 - base) * np.log(1 - base))
+print("lazy model: p =", round(base, 3), " log loss =", round(lazy, 3))</code></pre>
+  <pre class="out">p(adult): [0.97  0.994 0.084]  losses: [0.03  5.088 0.088]
+average: 1.735  share from Tag 4127: 98%
+lazy model: p = 0.675  log loss = 0.63</pre>
   <p class="used"><b>Used in:</b> log loss is the cross-entropy that trains language models (<a href="../d3-next-token/#loss">D3</a>) and image classifiers (<a href="../c2-cnns/#stack">C2</a>). Its starting value for a model that guesses is a check in <a href="../b8-debugging/#recipe">B8</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A model gives probability 0.9 to the true label. What is the log loss, and what would it be at 0.1?</summary><p>\(-\ln 0.9 = 0.105\), and \(-\ln 0.1 = 2.30\). The second is 22 times larger: a confident mistake costs far more than a small one.</p></details>
     <details><summary>Why is a model with squared loss slow to recover from a confident mistake?</summary><p>The push has a factor \(p(1-p)\), the slope of the sigmoid, which is close to 0 when \(p\) is close to 0 or 1. The model is where the curve is flat, and the loss barely reacts to the score.</p></details>
+    <details><summary>A model with no inputs gives all 268 sharks \(p = 0.675\). Is its log loss closer to 0.69 or to 0.23?</summary><p>It is \(-(0.675\ln 0.675 + 0.325\ln 0.325) = 0.630\), close to 0.69. The fitted model's 0.232 is the gain over this baseline.</p></details>
   </div>
 </section>
 
@@ -306,6 +378,11 @@ z =   2.0  p = 0.8808  log loss  0.127 slope -0.1192 | squared loss 0.014 slope 
     <li><b>\(p_i - y_i\)</b> is the prediction minus the label for shark \(i\): the sign says which way the score should move, and the size says how wrong the model is.</li>
     <li>Compare with <a href="../a2-linear-regression/#descent">A2</a>: there the residual was \(y - \hat y\), and the update added \(\eta\) times its product with the input. Here the "residual" is \(y - p\). The loop is the same.</li>
   </ul>
+  <p><b>A second worked example: step 1 on the twenty sharks.</b> Use the data of the code below, with both inputs scaled, all weights 0 and \(\eta = 0.5\). All the scores are 0, so all sharks get \(p = 0.5\). The twenty include eleven adults, so the average of \(p - y\) is \(0.5 - 11/20 = -0.05\). The average of \((p - y)\) times the scaled input is \(-0.394\) for length and \(-0.408\) for girth. The update is:</p>
+  <div class="eqn" role="img" aria-label="Step one on twenty sharks: new w1 is 0.197, new w2 is 0.204, new b is 0.025, the log loss falls from 0.693 to 0.549 and the accuracy rises from 45 to 90 percent"><span class="t c-navy"><b>0.197</b><i>new w<sub>1</sub> = 0 &minus; 0.5 &times; (&minus;0.394)</i></span><span class="t c-navy"><b>0.204</b><i>new w<sub>2</sub> = 0 &minus; 0.5 &times; (&minus;0.408)</i></span><span class="t c-coral"><b>0.025</b><i>new b = 0 &minus; 0.5 &times; (&minus;0.05)</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>0.549</b><i>log loss, down from 0.693</i></span><span class="t c-sand"><b>90%</b><i>accuracy, up from 45%</i></span></div>
+  <p>Both weights rise, because the adults are the longer, thicker sharks and a higher score for long sharks lowers the loss. After this step 18 of the 20 are right. The 45% before it comes from the code's tie rule, which calls a shark with \(p = 0.5\) a juvenile.</p>
+  <p><b>Why a perfect split never settles.</b> Take eight sharks that one line splits perfectly: juveniles up to 33 cm and adults from 37 cm. Multiply the weights by \(c\). The boundary stays at 35 cm, and the probabilities sharpen. The log loss falls from 0.14 at \(c = 0.5\) to 0.041 at 1, 0.0049 at 2 and \(8.5\times 10^{-5}\) at 4. It never reaches 0, so no best weights exist, and training ends only when you stop it.</p>
+  <p><b>In practice.</b> Stop on a tolerance for the change in loss, with a cap on the steps as a guard. Scikit-learn's <code>LogisticRegression</code> applies a penalty on large weights by default (an L2 penalty), which keeps separable data from running off. Libraries also fit this model faster than plain gradient descent, with methods such as Newton's method or L-BFGS, and find the same bottom of the same loss. The Fit buttons in this chapter use Newton's method.</p>
   <div class="break">
     <p><b>Common belief.</b> Training a classifier stops when it gets all the training sharks right.</p>
     <p><b>Why it fails.</b> The loss keeps falling as long as probabilities can become more extreme. If one line splits the data perfectly, the best weights are infinite: the loss approaches zero as the weights grow, and training never settles.</p>
@@ -339,11 +416,27 @@ step  100: log loss = 0.1873, accuracy = 0.90
 step 2000: log loss = 0.1716, accuracy = 0.95
 weights: [0.52 4.94] bias: 0.91</pre>
   <p>The loss starts at \(\ln 2 = 0.693\), as the debug tip predicts. With only 20 sharks the large weight goes to girth, and on all 268 records it goes to length. A small sample cannot separate two inputs that move together. These 20 sharks also lie close to the boundary, so they are almost separable.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+# 8 made-up spadenose sharks that one line splits perfectly: juveniles up to 33 cm, adults from 37 cm
+length = np.array([28.0, 30.0, 32.0, 33.0, 37.0, 39.0, 41.0, 45.0])
+y = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+
+for c in [0.5, 1, 2, 4, 8]:
+    z = c * (length - 35)                              # the boundary stays at 35 cm, the steepness is c
+    loss = np.logaddexp(0, -(2 * y - 1) * z).mean()    # log loss from the score, without overflow
+    print(f"steepness {c:3.1f}: log loss = {loss:.1e}")</code></pre>
+  <pre class="out">steepness 0.5: log loss = 1.4e-01
+steepness 1.0: log loss = 4.1e-02
+steepness 2.0: log loss = 4.9e-03
+steepness 4.0: log loss = 8.5e-05
+steepness 8.0: log loss = 2.8e-08</pre>
   <p class="used"><b>Used in:</b> the same loop, with a bend added, trains one neuron (<a href="../b1-one-neuron/#fit">B1</a>), and backpropagation (<a href="../b4-backpropagation/#backward">B4</a>) computes \(p - y\) at the output of any classifier network.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>For one adult shark the model says \(p = 0.2\). What is \(\partial \ell/\partial z\), and which way does the update move the score?</summary><p>\(p - y = 0.2 - 1 = -0.8\). The slope is negative, so subtracting \(\eta\) times it raises \(z\), which raises \(p\) towards 1.</p></details>
     <details><summary>All weights start at 0. What probability does the model give to all sharks, and what is the starting log loss?</summary><p>\(z = 0\) for all sharks, so \(p = 0.5\) and the loss is \(-\ln 0.5 = 0.693\) whatever the labels.</p></details>
+    <details><summary>All weights are 0, 11 of 20 sharks are adults and \(\eta = 0.5\). What is the slope along \(b\), and what is the first update of \(b\)?</summary><p>The slope is the average of \(p - y\): \(0.5 - 11/20 = -0.05\). The update is \(b \leftarrow 0 - 0.5\times(-0.05) = 0.025\). The bias rises because more than half of the sharks are adults.</p></details>
   </div>
 </section>
 
@@ -375,6 +468,22 @@ weights: [0.52 4.94] bias: 0.91</pre>
     <li><b>\(y_k\)</b> is the one-hot label: 1 for the true species, 0 for the others. Only the true species' term remains in \(\ell\), so the loss is \(-\ln p_{\text{true}}\), the cross-entropy of <a href="../t7-probability/#crossent">0.7</a>.</li>
     <li>The slope \(p_k - y_k\) is the five-class form of the binary \(p - y\). A species with too much probability is pushed down, and the true species is pushed up.</li>
   </ul>
+  <p><b>The missing step: the slope of the loss on a score.</b> With a one-hot label, \(\ell = -\ln p_{\text{true}}\) and \(p_{\text{true}} = e^{z_{\text{true}}}/\sum_j e^{z_j}\). The log of the fraction gives \(\ell = -z_{\text{true}} + \ln\sum_j e^{z_j}\). Now take the slope along \(z_k\). The first term gives \(-1\) when \(k\) is the true class and 0 otherwise, which is \(-y_k\). The slope of \(\ln\sum_j e^{z_j}\) is \(e^{z_k}/\sum_j e^{z_j} = p_k\). The sum is \(p_k - y_k\).</p>
+  <p><b>A second worked example: Tag 4127, step by step.</b> The five scores come from the code below. Subtract the largest, raise \(e\) to the result, and divide by the total. The true species is bamboo, so the push on its score is \(p - 1\).</p>
+  <div class="wtab-wrap"><table class="wtab" aria-label="Softmax for Tag 4127: scores, scores minus the largest, exponentials, probabilities and pushes. Spadenose has probability 0.761 and bamboo 0.220.">
+    <thead><tr><th>species</th><th>score z</th><th>z minus largest</th><th>e<sup>z &minus; largest</sup></th><th>p</th><th>push p &minus; y</th></tr></thead>
+    <tbody>
+      <tr class="best"><td>spadenose</td><td>6.67</td><td>0</td><td>1.000</td><td>0.761</td><td>+0.761</td></tr>
+      <tr><td>milk</td><td>2.94</td><td>&minus;3.73</td><td>0.024</td><td>0.018</td><td>+0.018</td></tr>
+      <tr><td>bamboo (true)</td><td>5.43</td><td>&minus;1.24</td><td>0.290</td><td>0.220</td><td>&minus;0.780</td></tr>
+      <tr><td>hammerhead</td><td>&minus;0.62</td><td>&minus;7.29</td><td>0.0007</td><td>0.0005</td><td>+0.0005</td></tr>
+      <tr><td>Ganges</td><td>&minus;14.42</td><td>&minus;21.09</td><td>0.0000</td><td>0.0000</td><td>0.0000</td></tr>
+    </tbody>
+  </table></div>
+  <p>The third column adds to 1.314, which is the divisor. The slope on the spadenose score is +0.761, so training pushes it down. The slope on the bamboo score is &minus;0.780, so training pushes it up. The pushes add to zero. The loss is \(-\ln 0.220 = 1.51\).</p>
+  <p>Tag 5519, a hammerhead, is a near tie. Its milk score is 6.94 and its hammerhead score 6.88, a gap of 0.06, so the probabilities are 0.515 and 0.485. The loss is \(-\ln 0.485 = 0.72\). The pushes are &minus;0.515 on the hammerhead score and +0.515 on the milk score. A small change in the weights flips the call.</p>
+  <p><b>Why softmax, and where it fits badly.</b> Softmax makes the classes compete: raising one probability lowers the others. That suits a shark with one species. If a picture can show several things at once, such as a shark and a ray, use a separate sigmoid per label instead.</p>
+  <p><b>In practice.</b> Subtract the largest score before you exponentiate, as above, so that \(e^{z}\) cannot overflow. Libraries fuse softmax and cross-entropy in one function that takes the scores, such as PyTorch's <code>CrossEntropyLoss</code>.</p>
   <div class="break">
     <p><b>Common belief.</b> A model that names 77% of the sharks correctly names all five species well.</p>
     <p><b>Why it fails.</b> The 77% hides large differences between species. Of the 268 spadenose sharks 257 are right, but of the 72 bamboo sharks only 3 are. The score was also measured on the records the model learned from.</p>
@@ -402,11 +511,41 @@ bamboo      score   5.43  probability 0.220
 hammerhead  score  -0.62  probability 0.001
 ganges      score -14.42  probability 0.000
 model says: spadenose - loss if the true species is bamboo: 1.512</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+species = ["spadenose", "milk", "bamboo", "hammerhead", "ganges"]
+W = np.array([[0.0929, -1.1222], [0.0772, 0.0701], [0.2148, -1.1895], [-0.0267, 0.5603], [-0.3582, 1.6814]])
+b = np.array([16.4982, -1.3269, 10.7304, -6.3968, -19.5049])
+
+for name, x, true in [("Tag 4127", [44.0, 12.4], 2), ("Tag 5519", [82.0, 27.6], 3)]:
+    z = W @ np.array(x) + b
+    e = np.exp(z - z.max())                    # subtract the largest score first, so e**z cannot overflow
+    p = e / e.sum()
+    y = np.eye(5)[true]                        # one-hot label
+    print(name, "- true species:", species[true], " loss:", round(-np.log(p[true]), 3))
+    for s, zk, pk, gk in zip(species, z, p, p - y):
+        print(f"  {s:11s} z = {zk:7.2f}  p = {pk:.4f}  push p - y = {gk:+.4f}")
+    print("  the pushes add to", round((p - y).sum(), 6) + 0.0)</code></pre>
+  <pre class="out">Tag 4127 - true species: bamboo  loss: 1.512
+  spadenose   z =    6.67  p = 0.7608  push p - y = +0.7608
+  milk        z =    2.94  p = 0.0182  push p - y = +0.0182
+  bamboo      z =    5.43  p = 0.2204  push p - y = -0.7796
+  hammerhead  z =   -0.62  p = 0.0005  push p - y = +0.0005
+  ganges      z =  -14.42  p = 0.0000  push p - y = +0.0000
+  the pushes add to 0.0
+Tag 5519 - true species: hammerhead  loss: 0.724
+  spadenose   z =   -6.86  p = 0.0000  push p - y = +0.0000
+  milk        z =    6.94  p = 0.5150  push p - y = +0.5150
+  bamboo      z =   -4.49  p = 0.0000  push p - y = +0.0000
+  hammerhead  z =    6.88  p = 0.4849  push p - y = -0.5151
+  ganges      z =   -2.47  p = 0.0000  push p - y = +0.0000
+  the pushes add to 0.0</pre>
   <p class="used"><b>Used in:</b> the last layer of an image classifier is a softmax classifier on top of learned features (<a href="../c2-cnns/#read">C2</a>). A language model uses one with tens of thousands of classes, the words (<a href="../d3-next-token/#distribution">D3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A softmax classifier has 4 classes and 3 inputs. How many weights and biases does it have?</summary><p>\(4 \times 3 = 12\) weights and 4 biases, 16 numbers in all.</p></details>
     <details><summary>At the start of training, all five scores are 0. What are the probabilities and the loss?</summary><p>The five probabilities are all \(1/5 = 0.2\), and the loss is \(-\ln 0.2 = \ln 5 = 1.61\) for any true species.</p></details>
+    <details><summary>Tag 5519 is a hammerhead and the model gives it \(p = 0.485\) for that species. What is its loss, and which score does training push up?</summary><p>The loss is \(-\ln 0.485 = 0.72\). The slope on the hammerhead score is \(0.485 - 1 = -0.515\), which is negative, so training pushes that score up.</p></details>
   </div>
 </section>
 
