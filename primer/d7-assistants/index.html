@@ -10,59 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-.row-chips { display: inline-block; margin: 0 10px 6px 0; }
-.card .bar { row-gap: 8px; }
-.card .bar label:has(input[type=range]) { display: grid; grid-template-columns: auto auto; gap: 2px 8px; align-items: center; min-width: 190px; }
-.card .bar label input[type=range] { grid-column: 1 / -1; width: 100%; }
-.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
-.chk { display: inline-flex; align-items: flex-start; gap: 4px; font-size: 14px; color: var(--ink-2); max-width: 100%; }
-.eq1 { margin: 10px 0 0; }
-.eqn .t { max-width: 100%; }
-.eqn .t i { max-width: 16em; }
-.stgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 8px; }
-.stgrid div { padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); font-size: 14.5px; color: var(--ink-2); }
-.stgrid b { display: block; color: var(--ink); font-size: 14px; letter-spacing: 0.02em; margin-bottom: 2px; }
-.split2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 22px; align-items: start; }
-.split2 > div { min-width: 0; }
-.side-h { margin: 6px 0 2px; font-size: 14px; font-weight: 500; color: var(--muted); }
-.qline { margin: 0 0 8px; padding: 8px 12px; border-radius: 6px; background: var(--mark); color: var(--ink); font-size: 16px; }
-.reply { margin: 0 0 8px; padding: 10px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--navy); border-radius: 0 6px 6px 0; background: var(--bg); color: var(--ink); font-size: 16.5px; min-height: 4.5em; overflow-wrap: anywhere; }
-.badge { display: inline-block; margin: 0 0 8px; padding: 2px 10px; border-radius: 999px; font-size: 13.5px; line-height: 1.4; }
-.badge.real { background: color-mix(in srgb, var(--teal) 22%, transparent); border: 1px solid var(--teal); color: var(--ink); }
-.badge.script { background: color-mix(in srgb, var(--sand) 25%, transparent); border: 1px dashed var(--sand); color: var(--ink); }
-.toks { display: flex; flex-wrap: wrap; gap: 4px 3px; margin: 6px 0 10px; }
-.tk { display: inline-flex; align-items: baseline; padding: 1px 5px; border: 1px solid var(--rule); border-radius: 4px; font: 14px/1.5 ui-monospace, Menlo, monospace; color: var(--ink); white-space: pre; }
-.tk sub { font-size: 10.5px; color: var(--muted); margin-left: 3px; }
-.tk.off { border-style: dashed; color: var(--muted); opacity: 0.6; }
-pre.prompt, .ctx { max-width: 100%; margin: 6px 0 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font: 13.5px/1.55 ui-monospace, Menlo, monospace; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
-.cursor { color: var(--coral); }
-.sp { padding: 0 3px; border-radius: 3px; background: color-mix(in srgb, var(--coral) 22%, transparent); }
-.ctx .old { color: var(--muted); }
-.ctx mark { background: color-mix(in srgb, var(--teal) 26%, transparent); color: var(--ink); padding: 0 2px; border-radius: 3px; }
-.ctx details { margin: 0 0 6px; }
-.ctx summary { cursor: pointer; font-family: "Spectral", Georgia, serif; font-size: 14px; color: var(--link); }
-.ctx details pre { margin: 6px 0 0; font: 12.5px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; color: var(--muted); }
-.run { margin: 6px 0 0; padding: 8px 12px; border-radius: 6px; background: var(--paper); border: 1px solid var(--rule); font: 13.5px/1.5 ui-monospace, Menlo, monospace; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
-.who { margin: 0; color: var(--ink-2); }
-.rs-row { display: grid; grid-template-columns: 8.4em minmax(0, 1fr) 3.4em; gap: 6px; align-items: center; padding: 2px 4px; margin: 1px 0; border-radius: 4px; font-size: 15px; }
-.rs-tok { font: 14px ui-monospace, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rs-track { position: relative; height: 14px; background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
-.rs-track i { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--teal) 70%, transparent); }
-.rs-row b { text-align: right; font-weight: 500; font-feature-settings: "tnum" 1; }
-.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin: 0 0 12px; }
-.pair button { text-align: left; font: inherit; font-size: 15px; line-height: 1.4; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; overflow-wrap: anywhere; }
-.pair button:hover { border-color: var(--teal); }
-.pair small { display: block; margin-top: 6px; color: var(--link); font-size: 13px; }
-.bridge { max-width: 46em; margin: 16px 0; padding: 8px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--sand); border-radius: 0 6px 6px 0; background: var(--paper); }
-.bridge p { margin: 5px 0; color: var(--ink-2); }
-.bridge b { color: var(--ink); }
-code { overflow-wrap: anywhere; }
-pre code { overflow-wrap: normal; }
-@media (max-width: 760px) { .split2, .pair, .stgrid { grid-template-columns: minmax(0, 1fr); } .rs-row { grid-template-columns: 6.4em minmax(0, 1fr) 3em; } }
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="d7-assistants.css?v=67c2f16c">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body data-chapter="d7">

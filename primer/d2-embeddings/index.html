@@ -10,64 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-.row-chips { display: inline-block; margin: 0 10px 6px 0; }
-.card .bar { row-gap: 8px; }
-.card .bar label { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
-.card .bar select, .card .controls select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
-.eqs { margin: 10px 0 0; }
-.eqs .eqn { margin: 6px 0 0; }
-.oh-grid { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 10px 8px; margin: 10px 0; }
-.oh-col { min-width: 116px; }
-.oh-h { max-width: 190px; margin-bottom: 4px; font-size: 13px; line-height: 1.3; color: var(--muted); }
-.oh-c { display: flex; align-items: center; gap: 8px; height: 26px; margin-bottom: 2px; font: 13.5px ui-monospace, Menlo, monospace; }
-.oh-c span { width: 26px; text-align: center; border: 1px solid var(--rule); border-radius: 4px; line-height: 24px; background: var(--bg); }
-.oh-c.on span { background: color-mix(in srgb, var(--coral) 60%, transparent); border-color: var(--coral); font-weight: 600; }
-.oh-c em { font: normal 13.5px Spectral, Georgia, serif; color: var(--ink-2); }
-.oh-r { display: flex; gap: 3px; height: 26px; margin-bottom: 2px; }
-.oh-r span { width: 46px; text-align: center; border: 1px solid var(--rule); border-radius: 4px; font: 13.5px/24px ui-monospace, Menlo, monospace; background: var(--bg); }
-.oh-r.on span { background: color-mix(in srgb, var(--teal) 26%, transparent); border-color: var(--teal); }
-.oh-r.nud span { background: color-mix(in srgb, var(--coral) 28%, transparent); border-color: var(--coral); }
-.oh-r .x { outline: 2px solid var(--coral); outline-offset: 1px; }
-.oh-r.res span { cursor: pointer; }
-.oh-times { align-self: center; padding-top: 22px; font-size: 22px; color: var(--ink-2); }
-.ct-wrap { overflow-x: auto; }
-table.ct { border-collapse: collapse; font-size: 12px; font-feature-settings: "tnum" 1; }
-table.ct th, table.ct td { padding: 2px 1px; text-align: center; border: 1px solid var(--rule); min-width: 15px; }
-.eqn .t { max-width: 100%; }
-#oh-eqn .t b { white-space: normal; font-size: 15px; overflow-wrap: anywhere; text-align: center; }
-table.ct thead th { border: 0; vertical-align: bottom; font-weight: 400; color: var(--muted); }
-table.ct thead th span { display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11.5px; line-height: 1.05; }
-table.ct tbody th { text-align: right; font-weight: 500; color: var(--ink); padding: 2px 6px 2px 2px; white-space: nowrap; }
-table.ct tbody tr { cursor: pointer; }
-table.ct td.n1 { background: color-mix(in srgb, var(--teal) 18%, transparent); }
-table.ct td.n2 { background: color-mix(in srgb, var(--teal) 38%, transparent); }
-table.ct td.n3 { background: color-mix(in srgb, var(--teal) 60%, transparent); }
-table.ct tr.ra th { box-shadow: inset -4px 0 0 var(--coral); }
-table.ct tr.rb th { box-shadow: inset -4px 0 0 var(--navy); }
-.co-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
-#co-sent { max-height: 180px; overflow: auto; margin: 8px 0 0; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 5px; background: var(--bg); font-size: 14px; color: var(--ink-2); }
-#co-sent ol { margin: 0; padding-left: 1.6em; }
-.strip50 { display: grid; grid-template-columns: repeat(50, 1fr); gap: 1px; height: 20px; margin: 4px 0 8px; border: 1px solid var(--rule); border-radius: 3px; padding: 1px; background: var(--bg); }
-.mp-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 22px; margin-top: 8px; }
-.mp-side h4, .side-h { margin: 8px 0 2px; font-size: 14px; font-weight: 500; color: var(--muted); }
-.mp-side .eqn { margin: 2px 0 8px; }
-.an-row { display: grid; grid-template-columns: 7em minmax(0, 1fr) 3em; align-items: center; gap: 8px; margin: 3px 0; font-size: 15px; }
-.an-track { height: 14px; background: var(--paper); border-radius: 3px; overflow: hidden; border: 1px solid var(--rule); }
-.an-track span { display: block; height: 100%; background: color-mix(in srgb, var(--navy) 60%, transparent); }
-.an-row.first .an-track span { background: color-mix(in srgb, var(--teal) 70%, transparent); }
-.an-row b { text-align: right; font-feature-settings: "tnum" 1; font-weight: 500; }
-#an-full p { max-width: none; margin: 6px 0; color: var(--ink-2); font-size: 15px; }
-.verdict { padding: 4px 10px; border-left: 3px solid var(--sand); background: var(--paper); }
-.verdict.v-works { border-color: var(--teal); }
-.verdict.v-fails, .verdict.v-copies { border-color: var(--coral); }
-.sn-msg { max-width: none !important; margin: 6px 0 2px; font-size: 15px; color: var(--ink); }
-.sn-gloss { max-width: none !important; margin: 2px 0 6px; font-size: 14.5px; color: var(--muted); }
-.flagline { max-width: 46em; margin: 10px 0 0; padding: 6px 12px; border-left: 3px solid var(--coral); font-size: 15px; color: var(--ink-2); background: var(--paper); }
-@media (max-width: 760px) { .co-grid, .mp-side { grid-template-columns: minmax(0, 1fr); } .an-row { grid-template-columns: 5.6em minmax(0, 1fr) 2.6em; } }
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="d2-embeddings.css?v=96b97bad">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body data-chapter="d2">
@@ -429,6 +373,6 @@ print([(tok.decode(int(i)), round(float(sims[i]), 2)) for i in top])</code></pre
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
 <script src="../assets/kit.js?v=e92d596e" defer></script>
-<script src="d2-embeddings.js?v=8b1b2f81" defer></script>
+<script src="d2-embeddings.js?v=2f66237a" defer></script>
 </body>
 </html>

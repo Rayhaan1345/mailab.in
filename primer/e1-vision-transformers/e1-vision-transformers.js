@@ -438,7 +438,7 @@
         ctx.drawImage(im, ox, 0, W2, W2);
         for (i = 0; i < 196; i++) {
           var rr = Math.floor(i / 14), cc = i % 14, inside = pane === 0 ? (Math.abs(rr - st.r) <= half && Math.abs(cc - st.c) <= half) : true;
-          ctx.fillStyle = inside ? (pane === 1 ? "rgba(194,86,58,0.18)" : "rgba(0,0,0,0)") : "rgba(0,0,0,0.62)"; ctx.fillRect(ox + cc * cs, rr * cs, cs + 0.5, cs + 0.5);
+          ctx.fillStyle = inside ? (pane === 1 ? rgba(hexRGB(P.coral), 0.18) : "rgba(0,0,0,0)") : "rgba(0,0,0,0.62)"; ctx.fillRect(ox + cc * cs, rr * cs, cs + 0.5, cs + 0.5);
         }
         ctx.lineWidth = 3; ctx.strokeStyle = P.coral; ctx.strokeRect(ox + st.c * cs + 1.5, st.r * cs + 1.5, cs - 3, cs - 3);
         ctx.fillStyle = P.ink2; ctx.font = "14px Spectral, Georgia, serif"; ctx.textAlign = "left";

@@ -11,6 +11,9 @@ What it does, in order:
      sha1 of that file's content>: assets/kit.css, assets/kit.js, the chapter's own <slug>.js and
      <slug>.css, and any other local .js or .css file beside a page. External URLs are left alone.
 
+  4. Checks the rule "no <style> element in a page": a page may carry the library link, the chapter's own <slug>.css, the
+     KaTeX and Google Fonts links, and nothing else that styles it. A <style> element or another stylesheet is a problem.
+
 A second run finds nothing to change. Standard library only.
 """
 import argparse
@@ -128,6 +131,28 @@ def stamp_page(path, generated):
     return TAG.sub(fix_tag, text), refs, problems
 
 
+ALLOWED_CSS_HOSTS = ("https://fonts.googleapis.com/", "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/")
+STYLE_ELEMENT = re.compile(r"<style\b", re.I)
+STYLESHEET_LINK = re.compile(r"<link\b[^>]*\brel\s*=\s*[\"']stylesheet[\"'][^>]*>", re.I)
+
+
+def lint_page(path, text):
+    """Problems with the rule 'no <style> element, no stylesheet except the library, KaTeX, fonts and the chapter's own css'."""
+    problems = []
+    rel = os.path.relpath(path, PRIMER)
+    slug = os.path.basename(os.path.dirname(path))
+    if STYLE_ELEMENT.search(re.sub(r"<script\b.*?</script>", "", text, flags=re.S | re.I)):
+        problems.append("%s: has a <style> element (put the rules in %s.css or in lib/css)" % (rel, slug))
+    for tag in STYLESHEET_LINK.findall(text):
+        m = ATTR.search(tag)
+        href = m.group(4) if m else ""
+        path_only = urlsplit(href).path
+        if href.startswith(ALLOWED_CSS_HOSTS) or path_only in ("../assets/kit.css", "assets/kit.css", slug + ".css"):
+            continue
+        problems.append("%s: stylesheet link %s is not the library, KaTeX, fonts or the chapter's own css" % (rel, href))
+    return problems
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Build assets/kit.css and assets/kit.js and stamp version hashes into pages.")
     ap.add_argument("--check", action="store_true", help="write no files; exit 1 if something is stale")
@@ -153,6 +178,7 @@ def main(argv=None):
     for path in pages:
         new_text, refs, probs = stamp_page(path, generated)
         problems += probs
+        if "_template" not in path.split(os.sep): problems += lint_page(path, new_text)     # the starter folder is not published
         for r in refs:
             key = r if r.startswith("assets/") else ("chapter " + os.path.splitext(r)[1])
             stamp_counts[key] = stamp_counts.get(key, 0) + 1

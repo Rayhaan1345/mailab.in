@@ -68,7 +68,40 @@ ul.plain li { margin: 4px 0; }
 .exercises .hint p { margin: 6px 0 0; }
 .ex-tag { display: inline-block; margin-right: 6px; padding: 0 8px; border-radius: 999px; background: var(--mark); color: var(--ink); font-size: 13px; }
 
-/* "Used in" line at the end of a teaching section (p.used), shared by the toolkit chapters. */
+/* "Used in" line at the end of a teaching section, shared by the toolkit chapters (a p, or a div that holds a p). */
 
-p.used { max-width: 46em; margin: 8px 0 18px; padding: 6px 12px; border-left: 3px solid var(--sand); font-size: 15px; color: var(--ink-2); }
-p.used b { color: var(--ink); }
+.used { max-width: 46em; margin: 8px 0 18px; padding: 6px 12px; border-left: 3px solid var(--sand); font-size: 15px; color: var(--ink-2); }
+.used b { color: var(--ink); }
+
+/* Bridge to my project: a boxed note that ties the chapter to the author's own work. */
+
+.bridge { max-width: 46em; margin: 12px 0 18px; padding: 8px 14px; border-left: 3px solid var(--teal); background: var(--paper); border-radius: 0 6px 6px 0; font-size: 15px; color: var(--ink-2); }
+.bridge p { margin: 5px 0; }
+.bridge b { color: var(--ink); }
+
+.side-h { margin: 6px 0 2px; font-size: 14px; font-weight: 500; color: var(--muted); }
+
+.sub-h3 { margin: 26px 0 8px; font-size: 19px; font-weight: 600; }
+
+/* Data note: a boxed remark about the data a figure uses */
+.datanote { max-width: 46em; margin: 14px auto 0; padding: 8px 14px; border: 1px solid var(--rule); border-radius: 6px; font-size: 15px; color: var(--ink-2); background: var(--paper); }
+.datanote b { color: var(--ink); }
+
+/* Derivation step: a numbered step of a worked derivation */
+.dv-step { max-width: 46em; margin: 0 0 10px; padding: 6px 14px; border-left: 3px solid var(--teal); background: var(--bg); border-radius: 0 6px 6px 0; }
+.dv-step p { margin: 6px 0; color: var(--ink-2); }
+.dv-step b { color: var(--ink); }
+.dv-step .math { margin: 6px 0; }
+
+/* Numbered steps in prose */
+ol.steps { max-width: 46em; margin: 0 0 14px; padding-left: 1.4em; color: var(--ink-2); }
+ol.steps li { margin: 6px 0; }
+
+/* Short callouts and headings */
+.mini-note { max-width: 46em; font-size: 14.5px; color: var(--muted); margin: 6px 0 0; }
+.flagline { max-width: 46em; margin: 10px 0 0; padding: 6px 12px; border-left: 3px solid var(--coral); font-size: 15px; color: var(--ink-2); background: var(--paper); }
+
+/* Photo credits */
+.credit { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+details.credits { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+details.credits summary { cursor: pointer; color: var(--link); }

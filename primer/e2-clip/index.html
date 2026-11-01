@@ -10,76 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-.bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; }
-.check { display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; color: var(--ink-2); cursor: pointer; }
-.check input, .card input[type=range] { accent-color: var(--teal); }
-.card canvas { display: block; max-width: 100%; border-radius: 4px; }
-.card select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); max-width: 100%; }
-.eqs { margin: 10px 0 0; }
-.eqn .op.wrap { white-space: normal; }
-.credit { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
-.pane-h { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
-.hintline { font-size: 14.5px; color: var(--muted); padding: 4px 0; }
-.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
-.pair { display: flex; flex-wrap: wrap; gap: 12px 16px; }
-.thumbs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
-.thumb { position: relative; padding: 0; line-height: 0; border: 2px solid var(--rule); border-radius: 7px; background: none; cursor: pointer; overflow: visible; }
-.thumb img { display: block; width: 44px; height: 44px; object-fit: cover; border-radius: 5px; }
-.thumb[aria-pressed="true"] { border-color: var(--coral); box-shadow: 0 0 0 1px var(--coral); }
-.thumb:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.thumb.mark.ok::after, .thumb.mark.no::after { content: ""; position: absolute; right: -4px; top: -4px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--bg); }
-.thumb.mark.ok::after { background: var(--teal); }
-.thumb.mark.no::after { background: var(--coral); }
-.thumb.mark.na img { opacity: 0.45; }
-.rs-row { display: grid; grid-template-columns: 13.5em minmax(0, 1fr) 3.6em; gap: 8px; align-items: center; padding: 2px 4px; margin: 1px 0; border-radius: 4px; font-size: 14.5px; }
-.rs-row.tr { background: var(--mark); box-shadow: inset 3px 0 0 var(--coral); }
-.rs-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
-.rs-track { position: relative; height: 14px; background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
-.rs-track i { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--navy) 65%, transparent); }
-.rs-row b { text-align: right; font-weight: 500; font-feature-settings: "tnum" 1; color: var(--ink); }
-.enc-grid { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 14px 24px; align-items: start; }
-.enc-text { margin: 0 0 6px; font-size: 16px; color: var(--ink); }
-.strip-c { display: block; margin: 4px 0 8px; }
-#sp-svg { display: block; width: 100%; height: auto; }
-#mx-svg { display: block; width: 100%; height: auto; }
-.mx-leg { margin: 8px 0 0; padding-left: 0; list-style: none; columns: 2; column-gap: 24px; font-size: 14px; color: var(--ink-2); }
-.mx-leg li { break-inside: avoid; margin: 1px 0; }
-.mx-leg b { color: var(--ink); }
-#sp-info ol { margin: 4px 0 0; padding-left: 1.3em; color: var(--ink-2); }
-#sp-info li span { color: var(--muted); font-feature-settings: "tnum" 1; }
-.sp-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 220px); gap: 14px 20px; align-items: start; }
-.zs-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
-.checks { display: grid; gap: 3px; }
-.mu-grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 14px 22px; align-items: start; }
-.con-pane { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 8px 0; }
-.con-pane figure { margin: 0; text-align: center; }
-.con-pane img { width: 100%; max-width: 120px; aspect-ratio: 1; object-fit: cover; border-radius: 6px; border: 1px solid var(--rule); }
-.con-pane figcaption { font-size: 13px; color: var(--ink-2); margin-top: 3px; }
-.bridge { max-width: 46em; margin: 12px 0 18px; padding: 8px 14px; border-left: 3px solid var(--teal); background: var(--paper); border-radius: 0 6px 6px 0; font-size: 15px; color: var(--ink-2); }
-.bridge p { margin: 5px 0; }
-.bridge b { color: var(--ink); }
-.thumb[aria-pressed="false"] img { opacity: 0.6; }
-.card .controls select { width: 100%; min-width: 0; }
-.card .controls label { min-width: 0; }
-details.credits { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
-details.credits summary { cursor: pointer; color: var(--link); }
-details.credits ul { margin: 6px 0 0; padding-left: 1.2em; }
-.key { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 4px 0 0; font-size: 13.5px; }
-.key span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
-.key i { display: inline-block; width: 24px; height: 0; border-top: 3px solid var(--ink-2); }
-.key i.dash { border-top-style: dashed; }
-.key i.dot { border-top-style: dotted; }
-.key em { font-style: normal; }
-@media (max-width: 760px) {
-  .group { border-radius: 18px; }
-  .two, .enc-grid, .sp-grid, .zs-grid, .mu-grid { grid-template-columns: minmax(0, 1fr); }
-  .rs-row { grid-template-columns: 9.6em minmax(0, 1fr) 3.4em; font-size: 13.5px; }
-  .mx-leg { columns: 1; }
-}
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="e2-clip.css?v=c617706d">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body data-chapter="e2">
@@ -138,7 +70,7 @@ details.credits ul { margin: 6px 0 0; padding-left: 1.2em; }
       </div>
     </div>
     <div class="eqn eqs" id="en-eq" aria-live="polite"></div>
-    <p class="pane-h" style="margin-top:12px">Cosine of this photo with the nine species prompts "a photo of a ..." (the chosen text is outlined if it is one of them)</p>
+    <p class="pane-h mt-12">Cosine of this photo with the nine species prompts "a photo of a ..." (the chosen text is outlined if it is one of them)</p>
     <div id="en-rank"></div>
     <p class="credit" id="en-credit"></p>
     <details class="credits"><summary>Credits of the 14 photos</summary><ul id="en-credits"></ul></details>
@@ -256,9 +188,9 @@ print(round(float(np.sqrt((u ** 2).mean())), 3))       # the typical size of one
     <div class="bar" id="mx-bar"></div>
     <svg id="mx-svg" role="img" aria-label="Similarity matrix"></svg>
     <ul class="mx-leg" id="mx-legend"></ul>
-    <p class="pane-h" style="margin-top:12px">The loss of this batch</p>
+    <p class="pane-h mt-12">The loss of this batch</p>
     <div class="eqn eqs" id="mx-loss" aria-live="polite"></div>
-    <p class="pane-h" style="margin-top:8px">The working for the selected row (click a row)</p>
+    <p class="pane-h mt-8">The working for the selected row (click a row)</p>
     <div class="eqn eqs" id="mx-work"></div>
     <p class="status" id="mx-status" aria-live="polite"></p>
     <p class="credit">Captions were written for this chapter from the Wikimedia descriptions of the photos.</p>
@@ -489,7 +421,7 @@ dolphin</pre>
       <div><p class="pane-h">Probability of the nine captions at this depth</p><div id="mu-bars"></div></div>
     </div>
     <div class="readout" id="mu-read"></div>
-    <div class="two" style="margin-top:12px">
+    <div class="two mt-12">
       <div><p class="pane-h">This photo against depth: CLIP and ResNet-18</p><div class="key" id="mu-key1"></div><div class="plot" id="mu-plot" role="img" aria-label="Probability on the true species, shark mass of CLIP and shark confidence of ResNet-18 against depth for the chosen photo"></div></div>
       <div><p class="pane-h">Species right on 8 photos, for three templates</p><div class="key" id="mu-key2"></div><div class="plot" id="mu-plot2" role="img" aria-label="Share of the 8 photos with the right species against depth for three templates"></div></div>
     </div>

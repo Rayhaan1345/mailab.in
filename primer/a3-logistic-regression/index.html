@@ -10,43 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-.used { max-width: 46em; margin: 4px 0 0; font-size: 14.5px; color: var(--muted); }
-.used b { color: var(--ink-2); font-weight: 600; }
-.card .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 10px; }
-.card .status { margin: 8px 0 0; color: var(--ink-2); }
-.dv-step { max-width: 46em; margin: 0 0 10px; padding: 6px 14px; border-left: 3px solid var(--teal); background: var(--bg); border-radius: 0 6px 6px 0; }
-.dv-step p { margin: 6px 0; color: var(--ink-2); }
-.dv-step b { color: var(--ink); }
-.dv-step .math { margin: 6px 0; }
-.wtab-wrap { overflow-x: auto; max-width: 46em; margin: 8px 0 14px; }
-.wtab { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; }
-.wtab th, .wtab td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: right; color: var(--ink-2); }
-.wtab th { font-weight: 500; font-size: 13px; color: var(--muted); }
-.wtab td:first-child, .wtab th:first-child { text-align: left; }
-.wtab tr.best td { background: var(--mark); color: var(--ink); font-weight: 600; }
-@media (max-width: 760px) { .wtab { font-size: 12.5px; } .wtab th, .wtab td { padding: 3px 4px; } }
-.sm-wrap { overflow-x: auto; margin: 10px 0 0; }
-.sm-table { width: 100%; border-collapse: collapse; font-size: 14px; font-feature-settings: "tnum" 1, "lnum" 1; }
-.sm-table th, .sm-table td { padding: 5px 7px; border-bottom: 1px solid var(--rule); text-align: right; color: var(--ink-2); white-space: nowrap; }
-.sm-table th { font-weight: 500; color: var(--muted); font-size: 13px; white-space: normal; }
-.sm-table td:first-child, .sm-table th:first-child { text-align: left; color: var(--ink); }
-.sm-table tr.top td { background: var(--mark); color: var(--ink); }
-.sm-table td.sc { font-weight: 600; color: var(--ink); }
-.sm-table td.pb { text-align: left; min-width: 150px; }
-.sm-table .bar { display: inline-block; width: 90px; height: 12px; margin: 0 8px 0 0; background: var(--rule); border-radius: 3px; vertical-align: -1px; overflow: hidden; }
-.sm-table .fill { display: block; height: 100%; }
-.sm-table .pv { color: var(--ink); font-weight: 600; }
-.sm-table .bar { display: inline-block; }
-@media (max-width: 760px) {
-  .sm-table { font-size: 11.5px; }
-  .sm-table th, .sm-table td { padding: 4px 3px; white-space: normal; }
-  .sm-table td.pb { min-width: 0; }
-  .sm-table .bar { width: 40px; margin-right: 4px; }
-}
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="a3-logistic-regression.css?v=825f2ad0">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body data-chapter="a3">
@@ -95,7 +60,7 @@
     <div class="bar" id="sg-bar"></div>
     <div class="plot tall" id="sg-plot" role="img" aria-label="Juvenile and adult made-up spadenose sharks as dots at probability 0 and 1 against length, with a teal curve that is either a straight line or a sigmoid, and a dashed vertical line at its midpoint"></div>
     <div class="readout"><span>Steepness w: <b id="sg-w">0</b> per cm</span><span>Midpoint: <b id="sg-L50">0</b></span><span>Bias b: <b id="sg-b">0</b></span><span><span id="sg-loss-name">Log loss</span>: <b id="sg-loss">0</b></span><span>Accuracy at 0.5: <b id="sg-acc">0</b></span></div>
-    <div class="eqn" id="sg-eqn" aria-live="polite" style="margin-top:10px"></div>
+    <div class="eqn mt-10" id="sg-eqn" aria-live="polite"></div>
     <p class="status" id="sg-status" aria-live="polite"></p>
   </div>
   <p class="cap"><b>The best sigmoid has a steepness of 0.535 per cm and a midpoint of 34.5 cm. It gets 90.3% of the 268 sharks right, against 67.5% for always saying adult. Adding 100 very long adults moves the 0.5 point of the straight line from 34.7 cm to 28.9 cm, and leaves the sigmoid's midpoint at 34.5 cm.</b></p>
@@ -167,10 +132,10 @@ for length, label in [(41.0, 1), (44.0, 0)]:
   <div class="card" id="bd">
     <div class="controls" id="bd-controls"></div>
     <div class="bar" id="bd-bar"></div>
-    <p class="status" id="bd-mode" style="margin:0 0 8px">Click the map to move the boundary there.</p>
+    <p class="status m-b8" id="bd-mode">Click the map to move the boundary there.</p>
     <div class="plot tall" id="bd-plot" role="img" aria-label="A map of length and girth coloured from navy for juvenile to coral for adult by the model's probability, with 268 made-up spadenose sharks as dots and a black decision boundary line that can be dragged"></div>
     <div class="readout"><span>Accuracy: <b id="bd-acc">0</b></span><span>Wrong: <b id="bd-wrong">0</b></span><span>Log loss: <b id="bd-loss">0</b></span><span id="bd-line"></span></div>
-    <div class="eqn" id="bd-eqn" aria-live="polite" style="margin-top:10px"></div>
+    <div class="eqn mt-10" id="bd-eqn" aria-live="polite"></div>
   </div>
   <p class="cap"><b>The best boundary is almost vertical, at about 34.5 cm. The weights are 4.73 on length and &minus;0.12 on girth, so girth hardly matters, and 242 of the 268 sharks are on the right side (90.3%).</b></p>
   <p>The coloured map is the model: a point shows the probability it would give a shark with that length and girth. Navy circles are juveniles and coral diamonds are adults. A dark ring marks a shark on the wrong side. Drag the black line to slide it (grab the middle) or turn it (grab an end), or move the three sliders. Both the line and the sliders change the same three numbers. Then press "Fit the best boundary". The inputs are scaled as in <a href="../a2-linear-regression/#scaling">A2</a>, so the weights are comparable.</p>
@@ -261,7 +226,7 @@ girth 14.0 cm: x2 =  1.225, x1 = -0.493, boundary at length 34.89 cm</pre>
       <div class="plot" id="ls-loss" role="img" aria-label="Log loss in coral and squared loss in navy against the probability given by the model, with a dot for the current score"></div>
       <div class="plot" id="ls-slope" role="img" aria-label="The size of the push on the score for each loss against the score, with a dot for the current score"></div>
     </div>
-    <div class="eqn" id="ls-eqn" aria-live="polite" style="margin-top:10px"></div>
+    <div class="eqn mt-10" id="ls-eqn" aria-live="polite"></div>
     <p class="status" id="ls-status" aria-live="polite"></p>
   </div>
   <p class="cap"><b>Tag 4127 is a juvenile. At a score of +5 the model says "adult" with probability 0.993. Log loss is 5.0 and its push is 0.99. Squared loss is 0.99 and its push is only 0.013.</b></p>
@@ -364,7 +329,7 @@ lazy model: p = 0.675  log loss = 0.63</pre>
       <div class="plot tall" id="tr-loss" role="img" aria-label="The log loss against the step number, falling towards the best possible value"></div>
     </div>
     <div class="readout"><span>Step: <b id="tr-step">0</b></span><span>Log loss: <b id="tr-loss-now">0</b></span><span>Accuracy: <b id="tr-acc">0</b></span><span>Weights (length, girth): <b id="tr-w">0</b></span><span>Bias: <b id="tr-b">0</b></span></div>
-    <div class="eqn" id="tr-eqn" aria-live="polite" style="margin-top:10px"></div>
+    <div class="eqn mt-10" id="tr-eqn" aria-live="polite"></div>
     <div class="eqn" id="tr-eqn2" aria-live="polite"></div>
     <p class="status" id="tr-status" aria-live="polite"></p>
   </div>
@@ -453,7 +418,7 @@ steepness 8.0: log loss = 2.8e-08</pre>
     <div class="bar" id="sm-bar"></div>
     <div class="plot tall" id="sm-map" role="img" aria-label="A map of length and girth coloured by the species the model names at each point, with the 600 made-up sharks as dots, one symbol per species, and a ring around the shark you are examining"></div>
     <div class="sm-wrap"><table class="sm-table" aria-label="The five scores as weighted sums, and the five probabilities"><thead><tr><th>species</th><th>weight &times; length</th><th>weight &times; girth</th><th>bias</th><th>score z</th><th>probability</th></tr></thead><tbody id="sm-tbody"></tbody></table></div>
-    <div class="eqn" id="sm-eqn" aria-live="polite" style="margin-top:10px"></div>
+    <div class="eqn mt-10" id="sm-eqn" aria-live="polite"></div>
     <p class="status" id="sm-status" aria-live="polite"></p>
   </div>
   <p class="cap"><b>On the 600 records it learned from, the model names the species of 77.3%, against 44.7% for the lazy model. It finds all 3 Ganges sharks, but only 3 of the 72 bamboo sharks. Tag 4127, a bamboo shark, is called spadenose with probability 0.76. Tag 5519, a hammerhead, is called milk shark with 0.52 against 0.48.</b></p>

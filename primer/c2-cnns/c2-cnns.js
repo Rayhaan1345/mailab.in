@@ -377,9 +377,9 @@
       if (showInf) {
         g = influence(x, layer, ch, cell[0], cell[1], b); for (i = 0; i < 784; i++) { var a = Math.abs(g[i]); if (a > mxg) mxg = a; }
         for (i = b.y0; i <= b.y1; i++) for (j = b.x0; j <= b.x1; j++) { var a2 = Math.abs(g[i * 28 + j]); if (mxg > 0 && a2 > 0.1 * mxg) count++; }
-        for (i = b.y0; i <= b.y1; i++) for (j = b.x0; j <= b.x1; j++) { var t = mxg > 0 ? Math.min(1, Math.abs(g[i * 28 + j]) / mxg) : 0; if (t > 0.02) { ctx.fillStyle = "rgba(15,154,128," + (0.15 + 0.6 * t).toFixed(2) + ")"; ctx.fillRect(j * CELL, i * CELL, CELL, CELL); } }
+        for (i = b.y0; i <= b.y1; i++) for (j = b.x0; j <= b.x1; j++) { var t = mxg > 0 ? Math.min(1, Math.abs(g[i * 28 + j]) / mxg) : 0; if (t > 0.02) { ctx.fillStyle = "rgba(" + hexRGB(P.teal).join(",") + "," + (0.15 + 0.6 * t).toFixed(2) + ")"; ctx.fillRect(j * CELL, i * CELL, CELL, CELL); } }
       }
-      ctx.fillStyle = "rgba(194,86,58,0.10)"; ctx.fillRect(b.x0 * CELL, b.y0 * CELL, (b.x1 - b.x0 + 1) * CELL, (b.y1 - b.y0 + 1) * CELL);
+      ctx.fillStyle = "rgba(" + hexRGB(P.coral).join(",") + ",0.10)"; ctx.fillRect(b.x0 * CELL, b.y0 * CELL, (b.x1 - b.x0 + 1) * CELL, (b.y1 - b.y0 + 1) * CELL);
       ctx.strokeStyle = P.coral; ctx.lineWidth = 3; ctx.strokeRect(b.x0 * CELL + 1.5, b.y0 * CELL + 1.5, (b.x1 - b.x0 + 1) * CELL - 3, (b.y1 - b.y0 + 1) * CELL - 3);
       // the map, enlarged
       var mc = cvMap, mcell = Math.max(8, Math.floor(336 / n)); mc.width = n * mcell; mc.height = n * mcell; var mx = mc.getContext("2d"), mm = 0, off = ch * n * n;

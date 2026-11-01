@@ -10,50 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-.card .bar .label { margin-right: 4px; }
-code { overflow-wrap: anywhere; }
-.used { max-width: 46em; margin: 4px 0 0; font-size: 14.5px; color: var(--muted); }
-.used b { color: var(--ink-2); font-weight: 600; }
-.card svg { max-width: 100%; }
-.card .split2 .plot { min-height: 300px; }
-.sub-h3 { margin: 26px 0 8px; font-size: 19px; font-weight: 600; }
-.mini-note { max-width: 46em; font-size: 14.5px; color: var(--muted); margin: 6px 0 0; }
-.tbl { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; margin: 6px 0 0; }
-.tbl th, .tbl td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; }
-.tbl th:first-child, .tbl td:first-child { text-align: left; }
-.tbl th { font-weight: 500; color: var(--muted); }
-.tbl td.na { color: var(--muted); }
-.tbl tr.pick td { background: var(--mark); color: var(--ink); font-weight: 600; }
-.tbl td.locked { color: var(--muted); font-style: italic; }
-.tbl td.gap { color: var(--coral); font-weight: 600; }
-.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
-.tabs button { font: inherit; font-size: 15px; padding: 4px 14px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink-2); cursor: pointer; }
-.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 22px; margin: 10px 0 0; }
-.pairs .col { background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 12px; }
-.pairs h4 { margin: 0 0 6px; font-size: 14px; font-weight: 500; color: var(--muted); font-family: "Spectral SC", Georgia, serif; letter-spacing: 0.03em; }
-.vbar { display: grid; grid-template-columns: 112px 1fr 52px; align-items: center; gap: 8px; margin: 5px 0; font-size: 14.5px; color: var(--ink-2); }
-.vbar .tr { height: 16px; border-radius: 3px; background: var(--rule); overflow: hidden; position: relative; }
-.vbar .fl { height: 100%; border-radius: 3px; }
-.vbar b { color: var(--ink); text-align: right; font-feature-settings: "tnum" 1, "lnum" 1; }
-.cell-note { font-size: 13.5px; color: var(--muted); }
-.counts.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.counts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.counts div.on { border-color: var(--teal); background: var(--mark); }
-.counts div.btn-like { cursor: pointer; }
-@media (max-width: 600px) { .hide-s { display: none; } .tbl { font-size: 13px; } .tbl th, .tbl td { padding: 4px 4px; } }
-@media (max-width: 760px) { .counts.five { grid-template-columns: repeat(2, minmax(0, 1fr)); } .counts.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } .vbar { grid-template-columns: 92px 1fr 48px; } }
-.dg rect { fill: var(--paper); stroke: var(--rule); stroke-width: 1.4; }
-.legend-line { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 0 0; font-size: 14px; color: var(--ink-2); }
-.legend-line span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--c, var(--navy)); border: 2px solid var(--c, var(--navy)); }
-.legend-line span.ring::before { background: none; }
-.legend-line span.sq::before { border-radius: 2px; }
-.legend-line span.dia::before { border-radius: 1px; transform: rotate(45deg) scale(0.85); }
-.card .group { border-radius: 16px; }
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="a4-grading-models.css?v=06ec7d65">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body data-chapter="a4">
@@ -179,9 +137,9 @@ degree 9:  train 0.023   test 91.566</pre>
   <div class="card" id="sp">
     <div class="bar"><span class="label">Split</span><span id="sp-ratio"></span><span class="label">Shuffle</span><span id="sp-strat"></span><span id="sp-btns"></span></div>
     <svg id="sp-svg" role="img" aria-label="The 600 catch records as dots, sorted into training, validation and test blocks. Ringed dots are the three Ganges sharks."></svg>
-    <div class="legend-line"><span style="--c: var(--navy)">training</span><span style="--c: var(--sand)">validation</span><span style="--c: var(--coral)">test</span><span class="ring" style="--c: var(--ink)">ringed: the 3 Ganges sharks</span></div>
+    <div class="legend-line"><span class="tint-navy">training</span><span class="tint-sand">validation</span><span class="tint-coral">test</span><span class="ring tint-ink">ringed: the 3 Ganges sharks</span></div>
     <table class="tbl" id="sp-table"></table>
-    <div class="bar" id="sp-bar2" style="margin-top: 12px"></div>
+    <div class="bar mt-12" id="sp-bar2"></div>
     <div class="eqn" id="sp-eqn" aria-live="polite"></div>
     <p class="status" id="sp-status" aria-live="polite"></p>
   </div>
@@ -245,7 +203,7 @@ first five test records: [ 4  7 11 19 25]</pre>
     <div class="bar"><span class="label">Model</span><span id="kf-model"></span></div>
     <div class="bar" id="kf-bar"></div>
     <svg id="kf-svg" role="img" aria-label="The 600 catch records dealt into folds. One fold at a time is scored (sand dots) while the model trains on the others (navy dots). A dot plot under the folds shows the accuracy on each scored fold."></svg>
-    <div class="legend-line"><span style="--c: var(--navy)">training</span><span style="--c: var(--sand)">fold being scored</span><span class="ring" style="--c: var(--ink)">ringed: the 3 Ganges sharks</span></div>
+    <div class="legend-line"><span class="tint-navy">training</span><span class="tint-sand">fold being scored</span><span class="ring tint-ink">ringed: the 3 Ganges sharks</span></div>
     <div class="eqn" id="kf-eqn" aria-live="polite"></div>
     <table class="tbl" id="kf-table" style="display: none"></table>
     <p class="status" id="kf-status" aria-live="polite"></p>
@@ -385,9 +343,9 @@ sharks in both sets: []</pre>
   </dl>
   <p class="claim">The confusion matrix counts the four kinds of answer. All the scores in this chapter are ratios of those four counts.</p>
   <div class="card" id="cm">
-    <p class="mini-note" id="cm-thr" style="margin: 0 0 8px"></p>
+    <p class="mini-note m-b8" id="cm-thr"></p>
     <svg id="cm-svg" role="img" aria-label="A two by two confusion matrix drawn with 600 dots for the catch records. At a threshold of 0.30 there are 523 true negatives, 20 false positives, 28 false negatives and 29 true positives."></svg>
-    <div class="legend-line"><span style="--c: var(--coral)">hammerhead (positive)</span><span style="--c: var(--navy)">any other shark (negative)</span><span class="ring" style="--c: var(--teal)">teal outline: on top of the fraction</span><span class="ring" style="--c: var(--ink)">dashed: the bottom (the top is included)</span></div>
+    <div class="legend-line"><span class="tint-coral">hammerhead (positive)</span><span class="tint-navy">any other shark (negative)</span><span class="ring tint-teal">teal outline: on top of the fraction</span><span class="ring tint-ink">dashed: the bottom (the top is included)</span></div>
     <p class="mini-note">Click a score to see which cells it uses. Hover a dot to read the record.</p>
     <div class="counts five" id="cm-scores"></div>
     <div class="eqn" id="cm-eqn" aria-live="polite"></div>
@@ -479,7 +437,7 @@ F1          0.667</pre>
       <div class="plot" id="th-roc" role="img" aria-label="ROC curve of the hammerhead detector with a dot for the current threshold. The area under the curve is 0.920."></div>
     </div>
     <div class="counts five" id="th-scores"></div>
-    <div class="controls" id="th-cost" style="margin-top: 12px"></div>
+    <div class="controls mt-12" id="th-cost"></div>
     <div class="eqn" id="th-eqn" aria-live="polite"></div>
     <div class="eqn" id="th-eqn2" aria-live="polite"></div>
     <p class="status" id="th-status" aria-live="polite"></p>
@@ -558,7 +516,7 @@ threshold 0.15: flags  8   recall 1.00   precision 0.50</pre>
       <div class="plot tall" id="rc-plot" role="img" aria-label="ROC curve for the chosen scorer with a dot for the current threshold. The five-measurement scorer has an area of 0.920, the coin flip 0.5 and the perfect scorer 1."></div>
       <div>
         <svg id="rc-line" role="img" aria-label="A hammerhead and another shark placed on the score line, to show which one ranks higher"></svg>
-        <div class="bar" id="rc-btns" style="margin-top: 10px"></div>
+        <div class="bar mt-10" id="rc-btns"></div>
         <p class="status" id="rc-tally" aria-live="polite"></p>
       </div>
     </div>
@@ -635,7 +593,7 @@ AUC from curve: 0.8</pre>
     <div class="split2">
       <div>
         <svg id="ra-svg" role="img" aria-label="The 600 catch records as dots. Positive records are larger and coral and come first; flagged records have a black ring."></svg>
-        <div class="legend-line"><span style="--c: var(--coral)">positive record (flagged or not)</span><span style="--c: var(--navy)">all other records</span><span class="ring" style="--c: var(--ink)">ringed: flagged by the model</span></div>
+        <div class="legend-line"><span class="tint-coral">positive record (flagged or not)</span><span class="tint-navy">all other records</span><span class="ring tint-ink">ringed: flagged by the model</span></div>
       </div>
       <div class="plot" id="ra-pr" role="img" aria-label="Precision-recall curve of the logistic regression with the current threshold marked and a dashed line at the base rate"></div>
     </div>
@@ -707,7 +665,7 @@ flag all: precision 0.005  recall 1.0  F1 0.01</pre>
     <div class="split2">
       <div>
         <svg id="sc-svg" role="img" aria-label="An icon array of 1,000 women. Coral circles have diabetes and navy circles do not. Filled circles are flagged and open circles are cleared."></svg>
-        <div class="legend-line"><span style="--c: var(--coral)">has diabetes, flagged (TP)</span><span class="ring" style="--c: var(--coral)">has diabetes, missed (FN)</span><span style="--c: var(--navy)">no diabetes, flagged (FP)</span><span class="ring" style="--c: var(--navy)">no diabetes, cleared (TN)</span></div>
+        <div class="legend-line"><span class="tint-coral">has diabetes, flagged (TP)</span><span class="ring tint-coral">has diabetes, missed (FN)</span><span class="tint-navy">no diabetes, flagged (FP)</span><span class="ring tint-navy">no diabetes, cleared (TN)</span></div>
       </div>
       <div class="plot" id="sc-plot" role="img" aria-label="Precision of the model against the share of women with diabetes: a curve that rises steeply and is low where diabetes is rare. A dot marks the chosen prevalence."></div>
     </div>
@@ -770,9 +728,9 @@ prevalence  2.0%: precision 8.6%</pre>
     <div class="bar"><span class="label">Women</span><span id="sg-view"></span></div>
     <div class="controls" id="sg-controls"></div>
     <div class="plot" id="sg-plot" role="img" aria-label="Sensitivity and specificity with 95% intervals for four age groups and for all women, at one threshold. Sensitivity rises with age and specificity falls."></div>
-    <div class="legend-line"><span style="--c: var(--teal)">sensitivity (circle)</span><span class="dia" style="--c: var(--navy)">specificity (diamond)</span></div>
+    <div class="legend-line"><span class="tint-teal">sensitivity (circle)</span><span class="dia tint-navy">specificity (diamond)</span></div>
     <table class="tbl" id="sg-table"></table>
-    <div class="bar" style="margin-top: 12px"><span class="label">Show the working for</span><span id="sg-pick"></span></div>
+    <div class="bar mt-12"><span class="label">Show the working for</span><span id="sg-pick"></span></div>
     <div class="eqn" id="sg-eqn" aria-live="polite"></div>
     <p class="status" id="sg-status" aria-live="polite"></p>
   </div>

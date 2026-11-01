@@ -1,1 +1,63 @@
-/* Figure drawing vocabulary: classes for SVG parts (axes, grids, labels, series, markers). Empty until the page copies are hoisted here. */
+/* Figure drawing vocabulary: classes for the parts of an SVG figure (axes, grids, labels, series, markers). The generated figures of the practice sets use them inside <svg class="fg">. */
+
+.fg text { font-family: "Spectral", Georgia, serif; font-size: 13px; fill: var(--ink-2); }
+.fg .tk { font-size: 11.5px; fill: var(--muted); }
+.fg .nm { font-size: 14px; font-style: italic; fill: var(--ink); }
+.fg .ax { stroke: var(--muted); stroke-width: 1.3; fill: none; }
+.fg .gl { stroke: var(--rule); stroke-width: 1; }
+.fg .gm { stroke: var(--rule); stroke-width: 0.6; opacity: 0.7; }
+.fg .l1 { stroke: var(--navy); stroke-width: 2.4; fill: none; stroke-linejoin: round; }
+.fg .l2 { stroke: var(--coral); stroke-width: 2.4; fill: none; }
+.fg .d1 { fill: var(--navy); }
+.fg .d2 { fill: var(--coral); }
+.fg .b1 { fill: var(--navy); }
+.fg .vl { font-size: 14px; font-weight: 600; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
+.fg .nd { fill: var(--bg); stroke: var(--navy); stroke-width: 1.8; }
+.fg .nt { font-size: 14px; fill: var(--ink); text-anchor: middle; }
+.fg .ar { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+.fg .pt { fill: none; stroke: var(--navy); stroke-linecap: round; opacity: 0.5; }
+.fg .pt2 { fill: var(--coral); opacity: 0.8; }
+.fg .ptx { fill: none; stroke: var(--navy); stroke-linecap: round; }
+.fg .pt2x { fill: var(--coral); }
+.fg .l3 { stroke: var(--teal); stroke-width: 2.4; fill: none; }
+.fg .pm { fill: var(--bg); stroke: var(--teal); stroke-width: 2.4; }
+.fg .ring { fill: none; stroke: var(--coral); stroke-width: 2.2; }
+.fg .ring2 { fill: var(--bg); stroke: var(--ink); stroke-width: 1.8; }
+.fg .lb, .fg .lbc, .fg .lbm, .fg .lbx { font-size: 12.5px; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
+.fg .lbc { fill: var(--coral); }
+.fg .lbm { fill: var(--ink-2); font-size: 12px; }
+.fg .lbx { font-size: 15px; font-weight: 700; }
+.fg .lbt { font-size: 12.5px; fill: var(--teal); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
+.fg .at { font-size: 12.5px; fill: var(--ink-2); }
+.fg .s1 { stroke: var(--navy); stroke-width: 2.4; fill: none; }
+.fg .s2 { stroke: var(--coral); stroke-width: 2.4; fill: none; }
+.fg .s3 { stroke: var(--teal); stroke-width: 2.4; fill: none; stroke-dasharray: 7 4; }
+.fg .s4 { stroke: var(--ink-2); stroke-width: 2.4; fill: none; stroke-dasharray: 10 3 2 3; }
+.fg .dgn { stroke: var(--muted); stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
+.fg .dv { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+.fg .bp { fill: var(--coral); opacity: 0.85; }
+.fg .bn { fill: var(--navy); opacity: 0.85; }
+.fg .cn { stroke: var(--muted); stroke-width: 1; }
+.fg .nd.lf { stroke: var(--teal); }
+.fg .ld { stroke: var(--coral); stroke-width: 1.2; }
+.fg .nt.sm { font-size: 11.5px; fill: var(--ink-2); }
+.fg .nt.vv { font-size: 13.5px; font-weight: 600; fill: var(--ink); }
+.fg .nd.wt { stroke: var(--sand); }
+.fg .ahp { fill: var(--muted); }
+.fg .dgr { fill: var(--ink-2); }
+.fg .cl { fill: none; stroke: var(--muted); stroke-width: 0.8; opacity: 0.6; }
+.fg .ci { fill: var(--navy); }
+.fg .cp { fill: var(--teal); }
+.fg .cg { fill: var(--coral); }
+.fg .cv { font-size: 14px; fill: var(--ink); text-anchor: middle; font-feature-settings: "tnum" 1, "lnum" 1; }
+.fg .ix { font-size: 11.5px; fill: var(--muted); text-anchor: middle; }
+.fg .win { fill: none; stroke: var(--coral); stroke-width: 2.8; }
+.fg .win2 { fill: none; stroke: var(--coral); stroke-width: 2.4; stroke-dasharray: 6 4; }
+.fg .blk { fill: none; stroke: var(--ink-2); stroke-width: 2; }
+.fg .bt { fill: var(--teal); opacity: 0.85; }
+.fg .lb0 { font-size: 12px; fill: var(--ink); }
+.fg .dbl { stroke: var(--muted); stroke-width: 3; opacity: 0.45; stroke-linecap: round; }
+.fg .dm { fill: var(--navy); fill-opacity: 0.55; stroke: var(--navy); stroke-width: 1; }
+.fg .s1d { stroke: var(--navy); stroke-width: 2.4; fill: none; stroke-dasharray: 6 4; }
+.fg .s2d { stroke: var(--coral); stroke-width: 2.4; fill: none; stroke-dasharray: 6 4; }
+.fg .band { fill: var(--sand); opacity: 0.2; }

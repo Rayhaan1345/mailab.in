@@ -22,7 +22,7 @@ footer {
 }
 
 @media print {
-  .actions, .theme-toggle { display: none; }
+  .theme-toggle { display: none; }
 }
 
 .proj {

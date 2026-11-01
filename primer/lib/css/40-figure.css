@@ -127,12 +127,12 @@
 .card .controls label input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--teal); }
 .card .controls output { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
 .card .controls select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
-.split2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 22px; align-items: start; }
+.split2, .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 22px; align-items: start; }
 .readout { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0 0; font-size: 15px; color: var(--ink-2); }
 .readout b { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
 
 @media (max-width: 760px) {
-  .split2 { grid-template-columns: minmax(0, 1fr); }
+  .split2, .two { grid-template-columns: minmax(0, 1fr); }
   .plot { min-height: 280px; }
 }
 
@@ -144,3 +144,89 @@
 
 /* Note: figures that animate are painted from script, frame by frame, so they play on request even with reduced motion.
    Do not use CSS animations or transitions for figure content. */
+
+/* Check box with a label, inside a figure bar or controls. .check and .chk are the same component. */
+
+.check, .chk { display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; color: var(--ink-2); cursor: pointer; }
+.check input { accent-color: var(--teal); }
+
+/* Token chips. The chip rule is span.tk, so that the SVG labels of the practice sets (text.tk) keep their own meaning. E4 reuses the name for the labels of its token strip and resets the chip in its own CSS file. */
+
+.toks { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-start; margin: 6px 0; }
+span.tk { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 1.1em; padding: 1px 6px 0; border: 1px solid transparent; border-radius: 4px; font: 14px/1.35 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--ink); white-space: pre; }
+.tk i { font: normal 10.5px/1.25 ui-monospace, Menlo, monospace; color: var(--muted); padding-bottom: 1px; }
+.tk.c0 { background: color-mix(in srgb, var(--navy) 20%, transparent); border-color: color-mix(in srgb, var(--navy) 45%, transparent); }
+.tk.c1 { background: color-mix(in srgb, var(--teal) 22%, transparent); border-color: color-mix(in srgb, var(--teal) 50%, transparent); }
+.tk.c2 { background: color-mix(in srgb, var(--sand) 30%, transparent); border-color: color-mix(in srgb, var(--sand) 60%, transparent); }
+.tk.unk { background: color-mix(in srgb, var(--coral) 24%, transparent); border-color: var(--coral); }
+.tk.gone { color: var(--muted); text-decoration: line-through; border-color: var(--rule); opacity: 0.55; }
+.vnone { font-size: 14px; color: var(--muted); }
+
+/* Rows inside a figure bar */
+.bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; }
+.row-chips { display: inline-block; margin: 0 10px 6px 0; }
+
+/* Counters: column variants */
+.counts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.counts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 760px) {
+  .counts.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .counts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .counts.three span { font-size: 12.5px; }
+}
+
+/* Figure helpers: pane heading, hint line, line key, legend, drag handles, canvas, thumbnails */
+.dg rect { fill: var(--paper); stroke: var(--rule); stroke-width: 1.4; }
+.legend-line { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 0 0; font-size: 14px; color: var(--ink-2); }
+.legend-line span::before {
+  content: "";
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: -1px;
+  background: var(--c, var(--navy));
+  border: 2px solid var(--c, var(--navy));
+}
+.legend-line span.ring::before { background: none; }
+.legend-line span.sq::before { border-radius: 2px; }
+canvas.fig { display: block; width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); }
+canvas.fig.photo { image-rendering: auto; }
+.pane-h { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+.hintline { font-size: 14.5px; color: var(--muted); padding: 4px 0; }
+.key { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 4px 0 0; font-size: 13.5px; }
+.key span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.key i { display: inline-block; width: 24px; height: 0; border-top: 3px solid var(--ink-2); }
+.key i.dash { border-top-style: dashed; }
+.key i.dot { border-top-style: dotted; }
+.key em { font-style: normal; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+
+/* Segment bar: one bar split into labelled parts (E3, E4) */
+.seg-bar { display: flex; height: 26px; border-radius: 4px; overflow: hidden; border: 1px solid var(--rule); margin: 8px 0 0; background: var(--paper); }
+.seg-bar .seg { display: block; padding: 0; margin: 0; border: 0; border-radius: 0; gap: 0; font-size: 13px; line-height: 24px; text-align: center; color: var(--bg); white-space: nowrap; overflow: hidden; }
+.seg.c-teal { background: var(--teal); }
+
+/* Value bars: label, track, number (A4, F1) */
+.vbar { display: grid; grid-template-columns: 112px 1fr 52px; align-items: center; gap: 8px; margin: 5px 0; font-size: 14.5px; color: var(--ink-2); }
+.vbar .tr { height: 16px; border-radius: 3px; background: var(--rule); overflow: hidden; position: relative; }
+.vbar .fl { height: 100%; border-radius: 3px; }
+.vbar b { color: var(--ink); text-align: right; font-feature-settings: "tnum" 1, "lnum" 1; }
+
+/* Ranked score rows: label, bar, number (D5, D7, E2) */
+.rs-row { display: grid; grid-template-columns: 8.4em minmax(0, 1fr) 3.4em; gap: 6px; align-items: center; padding: 2px 4px; margin: 1px 0; border-radius: 4px; font-size: 15px; }
+.rs-row.tr { background: var(--mark); box-shadow: inset 3px 0 0 var(--coral); }
+.rs-tok { font: 14px ui-monospace, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-track { position: relative; height: 14px; background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.rs-track i { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--teal) 70%, transparent); }
+.rs-row b { text-align: right; font-weight: 500; font-feature-settings: "tnum" 1; }
+
+@media (max-width: 760px) {
+  .rs-row { grid-template-columns: 6.4em minmax(0, 1fr) 3em; }
+}
+
+/* Sub-heading inside a figure card (B2, B3) */
+.pl-sub { margin: 14px 0 4px; font-size: 14px; color: var(--ink-2); }
+.pl-sub b { color: var(--ink); }
