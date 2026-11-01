@@ -7,11 +7,13 @@
 What it does, in order:
   1. Joins lib/css/*.css (filename order) into assets/kit.css.
   2. Copies lib/kit.js to assets/kit.js.
-  3. Stamps all local stylesheet and script references in the pages with ?v=<first 8 hex of the
+  3. Builds every index.html from the page.html beside it, lib/template.html (lib/template-index.html for
+     primer/page.html), the partials in lib/partials, the library table lib/libs.json and chapters.json.
+     See lib/pages.py. A folder that has an index.html but no page.html is a problem.
+  4. Stamps all local stylesheet and script references in the pages with ?v=<first 8 hex of the
      sha1 of that file's content>: assets/kit.css, assets/kit.js, the chapter's own <slug>.js and
      <slug>.css, and any other local .js or .css file beside a page. External URLs are left alone.
-
-  4. Checks the rule "no <style> element in a page": a page may carry the library link, the chapter's own <slug>.css, the
+  5. Checks the rule "no <style> element in a page": a page may carry the library link, the chapter's own <slug>.css, the
      KaTeX and Google Fonts links, and nothing else that styles it. A <style> element or another stylesheet is a problem.
 
 A second run finds nothing to change. Standard library only.
@@ -26,6 +28,10 @@ from urllib.parse import urlsplit
 
 LIB = os.path.dirname(os.path.abspath(__file__))
 PRIMER = os.path.dirname(LIB)
+sys.dont_write_bytecode = True  # keep __pycache__ out of the repo
+sys.path.insert(0, LIB)
+import pages  # noqa: E402
+
 CSS_DIR = os.path.join(LIB, "css")
 KIT_JS_SRC = os.path.join(LIB, "kit.js")
 KIT_CSS_OUT = os.path.join(PRIMER, "assets", "kit.css")
@@ -71,15 +77,22 @@ def build_js():
     return JS_HEADER + text
 
 
-def page_files():
-    pages = sorted(glob.glob(os.path.join(PRIMER, "*", "index.html")))
-    top = os.path.join(PRIMER, "index.html")
-    if os.path.exists(top):
-        pages.insert(0, top)
-    # extra pages that live in the starter folder
-    pages += sorted(p for p in glob.glob(os.path.join(PRIMER, "_template", "*.html"))
-                    if os.path.basename(p) != "index.html")
-    return pages
+def page_sources():
+    """Return (page.html paths, problems). primer/page.html is the front page; each folder has its own."""
+    sources, problems = [], []
+    top = os.path.join(PRIMER, "page.html")
+    if os.path.isfile(top):
+        sources.append(top)
+    elif os.path.isfile(os.path.join(PRIMER, "index.html")):
+        problems.append("index.html: no page.html beside it (the front page is generated from primer/page.html)")
+    for folder in sorted(glob.glob(os.path.join(PRIMER, "*", ""))):
+        name = os.path.basename(os.path.normpath(folder))
+        src = os.path.join(folder, "page.html")
+        if os.path.isfile(src):
+            sources.append(src)
+        elif os.path.isfile(os.path.join(folder, "index.html")):
+            problems.append("%s/index.html: no page.html beside it (a page is generated from its page.html; see lib/README.md)" % name)
+    return sources, problems
 
 
 def is_local_asset(url):
@@ -99,9 +112,8 @@ def with_version(url, version):
     return out
 
 
-def stamp_page(path, generated):
-    """Return (new_text, stamped_refs, problems) for one page."""
-    text = read_text(path)
+def stamp_text(text, path, generated):
+    """Return (new_text, stamped_refs, problems) for the page text that belongs at path."""
     page_dir = os.path.dirname(path)
     refs, problems = [], []
 
@@ -153,8 +165,20 @@ def lint_page(path, text):
     return problems
 
 
+def check_starter(chapters, libs):
+    """The starter in lib/starter must stay a valid page. Render it as a chapter called 'starter' and lint it."""
+    data, _ = chapters
+    fake = {"starter": {"id": "x0", "num": "X0", "slug": "starter", "title": "Starter", "part": next(iter(data["parts"]))}}
+    path = os.path.join(LIB, "starter", "index.html")
+    try:
+        text = pages.render_page(os.path.join(LIB, "starter", "page.html"), chapters=(data, fake), libs=libs)
+    except pages.PageError as e:
+        return [str(e)]
+    return lint_page(path, text)
+
+
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Build assets/kit.css and assets/kit.js and stamp version hashes into pages.")
+    ap = argparse.ArgumentParser(description="Build assets/kit.css and assets/kit.js, build every index.html from its page.html and stamp version hashes into the pages.")
     ap.add_argument("--check", action="store_true", help="write no files; exit 1 if something is stale")
     args = ap.parse_args(argv)
 
@@ -173,16 +197,25 @@ def main(argv=None):
                     f.write(new)
                 written.append(os.path.relpath(out, PRIMER))
 
-    pages = page_files()
+    sources, probs = page_sources()
+    problems += probs
+    chapters, libs = pages.load_chapters(), pages.load_libs()
+    problems += check_starter(chapters, libs)
     touched = []
-    for path in pages:
-        new_text, refs, probs = stamp_page(path, generated)
-        problems += probs
-        if "_template" not in path.split(os.sep): problems += lint_page(path, new_text)     # the starter folder is not published
+    for src in sources:
+        path = os.path.join(os.path.dirname(src), "index.html")        # the generated page
+        try:
+            raw = pages.render_page(src, chapters=chapters, libs=libs)
+        except pages.PageError as e:
+            problems.append(str(e))
+            continue
+        new_text, refs, probs = stamp_text(raw, path, generated)
+        problems += probs + lint_page(path, new_text)
         for r in refs:
             key = r if r.startswith("assets/") else ("chapter " + os.path.splitext(r)[1])
             stamp_counts[key] = stamp_counts.get(key, 0) + 1
-        if new_text != read_text(path):
+        old_text = read_text(path) if os.path.isfile(path) else None
+        if new_text != old_text:
             touched.append(os.path.relpath(path, PRIMER))
             stale.append(os.path.relpath(path, PRIMER))
             if not args.check:
@@ -192,7 +225,7 @@ def main(argv=None):
     print("primer library build%s" % (" (check only)" if args.check else ""))
     print("  css  : %d files from lib/css -> assets/kit.css  %s bytes  v=%s" % (len(css_files), format(len(generated[KIT_CSS_OUT]), ","), short_hash(generated[KIT_CSS_OUT])))
     print("  js   : lib/kit.js -> assets/kit.js  %s bytes  v=%s" % (format(len(generated[KIT_JS_OUT]), ","), short_hash(generated[KIT_JS_OUT])))
-    print("  pages: %d scanned, %d %s" % (len(pages), len(touched), "stale" if args.check else "rewritten"))
+    print("  pages: %d built from page.html, %d %s" % (len(sources), len(touched), "stale" if args.check else "rewritten"))
     print("  stamps: " + ", ".join("%s x%d" % (k, v) for k, v in sorted(stamp_counts.items())))
     if written:
         print("  wrote: " + ", ".join(written[:6]) + (" ..." if len(written) > 6 else ""))

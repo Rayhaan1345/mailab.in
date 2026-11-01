@@ -1,0 +1,111 @@
+---
+# The front matter of a page. The keys are listed in primer/lib/README.md.
+# The title, the chapter number and the part come from chapters.json, so they are not repeated here.
+description: TODO One or two sentences for search results and link previews.
+subtitle: TODO One sentence that says what the reader can do after this chapter.
+libs: plotly-cartesian, d3, katex
+---
+<!--
+  Everything below is the content of the page. The build adds the head, the top bar, the title block,
+  the previous and next links, the footer and the scripts. Do not write them here.
+
+  Order: tldr, youneed, toc, one section per idea, exercises, comeback, refs.
+  Each teaching section: h2, guess first, terms, claim, figure card, caption, short text,
+  equations (boxes, then KaTeX with symbol notes), break box, debug tip, code with output, quick quiz.
+  The sections below are a small working example. Replace them with your own.
+-->
+<div class="tldr">
+  <p>Two or three sentences on what the chapter covers and why it matters for SharkCam.</p>
+</div>
+<p class="youneed"><b>You will need:</b> <a href="../t5-vectors-matrices/">dot products</a> and <a href="../t6-gradients/">slopes</a>.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#weight">Weight from length</a></li>
+    <li><a href="#graph">A small diagram</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+  </ol>
+</nav>
+
+<section id="weight" aria-labelledby="weight-h">
+  <h2 id="weight-h">Weight from length</h2>
+  <p class="ask"><b>Guess first.</b> A shark twice as long as another: is it twice as heavy, four times, or eight times?</p>
+  <dl class="terms">
+    <div><dt>length-weight law</dt><dd>weight grows like a power of length</dd></div>
+    <div><dt>exponent</dt><dd>the power, close to 3 for most fish</dd></div>
+  </dl>
+  <p class="claim">A shark twice as long weighs about eight times as much, because weight grows like length cubed.</p>
+  <div class="card" id="lw">
+    <div class="controls" id="lw-controls"></div>
+    <div class="plot" id="lw-plot" role="img" aria-label="Weight against length for made-up sharks, with a curve whose exponent you can change"></div>
+    <div class="readout"><span>Error: <b id="lw-err">0</b></span><span>Exponent: <b id="lw-b">3.0</b></span></div>
+  </div>
+  <p class="cap"><b>The curve fits best when the exponent is close to 3.</b></p>
+  <p>Move the exponent and watch the error. The worked equation below follows the shark you hover.</p>
+  <div class="eqn" role="img" aria-label="Weight equals a times length to the power b"><span class="t c-coral"><b id="lw-eq-w">&hellip;</b><i>weight, kg</i></span><span class="op">=</span><span class="t"><b>0.004</b><i>a, a constant</i></span><span class="op">&times;</span><span class="t c-navy"><b id="lw-eq-l">&hellip;</b><i>length, cm</i></span><span class="op"><sup>b</sup></span></div>
+  <p class="math">\[ W = a\,L^{b} \]</p>
+  <ul class="math-notes">
+    <li><b>\(W\)</b> is the weight and <b>\(L\)</b> the length.</li>
+    <li><b>\(b\)</b> is the exponent: about 3, since a shark grows in length, height and width together.</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> Twice as long means twice as heavy.</p>
+    <p><b>Why it fails.</b> The body also grows taller and wider.</p>
+    <p><b>Better account.</b> Weight grows like length cubed.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a fit looks wrong, plot the leftovers (residuals). A pattern in them means the model is missing something.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+L = np.array([40, 60, 80])
+W = 0.004 * L ** 3 / 1000   # grams to kg
+print(W)</code></pre>
+  <pre class="out">[0.256 0.864 2.048]</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A shark three times as long weighs about how many times as much?</summary><p>About 27 times, since three cubed is 27.</p></details>
+  </div>
+</section>
+
+<section id="graph" aria-labelledby="graph-h">
+  <h2 id="graph-h">A small diagram</h2>
+  <p class="claim">D3 draws diagrams that are not charts, and they follow the theme.</p>
+  <div class="card" id="gr">
+    <div class="bar" id="gr-bar"></div>
+    <svg id="gr-svg" role="img" aria-label="Three nodes joined in a chain"></svg>
+  </div>
+  <div class="quiz" id="gr-quiz"></div>
+</section>
+
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> Show that if \(W = aL^b\), then \(\log W\) is a straight line in \(\log L\). What are its slope and intercept?</p>
+        <details class="hint"><summary>Hint</summary><p>Take the log of both sides and use the rule for the log of a product.</p></details></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Fit \(b\) to the catch records with NumPy's <code>polyfit</code> on the logs.</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> Pregnant sharks are heavier for their length. How would that change the fit, and how would you detect it?</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <div class="recall comeback">
+    <details><summary>A question mixing this chapter with an earlier one.</summary><p>Its answer.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Froese, R. (2006). Cube law, condition factor and weight-length relationships. <i>Journal of Applied Ichthyology</i>, 22(4), 241&ndash;253.</li>
+  </ol>
+</section>

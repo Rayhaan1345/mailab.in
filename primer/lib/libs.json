@@ -1,0 +1,35 @@
+{
+ "_comment": "The libraries a page can load from the network. A page lists the ones it needs in the 'libs' key of its page.html front matter. Versions are pinned here and nowhere else. The order of the entries is the order in which the build loads them. At most one entry per 'group' (Plotly bundles exclude each other). Change a version here and run build.py: every page that lists the library follows.",
+ "plotly-cartesian": {
+  "group": "plotly",
+  "use": "2D charts, contour, heatmap, histogram",
+  "version": "2.35.2",
+  "js": ["https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@{v}/plotly-cartesian.min.js"]
+ },
+ "plotly-gl3d": {
+  "group": "plotly",
+  "use": "3D (scatter3d, surface, mesh3d) plus basic 2D scatter",
+  "version": "2.35.2",
+  "js": ["https://cdn.jsdelivr.net/npm/plotly.js-gl3d-dist-min@{v}/plotly-gl3d.min.js"]
+ },
+ "plotly-full": {
+  "group": "plotly",
+  "use": "contour or heatmap and 3D on one page",
+  "version": "2.35.2",
+  "js": ["https://cdn.jsdelivr.net/npm/plotly.js-dist-min@{v}/plotly.min.js"]
+ },
+ "d3": {
+  "use": "diagrams that are not charts",
+  "version": "7.9.0",
+  "js": ["https://cdnjs.cloudflare.com/ajax/libs/d3/{v}/d3.min.js"]
+ },
+ "katex": {
+  "use": "typeset maths (stylesheet, script and auto-render)",
+  "version": "0.16.11",
+  "css": ["https://cdnjs.cloudflare.com/ajax/libs/KaTeX/{v}/katex.min.css"],
+  "js": [
+   "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/{v}/katex.min.js",
+   "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/{v}/contrib/auto-render.min.js"
+  ]
+ }
+}

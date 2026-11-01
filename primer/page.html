@@ -1,0 +1,104 @@
+---
+kind: index
+description: An interactive primer on AI for high-school students, from straight lines to vision-language models, built around an underwater camera that spots sharks off Mumbai.
+subtitle: From straight lines to vision-language models
+kicker: An interactive primer
+byline: <strong>Rayhaan Khan</strong> &middot; Mumbai AI Lab
+og_title: How AI Learns: an interactive primer from Mumbai AI Lab
+og_description: From straight lines to vision-language models, with interactive figures, worked equations and exercises.
+og_url: https://mailab.in/primer/
+author: Rayhaan Khan
+---
+<div class="tldr">
+  <p>The book follows one made-up example, SharkCam: an underwater camera robot that spots sharks along the Mumbai coast, from Juhu's rock pools to the fish landings at Sassoon Dock. This primer builds the AI behind it one idea at a time, from a straight line through a scatter of points to models that look at a photo and answer a question about it.</p>
+  <p>Chapters open with a question to guess before you read, and most figures respond when you drag, slide or press. Sections end with a quick quiz, and chapters end with exercises. Answer in your head before opening an answer; that effort is what makes the ideas stay.</p>
+</div>
+
+  <section class="part" id="part-0" aria-labelledby="part-0-h">
+    <h2 id="part-0-h">Part 0. Toolkit</h2>
+    <p>The maths, logic and programming that the rest of the primer uses.</p>
+    <ul class="chapter-list">
+      <li><a href="t1-python/"><span class="num">0.1</span>Python<span class="blurb">Lists, dictionaries, classes, NumPy and a first look at PyTorch.</span></a></li>
+      <li><a href="t2-algorithms/"><span class="num">0.2</span>Algorithms and data structures<span class="blurb">Stacks, queues, searching, sorting, recursion and Big-O.</span></a></li>
+      <li><a href="t3-algebra-functions/"><span class="num">0.3</span>Algebra and functions<span class="blurb">Lines, exponentials, logarithms and functions inside functions.</span></a></li>
+      <li><a href="t4-discrete-maths/"><span class="num">0.4</span>Discrete maths and logic<span class="blurb">Counting, sets, truth tables and graphs.</span></a></li>
+      <li><a href="t5-vectors-matrices/"><span class="num">0.5</span>Vectors and matrices<span class="blurb">Dot products, matrix products, inverses and eigenvectors.</span></a></li>
+      <li><a href="t6-gradients/"><span class="num">0.6</span>Slopes and gradients<span class="blurb">Derivatives, gradients, the chain rule and curvature.</span></a></li>
+      <li><a href="t7-probability/"><span class="num">0.7</span>Probability and statistics<span class="blurb">Base rates, distributions, softmax, cross-entropy and tests.</span></a></li>
+      <li><a href="t8-charts/"><span class="num">0.8</span>Reading charts and tables<span class="blurb">Reading plots and spotting misleading ones.</span></a></li>
+      <li><a href="p0-practice/"><span class="num">0.P</span>Practice set: toolkit<span class="blurb">Timed questions on the toolkit.</span></a></li>
+    </ul>
+  </section>
+  <section class="part" id="part-a" aria-labelledby="part-a-h">
+    <h2 id="part-a-h">Part A. Learning from data</h2>
+    <p>Models that learn from a table of numbers: lines, curves, trees and forests of trees.</p>
+    <ul class="chapter-list">
+      <li><a href="a1-what-is-a-model/"><span class="num">A1</span>What a model is<span class="blurb">Inputs, outputs, parameters and the lazy baseline.</span></a></li>
+      <li><a href="a2-linear-regression/"><span class="num">A2</span>Linear regression<span class="blurb">Predicting a shark&#x27;s weight from its length.</span></a></li>
+      <li><a href="a3-logistic-regression/"><span class="num">A3</span>Logistic regression and softmax<span class="blurb">Juvenile or adult, and which species.</span></a></li>
+      <li><a href="a4-grading-models/"><span class="num">A4</span>Grading a model fairly<span class="blurb">Splits, leakage, precision, recall, ROC and subgroups.</span></a></li>
+      <li><a href="a5-decision-trees/"><span class="num">A5</span>Decision trees<span class="blurb">Questions in a chain, chosen by the data.</span></a></li>
+      <li><a href="a6-boosting/"><span class="num">A6</span>Ensembles and boosting<span class="blurb">Many small trees, XGBoost and feature importance.</span></a></li>
+      <li><a href="pa-practice/"><span class="num">A.P</span>Practice set: learning from data<span class="blurb">Timed questions on Part A.</span></a></li>
+    </ul>
+  </section>
+  <section class="part" id="part-b" aria-labelledby="part-b-h">
+    <h2 id="part-b-h">Part B. Neural networks</h2>
+    <p>Neurons, layers, and how a network learns, fails and explains itself.</p>
+    <ul class="chapter-list">
+      <li><a href="b1-one-neuron/"><span class="num">B1</span>One neuron<span class="blurb">Weighted sums and activation functions.</span></a></li>
+      <li><a href="b2-non-linearity/"><span class="num">B2</span>Why non-linearity matters<span class="blurb">XOR, circles lifted into 3D, and hidden layers.</span></a></li>
+      <li><a href="b3-loss-gradient-descent/"><span class="num">B3</span>Loss and gradient descent<span class="blurb">How a network measures and reduces its error.</span></a></li>
+      <li><a href="b4-backpropagation/"><span class="num">B4</span>Backpropagation<span class="blurb">The chain rule, run backwards through a network.</span></a></li>
+      <li><a href="b5-optimisers/"><span class="num">B5</span>Optimisers<span class="blurb">SGD, momentum, Adam and warm-up.</span></a></li>
+      <li><a href="b6-deep-networks/"><span class="num">B6</span>Making deep networks trainable<span class="blurb">Initialisation, normalisation and residual connections.</span></a></li>
+      <li><a href="b7-continual-learning/"><span class="num">B7</span>Fine-tuning, forgetting and continual learning<span class="blurb">Fisher information, EWC and learning task after task.</span></a></li>
+      <li><a href="b8-debugging/"><span class="num">B8</span>Debugging neural networks<span class="blurb">Symptoms, gradient diagnostics and clipping.</span></a></li>
+      <li><a href="b9-explaining/"><span class="num">B9</span>Explaining a network<span class="blurb">Saliency, occlusion, Grad-CAM and shortcuts.</span></a></li>
+      <li><a href="pb-practice/"><span class="num">B.P</span>Practice set: neural networks<span class="blurb">Timed questions on Part B.</span></a></li>
+    </ul>
+  </section>
+  <section class="part" id="part-c" aria-labelledby="part-c-h">
+    <h2 id="part-c-h">Part C. Images</h2>
+    <p>How a computer reads a photo, and what goes wrong when the water turns murky.</p>
+    <ul class="chapter-list">
+      <li><a href="c1-convolution/"><span class="num">C1</span>Images as numbers and convolution<span class="blurb">Pixels, filters and feature maps.</span></a></li>
+      <li><a href="c2-cnns/"><span class="num">C2</span>Convolutional networks<span class="blurb">Stacked filters that read handwritten tags.</span></a></li>
+      <li><a href="c3-domain-shift/"><span class="num">C3</span>When the water changes<span class="blurb">Domain shift and adapting at test time.</span></a></li>
+      <li><a href="pc-practice/"><span class="num">C.P</span>Practice set: images<span class="blurb">Timed questions on Part C.</span></a></li>
+    </ul>
+  </section>
+  <section class="part" id="part-d" aria-labelledby="part-d-h">
+    <h2 id="part-d-h">Part D. Language</h2>
+    <p>From letters to tokens to transformers, and why long texts are costly.</p>
+    <ul class="chapter-list">
+      <li><a href="d1-tokenisation/"><span class="num">D1</span>Tokenisation<span class="blurb">Turning text in four languages into tokens.</span></a></li>
+      <li><a href="d2-embeddings/"><span class="num">D2</span>Embeddings<span class="blurb">Words as directions in space.</span></a></li>
+      <li><a href="d3-next-token/"><span class="num">D3</span>Predicting the next token<span class="blurb">Probabilities, temperature and sampling.</span></a></li>
+      <li><a href="d4-self-attention/"><span class="num">D4</span>Self-attention<span class="blurb">Queries, keys and values.</span></a></li>
+      <li><a href="d5-transformer/"><span class="num">D5</span>The transformer<span class="blurb">Blocks, positions, generation and the KV cache.</span></a></li>
+      <li><a href="d6-long-context/"><span class="num">D6</span>Long context<span class="blurb">The cost of attention, sparse attention and test-time training.</span></a></li>
+      <li><a href="d7-assistants/"><span class="num">D7</span>From language model to assistant<span class="blurb">Instruction tuning, preferences, prompts and tools.</span></a></li>
+      <li><a href="pd-practice/"><span class="num">D.P</span>Practice set: language<span class="blurb">Timed questions on Part D.</span></a></li>
+    </ul>
+  </section>
+  <section class="part" id="part-e" aria-labelledby="part-e-h">
+    <h2 id="part-e-h">Part E. Vision and language</h2>
+    <p>Models that see and read at once.</p>
+    <ul class="chapter-list">
+      <li><a href="e1-vision-transformers/"><span class="num">E1</span>Vision transformers and image tokens<span class="blurb">Photos cut into patches.</span></a></li>
+      <li><a href="e2-clip/"><span class="num">E2</span>Encoders and CLIP<span class="blurb">Photos and captions in one space.</span></a></li>
+      <li><a href="e3-cross-attention/"><span class="num">E3</span>Cross-attention<span class="blurb">Words looking at image patches.</span></a></li>
+      <li><a href="e4-vlms/"><span class="num">E4</span>Vision-language models<span class="blurb">From a photo to an answer.</span></a></li>
+    </ul>
+  </section>
+  <section class="part" id="part-f" aria-labelledby="part-f-h">
+    <h2 id="part-f-h">Part F. AI in the world</h2>
+    <p>Fairness, privacy, small robots, and the whole SharkCam system.</p>
+    <ul class="chapter-list">
+      <li><a href="f1-fairness/"><span class="num">F1</span>Data, fairness and privacy<span class="blurb">Who is in the data, and who is missing.</span></a></li>
+      <li><a href="f2-robots/"><span class="num">F2</span>AI on a robot<span class="blurb">Sense, decide, act, on a small computer.</span></a></li>
+      <li><a href="f3-sharkcam/"><span class="num">F3</span>SharkCam, end to end<span class="blurb">The whole system, and where to go next.</span></a></li>
+      <li><a href="pf-practice/"><span class="num">EF.P</span>Practice set: vision, language and the world<span class="blurb">Timed questions on Parts E and F.</span></a></li>
+    </ul>
+  </section>

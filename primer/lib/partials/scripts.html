@@ -1,0 +1,10 @@
+{{#for lib_js}}
+<script src="{{.}}" defer></script>
+{{/for}}
+<script src="{{assets}}kit.js" defer></script>
+{{#for scripts}}
+<script src="{{.}}" defer></script>
+{{/for}}
+{{#if own_js}}
+<script src="{{slug}}.js" defer></script>
+{{/if}}

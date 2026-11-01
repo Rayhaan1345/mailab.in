@@ -5,8 +5,8 @@
 
 Steps:
   1. Runs the build check (python3 primer/lib/build.py --check). A stale build stops the preview.
-  2. Copies primer/ to OUTDIR (created, or replaced if it contains an earlier preview). lib/, _template/,
-     .DS_Store and __pycache__ are left out.
+  2. Copies primer/ to OUTDIR (created, or replaced if it contains an earlier preview). lib/, the page.html
+     sources, .DS_Store and __pycache__ are left out.
   3. In the copy only, adds <meta name="robots" content="noindex"> and a canonical link to the live page
      in the head of all pages, and a small fixed pill at the bottom right that links to the live page.
 
@@ -27,8 +27,8 @@ import build  # noqa: E402
 PRIMER = build.PRIMER
 LIVE = "https://mailab.in/primer/"
 MARKER = ".primer-preview"
-SKIP_TOP = {"lib", "_template"}
-SKIP_ANY = {".DS_Store", "__pycache__"}
+SKIP_TOP = {"lib"}
+SKIP_ANY = {".DS_Store", "__pycache__", "page.html"}   # page.html is the source of index.html, not a page of the preview
 
 PILL = (
     '<a id="primer-preview-pill" href="{href}" style="position:fixed;right:14px;bottom:14px;z-index:2147483647;'
