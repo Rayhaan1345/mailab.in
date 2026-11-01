@@ -1,6 +1,0 @@
-/* Styles for this chapter only. Shared styles are in primer/lib/css. */
-
-.firsts { width: 100%; max-width: 46em; border-collapse: collapse; margin: 8px 0 16px; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; }
-.firsts th, .firsts td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; color: var(--ink-2); }
-.firsts th:first-child, .firsts td:first-child { text-align: left; }
-.firsts th { font-weight: 500; color: var(--muted); }
