@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The transformer | How AI Learns</title>
+<meta name="description" content="The transformer block with its residual stream, layer norm and MLP, positional encodings (sinusoidal and RoPE), decoder-only and encoder-only models, the generation loop and the KV cache, with a tiny block you can step through and numbers from GPT-2.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
+<style>
+/* Local additions for this chapter only. */
+.row-chips { display: inline-block; margin: 0 10px 6px 0; }
+.card .bar { row-gap: 8px; }
+.card .bar label, .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
+.card .bar select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.card .bar label:has(input[type=range]) { display: grid; grid-template-columns: auto auto; gap: 2px 8px; align-items: center; min-width: 190px; }
+.card .bar label input[type=range] { grid-column: 1 / -1; width: 100%; }
+.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
+.side-h { margin: 6px 0 2px; font-size: 14px; font-weight: 500; color: var(--muted); }
+.eqs, .eq1 { margin: 10px 0 0; }
+.eqn .t { max-width: 100%; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 22px; align-items: start; }
+.bl-grid { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 12px 24px; align-items: start; }
+.bl-grid svg { max-width: 300px; margin: 0 auto; }
+.vr { display: grid; grid-template-columns: 9em minmax(0, 1fr) 3.2em; gap: 8px; align-items: center; padding: 3px 6px; margin: 3px 0; border-radius: 6px; font-size: 14px; border-left: 4px solid transparent; }
+.vr.vh { color: var(--muted); font-size: 12.5px; padding-top: 0; padding-bottom: 0; }
+.vr.stream { border-left-color: var(--teal); background: var(--paper); }
+.vr.corr { border-left-color: var(--coral); }
+.vr.copy { border-left: 4px dashed var(--muted); }
+.vr.now { box-shadow: 0 0 0 2px var(--coral) inset; }
+.vl { color: var(--ink); line-height: 1.25; }
+.vcs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
+.vc { text-align: center; padding: 2px 0; border-radius: 4px; font: 13px ui-monospace, Menlo, monospace; color: var(--ink); }
+.vn { text-align: right; color: var(--muted); font-feature-settings: "tnum" 1; }
+.bl-title { margin: 0 0 4px; font-size: 19px; font-weight: 600; color: var(--ink); }
+.bl-text { margin: 0 0 8px; color: var(--ink-2); font-size: 15.5px; }
+.rs-row { display: grid; grid-template-columns: 8.4em minmax(0, 1fr) 3.4em; gap: 6px; align-items: center; padding: 2px 4px; margin: 1px 0; border-radius: 4px; font-size: 15px; }
+.rs-row.tr { background: var(--mark); box-shadow: inset 3px 0 0 var(--coral); }
+.rs-tok { font: 14px ui-monospace, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-track { position: relative; height: 14px; background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.rs-track i { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--teal) 70%, transparent); }
+.rs-row b { text-align: right; font-weight: 500; font-feature-settings: "tnum" 1; }
+#rp-planes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 6px 0; }
+.rp-p { text-align: center; min-width: 0; }
+.rp-p svg { width: 100%; height: auto; max-width: 210px; }
+.rp-t { font-size: 12.5px; color: var(--muted); }
+.rp-c { font-size: 14.5px; color: var(--ink); font-feature-settings: "tnum" 1; }
+#fm-words { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.wd { font: inherit; font-size: 16px; padding: 3px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.wd:hover:not([disabled]) { border-color: var(--teal); }
+.wd.tgt { background: color-mix(in srgb, var(--coral) 28%, transparent); border-color: var(--coral); font-weight: 600; }
+.wd.hid { color: var(--muted); opacity: 0.5; text-decoration: line-through; text-decoration-color: var(--rule); }
+.wd[disabled] { cursor: default; }
+.toks { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 10px; }
+.tk { display: inline-flex; padding: 1px 6px; border: 1px solid transparent; border-radius: 4px; font: 14px/1.4 ui-monospace, Menlo, monospace; color: var(--ink); white-space: pre; }
+.tk.c0 { background: color-mix(in srgb, var(--navy) 20%, transparent); border-color: color-mix(in srgb, var(--navy) 45%, transparent); }
+.tk.c1 { background: color-mix(in srgb, var(--teal) 22%, transparent); border-color: color-mix(in srgb, var(--teal) 50%, transparent); }
+.tk.gone { color: var(--muted); border-color: var(--rule); border-style: dashed; background: none; opacity: 0.55; }
+.tk.newest { border-color: var(--coral); box-shadow: 0 0 0 2px color-mix(in srgb, var(--coral) 45%, transparent); }
+code { overflow-wrap: anywhere; }
+pre code { overflow-wrap: normal; }
+.bridge { max-width: 46em; margin: 12px 0 18px; padding: 8px 14px; border-left: 3px solid var(--teal); background: var(--paper); border-radius: 0 6px 6px 0; font-size: 15px; color: var(--ink-2); }
+.bridge p { margin: 5px 0; color: var(--ink-2); }
+.bridge b { color: var(--ink); }
+@media (max-width: 760px) { .two, .bl-grid { grid-template-columns: minmax(0, 1fr); } #rp-planes { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; } .vr { grid-template-columns: 6.6em minmax(0, 1fr) 2.8em; gap: 4px; font-size: 13px; } .vc { font-size: 11.5px; } .rs-row { grid-template-columns: 6.4em minmax(0, 1fr) 3em; } }
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://mailab.in/primer/d5-transformer/">
+</head>
+<body data-chapter="d5">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part D, Language</span><span>Chapter D5</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part D &middot; Chapter 5</p>
+  <h1>The transformer</h1>
+  <p class="subtitle">A stack of blocks that read, think and write onto one running vector</p>
+</header>
+
+<div class="tldr">
+  <p>In <a href="../d4-self-attention/#question">D4</a> a token learned to read the tokens before it. A transformer repeats one recipe many times. Attention reads other tokens, an MLP works on this token alone, and both add their results to a running vector called the residual stream. This chapter steps a token through one block, follows the stream through the 12 blocks of GPT-2, and shows how a model learns where a token is. Then it compares decoder-only and encoder-only models, and ends with the generation loop and the cache that makes it fast. A short box links the MLP to my work on test-time training.</p>
+  <p>The tiny block uses made-up weights. The other numbers come from GPT-2 small (MIT licence) and BERT base (Apache 2.0 licence), computed offline on sentences written for this primer.</p>
+</div>
+<p class="youneed"><b>You will need:</b> <a href="../d4-self-attention/#score">attention</a> (D4), <a href="../b6-deep-networks/#norm">layer norm</a> and <a href="../b6-deep-networks/#residual">residual connections</a> (B6), the <a href="../d3-next-token/#loop">generation loop</a> and <a href="../d3-next-token/#context">context window</a> (D3), and <a href="../t5-vectors-matrices/#products">matrix products</a> (0.5).</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#block">One block, step by step</a></li>
+    <li><a href="#stream">The residual stream across 12 blocks</a></li>
+    <li><a href="#position">Telling positions apart</a></li>
+    <li><a href="#families">Decoder-only and encoder-only</a></li>
+    <li><a href="#generate">The generation loop and the KV cache</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. block ============================ -->
+<section id="block" aria-labelledby="block-h">
+  <h2 id="block-h">One block, step by step</h2>
+  <p class="ask"><b>Guess first.</b> In a transformer block the vector of a token goes through attention and then through an MLP. Does a part replace the vector with its result, or add its result to the vector? What would be lost if it replaced it?</p>
+  <dl class="terms">
+    <div><dt>transformer block</dt><dd>one round of attention and MLP, with a layer norm and a shortcut around both parts; GPT-2 small stacks 12</dd></div>
+    <div><dt>residual stream</dt><dd>the vector of one token as it passes up through the blocks; all the parts read it and add to it</dd></div>
+    <div><dt>MLP</dt><dd>a small network applied to one token at a time: expand, GELU, shrink (<a href="../b1-one-neuron/#activations">B1</a>, <a href="../b2-non-linearity/#bend">B2</a>)</dd></div>
+    <div><dt>layer norm</dt><dd>rescales the numbers of one vector to mean 0 and spread 1 (<a href="../b6-deep-networks/#norm">B6</a>)</dd></div>
+  </dl>
+  <p class="claim">A block reads the stream, adds a correction from attention and adds a correction from an MLP. The stream is never replaced.</p>
+  <div class="card" id="bl">
+    <div class="bar" id="bl-bar"></div>
+    <div class="bar" id="bl-bar2"></div>
+    <div class="bl-grid">
+      <svg id="bl-svg" role="img" aria-label="Diagram of one transformer block"></svg>
+      <div>
+        <p class="bl-title" id="bl-title"></p>
+        <p class="bl-text" id="bl-text" aria-live="polite"></p>
+        <div id="bl-rows"></div>
+        <div class="eq1" id="bl-eq" aria-live="polite"></div>
+        <p class="status" id="bl-att"></p>
+      </div>
+    </div>
+    <div class="readout" id="bl-read"></div>
+  </div>
+  <p class="cap"><b>The stream is a running sum. The rows of the table add up from the top, and with the shortcut the input stays a term of the output.</b> Cut the shortcut and the stream after attention is the correction alone. The weights are made up and a token has 4 numbers here; GPT-2 small has 768.</p>
+  <p>Press Step. The teal dot is the token's stream. At a layer norm or a sub-layer a coral dot leaves the stream along a branch and works on a copy, while the stream waits. The copy comes back as a correction, and the plus sign adds it to the stream. In the table, teal rows are the stream, coral rows are corrections and dashed rows are normed copies. Switch the token to see that the first token reads only itself, and the third reads all three.</p>
+  <p>Now switch the norm placement. The 2017 paper computes \(\mathrm{LayerNorm}(\mathbf{x} + \mathrm{Sublayer}(\mathbf{x}))\), so the norm lies on the path of the stream. GPT-2 moved the norm to the input of the sub-blocks and added one more norm after the last block (Radford and others, 2019). The stream itself is then only ever added to. Xiong and others (2020) found that this pre-norm order has well-behaved gradients at the start of training, and in their tests such a model trained without warm-up (<a href="../b5-optimisers/#schedule">B5</a>). The cost is that the stream grows from block to block, as the next section shows.</p>
+  <p>Attention moves information between tokens. The MLP moves no information between tokens. It takes the vector of this token alone and computes with it. In GPT-2 small it expands 768 numbers to 3,072, applies GELU and shrinks back to 768. Both matrices are large, so the MLP contains most of a block's weights, as the count below shows.</p>
+  <p class="math">\[ \mathbf{x}' = \mathbf{x} + \mathrm{Attn}\big(\mathrm{LN}(\mathbf{x})\big),\qquad \mathbf{x}'' = \mathbf{x}' + \mathrm{MLP}\big(\mathrm{LN}(\mathbf{x}')\big),\qquad \mathrm{MLP}(\mathbf{u}) = W_2\,\mathrm{GELU}(W_1\mathbf{u}+\mathbf{b}_1)+\mathbf{b}_2 \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{x}\)</b> is the stream entering the block (768 numbers in GPT-2 small). <b>\(\mathbf{x}'\)</b> and <b>\(\mathbf{x}''\)</b> are the stream after attention and after the MLP; \(\mathbf{x}''\) goes to the next block.</li>
+    <li><b>\(\mathrm{LN}\)</b> is layer norm with a learned scale and shift (B6). <b>\(\mathrm{Attn}\)</b> is the multi-head attention of D4, which reads the normed vectors of all tokens up to this one.</li>
+    <li><b>\(W_1\)</b> is the up projection (3,072 rows, 768 columns) and <b>\(W_2\)</b> the down projection (768 rows, 3,072 columns). <b>\(\mathbf{b}_1, \mathbf{b}_2\)</b> are bias vectors. GELU is the smooth activation of <a href="../b1-one-neuron/#activations">B1</a>.</li>
+  </ul>
+  <div class="eqn" role="img" aria-label="Attention 2,362,368 plus MLP 4,722,432 plus two norms 3,072 make 7,087,872 weights per block"><span class="t c-coral"><b>2,362,368</b><i>attention: 4 &times; 768&sup2; + 4 &times; 768</i></span><span class="op">+</span><span class="t c-navy"><b>4,722,432</b><i>MLP: 2 &times; 768 &times; 3,072 + 3,072 + 768</i></span><span class="op">+</span><span class="t c-sand"><b>3,072</b><i>two layer norms: 4 &times; 768</i></span><span class="op">=</span><span class="t c-teal"><b>7,087,872</b><i>weights in a block</i></span></div>
+  <div class="eqn" role="img" aria-label="12 blocks plus the token table plus the position table plus the last norm make 124,439,808 weights"><span class="t c-teal"><b>85,054,464</b><i>12 blocks</i></span><span class="op">+</span><span class="t c-navy"><b>38,597,376</b><i>token table, 50,257 &times; 768 (<a href="../d2-embeddings/#onehot">D2</a>)</i></span><span class="op">+</span><span class="t c-sand"><b>786,432</b><i>position table, 1,024 &times; 768</i></span><span class="op">+</span><span class="t c-sand"><b>1,536</b><i>last layer norm</i></span><span class="op">=</span><span class="t c-coral"><b>124,439,808</b><i>weights of GPT-2 small</i></span></div>
+  <p>The MLP has 4,722,432 of a block's 7,087,872 weights, which is 66.6%. Its down projection \(W_2\) alone has 2,359,296. The counts come from PyTorch's own parameter lists (see <a href="data/make_gpt2.py">make_gpt2.py</a>) and add up to the 124,439,808 weights of <a href="../d3-next-token/#distribution">D3</a>.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A layer replaces the vector of a token by a better one.</p>
+    <p><b>Why it fails.</b> In the table above the vector is added to. With the shortcut cut, the input is no longer a term of the output. In a deep stack the work of the first block has to pass through all the later blocks to be used at the top. The slopes also have to pass through all of them (<a href="../b6-deep-networks/#residual">B6</a>).</p>
+    <p><b>Better account.</b> All the parts read the shared vector and write a correction onto it. The vector is a running sum of what the parts wrote.</p>
+  </div>
+  <div class="bridge">
+    <p><b>Bridge to my project.</b> The matrix \(W_2\) is the down projection: it maps the 3,072 hidden numbers of the MLP back to the stream. In-Place Test-Time Training, a method from ByteDance Seed, treats the down projection of selected MLP blocks as fast weights. It updates them chunk by chunk while the model reads, with a target built from the input. I am porting the method from text models to a Qwen vision-language model, so that it can adapt to an input after deployment. My primer builds the idea from attention to the update: see <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/#block">the block and its MLP</a> and <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">the whole primer</a>. <a href="../d6-long-context/#ttt">D6</a> returns to test-time training.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+rng = np.random.default_rng(4127)
+d, H, dk, dff = 4, 2, 2, 8
+X = rng.normal(0, 1, (3, d)).round(1)     # 3 tokens, made up
+Wq, Wk, Wv, Wo = (rng.normal(0, 0.5, (d, d)).round(2)
+                  for _ in range(4))
+W1 = rng.normal(0, 0.5, (d, dff)).round(2)
+W2 = rng.normal(0, 0.5, (dff, d)).round(2)
+
+def layer_norm(x, eps=1e-5):
+    mu = x.mean(-1, keepdims=True)
+    var = x.var(-1, keepdims=True)
+    return (x - mu) / np.sqrt(var + eps)
+def gelu(x):
+    c = np.sqrt(2 / np.pi)
+    return 0.5 * x * (1 + np.tanh(c * (x + 0.044715 * x**3)))
+def softmax(s):
+    e = np.exp(s - s.max(-1, keepdims=True))
+    return e / e.sum(-1, keepdims=True)
+def attention(h):                  # the attention of D4, two heads
+    n = len(h)
+    q, k, v = h @ Wq, h @ Wk, h @ Wv
+    keep = np.tril(np.ones((n, n), bool))
+    heads = []
+    for i in range(H):
+        sl = slice(i * dk, (i + 1) * dk)
+        s = q[:, sl] @ k[:, sl].T / np.sqrt(dk)
+        s = np.where(keep, s, -np.inf)
+        heads.append(softmax(s) @ v[:, sl])
+    return np.concatenate(heads, axis=1) @ Wo
+def mlp(h):
+    return gelu(h @ W1) @ W2
+
+x1 = X + attention(layer_norm(X))     # add the attention correction
+x2 = x1 + mlp(layer_norm(x1))         # add the MLP correction
+np.set_printoptions(precision=2, suppress=True)
+print("input of the third token ", X[2])
+print("output of the third token", x2[2])
+print("lengths", np.linalg.norm(X[2]).round(2),
+      np.linalg.norm(x2[2]).round(2))</code></pre>
+  <pre class="out">input of the third token  [ 0.7 -0.4 -0.3  0.7]
+output of the third token [ 0.55  0.36 -1.39  0.66]
+lengths 1.11 1.68</pre>
+  <div class="debug">
+    <p><b>Debug tip.</b> Keep the order of the norm and the add straight. A pre-norm model such as GPT-2 needs one more layer norm after the last block, before the output layer (GPT-2's paper adds this norm). Forgetting it gives output scores of the wrong size. A post-norm model needs none, since its stream is normed after the adds.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The stream is (1, 2, 3, 4), the attention correction is (0.5, 0, 0, &minus;1) and the MLP correction is (0, 1, &minus;1, 0). What leaves the block?</summary><p>\((1, 2, 3, 4) + (0.5, 0, 0, -1) + (0, 1, -1, 0) = (1.5, 3, 2, 3)\).</p></details>
+    <details><summary>Which part of a block reads other tokens, and which works on one token alone?</summary><p>Attention reads other tokens. The MLP works on one token alone.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. stream ============================ -->
+<section id="stream" aria-labelledby="stream-h">
+  <h2 id="stream-h">The residual stream across 12 blocks</h2>
+  <p class="ask"><b>Guess first.</b> GPT-2 has 12 blocks. Suppose we stop after block 9 and ask the model's output layer which token comes next. Will the answer be nonsense, or already close to the final one?</p>
+  <dl class="terms">
+    <div><dt>length of a vector</dt><dd>the square root of the sum of its squared numbers (<a href="../t5-vectors-matrices/#cosine">0.5</a>)</dd></div>
+    <div><dt>logit lens</dt><dd>a probe: apply the final layer norm and the output layer to the stream after any block, to see a rough guess</dd></div>
+    <div><dt>rank</dt><dd>the place of a token when all 50,257 are sorted by probability; rank 1 is the top guess</dd></div>
+  </dl>
+  <p class="claim">A block adds to the stream, and in GPT-2 the stream grows as the blocks add to it. The guess for the next token forms over the blocks and sharpens in the last few.</p>
+  <div class="card" id="rs">
+    <div class="bar" id="rs-bar"></div>
+    <div class="plot short" id="rs-norms" role="img" aria-label="Lengths of what a block writes and of the stream"></div>
+    <div class="two">
+      <div><p class="side-h">Top five guesses after the chosen number of blocks</p><div id="rs-list"></div></div>
+      <div class="plot short" id="rs-p" role="img" aria-label="Probability of the true next token after 0 to 12 blocks"></div>
+    </div>
+    <div class="readout" id="rs-read" aria-live="polite"></div>
+    <p class="status" id="rs-status"></p>
+  </div>
+  <p class="cap"><b>For &ldquo;Mumbai is the capital of the Indian state of&rdquo;, the true answer &#9601;Maharashtra has rank 2,208 after 7 blocks, rank 6 after 9 and rank 1 after 11.</b> Slide the number of blocks and watch the guesses change. The mark &#9601; means a leading space (<a href="../d1-tokenisation/#units">D1</a>).</p>
+  <p>The bars give the length of what a block writes, and the teal line the length of the stream after the block. For the Mumbai text the embedding has length 4.7, and block 1 already writes vectors of length 32 and 28. After block 1 the stream has length 54, so the token's own embedding is a small part of it. Blocks 2 to 9 write vectors of length 8 to 37 into a stream of length 55 to 113. The last block writes 173 and 79 into a stream of 215, and the stream after it has length 319. This is measured on one token in three texts. Do not read it as a law of transformers.</p>
+  <p>The guesses are less sure than they look. The logit lens applies a map that the model was trained to apply only at the top, so intermediate guesses can be poor and badly calibrated (nostalgebraist, 2020). Early guesses here are common words such as &#9601;the and &#9601;own, unrelated to the text. For the Mumbai text the lens gives &#9601;Maharashtra 86% after 11 blocks and the full model 67%, so the last block lowered the confidence. For &ldquo;put it&rdquo; the true word &#9601;back is the second guess after 6 blocks, and the full model also puts it second, behind &#9601;in. Use the lens to see that guesses form gradually. Do not read its probabilities as the model's beliefs at that depth.</p>
+  <div class="break">
+    <p><b>Analogy.</b> The stream is a shared notepad. All the parts read it and add a note, and the last page is read by the output layer.</p>
+    <p><b>Where it breaks.</b> A notepad keeps old notes readable. The stream is a sum, so an earlier note can be read again only by a later part that has learned which direction to look at. Because the stream grows, early notes can also be small next to later ones. Parts do not take turns on a fixed job either. Several can write to the same directions.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why can we apply the output layer after block 9 at all?</summary><p>The stream has the same 768 numbers after any block, because a block adds to it and never changes its size. So the output layer, which expects 768 numbers, accepts it. Whether the result is meaningful is another matter.</p></details>
+    <details><summary>The lens gives &#9601;Maharashtra 86% after 11 blocks and the model gives 67%. Which one is the model's answer?</summary><p>The 67% is the model's answer, the output of the full stack. The 86% comes from a probe applied one block early.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. position ============================ -->
+<section id="position" aria-labelledby="position-h">
+  <h2 id="position-h">Telling positions apart</h2>
+  <p class="ask"><b>Guess first.</b> Attention compares queries with keys, and it does not look at where a token is. The sentences &ldquo;the shark bit the diver&rdquo; and &ldquo;the diver bit the shark&rdquo; contain the same tokens. What could we do so that the model can tell them apart?</p>
+  <dl class="terms">
+    <div><dt>positional encoding</dt><dd>information about where a token is, added to its vector or built into attention</dd></div>
+    <div><dt>sinusoidal encoding</dt><dd>a fixed pattern of sines and cosines of many wavelengths, one vector per position (Vaswani and others, 2017)</dd></div>
+    <div><dt>learned position table</dt><dd>one row per position, trained like other weights; GPT-2 has 1,024 rows</dd></div>
+    <div><dt>RoPE</dt><dd>rotary position embedding: rotate the query and the key by an angle proportional to their position (Su and others, 2021)</dd></div>
+  </dl>
+  <p class="claim">Attention does not see order, so position has to be put in. A model can add a position vector to the vector of a token, or rotate queries and keys so that their dot product depends on the distance.</p>
+  <div class="card" id="pe">
+    <div class="bar" id="pe-bar"></div>
+    <div class="two">
+      <div class="plot" id="pe-map" role="img" aria-label="Position vectors as a heat map"></div>
+      <div class="plot" id="pe-sim" role="img" aria-label="Similarity of one position with the others"></div>
+    </div>
+    <div class="readout" id="pe-read" aria-live="polite"></div>
+    <p class="status" id="pe-status"></p>
+  </div>
+  <p class="cap"><b>A position is most similar to itself, and the similarity falls as positions move apart, with ripples for the sinusoids.</b> For the sinusoidal encoding the curve keeps its form for all positions p and is only shifted.</p>
+  <p>The sinusoidal encoding gives the pairs of numbers in the vector their own wavelengths. The first pair repeats quickly and the last pair slowly, so a position is a pattern of stripes, like a binary counter made of waves. Switch to the GPT-2 table. Its 1,024 rows were learned. The first 64 show the same trend: neighbours have a cosine near 0.99, positions 10 apart 0.93 and positions 40 apart 0.53 (averages over the 64 rows). Position 0 is an exception, with a vector more than twice as long as most others. Nobody told GPT-2 that nearby positions should look alike. It learned that from text.</p>
+  <p>Why do sinusoids give a curve that depends only on the distance? Take two positions \(p\) and \(q\) and one pair with angle \(\omega\) per position. The pair is \((\sin p\omega, \cos p\omega)\) and \((\sin q\omega, \cos q\omega)\). Their dot product is \(\sin p\omega\sin q\omega + \cos p\omega\cos q\omega = \cos((p-q)\omega)\). Add the pairs and the position vectors have a dot product that depends only on \(p - q\).</p>
+  <div class="eqn" role="img" aria-label="With d equal to 4 the dot product of the encodings of positions 3 and 5 is cos 2 plus cos 0.02, which is 0.584"><span class="t c-navy"><b>cos(2) = &minus;0.416</b><i>pair 1, &omega; = 1, p &minus; q = &minus;2</i></span><span class="op">+</span><span class="t c-navy"><b>cos(0.02) = 1.000</b><i>pair 2, &omega; = 0.01</i></span><span class="op">=</span><span class="t c-teal"><b>0.584</b><i>PE(3) &middot; PE(5), d = 4</i></span></div>
+  <p class="math">\[ PE_{(pos,\,2i)} = \sin\!\Big(\frac{pos}{10000^{2i/d}}\Big),\qquad PE_{(pos,\,2i+1)} = \cos\!\Big(\frac{pos}{10000^{2i/d}}\Big) \]</p>
+  <p class="math">\[ PE_p\cdot PE_q = \sum_{i}\cos\big(\omega_i (p-q)\big),\qquad \omega_i = 10000^{-2i/d} \]</p>
+  <ul class="math-notes">
+    <li><b>\(pos\)</b> is the position (0, 1, 2, ...) and <b>\(d\)</b> the number of numbers in the vector. <b>\(i\)</b> counts the pairs, from 0 to \(d/2 - 1\).</li>
+    <li><b>\(\omega_i\)</b> is the angle per position of pair \(i\). The wavelengths run from \(2\pi\) to \(10000\cdot 2\pi\) (Vaswani and others, 2017).</li>
+  </ul>
+  <p>RoPE puts position into attention itself. Cut the vector of the query into pairs of numbers, and turn pair \(i\) by the angle \(m\theta_i\), where \(m\) is the position of the token. Do the same to the key at position \(n\). Turning one arrow by \(a\) and the other by \(b\) changes the angle between them by \(b - a\). So the dot product depends on \(n - m\), and not on \(m\) and \(n\) alone.</p>
+  <div class="card" id="rp">
+    <div class="bar" id="rp-bar"></div>
+    <div id="rp-planes"></div>
+    <div class="eq1" id="rp-eq" aria-live="polite"></div>
+    <div class="plot short" id="rp-plot" role="img" aria-label="Dot product against offset"></div>
+    <div class="readout" id="rp-read" aria-live="polite"></div>
+    <p class="status" id="rp-status"></p>
+  </div>
+  <p class="cap"><b>Moving the query and the key by the same amount rotates both arrows by the same extra angle, so the three pair scores and their sum do not change.</b> The sum depends only on the offset n &minus; m, as the curve shows.</p>
+  <p>Press &ldquo;Move both by +5&rdquo; and watch the numbers. The arrows turn, and \(\mathbf{q}\cdot\mathbf{k}\) stays the same. Then change only \(n\). The fast pair (pair 1) turns by one radian per position, so its score wobbles as the key moves, and the slow pairs vary gently. A model can use fast pairs for fine distance and slow pairs for rough distance, as in the sinusoids.</p>
+  <p class="math">\[ R(\alpha) = \begin{pmatrix}\cos\alpha & -\sin\alpha\\ \sin\alpha & \cos\alpha\end{pmatrix},\qquad \mathbf{q}_m = R(m\theta)\,\mathbf{q},\quad \mathbf{k}_n = R(n\theta)\,\mathbf{k},\qquad \mathbf{q}_m\cdot\mathbf{k}_n = \mathbf{q}^{\top}R\big((n-m)\theta\big)\,\mathbf{k} \]</p>
+  <ul class="math-notes">
+    <li><b>\(m\) and \(n\)</b> are the positions of the query and the key, as in the RoFormer paper, and not the number of examples or of tokens. <b>\(R(\alpha)\)</b> turns a pair of numbers by the angle \(\alpha\) in radians. <b>\(\theta\)</b> is the angle per position of this pair. A vector of \(d\) numbers has \(d/2\) pairs, with \(\theta_i = 10000^{-2(i-1)/d}\) in the RoFormer paper.</li>
+    <li>The last step uses \(R(a)^{\top}R(b) = R(b-a)\): turning back by \(a\) and then forward by \(b\) turns forward by \(b - a\).</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> Attention reads the tokens from left to right, so it knows their order.</p>
+    <p><b>Why it fails.</b> Attention compares vectors. Without a mask, shuffling the rows of the input shuffles the output rows in the same way and changes no other part (the code below shows it). Order is information that has to enter through the vectors or through q and k.</p>
+    <p><b>Better account.</b> A position vector added to the input, or a rotation in q and k, gives attention the distances it needs. A learned table has a limit: GPT-2 has no row for a 1,025th token, because its context window is 1,024 tokens (<a href="../d3-next-token/#context">D3</a>). A formula can be evaluated at any position, though a model trained on short texts may still handle long ones badly.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+def attn(X):          # attention without a mask, X as q, k and v
+    S = X @ X.T / np.sqrt(X.shape[1])
+    W = np.exp(S - S.max(1, keepdims=True))
+    return (W / W.sum(1, keepdims=True)) @ X
+
+def sin_pe(n, d):
+    pos = np.arange(n)[:, None]
+    w = 10000.0 ** (-np.arange(0, d, 2) / d)
+    pe = np.zeros((n, d))
+    pe[:, 0::2] = np.sin(pos * w)
+    pe[:, 1::2] = np.cos(pos * w)
+    return pe
+
+rng = np.random.default_rng(7)
+X = rng.normal(size=(5, 4))
+perm = np.array([3, 0, 4, 1, 2])
+same = np.allclose(attn(X)[perm], attn(X[perm]))
+print("no positions: shuffled input, shuffled output:", same)
+P = sin_pe(5, 4)
+same = np.allclose(attn(X + P)[perm], attn(X[perm] + P))
+print("with positions:", same)</code></pre>
+  <pre class="out">no positions: shuffled input, shuffled output: True
+with positions: False</pre>
+  <div class="debug">
+    <p><b>Debug tip.</b> Count positions from 0, and check what your library does. When you use a KV cache (section 5), give the new token its place in the whole text, which is the length of the cache, and not 0. A model that restarts the positions from 0 whenever it takes a step still runs, and writes worse text.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The query is turned by 30&deg; and the key by 50&deg; at their positions. By how much does the angle between them change?</summary><p>By 20&deg;, the difference. That is why the dot product depends on the offset and not on the positions themselves.</p></details>
+    <details><summary>GPT-2 has a table of 1,024 position vectors. What stops it from reading a text of 2,000 tokens?</summary><p>There is no row for positions 1,024 to 1,999. The table was trained only up to 1,023, so the model cannot be given the position of those tokens.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. families ============================ -->
+<section id="families" aria-labelledby="families-h">
+  <h2 id="families-h">Decoder-only and encoder-only</h2>
+  <p class="ask"><b>Guess first.</b> To fill the gap in &ldquo;We photographed the young shark ___ put it back&rdquo;, would you rather read only the words before the gap, or the words on both sides? Which kind of model could write a new sentence with only the words before it?</p>
+  <dl class="terms">
+    <div><dt>decoder-only</dt><dd>a model with the causal mask, trained to predict the next token (GPT-2)</dd></div>
+    <div><dt>encoder-only</dt><dd>a model with no mask, so all tokens read all tokens (BERT, Devlin and others, 2019)</dd></div>
+    <div><dt>masked-token prediction</dt><dd>hide about 15% of the tokens and ask the model for them, using both sides</dd></div>
+    <div><dt>encoder-decoder</dt><dd>an encoder reads the input and a decoder writes the output, also reading the encoder (<a href="../e3-cross-attention/#sources">E3</a>)</dd></div>
+  </dl>
+  <p class="claim">The mask encodes the task. A decoder reads the left only, so it can write. An encoder reads both sides, so it can fill gaps and describe tokens, and it cannot continue a text.</p>
+  <div class="card" id="fm">
+    <div class="bar" id="fm-bar"></div>
+    <p class="side-h">Click a word to hide it</p>
+    <div id="fm-words"></div>
+    <div class="two">
+      <div><p class="side-h">Who reads whom (rows read columns; the framed row makes the guess)</p><svg id="fm-mask" role="img" aria-label="Mask table"></svg></div>
+      <div><p class="side-h">The model's five best guesses for the hidden word</p><div id="fm-guess"></div></div>
+    </div>
+    <div class="eq1" id="fm-eq"></div>
+    <div class="readout" id="fm-read" aria-live="polite"></div>
+    <p class="status" id="fm-status"></p>
+  </div>
+  <p class="cap"><b>Hide &ldquo;and&rdquo;: BERT, which also sees &ldquo;put it back&rdquo;, gives it 93%. GPT-2, which sees only &ldquo;We photographed the young shark&rdquo;, gives it 7%.</b> Seeing both sides does not always help: for &ldquo;it&rdquo; GPT-2 gives 50% and BERT 31%.</p>
+  <p>Try a few words in both modes. In decoder mode the words after the hidden one fade, because the model cannot read them. The framed row of the mask table is the one for the token before the gap. The model's output at that position is its guess for the next word. In encoder mode all tokens read all tokens, and the output at the [MASK] position is the guess. BERT's guesses for &ldquo;shark&rdquo; are man, girl and woman. It knows the grammar of the gap, and it cannot tell from this one sentence what a SharkCam message is about.</p>
+  <p>Training differs as well. A decoder gets a loss at all positions of a text, so all the positions are examples: the loss of <a href="../d3-next-token/#loss">D3</a>. An encoder gets a loss only at the hidden positions, about 15% of the tokens in the BERT paper, so it learns from fewer positions per pass. In detail, BERT picks 15% of the positions and puts [MASK] in 80% of them, a random token in 10% and the true token in the last 10%. The first worked example: for &ldquo;and&rdquo; the loss is \(-\ln 0.926 = 0.08\) nats for BERT and \(-\ln 0.0687 = 2.68\) for GPT-2. A second: for &ldquo;put&rdquo; BERT gave 1.35% (rank 7) and GPT-2 gave 0.35% (rank 46), losses of 4.30 and 5.66.</p>
+  <p class="math">\[ L_{\text{decoder}} = -\frac{1}{n}\sum_{t=1}^{n}\ln p\big(x_t \mid x_1,\dots,x_{t-1}\big),\qquad L_{\text{encoder}} = -\frac{1}{|S|}\sum_{t\in S}\ln p\big(x_t \mid x_{\notin S}\big) \]</p>
+  <ul class="math-notes">
+    <li><b>\(x_t\)</b> is the token at position \(t\) and \(n\) the length of the text, as in D3. <b>\(S\)</b> is the set of hidden positions, about 15% of them, and <b>\(|S|\)</b> is how many. <b>\(x_{\notin S}\)</b> means all tokens that are not hidden.</li>
+    <li>The left formula is the cross-entropy of D3. The right one has the same form, but the model sees both sides of a hidden token and learns from fewer positions.</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> BERT is a better GPT, since it sees the whole sentence.</p>
+    <p><b>Why it fails.</b> A model that can see the next word cannot be asked for it, as the leak of <a href="../d4-self-attention/#mask">D4</a> shows. BERT gives a good vector for all its tokens, which is useful for sorting a message by topic or for search, and it has no way to continue a text. GPT-2 writes text, and its vector for a token has seen only the left side.</p>
+    <p><b>Better account.</b> The two designs differ in the mask and the task, and the two suit different jobs. GPT-2 is decoder-only. <a href="../d7-assistants/#stages">D7</a> covers assistants built on such models, and <a href="../e2-clip/#encoder">E2</a> uses encoders for images and text.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Which design would you use to read a fisher's message and give its topic, and which to write a follow-up question?</summary><p>An encoder for the topic: it reads the whole message and gives a vector for it. A decoder for the follow-up: it writes one token after another.</p></details>
+    <details><summary>A text has 100 tokens. About how many positions give a loss in a decoder, and in BERT's training?</summary><p>All 100 (or 99 with a first token to start from) for a decoder. About 15 for BERT.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. generate ============================ -->
+<section id="generate" aria-labelledby="generate-h">
+  <h2 id="generate-h">The generation loop and the KV cache</h2>
+  <p class="ask"><b>Guess first.</b> GPT-2 has just chosen the 9th token and must choose the 10th. Attention for the 10th needs the keys and values of all 9 tokens. Must the model compute those of the first 8 again, or can it reuse them? Why?</p>
+  <dl class="terms">
+    <div><dt>prefill</dt><dd>reading the whole prompt in one pass, with all positions side by side</dd></div>
+    <div><dt>decoding</dt><dd>producing one token per step after the prefill (the generation loop of <a href="../d3-next-token/#loop">D3</a>)</dd></div>
+    <div><dt>KV cache</dt><dd>the keys and values of all earlier tokens, in all layers, stored once and reused</dd></div>
+  </dl>
+  <p class="claim">Earlier tokens never read later ones, so their keys and values never change. The model stores them and computes only the newest token at a step.</p>
+  <div class="card" id="gn">
+    <div class="bar" id="gn-bar"></div>
+    <div class="toks" id="gn-toks"></div>
+    <svg id="gn-grid" role="img" aria-label="Grid of cached keys and values"></svg>
+    <div class="readout" id="gn-read" aria-live="polite"></div>
+    <div class="eq1" id="gn-eq" aria-live="polite"></div>
+    <p class="status" id="gn-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>With the cache the model does 16 token-passes for 16 tokens. Without it, it does 108.</b> Columns are tokens, rows are the 12 layers, coral cells are computed in this step and navy cells are read from the cache. The tokens after the prompt are GPT-2's greedy choices.</p>
+  <p>Press Next token. In the first picture the prompt is read at once, and its 8 columns are coral. In the steps after that, with the cache on, one new column turns coral and the old ones stay navy. With the cache off, all the columns are coral in all the steps, because the model reads the whole text again. The work grows like \(1 + 2 + \dots + n = n(n+1)/2\) without the cache, and like \(n\) with it. This counts one pass through the layers per token read, including the last chosen token, which a longer text would need next. Attention still compares the new token with all earlier ones in both cases. We checked that GPT-2 gives the same 8 tokens with and without the cache: the cache saves time and changes no answer.</p>
+  <p>What does it cost? Memory. For a token in a layer, the model stores one key and one value of 768 numbers in GPT-2 small. PyTorch's cache for a 34-token text had 12 pairs of arrays of size 12 heads by 34 tokens by 64 numbers, which is 626,688 numbers, or \(34 \times 18{,}432\).</p>
+  <div class="card" id="kc">
+    <div class="bar" id="kc-bar"></div>
+    <div class="eq1" id="kc-eq" aria-live="polite"></div>
+    <div class="readout" id="kc-read" aria-live="polite"></div>
+  </div>
+  <p class="cap"><b>For the full window of 1,024 tokens GPT-2 small stores 18.9 million numbers, which is 37.7 MB in 16-bit numbers. GPT-2 XL needs 314.6 MB.</b> The size grows in a straight line with the number of tokens, and with layers and width. Sizes use 1 MB = 1,000,000 bytes.</p>
+  <p class="math">\[ \text{cache size in bytes} = 2\times N_{\text{layer}}\times n\times d\times b \]</p>
+  <ul class="math-notes">
+    <li><b>2</b> is for keys and values. <b>\(N_{\text{layer}}\)</b> is the number of layers: 12 in GPT-2 small and 48 in GPT-2 XL. <b>\(n\)</b> is the number of tokens in the context.</li>
+    <li><b>\(d\)</b> is the width of the model: 768, or 1,600 in GPT-2 XL. <b>\(b\)</b> is the bytes per number: 4 for 32-bit and 2 for 16-bit.</li>
+    <li>The formula applies to models in which all heads have their own keys and values, as in GPT-2. Models that share keys and values between heads store less. <a href="../d6-long-context/#cache">D6</a> returns to this.</li>
+  </ul>
+  <p>Worked example 1: GPT-2 small with 1,024 tokens in 16-bit numbers. \(2 \times 12 \times 1{,}024 \times 768 = 18{,}874{,}368\) numbers, times 2 bytes is 37,748,736 bytes. Worked example 2: GPT-2 XL, \(2 \times 48 \times 1{,}024 \times 1{,}600 = 157{,}286{,}400\) numbers, 314,572,800 bytes. An invented Hindi report of 117 tokens (<a href="../d1-tokenisation/#languages">D1</a>) needs \(117 \times 36{,}864 = 4.3\) MB of cache in GPT-2 small, so the window fits about 8 such reports.</p>
+  <div class="break">
+    <p><b>Common belief.</b> The cache is how the model remembers what it has read.</p>
+    <p><b>Why it fails.</b> The cache contains only what the model could compute again from the text. It is an identical copy of work already done. It is no separate memory, and it changes no answer, apart from tiny rounding differences. A model with no cache reads the same text and gives the same words.</p>
+    <p><b>Better account.</b> The cache trades memory for time. It makes a step cheap, and it is the reason that long contexts need a lot of memory. My primer shows the same idea for Qwen3 (<a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/#kv">generating text and the KV cache</a>).</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Clear the cache when the prompt changes. A stale cache still contains keys and values of the old text, and the model then answers about the old text without an error message. Give the new token its true position (section 3), and check that the length of the cache equals the number of tokens read.</p>
+  </div>
+  <pre class="code" data-run><code>def cache_numbers(layers, width, n):
+    return 2 * layers * n * width             # keys and values
+
+per_token = cache_numbers(12, 768, 1)
+full = cache_numbers(12, 768, 1024)
+print("numbers per token:", per_token)
+print("full window:", full, "numbers,", full * 2 / 1e6, "MB in 16-bit")
+print("GPT-2 XL, full window:", cache_numbers(48, 1600, 1024) * 2 / 1e6, "MB")
+print("token-passes for 16 tokens: with cache", 16, ", without", 8 + sum(range(9, 17)))</code></pre>
+  <pre class="out">numbers per token: 18432
+full window: 18874368 numbers, 37.748736 MB in 16-bit
+GPT-2 XL, full window: 314.5728 MB
+token-passes for 16 tokens: with cache 16 , without 108</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A model has 24 layers and width 1,024. How many numbers does its cache contain for 2,048 tokens?</summary><p>\(2 \times 24 \times 2{,}048 \times 1{,}024 = 100{,}663{,}296\) numbers, which is 201 MB in 16-bit numbers.</p></details>
+    <details><summary>Does the cache change the words the model writes?</summary><p>No. It stores values the model would compute again. With greedy choices, GPT-2 gave the same 8 tokens with and without it.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> Apply layer norm (without scale and shift, \(\epsilon = 0\)) to \(\mathbf{x} = (2, 0, -2, 4)\). Give the mean, the variance and the result. Then say what the shortcut gives \(\mathbf{x}\) in a block, and what the norm gives the input of attention.</p>
+        <details class="hint"><summary>Hint</summary><p>Subtract the mean, then divide by the square root of the variance (B6).</p></details></li>
+      <li><p><span class="ex-tag">theory</span> The MLP of GPT-2 small has \(W_1\) with 768 rows and 3,072 columns and \(W_2\) with 3,072 rows and 768 columns, plus biases. Count its weights, and say what fraction of the 7,087,872 weights of a block this is. How many times would the attention part (2,362,368) fit?</p></li>
+      <li><p><span class="ex-tag">theory</span> With \(d = 4\) the sinusoidal encoding has two pairs, with \(\omega_0 = 1\) and \(\omega_1 = 0.01\). Compute \(PE_3\cdot PE_5\) directly from the four numbers of the two vectors, and by the formula \(\sum_i\cos(\omega_i(p-q))\). Then explain why \(PE_3\cdot PE_5\) equals \(PE_{13}\cdot PE_{15}\).</p></li>
+      <li><p><span class="ex-tag">theory</span> Show that for a rotation, \(R(m\theta)^{\top}R(n\theta) = R((n-m)\theta)\), using \(R(\alpha)^{\top} = R(-\alpha)\) and the addition rules for sine and cosine. What does that say about \(\mathbf{q}_m\cdot\mathbf{k}_n\) for \(m = 3, n = 8\) and for \(m = 13, n = 18\)?</p></li>
+      <li><p><span class="ex-tag">theory</span> A model has 24 layers and width 1,024, with 16-bit numbers. How many bytes of cache does it need per token, and how many tokens fit into 1 GB (\(10^9\) bytes)?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Rebuild the tiny block of section 1 in NumPy, with the same seed, and check the output \(\mathbf{x}_2\) of the third token against the chapter. Then drop the shortcuts and print the output. Is the input recognisable in it? Measure with the cosine, and run it for all three tokens. What do you see, and why is a 4-number example a poor test?</p></li>
+      <li><p><span class="ex-tag">practice</span> Write a cached generation loop for the single-head attention of D4. At a step compute the query, key and value of the newest token only, append the key and value to the cache and attend over the cache. Compare the outputs with a version that recomputes all the work, and count the key computations in both.</p></li>
+      <li><p><span class="ex-tag">practice</span> Download <a href="data/gpt2.json">gpt2.json</a>. For the three texts, find the first block after which the true token is in the top 10 of the logit lens. Then find the first block after which it is first. Plot the lengths of the attention and MLP outputs against the block number.</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> Design an experiment on the tiny block that tells you what the shortcut and the layer norm do. What would you change, what would you measure, and what result would show that one of them is not needed?</p></li>
+      <li><p><span class="ex-tag">open</span> A SharkCam model reads a photo as patches (<a href="../e1-vision-transformers/#cut">E1</a>) followed by the text of a question and then writes an answer. Which mask would you use for the patch tokens, which for the question and which for the answer? What could go wrong if the answer tokens could read one another's future?</p></li>
+      <li><p><span class="ex-tag">open</span> The KV cache stores keys and values computed with the weights that were in place when the token was read. Suppose some weights change while a model reads (as in test-time training). Which cached entries could be out of date, and how could you find out whether it matters? Do not assume any particular method.</p>
+        <details class="hint"><summary>Hint</summary><p>Think about which layers use the changed weights, and about the keys and values of the later layers for tokens that were already read.</p></details></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Try these after two days, and again after a week, without looking back.</p>
+  <div class="recall comeback">
+    <details><summary>A layer norm averages over which numbers: the numbers of one token, or the numbers of one position across a batch? How does that matter when a text is read one token at a time? (Chapter <a href="../b6-deep-networks/#norm">B6</a>)</summary><p>Layer norm uses the numbers of one token's vector only. It gives the same result for a token alone, in a batch or with a cache. Batch norm would depend on the other examples.</p></details>
+    <details><summary>A block computes \(\mathbf{y} = \mathbf{x} + F(\mathbf{x})\), and the slope of \(F\) is 0.1. What is the slope of \(\mathbf{y}\) with respect to \(\mathbf{x}\), and over 12 blocks without the shortcuts? (Chapters <a href="../b4-backpropagation/#vanish">B4</a> and <a href="../b6-deep-networks/#residual">B6</a>)</summary><p>With the shortcut it is \(1 + 0.1 = 1.1\). Over 12 blocks without shortcuts it is \(0.1^{12} = 10^{-12}\), which is vanishing.</p></details>
+    <details><summary>The attention table of D4 has \(n(n+1)/2\) entries per head under the mask. For a context of 1,024 tokens, how many numbers does the KV cache contain, and how many attention scores does one head compute in one full pass? (Chapter <a href="../d4-self-attention/#mask">D4</a>)</summary><p>Cache: 18,874,368 numbers in GPT-2 small. One head, full pass: \(1{,}024 \times 1{,}025/2 = 524{,}800\) scores. The cache grows with \(n\) and the score table with \(n^2\).</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L. and Polosukhin, I. (2017). Attention is all you need. <i>NeurIPS 2017</i>. <a href="https://arxiv.org/abs/1706.03762">arxiv.org/abs/1706.03762</a>. The block with LayerNorm(x + Sublayer(x)), the feed-forward network and the sinusoidal encoding (section 3.5).</li>
+    <li>Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. and Sutskever, I. (2019). Language models are unsupervised multitask learners. OpenAI. <a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf">PDF</a>. Layer norm moved to the input of the sub-blocks, with one more after the last block. It also gives the context of 1,024 tokens and the layers and widths of Table 2 (12 and 768; 24 and 1,024; 36 and 1,280; 48 and 1,600). The table lists 117M, 345M, 762M and 1,542M weights. The released small model has 124M, as its <a href="https://huggingface.co/gpt2">model card</a> says, and the calculator counts weights from the layer sizes. The model card gives the MIT licence, and the licence file in OpenAI's <a href="https://github.com/openai/gpt-2">repository</a> is a Modified MIT License.</li>
+    <li>Xiong, R., Yang, Y., He, D. and others (2020). On layer normalization in the transformer architecture. <i>ICML 2020</i>. <a href="https://arxiv.org/abs/2002.04745">arxiv.org/abs/2002.04745</a>. Pre-LN against Post-LN.</li>
+    <li>Su, J., Lu, Y., Pan, S., Murtadha, A., Wen, B. and Liu, Y. (2021). RoFormer: enhanced transformer with rotary position embedding. <i>arXiv preprint</i>; the journal version appeared in <i>Neurocomputing</i> (2024). <a href="https://arxiv.org/abs/2104.09864">arxiv.org/abs/2104.09864</a>. RoPE, the rotation matrix and \(\theta_i = 10000^{-2(i-1)/d}\).</li>
+    <li>Devlin, J., Chang, M.-W., Lee, K. and Toutanova, K. (2019). BERT: pre-training of deep bidirectional transformers for language understanding. <i>NAACL 2019</i>. <a href="https://arxiv.org/abs/1810.04805">arxiv.org/abs/1810.04805</a>. Masked-token prediction on 15% of the WordPiece tokens. Model: BERT base uncased, Apache 2.0 licence, <a href="https://huggingface.co/bert-base-uncased">huggingface.co/bert-base-uncased</a>.</li>
+    <li>nostalgebraist (2020). Interpreting GPT: the logit lens. <a href="https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens">lesswrong.com</a>. The probe, and its stated limits.</li>
+    <li>Alammar, J. (2018). The illustrated transformer. <a href="https://jalammar.github.io/illustrated-transformer/">jalammar.github.io/illustrated-transformer</a>. Residuals, positional encoding and the decoder.</li>
+    <li>Sanderson, G. (3Blue1Brown). Attention in transformers, step-by-step, Deep Learning chapter 6. <a href="https://www.3blue1brown.com/lessons/attention">www.3blue1brown.com/lessons/attention</a>.</li>
+    <li>Khan, R. A primer on In-Place Test-Time Training. <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">rayhaan1345.github.io/projects/in-place-ttt/primer</a>. The block, the MLP and the down projection, and the KV cache.</li>
+    <li>The scripts that made the data: <a href="data/make_block.py">make_block.py</a> (the tiny block), <a href="data/make_gpt2.py">make_gpt2.py</a> (GPT-2 numbers, parameter counts and the measured cache) and <a href="data/make_bert.py">make_bert.py</a> (BERT and GPT-2 on one sentence). The sentences are written for this primer.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=e92d596e" defer></script>
+<script src="d5-transformer.js?v=31d64480" defer></script>
+<a id="primer-preview-pill" href="https://mailab.in/primer/d5-transformer/" style="position:fixed;right:14px;bottom:14px;z-index:2147483647;display:block;margin:0;padding:7px 13px;border:1px solid #5b6470;border-radius:999px;background:#fffdf7;background-image:none;color:#14181c;font:13px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:0;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:none;">Preview v2 &middot; open current version</a>
+</body>
+</html>

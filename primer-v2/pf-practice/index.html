@@ -1,0 +1,1105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Practice set: vision, language and the world | How AI Learns</title>
+<meta name="description" content="Twenty-four practice questions on Parts E and F: patches and tokens in a vision transformer, contrastive loss and zero-shot classification, cross-attention by hand, image tokens and projectors, fairness metrics, re-identification, quantisation, the latency budget of a robot and the whole SharkCam system. Scored in your browser, with links to the sections to revise.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
+<style>
+/* Practice set EF.P. Colours come from the site tokens, so the page follows light and dark mode. */
+.pset section { margin-top: 44px; scroll-margin-top: 64px; }
+.pset section > p, .pset section > ul { max-width: 46em; }
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+[hidden] { display: none !important; }
+
+/* Timer and progress bar, stuck to the top of the screen while you work. */
+.pbar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 26px 0 0; padding: 8px 12px; background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07); }
+.pb-time { min-width: 3.6em; font-family: "Spectral SC", Georgia, serif; font-size: 25px; line-height: 1.1; letter-spacing: 0.02em; color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.pb-time.over { color: var(--coral); }
+.pb-prog { color: var(--ink-2); font-size: 15px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.pb-prog b { color: var(--ink); }
+.pb-jump { margin-left: auto; font-size: 15px; }
+.pbar .btn { font-size: 14.5px; }
+.btn-main { border-color: var(--teal); color: var(--ink); background: var(--mark); padding: 6px 18px; font-size: 16px; }
+.btn-main:hover { background: var(--teal); color: var(--bg); }
+.btn[disabled] { opacity: 0.45; cursor: default; }
+
+/* A question. */
+.pq { max-width: 46em; margin: 16px 0 0; padding: 14px 16px 12px; border: 1px solid var(--rule); border-left-width: 4px; border-radius: 8px; background: var(--paper); scroll-margin-top: 76px; }
+.pq.right { border-left-color: var(--teal); }
+.pq.missed { border-left-color: var(--coral); }
+.pq-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 14px; margin: 0 0 8px; font-family: "Spectral SC", Georgia, serif; font-size: 16px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink); }
+.pq-tag { font-size: 14px; font-weight: 500; color: var(--muted); }
+.pq-st { margin-left: 8px; font-weight: 600; }
+.pq.right .pq-st { color: var(--link-hover); }
+.pq.missed .pq-st { color: var(--coral); }
+.pq-t { margin: 0 0 10px; color: var(--ink); }
+.pq-t.tight { margin-bottom: 4px; }
+.pq ul.stm { margin: 0 0 10px; padding-left: 1.3em; color: var(--ink); }
+.pq ul.stm li { margin: 2px 0; }
+.opts { min-width: 0; margin: 8px 0 0; padding: 0; border: 0; display: grid; gap: 6px; }
+.opt { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: start; gap: 8px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.opt:hover { border-color: var(--teal); }
+.opt.on { border-color: var(--teal); background: var(--mark); }
+.pq.missed .opt.on { border-color: var(--coral); background: var(--bg); }
+.opt b { min-width: 1.1em; font-family: "Spectral SC", Georgia, serif; font-weight: 600; color: var(--muted); }
+.opt input { margin: 5px 0 0; accent-color: var(--teal); }
+.opt span { min-width: 0; overflow-wrap: anywhere; }
+.opt .katex-display { margin: 0; }
+.pq .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+.pq-num { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 0; color: var(--ink-2); }
+.pq-num input { width: 9em; max-width: 100%; padding: 6px 10px; font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.pq-num input:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+.pq-num input:disabled, .opt input:disabled + b { opacity: 0.7; }
+.pq-num .u { color: var(--muted); }
+.revise { margin: 10px 0 0; padding-top: 8px; border-top: 1px dashed var(--rule); font-size: 15px; color: var(--ink-2); }
+.pq pre.pq-code.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.pq pre.pq-code { max-width: 100%; margin: 4px 0 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); overflow-x: auto; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5; }
+
+/* Figures. */
+.pfig { margin: 6px 0 10px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.pfig .fcap { margin: 0 0 4px; font-size: 14.5px; color: var(--ink-2); }
+.pfig svg { display: block; width: 100%; height: auto; max-width: 420px; margin: 0 auto; }
+.pfig .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+.pfig .pair svg { max-width: 330px; }
+.fg text { font-family: "Spectral", Georgia, serif; font-size: 13px; fill: var(--ink-2); }
+.fg .tk { font-size: 11.5px; fill: var(--muted); }
+.fg .nm { font-size: 14px; font-style: italic; fill: var(--ink); }
+.fg .ax { stroke: var(--muted); stroke-width: 1.3; fill: none; }
+.fg .gl { stroke: var(--rule); stroke-width: 1; }
+.fg .gm { stroke: var(--rule); stroke-width: 0.6; opacity: 0.7; }
+.fg .l1 { stroke: var(--navy); stroke-width: 2.4; fill: none; stroke-linejoin: round; }
+.fg .l2 { stroke: var(--coral); stroke-width: 2.4; fill: none; }
+.fg .d1 { fill: var(--navy); }
+.fg .d2 { fill: var(--coral); }
+.fg .b1 { fill: var(--navy); }
+.fg .vl { font-size: 14px; font-weight: 600; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
+.fg .nd { fill: var(--bg); stroke: var(--navy); stroke-width: 1.8; }
+.fg .nt { font-size: 14px; fill: var(--ink); text-anchor: middle; }
+.fg .ar { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+.fg .pt { fill: none; stroke: var(--navy); stroke-linecap: round; opacity: 0.5; }
+.fg .pt2 { fill: var(--coral); opacity: 0.8; }
+.fg .ptx { fill: none; stroke: var(--navy); stroke-linecap: round; }
+.fg .pt2x { fill: var(--coral); }
+.fg .l3 { stroke: var(--teal); stroke-width: 2.4; fill: none; }
+.fg .pm { fill: var(--bg); stroke: var(--teal); stroke-width: 2.4; }
+.fg .ring { fill: none; stroke: var(--coral); stroke-width: 2.2; }
+.fg .ring2 { fill: var(--bg); stroke: var(--ink); stroke-width: 1.8; }
+.fg .lb, .fg .lbc, .fg .lbm, .fg .lbx { font-size: 12.5px; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
+.fg .lbc { fill: var(--coral); }
+.fg .lbm { fill: var(--ink-2); font-size: 12px; }
+.fg .lbx { font-size: 15px; font-weight: 700; }
+.fg .lbt { font-size: 12.5px; fill: var(--teal); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
+.fg .at { font-size: 12.5px; fill: var(--ink-2); }
+.fg .s1 { stroke: var(--navy); stroke-width: 2.4; fill: none; }
+.fg .s2 { stroke: var(--coral); stroke-width: 2.4; fill: none; }
+.fg .s3 { stroke: var(--teal); stroke-width: 2.4; fill: none; stroke-dasharray: 7 4; }
+.fg .s4 { stroke: var(--ink-2); stroke-width: 2.4; fill: none; stroke-dasharray: 10 3 2 3; }
+.fg .dgn { stroke: var(--muted); stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
+.fg .dv { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+.fg .bp { fill: var(--coral); opacity: 0.85; }
+.fg .bn { fill: var(--navy); opacity: 0.85; }
+.fg .cn { stroke: var(--muted); stroke-width: 1; }
+.fg .nd.lf { stroke: var(--teal); }
+.fg .ld { stroke: var(--coral); stroke-width: 1.2; }
+.fg .nt.sm { font-size: 11.5px; fill: var(--ink-2); }
+.fg .nt.vv { font-size: 13.5px; font-weight: 600; fill: var(--ink); }
+.fg .nd.wt { stroke: var(--sand); }
+.fg .ahp { fill: var(--muted); }
+.fg .dgr { fill: var(--ink-2); }
+.fg .cl { fill: none; stroke: var(--muted); stroke-width: 0.8; opacity: 0.6; }
+.fg .ci { fill: var(--navy); }
+.fg .cp { fill: var(--teal); }
+.fg .cg { fill: var(--coral); }
+.fg .cv { font-size: 14px; fill: var(--ink); text-anchor: middle; font-feature-settings: "tnum" 1, "lnum" 1; }
+.fg .ix { font-size: 11.5px; fill: var(--muted); text-anchor: middle; }
+.fg .win { fill: none; stroke: var(--coral); stroke-width: 2.8; }
+.fg .win2 { fill: none; stroke: var(--coral); stroke-width: 2.4; stroke-dasharray: 6 4; }
+.fg .blk { fill: none; stroke: var(--ink-2); stroke-width: 2; }
+.fg .bt { fill: var(--teal); opacity: 0.85; }
+.fg .lb0 { font-size: 12px; fill: var(--ink); }
+.fg .dbl { stroke: var(--muted); stroke-width: 3; opacity: 0.45; stroke-linecap: round; }
+.fg .dm { fill: var(--navy); fill-opacity: 0.55; stroke: var(--navy); stroke-width: 1; }
+.fg .s1d { stroke: var(--navy); stroke-width: 2.4; fill: none; stroke-dasharray: 6 4; }
+.fg .s2d { stroke: var(--coral); stroke-width: 2.4; fill: none; stroke-dasharray: 6 4; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; padding: 2px 0; }
+.tkc { padding: 2px 8px; border: 1px solid var(--rule); border-radius: 5px; background: var(--paper); color: var(--ink); font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5; }
+.fg .band { fill: var(--sand); opacity: 0.2; }
+.ptable.lft th, .ptable.lft td { text-align: left; }
+.ptable.lft.w2 { max-width: 42em; }
+.tscroll { overflow-x: auto; margin: 4px 0 8px; }
+.ptable { border-collapse: collapse; width: 100%; max-width: 30em; margin: 0 auto 0 0; font-size: 15px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.ptable.cmx { max-width: 24em; }
+.ptable.w2 { max-width: 40em; }
+.ptable.tl td:last-child { text-align: left; white-space: nowrap; }
+.ptable.cmx th, .ptable.cmx td { text-align: center; }
+.ptable.cmx th:first-child, .ptable.cmx td:first-child { text-align: left; }
+.ptable caption { padding: 0 0 6px; text-align: left; font-size: 14.5px; color: var(--ink-2); caption-side: top; }
+.ptable th, .ptable td { padding: 5px 9px; text-align: right; border-bottom: 1px solid var(--rule); color: var(--ink-2); }
+.ptable th:first-child, .ptable td:first-child { text-align: left; }
+.ptable thead th { font-size: 13.5px; font-weight: 500; color: var(--muted); }
+.ptable thead th.grp { text-align: center; border-bottom: 1px solid var(--rule); }
+.ptable td.dg { background: var(--mark); color: var(--ink); font-weight: 600; }
+.ptable tbody th { font-weight: 500; color: var(--ink); }
+
+/* Score and results. */
+.res { margin-top: 18px; max-width: 46em; }
+.res h3 { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
+.res .big { margin: 0 0 4px; color: var(--ink); font-size: 18px; }
+.res .big b { font-size: 46px; font-weight: 600; line-height: 1.1; font-feature-settings: "tnum" 1, "lnum" 1; }
+.res .sub { margin: 0 0 10px; color: var(--ink-2); font-size: 15.5px; }
+.arow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--rule); }
+.arow .an { color: var(--ink); font-weight: 600; }
+.arow .as { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.arow .meter { grid-column: 1 / -1; height: 9px; border-radius: 5px; background: var(--rule); overflow: hidden; }
+.arow .meter i { display: block; height: 100%; background: var(--teal); }
+.arow .ar-rev { grid-column: 1 / -1; font-size: 15px; color: var(--ink-2); }
+.res ol.miss { margin: 6px 0 0; padding-left: 1.3em; color: var(--ink-2); font-size: 15.5px; }
+.res ol.miss li { margin: 5px 0; }
+.res .acts { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 16px 0 0; }
+.res h4 { margin: 18px 0 2px; font-family: "Spectral SC", Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+.area-badge { margin-left: 10px; padding: 0 10px; border-radius: 999px; background: var(--mark); color: var(--ink); font-size: 14px; font-weight: 500; vertical-align: 3px; }
+
+@media (max-width: 760px) {
+  .pset section { margin-top: 36px; }
+  .pbar { margin-top: 20px; padding: 6px 10px; gap: 4px 10px; }
+  .pb-time { font-size: 22px; }
+  .pq { padding: 12px 12px 10px; margin-left: -4px; margin-right: -4px; }
+  .pfig .pair { grid-template-columns: minmax(0, 1fr); }
+  .pq pre.pq-code { font-size: 12px; }
+  .pb-prog .wide { display: none; }
+  .ptable { font-size: 14px; }
+  .ptable th, .ptable td { padding: 5px 5px; }
+  .res .big b { font-size: 40px; }
+}
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://mailab.in/primer/pf-practice/">
+</head>
+<body data-chapter="pf">
+<main class="proj pset">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Vision, language and the world</span><span>Practice set EF.P</span></nav>
+
+<header class="hero">
+  <p class="kicker">Parts E and F &middot; Practice set</p>
+  <h1>Practice set: vision, language and the world</h1>
+  <p class="subtitle">Twenty-four questions on the seven chapters of Parts E and F, to attempt without notes</p>
+</header>
+
+<div class="tldr">
+  <p>This practice set covers Parts E and F: how a vision transformer cuts a photo into patches, how CLIP learns from pairs of photos and captions, cross-attention by hand, the cost of image tokens and the projector of a vision-language model, fairness metrics at one threshold, re-identification, quantisation, the latency budget of a robot, and the whole SharkCam system. It mixes calculations that you do by hand, charts drawn from the data of the chapters, a short program to trace and statements to judge. Attempt it without notes and with the chapters closed. A timer is there if you want the pressure of a clock, and about an hour and a quarter is a fair target.</p>
+  <p>When you press Score my answers at the end, the page shows your score by area and the questions you missed, with links to the sections to revise. It does not show the correct answers. Revise the sections the score points to, try the missed questions again, and attempt the whole set again after a week.</p>
+</div>
+<p class="youneed"><b>You will need:</b> a pen, paper and a calculator with exp, ln and square-root keys, and what Parts E and F teach: <a href="../e1-vision-transformers/">E1 Vision transformers and image tokens</a>, <a href="../e2-clip/">E2 Encoders and CLIP</a>, <a href="../e3-cross-attention/">E3 Cross-attention</a>, <a href="../e4-vlms/">E4 Vision-language models</a>, <a href="../f1-fairness/">F1 Data, fairness and privacy</a>, <a href="../f2-robots/">F2 AI on a robot</a> and <a href="../f3-sharkcam/">F3 SharkCam, end to end</a>. Some questions use the dot product and cosine of <a href="../t5-vectors-matrices/">0.5</a>, the softmax and the logarithms of <a href="../t7-probability/">0.7</a>, and the attention of <a href="../d4-self-attention/">D4</a>.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#howto">How to use this set</a></li>
+    <li><a href="#vit">Patches, tokens and position in a vision transformer</a></li>
+    <li><a href="#clip">Contrastive loss and zero-shot classification</a></li>
+    <li><a href="#space">The shared space and murky water</a></li>
+    <li><a href="#cross">Cross-attention by hand and its cost</a></li>
+    <li><a href="#maps">What attention maps show and do not show</a></li>
+    <li><a href="#vlm">Image tokens and the projector</a></li>
+    <li><a href="#design">Designs, training and failure modes of a vision-language model</a></li>
+    <li><a href="#fair">Fairness metrics at one threshold</a></li>
+    <li><a href="#priv">Privacy and re-identification</a></li>
+    <li><a href="#robot">Quantisation, memory and the latency budget</a></li>
+    <li><a href="#system">SharkCam end to end</a></li>
+    <li><a href="#score">Finish and score</a></li>
+  </ol>
+</nav>
+
+<div class="pbar" id="pbar" role="group" aria-label="Timer and progress">
+  <span class="pb-time" id="pb-time" role="timer">75:00</span>
+  <button type="button" class="btn" id="pb-go">Start timer</button>
+  <span class="pb-prog"><b id="pb-n">0</b> of 24<span class="wide"> answered</span></span>
+  <a class="pb-jump" href="#score" aria-label="Go to the score section">Score</a>
+</div>
+<noscript><p class="note">This practice set needs JavaScript to save your answers and to score them.</p></noscript>
+
+<section id="howto" aria-labelledby="howto-h">
+  <h2 id="howto-h">How to use this set</h2>
+  <ul class="plain">
+    <li>Close the chapters. Keep a pen, paper and a calculator beside you.</li>
+    <li>Choose a time and press Start timer when you begin. Pause it when you leave. The clock counts down, then goes on counting past zero so that you can see how long you took. The timer is optional.</li>
+    <li>Skip a question and return to it if you like. Your answers are saved in this browser as you type.</li>
+    <li>Press Score my answers at the end. The set is scored only then.</li>
+  </ul>
+  <div class="card">
+    <div class="bar"><span class="label">Time allowed</span><div id="tm-chips"></div><button type="button" class="btn" id="tm-reset">Reset timer</button></div>
+    <p class="note" id="store-note">Your answers and the timer are saved in this browser only. No data is sent anywhere.</p>
+  </div>
+</section>
+
+<section id="vit" aria-labelledby="vit-h">
+  <h2 id="vit-h">Patches, tokens and position in a vision transformer</h2>
+
+  <article class="pq" id="q1" data-q="q01" data-kind="num" data-dp="1">
+    <h3 class="pq-h"><span>Question 1<span class="pq-st" hidden></span></span><span class="pq-tag">Patches, tokens and position in a vision transformer</span></h3>
+    <p class="pq-t">SharkCam gives a vision transformer a square photo of 256 by 256 pixels. The model adds one class token to the patches (chapter E1). One attention head in one layer scores all pairs of tokens, so a sequence of \(n\) tokens gives \(n^2\) pairs. With a patch side of 32 pixels the head scores some number of pairs. The designers now change the patch side to 16 pixels. About how many times as many pairs does one head score? Give the ratio to one decimal place.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 1, the ratio of the numbers of pairs"><span class="u">times</span></label>
+    <p class="revise" hidden>Revise <a href="../e1-vision-transformers/#cut">E1 Cutting a photo into patches</a>.</p>
+  </article>
+
+  <article class="pq" id="q2" data-q="q02" data-kind="mc">
+    <h3 class="pq-h"><span>Question 2<span class="pq-st" hidden></span></span><span class="pq-tag">Patches, tokens and position in a vision transformer</span></h3>
+    <p class="pq-t tight">The program in the figure cuts a wide photo into patches in the way of chapter E1. What does it print?</p>
+<div class="pfig"><p class="fcap">A made-up program. The photo is a block of zeros, 96 high and 160 wide with three colours, so only the sizes matter.</p>
+<pre class="pq-code">import numpy as np
+H, W, P = 96, 160, 32
+img = np.zeros((H, W, 3))
+g = img.reshape(H // P, P, W // P, P, 3)
+g = g.transpose(0, 2, 1, 3, 4)
+patches = g.reshape(-1, P * P * 3)
+print(patches.shape)</pre>
+</div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q02" value="0"><b>A</b><span><code>(15, 3072)</code></span></label>
+      <label class="opt"><input type="radio" name="q02" value="1"><b>B</b><span><code>(15, 1024)</code></span></label>
+      <label class="opt"><input type="radio" name="q02" value="2"><b>C</b><span><code>(3, 5, 3072)</code></span></label>
+      <label class="opt"><input type="radio" name="q02" value="3"><b>D</b><span><code>(5, 3072)</code></span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../e1-vision-transformers/#cut">E1 Cutting a photo into patches</a>.</p>
+  </article>
+
+  <article class="pq" id="q3" data-q="q03" data-kind="mc">
+    <h3 class="pq-h"><span>Question 3<span class="pq-st" hidden></span></span><span class="pq-tag">Patches, tokens and position in a vision transformer</span></h3>
+    <p class="pq-t tight">In the patch-moving experiment of chapter E1 the first \(k\) patches of a random order are passed along in a circle. The position vectors stay at their places. The chart shows how often the network keeps the top call it made on the unmoved photo. Which statement does the chart support?</p>
+    <div class="pfig"><p class="fcap">Patch moving of chapter E1: 14 photos, 16 random orders per photo, 224 runs per point. The position vectors stay where they are (data file of chapter E1).</p>
+    <svg class="fg" viewBox="0 0 360 290" role="img" aria-label="Line chart of the share of runs that keep the top call against the number of patches moved, from 0 to 196. A navy line is ViT-B/16 and a coral line is ResNet-18. Both start at 100 per cent.">
+    <line class="gl" x1="46.0" y1="242.0" x2="46.0" y2="16.0"/>
+    <line class="gl" x1="95.0" y1="242.0" x2="95.0" y2="16.0"/>
+    <line class="gl" x1="144.0" y1="242.0" x2="144.0" y2="16.0"/>
+    <line class="gl" x1="192.9" y1="242.0" x2="192.9" y2="16.0"/>
+    <line class="gl" x1="241.9" y1="242.0" x2="241.9" y2="16.0"/>
+    <line class="gl" x1="290.9" y1="242.0" x2="290.9" y2="16.0"/>
+    <line class="gl" x1="346.0" y1="242.0" x2="346.0" y2="16.0"/>
+    <line class="gl" x1="46.0" y1="242.0" x2="346.0" y2="242.0"/>
+    <line class="gl" x1="46.0" y1="185.5" x2="346.0" y2="185.5"/>
+    <line class="gl" x1="46.0" y1="129.0" x2="346.0" y2="129.0"/>
+    <line class="gl" x1="46.0" y1="72.5" x2="346.0" y2="72.5"/>
+    <line class="gl" x1="46.0" y1="16.0" x2="346.0" y2="16.0"/>
+    <line class="ax" x1="46.0" y1="242.0" x2="350.0" y2="242.0"/><line class="ax" x1="46.0" y1="242.0" x2="46.0" y2="12.0"/>
+    <text class="tk" x="46.0" y="257.0" text-anchor="middle">0</text>
+    <text class="tk" x="95.0" y="257.0" text-anchor="middle">32</text>
+    <text class="tk" x="144.0" y="257.0" text-anchor="middle">64</text>
+    <text class="tk" x="192.9" y="257.0" text-anchor="middle">96</text>
+    <text class="tk" x="241.9" y="257.0" text-anchor="middle">128</text>
+    <text class="tk" x="290.9" y="257.0" text-anchor="middle">160</text>
+    <text class="tk" x="346.0" y="257.0" text-anchor="middle">196</text>
+    <text class="tk" x="39.0" y="246.0" text-anchor="end">0%</text>
+    <text class="tk" x="39.0" y="189.5" text-anchor="end">25%</text>
+    <text class="tk" x="39.0" y="133.0" text-anchor="end">50%</text>
+    <text class="tk" x="39.0" y="76.5" text-anchor="end">75%</text>
+    <text class="tk" x="39.0" y="20.0" text-anchor="end">100%</text>
+    <path class="l1" d="M46.0,16.0 L52.1,46.3 L58.2,60.3 L70.5,70.5 L95.0,86.5 L119.5,88.5 L144.0,93.7 L192.9,118.8 L241.9,157.2 L346.0,176.5"/>
+    <path class="l2" d="M46.0,16.0 L52.1,70.5 L58.2,95.8 L70.5,126.1 L95.0,171.5 L119.5,194.5 L144.0,206.7 L192.9,228.9 L241.9,242.0 L346.0,242.0"/>
+    <circle class="d1" cx="46.0" cy="16.0" r="3"/>
+    <circle class="d2" cx="46.0" cy="16.0" r="3"/>
+    <circle class="d1" cx="52.1" cy="46.3" r="3"/>
+    <circle class="d2" cx="52.1" cy="70.5" r="3"/>
+    <circle class="d1" cx="58.2" cy="60.3" r="3"/>
+    <circle class="d2" cx="58.2" cy="95.8" r="3"/>
+    <circle class="d1" cx="70.5" cy="70.5" r="3"/>
+    <circle class="d2" cx="70.5" cy="126.1" r="3"/>
+    <circle class="d1" cx="95.0" cy="86.5" r="3"/>
+    <circle class="d2" cx="95.0" cy="171.5" r="3"/>
+    <circle class="d1" cx="119.5" cy="88.5" r="3"/>
+    <circle class="d2" cx="119.5" cy="194.5" r="3"/>
+    <circle class="d1" cx="144.0" cy="93.7" r="3"/>
+    <circle class="d2" cx="144.0" cy="206.7" r="3"/>
+    <circle class="d1" cx="192.9" cy="118.8" r="3"/>
+    <circle class="d2" cx="192.9" cy="228.9" r="3"/>
+    <circle class="d1" cx="241.9" cy="157.2" r="3"/>
+    <circle class="d2" cx="241.9" cy="242.0" r="3"/>
+    <circle class="d1" cx="346.0" cy="176.5" r="3"/>
+    <circle class="d2" cx="346.0" cy="242.0" r="3"/>
+    <text class="lb" x="199.1" y="79.3" text-anchor="start">ViT-B/16</text>
+    <text class="lbc" x="98.0" y="214.9" text-anchor="start">ResNet-18</text>
+    <text class="at" x="196.0" y="284" text-anchor="middle">patches moved, k (of 196)</text>
+    <text class="at" transform="translate(11 129.0) rotate(-90)" text-anchor="middle">runs that keep the top call</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q03" value="0"><b>A</b><span>Once more than 100 patches are moved, ResNet-18 keeps its call in more runs than the ViT. A CNN does not use the position of a patch.</span></label>
+      <label class="opt"><input type="radio" name="q03" value="1"><b>B</b><span>The ViT keeps its call in 29% of the runs when all 196 patches are moved, so its position embeddings play no part in its answers.</span></label>
+      <label class="opt"><input type="radio" name="q03" value="2"><b>C</b><span>With 32 patches moved the ViT keeps its call in about 69% of the runs and ResNet-18 in about 31%. Once 128 patches are moved, ResNet-18 never keeps its call, while the ViT still keeps it in about 38% of the runs.</span></label>
+      <label class="opt"><input type="radio" name="q03" value="3"><b>D</b><span>Both networks lose about half of their runs by the time 64 patches are moved, so they depend on position to the same degree.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../e1-vision-transformers/#position">E1 Position embeddings</a>.</p>
+  </article>
+</section>
+
+<section id="clip" aria-labelledby="clip-h">
+  <h2 id="clip-h">Contrastive loss and zero-shot classification</h2>
+
+  <article class="pq" id="q4" data-q="q04" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 4<span class="pq-st" hidden></span></span><span class="pq-tag">Contrastive loss and zero-shot classification</span></h3>
+    <p class="pq-t tight">A batch of three photos and their captions gives the cosines in the table (chapter E2). To get the loss of one row, CLIP divides the row by the temperature \(T\) and takes the softmax over the three captions. The loss is the negative natural logarithm of the probability of the true caption. With \(T = 0.1\), what is the loss of the row of photo 2? Give three decimal places.</p>
+    <div class="pfig"><p class="fcap">Made-up cosines of a batch of three photos. The shaded diagonal marks the true pairs: caption 1 belongs to photo 1, and so on.</p>
+    <div class="tscroll"><table class="ptable cmx" aria-label="Cosines of three photos with their three captions">
+    <thead>
+    <tr><th>Cosine</th><th>Caption 1</th><th>Caption 2</th><th>Caption 3</th></tr></thead><tbody>
+    <tr><th>Photo 1</th><td class="dg">0.30</td><td>0.22</td><td>0.15</td></tr>
+    <tr><th>Photo 2</th><td>0.21</td><td class="dg">0.31</td><td>0.12</td></tr>
+    <tr><th>Photo 3</th><td>0.18</td><td>0.14</td><td class="dg">0.26</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 4, the loss of photo 2"><span class="u">nats</span></label>
+    <p class="revise" hidden>Revise <a href="../e2-clip/#matrix">E2 CLIP's similarity matrix</a>.</p>
+  </article>
+
+  <article class="pq" id="q5" data-q="q05" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 5<span class="pq-st" hidden></span></span><span class="pq-tag">Contrastive loss and zero-shot classification</span></h3>
+    <p class="pq-t tight">CLIP classifies a photo of spadenose sharks with five candidate captions (chapter E2). The table gives the cosines, and the temperature is \(T = 0.01\). Use the numbers as printed. What probability does the softmax give to the true caption, the spadenose shark? Give three decimal places.</p>
+    <div class="pfig"><p class="fcap">CLIP ViT-B/32 on the photo of spadenose sharks in a basket (a spadenose shark is the true class), with the five shark captions (data file of chapter E2).</p>
+    <div class="tscroll"><table class="ptable lft" aria-label="Cosines of one photo with five candidate captions">
+    <thead>
+    <tr><th>Candidate caption</th><th>Cosine with the photo</th></tr></thead><tbody>
+    <tr><th><code>a photo of a spadenose shark</code></th><td>0.2929</td></tr>
+    <tr><th><code>a photo of a milk shark</code></th><td>0.2893</td></tr>
+    <tr><th><code>a photo of a grey bamboo shark</code></th><td>0.2571</td></tr>
+    <tr><th><code>a photo of a scalloped hammerhead shark</code></th><td>0.2695</td></tr>
+    <tr><th><code>a photo of a Ganges shark</code></th><td>0.2990</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 5, the probability of the true caption"></label>
+    <p class="revise" hidden>Revise <a href="../e2-clip/#zeroshot">E2 Zero-shot classification</a> and <a href="../e2-clip/#temp">E2 Temperature</a>.</p>
+  </article>
+</section>
+
+<section id="space" aria-labelledby="space-h">
+  <h2 id="space-h">The shared space and murky water</h2>
+
+  <article class="pq" id="q6" data-q="q06" data-kind="mc">
+    <h3 class="pq-h"><span>Question 6<span class="pq-st" hidden></span></span><span class="pq-tag">The shared space and murky water</span></h3>
+    <p class="pq-t tight">The table gives mean cosines for CLIP (chapter E2), a model that puts photos and captions in one space of 512 numbers. Which statement is correct?</p>
+    <div class="pfig"><p class="fcap">Means over 14 photos and their 14 captions, CLIP ViT-B/32 (data file of chapter E2). A cosine near 1 means the same direction.</p>
+    <div class="tscroll"><table class="ptable lft" aria-label="Mean cosines of photos and captions in CLIP">
+    <thead>
+    <tr><th>Pair</th><th>Mean cosine</th></tr></thead><tbody>
+    <tr><th>A photo with its own caption</th><td>0.324</td></tr>
+    <tr><th>A photo with the other 13 captions</th><td>0.2195</td></tr>
+    <tr><th>A photo with the other 13 photos</th><td>0.706</td></tr>
+    <tr><th>A caption with the other 13 captions</th><td>0.507</td></tr>
+    </tbody></table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q06" value="0"><b>A</b><span>A mean cosine of 0.324 between a photo and its own caption is low, so CLIP judges that most photos do not match their captions.</span></label>
+      <label class="opt"><input type="radio" name="q06" value="1"><b>B</b><span>A photo is more like another photo (0.706) than like its own caption (0.324), and its own caption still scores above the average of the other captions (0.2195). The cosine of a pair has to be read against the same photo's cosines with the other captions.</span></label>
+      <label class="opt"><input type="radio" name="q06" value="2"><b>C</b><span>Photos and captions form one mixed cloud, because the mean cosine between a photo and its own caption (0.324) is above zero.</span></label>
+      <label class="opt"><input type="radio" name="q06" value="3"><b>D</b><span>A cosine of 0.324 means that CLIP is 32% sure that the caption belongs to the photo.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../e2-clip/#space">E2 The shared space</a>.</p>
+  </article>
+
+  <article class="pq" id="q7" data-q="q07" data-kind="mc">
+    <h3 class="pq-h"><span>Question 7<span class="pq-st" hidden></span></span><span class="pq-tag">The shared space and murky water</span></h3>
+    <p class="pq-t tight">Three photos show no shark: a dolphin, a clownfish and a sea turtle. They were put through the depth model of chapter C3 at depths from 0 to 30 m. The chart shows the mean shark confidence for ResNet-18 and the mean probability on the five shark captions for CLIP (chapter E2). Which statement does the chart support?</p>
+    <div class="pfig"><p class="fcap">False alarms on three photos without a shark. CLIP: probability on the five shark captions among nine captions, T = 0.01. ResNet-18: shark confidence of chapter C3 (data file of chapter E2).</p>
+    <svg class="fg" viewBox="0 0 360 290" role="img" aria-label="Line chart of the mean shark confidence on three photos that show no shark (a dolphin, a clownfish and a sea turtle) against depth from 0 to 30 m. A coral line is CLIP and a navy line is ResNet-18.">
+    <line class="gl" x1="46.0" y1="242.0" x2="46.0" y2="16.0"/>
+    <line class="gl" x1="96.0" y1="242.0" x2="96.0" y2="16.0"/>
+    <line class="gl" x1="146.0" y1="242.0" x2="146.0" y2="16.0"/>
+    <line class="gl" x1="196.0" y1="242.0" x2="196.0" y2="16.0"/>
+    <line class="gl" x1="246.0" y1="242.0" x2="246.0" y2="16.0"/>
+    <line class="gl" x1="296.0" y1="242.0" x2="296.0" y2="16.0"/>
+    <line class="gl" x1="346.0" y1="242.0" x2="346.0" y2="16.0"/>
+    <line class="gl" x1="46.0" y1="242.0" x2="346.0" y2="242.0"/>
+    <line class="gl" x1="46.0" y1="204.3" x2="346.0" y2="204.3"/>
+    <line class="gl" x1="46.0" y1="166.7" x2="346.0" y2="166.7"/>
+    <line class="gl" x1="46.0" y1="129.0" x2="346.0" y2="129.0"/>
+    <line class="gl" x1="46.0" y1="91.3" x2="346.0" y2="91.3"/>
+    <line class="gl" x1="46.0" y1="53.7" x2="346.0" y2="53.7"/>
+    <line class="gl" x1="46.0" y1="16.0" x2="346.0" y2="16.0"/>
+    <line class="ax" x1="46.0" y1="242.0" x2="350.0" y2="242.0"/><line class="ax" x1="46.0" y1="242.0" x2="46.0" y2="12.0"/>
+    <text class="tk" x="46.0" y="257.0" text-anchor="middle">0</text>
+    <text class="tk" x="96.0" y="257.0" text-anchor="middle">5</text>
+    <text class="tk" x="146.0" y="257.0" text-anchor="middle">10</text>
+    <text class="tk" x="196.0" y="257.0" text-anchor="middle">15</text>
+    <text class="tk" x="246.0" y="257.0" text-anchor="middle">20</text>
+    <text class="tk" x="296.0" y="257.0" text-anchor="middle">25</text>
+    <text class="tk" x="346.0" y="257.0" text-anchor="middle">30</text>
+    <text class="tk" x="39.0" y="246.0" text-anchor="end">0%</text>
+    <text class="tk" x="39.0" y="208.3" text-anchor="end">10%</text>
+    <text class="tk" x="39.0" y="170.7" text-anchor="end">20%</text>
+    <text class="tk" x="39.0" y="133.0" text-anchor="end">30%</text>
+    <text class="tk" x="39.0" y="95.3" text-anchor="end">40%</text>
+    <text class="tk" x="39.0" y="57.7" text-anchor="end">50%</text>
+    <text class="tk" x="39.0" y="20.0" text-anchor="end">60%</text>
+    <path class="l2" d="M46.0,239.1 L66.0,239.4 L86.0,238.2 L106.0,232.5 L126.0,230.9 L146.0,229.5 L166.0,225.6 L186.0,218.3 L206.0,206.5 L226.0,183.4 L246.0,162.5 L266.0,128.4 L286.0,96.9 L306.0,96.5 L326.0,91.4 L346.0,53.7"/>
+    <path class="l1" d="M46.0,128.5 L66.0,198.2 L86.0,212.3 L106.0,221.5 L126.0,224.2 L146.0,221.2 L166.0,223.6 L186.0,220.8 L206.0,206.8 L226.0,188.4 L246.0,164.4 L266.0,140.7 L286.0,115.6 L306.0,88.4 L326.0,79.2 L346.0,69.2"/>
+    <circle class="d2" cx="46.0" cy="239.1" r="2.6"/>
+    <circle class="d1" cx="46.0" cy="128.5" r="2.6"/>
+    <circle class="d2" cx="66.0" cy="239.4" r="2.6"/>
+    <circle class="d1" cx="66.0" cy="198.2" r="2.6"/>
+    <circle class="d2" cx="86.0" cy="238.2" r="2.6"/>
+    <circle class="d1" cx="86.0" cy="212.3" r="2.6"/>
+    <circle class="d2" cx="106.0" cy="232.5" r="2.6"/>
+    <circle class="d1" cx="106.0" cy="221.5" r="2.6"/>
+    <circle class="d2" cx="126.0" cy="230.9" r="2.6"/>
+    <circle class="d1" cx="126.0" cy="224.2" r="2.6"/>
+    <circle class="d2" cx="146.0" cy="229.5" r="2.6"/>
+    <circle class="d1" cx="146.0" cy="221.2" r="2.6"/>
+    <circle class="d2" cx="166.0" cy="225.6" r="2.6"/>
+    <circle class="d1" cx="166.0" cy="223.6" r="2.6"/>
+    <circle class="d2" cx="186.0" cy="218.3" r="2.6"/>
+    <circle class="d1" cx="186.0" cy="220.8" r="2.6"/>
+    <circle class="d2" cx="206.0" cy="206.5" r="2.6"/>
+    <circle class="d1" cx="206.0" cy="206.8" r="2.6"/>
+    <circle class="d2" cx="226.0" cy="183.4" r="2.6"/>
+    <circle class="d1" cx="226.0" cy="188.4" r="2.6"/>
+    <circle class="d2" cx="246.0" cy="162.5" r="2.6"/>
+    <circle class="d1" cx="246.0" cy="164.4" r="2.6"/>
+    <circle class="d2" cx="266.0" cy="128.4" r="2.6"/>
+    <circle class="d1" cx="266.0" cy="140.7" r="2.6"/>
+    <circle class="d2" cx="286.0" cy="96.9" r="2.6"/>
+    <circle class="d1" cx="286.0" cy="115.6" r="2.6"/>
+    <circle class="d2" cx="306.0" cy="96.5" r="2.6"/>
+    <circle class="d1" cx="306.0" cy="88.4" r="2.6"/>
+    <circle class="d2" cx="326.0" cy="91.4" r="2.6"/>
+    <circle class="d1" cx="326.0" cy="79.2" r="2.6"/>
+    <circle class="d2" cx="346.0" cy="53.7" r="2.6"/>
+    <circle class="d1" cx="346.0" cy="69.2" r="2.6"/>
+    <text class="lbc" x="56.0" y="225.1" text-anchor="start">CLIP</text>
+    <text class="lb" x="56.0" y="117.7" text-anchor="start">ResNet-18</text>
+    <text class="at" x="196.0" y="284" text-anchor="middle">depth in the simple water model of C3, m</text>
+    <text class="at" transform="translate(11 129.0) rotate(-90)" text-anchor="middle">mean shark mass, no-shark photos</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q07" value="0"><b>A</b><span>CLIP's mean false alarm stays under 10% at all depths from 0 to 30 m, so murky water does not affect it.</span></label>
+      <label class="opt"><input type="radio" name="q07" value="1"><b>B</b><span>ResNet-18's false alarms rise at all steps from 0 m, as the water gets murkier.</span></label>
+      <label class="opt"><input type="radio" name="q07" value="2"><b>C</b><span>At 20 m CLIP's mean shark mass is about twice that of ResNet-18, so CLIP is the more fragile of the two.</span></label>
+      <label class="opt"><input type="radio" name="q07" value="3"><b>D</b><span>The curves differ most at 0 m, where ResNet-18 already gives the photos a mean shark confidence of about 30% against about 1% for CLIP. From 14 m on the two curves are within 6 points of one another, and both reach 45% or more at 30 m.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../e2-clip/#murky">E2 The same in murky water</a>.</p>
+  </article>
+</section>
+
+<section id="cross" aria-labelledby="cross-h">
+  <h2 id="cross-h">Cross-attention by hand and its cost</h2>
+
+  <article class="pq" id="q8" data-q="q08" data-kind="num" data-dp="2">
+    <h3 class="pq-h"><span>Question 8<span class="pq-st" hidden></span></span><span class="pq-tag">Cross-attention by hand and its cost</span></h3>
+    <p class="pq-t tight">A captioning model has written “a hammerhead with a tall” and now writes “fin”. In cross-attention (chapter E3) the query comes from the words, and the keys and values come from three patches of the photo. The table gives the keys and values of one head and the query of “fin”. There is no mask. What is the second number of the output vector that the word receives? Give two decimal places.</p>
+    <div class="pfig"><p class="fcap">Made-up numbers for one head. The query of the word “fin” is (2, 1), and \(d_k = 2\).</p>
+    <div class="tscroll"><table class="ptable cmx w2" aria-label="Keys and values of three image patches, two numbers each">
+    <thead>
+    <tr><th>Patch</th><th>Key</th><th>Value</th></tr></thead><tbody>
+    <tr><th>Patch 1: water</th><td>(−1, 1)</td><td>(1, 2)</td></tr>
+    <tr><th>Patch 2: fin</th><td>(1, 2)</td><td>(0, 4)</td></tr>
+    <tr><th>Patch 3: body</th><td>(2, −1)</td><td>(3, −1)</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 8, the second number of the output"></label>
+    <p class="revise" hidden>Revise <a href="../e3-cross-attention/#worked">E3 Four patches by hand</a>.</p>
+  </article>
+
+  <article class="pq" id="q9" data-q="q09" data-kind="num" data-dp="1">
+    <h3 class="pq-h"><span>Question 9<span class="pq-st" hidden></span></span><span class="pq-tag">Cross-attention by hand and its cost</span></h3>
+    <p class="pq-t">A photo of 256 by 256 pixels is cut into patches of 16 by 16 pixels. The caption has \(n = 9\) words. Count pairs of a query and a key for one head in one layer (chapter E3). In design X the words read the \(N\) image tokens by cross-attention and read one another with the causal mask. In design Y the \(N\) image tokens are placed in front of the words in one sequence. They read one another in both directions, and the words read the image tokens and the earlier words. About how many times as many pairs does design Y compute as design X? Give the ratio to one decimal place.</p>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 9, the ratio of the numbers of pairs"><span class="u">times</span></label>
+    <p class="revise" hidden>Revise <a href="../e3-cross-attention/#cost">E3 What the image costs</a>.</p>
+  </article>
+</section>
+
+<section id="maps" aria-labelledby="maps-h">
+  <h2 id="maps-h">What attention maps show and do not show</h2>
+
+  <article class="pq" id="q10" data-q="q10" data-kind="mc">
+    <h3 class="pq-h"><span>Question 10<span class="pq-st" hidden></span></span><span class="pq-tag">What attention maps show and do not show</span></h3>
+    <p class="pq-t tight">Chapter E3 hides patches of a photo and measures how much the log probability of a caption word falls. Three rules choose \(k\) patches to hide. The first takes the patches with the most attention weight, with the empty patches set aside. The second takes the patches that mattered most when hidden alone (the single-patch test). The third takes random patches. The charts show two words. Which statement do they support?</p>
+    <div class="pfig"><p class="fcap">BLIP, two words of the captions of chapter E3. Coral is the k patches with the most attention weight (empty patches set aside), teal the k best patches of the single-patch test and navy k random patches. The fall is the drop in the log probability of the word, so a larger fall means the hidden patches mattered more (data file of chapter E3).</p><div class="pair">
+    <svg class="fg" viewBox="0 0 330 270" role="img" aria-label="Fall of the log probability of the word, in nats, against the number of patches hidden, from 4 to 128 on a log axis. Coral: the most attended patches. Teal: the patches ranked best by the single-patch test. Navy: random patches. A dashed line marks no change.">
+    <line class="gl" x1="46.0" y1="224.0" x2="46.0" y2="28.0"/>
+    <line class="gl" x1="86.0" y1="224.0" x2="86.0" y2="28.0"/>
+    <line class="gl" x1="126.0" y1="224.0" x2="126.0" y2="28.0"/>
+    <line class="gl" x1="166.0" y1="224.0" x2="166.0" y2="28.0"/>
+    <line class="gl" x1="206.0" y1="224.0" x2="206.0" y2="28.0"/>
+    <line class="gl" x1="246.0" y1="224.0" x2="246.0" y2="28.0"/>
+    <line class="gl" x1="46.0" y1="213.1" x2="246.0" y2="213.1"/>
+    <line class="gl" x1="46.0" y1="191.3" x2="246.0" y2="191.3"/>
+    <line class="gl" x1="46.0" y1="169.6" x2="246.0" y2="169.6"/>
+    <line class="gl" x1="46.0" y1="147.8" x2="246.0" y2="147.8"/>
+    <line class="gl" x1="46.0" y1="126.0" x2="246.0" y2="126.0"/>
+    <line class="gl" x1="46.0" y1="104.2" x2="246.0" y2="104.2"/>
+    <line class="gl" x1="46.0" y1="82.4" x2="246.0" y2="82.4"/>
+    <line class="gl" x1="46.0" y1="60.7" x2="246.0" y2="60.7"/>
+    <line class="gl" x1="46.0" y1="38.9" x2="246.0" y2="38.9"/>
+    <line class="ax" x1="46.0" y1="224.0" x2="250.0" y2="224.0"/><line class="ax" x1="46.0" y1="224.0" x2="46.0" y2="24.0"/>
+    <text class="tk" x="46.0" y="239.0" text-anchor="middle">4</text>
+    <text class="tk" x="86.0" y="239.0" text-anchor="middle">8</text>
+    <text class="tk" x="126.0" y="239.0" text-anchor="middle">16</text>
+    <text class="tk" x="166.0" y="239.0" text-anchor="middle">32</text>
+    <text class="tk" x="206.0" y="239.0" text-anchor="middle">64</text>
+    <text class="tk" x="246.0" y="239.0" text-anchor="middle">128</text>
+    <text class="tk" x="39.0" y="217.1" text-anchor="end">-1</text>
+    <text class="tk" x="39.0" y="195.3" text-anchor="end">0</text>
+    <text class="tk" x="39.0" y="173.6" text-anchor="end">1</text>
+    <text class="tk" x="39.0" y="151.8" text-anchor="end">2</text>
+    <text class="tk" x="39.0" y="130.0" text-anchor="end">3</text>
+    <text class="tk" x="39.0" y="108.2" text-anchor="end">4</text>
+    <text class="tk" x="39.0" y="86.4" text-anchor="end">5</text>
+    <text class="tk" x="39.0" y="64.7" text-anchor="end">6</text>
+    <text class="tk" x="39.0" y="42.9" text-anchor="end">7</text>
+    <line class="dv" x1="46.0" y1="191.3" x2="246.0" y2="191.3"/>
+    <path class="l2" d="M46.0,191.2 L86.0,188.5 L126.0,149.5 L166.0,83.1 L206.0,65.4 L246.0,43.4"/>
+    <path class="l1" d="M46.0,191.3 L86.0,191.4 L126.0,192.1 L166.0,192.8 L206.0,192.3 L246.0,192.7"/>
+    <path class="l3" d="M46.0,187.4 L86.0,186.8 L126.0,185.6 L166.0,183.2 L206.0,178.1 L246.0,170.0"/>
+    <circle class="d2" cx="46.0" cy="191.2" r="2.8"/>
+    <circle class="d1" cx="46.0" cy="191.3" r="2.8"/>
+    <circle class="cp" cx="46.0" cy="187.4" r="2.8"/>
+    <circle class="d2" cx="86.0" cy="188.5" r="2.8"/>
+    <circle class="d1" cx="86.0" cy="191.4" r="2.8"/>
+    <circle class="cp" cx="86.0" cy="186.8" r="2.8"/>
+    <circle class="d2" cx="126.0" cy="149.5" r="2.8"/>
+    <circle class="d1" cx="126.0" cy="192.1" r="2.8"/>
+    <circle class="cp" cx="126.0" cy="185.6" r="2.8"/>
+    <circle class="d2" cx="166.0" cy="83.1" r="2.8"/>
+    <circle class="d1" cx="166.0" cy="192.8" r="2.8"/>
+    <circle class="cp" cx="166.0" cy="183.2" r="2.8"/>
+    <circle class="d2" cx="206.0" cy="65.4" r="2.8"/>
+    <circle class="d1" cx="206.0" cy="192.3" r="2.8"/>
+    <circle class="cp" cx="206.0" cy="178.1" r="2.8"/>
+    <circle class="d2" cx="246.0" cy="43.4" r="2.8"/>
+    <circle class="d1" cx="246.0" cy="192.7" r="2.8"/>
+    <circle class="cp" cx="246.0" cy="170.0" r="2.8"/>
+    <text class="lbc" x="253.0" y="43.2" text-anchor="start">attended</text>
+    <text class="lbt" x="253.0" y="169.6" text-anchor="start">single-patch</text>
+    <text class="lb" x="253.0" y="202.2" text-anchor="start">random</text>
+    <text class="at" x="46" y="17" text-anchor="start">Word “ruler”, white board photo</text>
+    <text class="at" x="146.0" y="264" text-anchor="middle">patches hidden, k (log scale)</text>
+    <text class="at" transform="translate(11 126.0) rotate(-90)" text-anchor="middle">fall of the word, nats</text>
+    </svg>
+    <svg class="fg" viewBox="0 0 330 270" role="img" aria-label="Fall of the log probability of the word, in nats, against the number of patches hidden, from 4 to 128 on a log axis. Coral: the most attended patches. Teal: the patches ranked best by the single-patch test. Navy: random patches. A dashed line marks no change.">
+    <line class="gl" x1="46.0" y1="224.0" x2="46.0" y2="28.0"/>
+    <line class="gl" x1="86.0" y1="224.0" x2="86.0" y2="28.0"/>
+    <line class="gl" x1="126.0" y1="224.0" x2="126.0" y2="28.0"/>
+    <line class="gl" x1="166.0" y1="224.0" x2="166.0" y2="28.0"/>
+    <line class="gl" x1="206.0" y1="224.0" x2="206.0" y2="28.0"/>
+    <line class="gl" x1="246.0" y1="224.0" x2="246.0" y2="28.0"/>
+    <line class="gl" x1="46.0" y1="213.1" x2="246.0" y2="213.1"/>
+    <line class="gl" x1="46.0" y1="191.3" x2="246.0" y2="191.3"/>
+    <line class="gl" x1="46.0" y1="169.6" x2="246.0" y2="169.6"/>
+    <line class="gl" x1="46.0" y1="147.8" x2="246.0" y2="147.8"/>
+    <line class="gl" x1="46.0" y1="126.0" x2="246.0" y2="126.0"/>
+    <line class="gl" x1="46.0" y1="104.2" x2="246.0" y2="104.2"/>
+    <line class="gl" x1="46.0" y1="82.4" x2="246.0" y2="82.4"/>
+    <line class="gl" x1="46.0" y1="60.7" x2="246.0" y2="60.7"/>
+    <line class="gl" x1="46.0" y1="38.9" x2="246.0" y2="38.9"/>
+    <line class="ax" x1="46.0" y1="224.0" x2="250.0" y2="224.0"/><line class="ax" x1="46.0" y1="224.0" x2="46.0" y2="24.0"/>
+    <text class="tk" x="46.0" y="239.0" text-anchor="middle">4</text>
+    <text class="tk" x="86.0" y="239.0" text-anchor="middle">8</text>
+    <text class="tk" x="126.0" y="239.0" text-anchor="middle">16</text>
+    <text class="tk" x="166.0" y="239.0" text-anchor="middle">32</text>
+    <text class="tk" x="206.0" y="239.0" text-anchor="middle">64</text>
+    <text class="tk" x="246.0" y="239.0" text-anchor="middle">128</text>
+    <text class="tk" x="39.0" y="217.1" text-anchor="end">-1</text>
+    <text class="tk" x="39.0" y="195.3" text-anchor="end">0</text>
+    <text class="tk" x="39.0" y="173.6" text-anchor="end">1</text>
+    <text class="tk" x="39.0" y="151.8" text-anchor="end">2</text>
+    <text class="tk" x="39.0" y="130.0" text-anchor="end">3</text>
+    <text class="tk" x="39.0" y="108.2" text-anchor="end">4</text>
+    <text class="tk" x="39.0" y="86.4" text-anchor="end">5</text>
+    <text class="tk" x="39.0" y="64.7" text-anchor="end">6</text>
+    <text class="tk" x="39.0" y="42.9" text-anchor="end">7</text>
+    <line class="dv" x1="46.0" y1="191.3" x2="246.0" y2="191.3"/>
+    <path class="l2" d="M46.0,192.4 L86.0,190.1 L126.0,189.8 L166.0,188.8 L206.0,189.2 L246.0,195.9"/>
+    <path class="l1" d="M46.0,192.8 L86.0,193.2 L126.0,193.8 L166.0,193.6 L206.0,193.3 L246.0,192.8"/>
+    <path class="l3" d="M46.0,187.8 L86.0,187.2 L126.0,187.3 L166.0,184.7 L206.0,182.9 L246.0,178.9"/>
+    <circle class="d2" cx="46.0" cy="192.4" r="2.8"/>
+    <circle class="d1" cx="46.0" cy="192.8" r="2.8"/>
+    <circle class="cp" cx="46.0" cy="187.8" r="2.8"/>
+    <circle class="d2" cx="86.0" cy="190.1" r="2.8"/>
+    <circle class="d1" cx="86.0" cy="193.2" r="2.8"/>
+    <circle class="cp" cx="86.0" cy="187.2" r="2.8"/>
+    <circle class="d2" cx="126.0" cy="189.8" r="2.8"/>
+    <circle class="d1" cx="126.0" cy="193.8" r="2.8"/>
+    <circle class="cp" cx="126.0" cy="187.3" r="2.8"/>
+    <circle class="d2" cx="166.0" cy="188.8" r="2.8"/>
+    <circle class="d1" cx="166.0" cy="193.6" r="2.8"/>
+    <circle class="cp" cx="166.0" cy="184.7" r="2.8"/>
+    <circle class="d2" cx="206.0" cy="189.2" r="2.8"/>
+    <circle class="d1" cx="206.0" cy="193.3" r="2.8"/>
+    <circle class="cp" cx="206.0" cy="182.9" r="2.8"/>
+    <circle class="d2" cx="246.0" cy="195.9" r="2.8"/>
+    <circle class="d1" cx="246.0" cy="192.8" r="2.8"/>
+    <circle class="cp" cx="246.0" cy="178.9" r="2.8"/>
+    <text class="lbc" x="253.0" y="210.9" text-anchor="start">attended</text>
+    <text class="lbt" x="253.0" y="173.9" text-anchor="start">single-patch</text>
+    <text class="lb" x="253.0" y="193.5" text-anchor="start">random</text>
+    <text class="at" x="46" y="17" text-anchor="start">Word “hammerhead”, hammerhead photo</text>
+    <text class="at" x="146.0" y="264" text-anchor="middle">patches hidden, k (log scale)</text>
+    <text class="at" transform="translate(11 126.0) rotate(-90)" text-anchor="middle">fall of the word, nats</text>
+    </svg>
+    </div></div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q10" value="0"><b>A</b><span>For “ruler”, hiding the 32 most attended patches lowers the word by about 5 nats. Hiding 32 random patches changes it by about 0, and the 32 best patches of the single-patch test lower it by only about 0.4. For “hammerhead”, the attended patches change the word by less than 0.25 nats at all values of k, and so do random patches.</span></label>
+      <label class="opt"><input type="radio" name="q10" value="1"><b>B</b><span>The attention map is as good a guide for “hammerhead” as for “ruler”: in both panels hiding the most attended patches lowers the word by more than 1 nat.</span></label>
+      <label class="opt"><input type="radio" name="q10" value="2"><b>C</b><span>Hiding random patches lowers “ruler” more than hiding the most attended patches does, so attention weights point away from what a word needs.</span></label>
+      <label class="opt"><input type="radio" name="q10" value="3"><b>D</b><span>The single-patch test finds more of what the word needs than the attention rule does, in both panels.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../e3-cross-attention/#occ">E3 Does the map show what matters?</a>.</p>
+  </article>
+</section>
+
+<section id="vlm" aria-labelledby="vlm-h">
+  <h2 id="vlm-h">Image tokens and the projector</h2>
+
+  <article class="pq" id="q11" data-q="q11" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 11<span class="pq-st" hidden></span></span><span class="pq-tag">Image tokens and the projector</span></h3>
+    <p class="pq-t tight">A SharkCam dive is read by a vision-language model whose processor works as in the table (chapter E4). How many image tokens does the model read for the dive in all? Give a whole number.</p>
+    <div class="pfig"><p class="fcap">A made-up setting in the style of Qwen3-VL.</p>
+    <div class="tscroll"><table class="ptable lft w2" aria-label="Settings of the image processor and the dive">
+    <thead>
+    <tr><th>Setting</th><th>Value</th></tr></thead><tbody>
+    <tr><th>Frame size (width by height)</th><td>1,000 by 700 pixels</td></tr>
+    <tr><th>Patch side</th><td>16 pixels</td></tr>
+    <tr><th>Joining</th><td>2 by 2 neighbouring patches become one image token</td></tr>
+    <tr><th>Resize rule</th><td>the width and the height are rounded to the nearest multiple of 32 pixels, and no side is a half case</td></tr>
+    <tr><th>Dive</th><td>2,400 frames, and the model reads one frame in ten</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 11, the number of image tokens of the dive"><span class="u">tokens</span></label>
+    <p class="revise" hidden>Revise <a href="../e4-vlms/#cost">E4 How many tokens a photo costs</a>.</p>
+  </article>
+
+  <article class="pq" id="q12" data-q="q12" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 12<span class="pq-st" hidden></span></span><span class="pq-tag">Image tokens and the projector</span></h3>
+    <p class="pq-t tight">The projector of a small vision-language model maps image features to the width of its language model, as a matrix product (chapter E4). The table gives its sizes. How many numbers (weights and biases) does the projector learn? Give a whole number.</p>
+    <div class="pfig"><p class="fcap">A made-up small model.</p>
+    <div class="tscroll"><table class="ptable lft w2" aria-label="Sizes of a two-layer projector">
+    <thead>
+    <tr><th>Part</th><th>Size</th></tr></thead><tbody>
+    <tr><th>Width of a patch vector from the vision encoder</th><td>768</td></tr>
+    <tr><th>Patches joined into one vector</th><td>2 by 2, so four patch vectors side by side</td></tr>
+    <tr><th>Output of the first layer</th><td>2,048 numbers, then the GELU activation</td></tr>
+    <tr><th>Width of the language model, the output of the second layer</th><td>1,536 numbers</td></tr>
+    <tr><th>Layers of the projector</th><td>two, with a matrix and a bias vector per layer; no layer norm</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 12, the number of numbers in the projector"><span class="u">numbers</span></label>
+    <p class="revise" hidden>Revise <a href="../e4-vlms/#designs">E4 Two ways to give a model eyes</a>.</p>
+  </article>
+</section>
+
+<section id="design" aria-labelledby="design-h">
+  <h2 id="design-h">Designs, training and failure modes of a vision-language model</h2>
+
+  <article class="pq" id="q13" data-q="q13" data-kind="mc">
+    <h3 class="pq-h"><span>Question 13<span class="pq-st" hidden></span></span><span class="pq-tag">Designs, training and failure modes of a vision-language model</span></h3>
+    <p class="pq-t tight">The table describes two ways to let a language model use a photo (chapter E4). Which statement is correct?</p>
+    <div class="pfig"><p class="fcap">Made-up designs in the style of LLaVA and Flamingo. The language model has 32 layers, and the question is 20 tokens long.</p>
+    <div class="tscroll"><table class="ptable lft w2" aria-label="Two ways to connect a vision encoder to a frozen language model">
+    <thead>
+    <tr><th></th><th>Design A</th><th>Design B</th></tr></thead><tbody>
+    <tr><th>Image tokens in the prompt</th><td>576</td><td>none</td></tr>
+    <tr><th>How the language model reads the photo</th><td>through its prompt, like words</td><td>through new cross-attention layers, one per four layers, that read 64 visual tokens</td></tr>
+    <tr><th>Stage 1 trains</th><td>the projector only; the vision encoder and the language model are frozen</td><td>the resampler and the new layers; the vision encoder and the language model are frozen</td></tr>
+    <tr><th>Stage 2 trains</th><td>the projector and the language model</td><td>there is no second stage</td></tr>
+    </tbody></table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q13" value="0"><b>A</b><span>Design B has to retrain the weights of the language model, because new layers are inserted into it and the old weights must adapt to them.</span></label>
+      <label class="opt"><input type="radio" name="q13" value="1"><b>B</b><span>At run time design A costs the same as a text-only model, because the projector is small.</span></label>
+      <label class="opt"><input type="radio" name="q13" value="2"><b>C</b><span>Design A reads a prompt of 596 tokens for a 20-token question and design B a prompt of 20 tokens. Design B adds new layers between the layers of the language model, and design A adds only a projector.</span></label>
+      <label class="opt"><input type="radio" name="q13" value="3"><b>D</b><span>In stage 1 of design A the language model learns to read the image tokens, and this is why stage 1 comes first.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../e4-vlms/#designs">E4 Two ways to give a model eyes</a> and <a href="../e4-vlms/#train">E4 Align first, then instruction-tune</a>.</p>
+  </article>
+
+  <article class="pq" id="q14" data-q="q14" data-kind="mc">
+    <h3 class="pq-h"><span>Question 14<span class="pq-st" hidden></span></span><span class="pq-tag">Designs, training and failure modes of a vision-language model</span></h3>
+    <p class="pq-t tight">One shark was cut out of a photo and pasted on a white board in 1 to 24 copies, with three random layouts per count. A vision-language model (chapter E4) was asked how many sharks the picture shows. The chart plots its answers. Which statement does the chart support?</p>
+    <div class="pfig"><p class="fcap">Qwen3-VL-2B, greedy answers to “How many sharks are in this image?”, three random layouts per count (data file of chapter E4). The three dots of a count are drawn side by side.</p>
+    <svg class="fg" viewBox="0 0 360 300" role="img" aria-label="Dot plot of the number of sharks that a vision-language model gave against the number of copies of one shark pasted on a white board, for 1, 2, 3, 4, 6, 8, 12, 16 and 24 copies, spaced evenly. Three dots per count, one for each random layout. A dashed line joins the right answers.">
+    <line class="gl" x1="46.0" y1="252.0" x2="346.0" y2="252.0"/>
+    <line class="gl" x1="46.0" y1="193.0" x2="346.0" y2="193.0"/>
+    <line class="gl" x1="46.0" y1="134.0" x2="346.0" y2="134.0"/>
+    <line class="gl" x1="46.0" y1="75.0" x2="346.0" y2="75.0"/>
+    <line class="gl" x1="46.0" y1="16.0" x2="346.0" y2="16.0"/>
+    <line class="ax" x1="46.0" y1="252.0" x2="350.0" y2="252.0"/><line class="ax" x1="46.0" y1="252.0" x2="46.0" y2="12.0"/>
+    <text class="tk" x="62.7" y="267.0" text-anchor="middle">1</text>
+    <text class="tk" x="96.0" y="267.0" text-anchor="middle">2</text>
+    <text class="tk" x="129.3" y="267.0" text-anchor="middle">3</text>
+    <text class="tk" x="162.7" y="267.0" text-anchor="middle">4</text>
+    <text class="tk" x="196.0" y="267.0" text-anchor="middle">6</text>
+    <text class="tk" x="229.3" y="267.0" text-anchor="middle">8</text>
+    <text class="tk" x="262.7" y="267.0" text-anchor="middle">12</text>
+    <text class="tk" x="296.0" y="267.0" text-anchor="middle">16</text>
+    <text class="tk" x="329.3" y="267.0" text-anchor="middle">24</text>
+    <text class="tk" x="39.0" y="256.0" text-anchor="end">0</text>
+    <text class="tk" x="39.0" y="197.0" text-anchor="end">8</text>
+    <text class="tk" x="39.0" y="138.0" text-anchor="end">16</text>
+    <text class="tk" x="39.0" y="79.0" text-anchor="end">24</text>
+    <text class="tk" x="39.0" y="20.0" text-anchor="end">32</text>
+    <path class="dgn" d="M62.7,244.6 L96.0,237.2 L129.3,229.9 L162.7,222.5 L196.0,207.8 L229.3,193.0 L262.7,163.5 L296.0,134.0 L329.3,75.0"/>
+    <text class="lbm" x="52.7" y="34.4" text-anchor="start">dashed line: the right answer</text>
+    <circle class="dm" cx="53.7" cy="244.6" r="4.2"/>
+    <circle class="dm" cx="62.7" cy="244.6" r="4.2"/>
+    <circle class="dm" cx="71.7" cy="244.6" r="4.2"/>
+    <circle class="dm" cx="87.0" cy="237.2" r="4.2"/>
+    <circle class="dm" cx="96.0" cy="237.2" r="4.2"/>
+    <circle class="dm" cx="105.0" cy="237.2" r="4.2"/>
+    <circle class="dm" cx="120.3" cy="229.9" r="4.2"/>
+    <circle class="dm" cx="129.3" cy="229.9" r="4.2"/>
+    <circle class="dm" cx="138.3" cy="229.9" r="4.2"/>
+    <circle class="dm" cx="153.7" cy="222.5" r="4.2"/>
+    <circle class="dm" cx="162.7" cy="222.5" r="4.2"/>
+    <circle class="dm" cx="171.7" cy="222.5" r="4.2"/>
+    <circle class="dm" cx="187.0" cy="207.8" r="4.2"/>
+    <circle class="dm" cx="196.0" cy="207.8" r="4.2"/>
+    <circle class="dm" cx="205.0" cy="207.8" r="4.2"/>
+    <circle class="dm" cx="220.3" cy="193.0" r="4.2"/>
+    <circle class="dm" cx="229.3" cy="193.0" r="4.2"/>
+    <circle class="dm" cx="238.3" cy="193.0" r="4.2"/>
+    <circle class="dm" cx="253.7" cy="148.8" r="4.2"/>
+    <circle class="dm" cx="262.7" cy="163.5" r="4.2"/>
+    <circle class="dm" cx="271.7" cy="163.5" r="4.2"/>
+    <circle class="dm" cx="287.0" cy="141.4" r="4.2"/>
+    <circle class="dm" cx="296.0" cy="141.4" r="4.2"/>
+    <circle class="dm" cx="305.0" cy="141.4" r="4.2"/>
+    <circle class="dm" cx="320.3" cy="134.0" r="4.2"/>
+    <circle class="dm" cx="329.3" cy="75.0" r="4.2"/>
+    <circle class="dm" cx="338.3" cy="30.8" r="4.2"/>
+    <text class="at" x="196.0" y="294" text-anchor="middle">sharks in the picture</text>
+    <text class="at" transform="translate(11 134.0) rotate(-90)" text-anchor="middle">number the model gave</text>
+    </svg>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q14" value="0"><b>A</b><span>From 12 sharks on, the model always gives a number below the true count, so it only misses sharks and never invents them.</span></label>
+      <label class="opt"><input type="radio" name="q14" value="1"><b>B</b><span>The count is right in all 18 pictures with 1 to 8 sharks. With 12, 16 and 24 sharks at least one answer is wrong, and the errors go both ways: some answers are too high and some too low.</span></label>
+      <label class="opt"><input type="radio" name="q14" value="2"><b>C</b><span>The model fails as soon as a picture has 3 or more sharks, and the plot shows the error growing from there.</span></label>
+      <label class="opt"><input type="radio" name="q14" value="3"><b>D</b><span>For 24 sharks the three layouts give the same answer, so the count does not depend on how the sharks are placed.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../e4-vlms/#fail">E4 Where it goes wrong</a>.</p>
+  </article>
+</section>
+
+<section id="fair" aria-labelledby="fair-h">
+  <h2 id="fair-h">Fairness metrics at one threshold</h2>
+
+  <article class="pq" id="q15" data-q="q15" data-kind="num" data-dp="1">
+    <h3 class="pq-h"><span>Question 15<span class="pq-st" hidden></span></span><span class="pq-tag">Fairness metrics at one threshold</span></h3>
+    <p class="pq-t tight">The table gives the counts of the clinic model of chapter F1 at one threshold for two age groups. The false positive rate of a group is the share of its healthy women who are flagged. About how many times as high is the false positive rate of the group aged 30 and over as that of the group under 30? Give the ratio to one decimal place.</p>
+    <div class="pfig"><p class="fcap">The logistic regression of chapter A4 on the Pima women, scored out of fold, flagged when its chance is 0.5 or more (data file of chapter F1). A published dataset of women of Pima heritage, measured in the United States.</p>
+    <div class="tscroll"><table class="ptable cmx w2" aria-label="Counts of flagged and unflagged women with and without diabetes in two age groups">
+    <thead>
+    <tr><th>Age group</th><th>Sick, flagged</th><th>Healthy, flagged</th><th>Sick, not flagged</th><th>Healthy, not flagged</th></tr></thead><tbody>
+    <tr><th>Under 30</th><td>39</td><td>20</td><td>45</td><td>292</td></tr>
+    <tr><th>30 and over</th><td>114</td><td>42</td><td>70</td><td>146</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 15, the ratio of the false positive rates"><span class="u">times</span></label>
+    <p class="revise" hidden>Revise <a href="../f1-fairness/#groups">F1 Fair for whom? Two groups, one threshold per group</a>.</p>
+  </article>
+
+  <article class="pq" id="q16" data-q="q16" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 16<span class="pq-st" hidden></span></span><span class="pq-tag">Fairness metrics at one threshold</span></h3>
+    <p class="pq-t tight">A clinic sets its thresholds so that two groups of patients get the same sensitivity, 0.60, and the same false positive rate, 0.05 (chapter F1). The groups differ in how common the disease is, as the table shows. What is the precision of the model's flags in group B? Give three decimal places.</p>
+    <div class="pfig"><p class="fcap">Made-up base rates.</p>
+    <div class="tscroll"><table class="ptable cmx" aria-label="Base rates of two groups">
+    <thead>
+    <tr><th>Group</th><th>Base rate (share with the disease)</th></tr></thead><tbody>
+    <tr><th>Group A</th><td>0.10</td></tr>
+    <tr><th>Group B</th><td>0.40</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 16, the precision in group B"></label>
+    <p class="revise" hidden>Revise <a href="../f1-fairness/#groups">F1 Fair for whom? Two groups, one threshold per group</a>.</p>
+  </article>
+</section>
+
+<section id="priv" aria-labelledby="priv-h">
+  <h2 id="priv-h">Privacy and re-identification</h2>
+
+  <article class="pq" id="q17" data-q="q17" data-kind="num" data-dp="int">
+    <h3 class="pq-h"><span>Question 17<span class="pq-st" hidden></span></span><span class="pq-tag">Privacy and re-identification</span></h3>
+    <p class="pq-t tight">A clinic releases the table with the names removed. It replaces the age by its ten-year band (30 to 39, 40 to 49, and so on). Patients with the same band, sex and area form a group (chapter F1). A neighbour who knows a person's band, sex and area finds the group. For how many of the 12 patients does the neighbour learn the diagnosis with certainty? Give a whole number.</p>
+    <div class="pfig"><p class="fcap">Twelve invented patients with invented diagnoses. The names are removed.</p>
+    <div class="tscroll"><table class="ptable cmx w2" aria-label="Twelve made-up patients with age, sex, area and diagnosis">
+    <thead>
+    <tr><th>Patient</th><th>Age</th><th>Sex</th><th>Area</th><th>Diabetes</th></tr></thead><tbody>
+    <tr><th>1</th><td>34</td><td>F</td><td>Vashi</td><td>yes</td></tr>
+    <tr><th>2</th><td>37</td><td>F</td><td>Vashi</td><td>yes</td></tr>
+    <tr><th>3</th><td>31</td><td>F</td><td>Vashi</td><td>yes</td></tr>
+    <tr><th>4</th><td>42</td><td>M</td><td>Nerul</td><td>no</td></tr>
+    <tr><th>5</th><td>45</td><td>M</td><td>Nerul</td><td>yes</td></tr>
+    <tr><th>6</th><td>28</td><td>F</td><td>Nerul</td><td>no</td></tr>
+    <tr><th>7</th><td>51</td><td>M</td><td>Vashi</td><td>no</td></tr>
+    <tr><th>8</th><td>58</td><td>M</td><td>Vashi</td><td>no</td></tr>
+    <tr><th>9</th><td>36</td><td>M</td><td>Belapur</td><td>yes</td></tr>
+    <tr><th>10</th><td>63</td><td>F</td><td>Belapur</td><td>no</td></tr>
+    <tr><th>11</th><td>66</td><td>F</td><td>Belapur</td><td>yes</td></tr>
+    <tr><th>12</th><td>47</td><td>F</td><td>Nerul</td><td>no</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 17, the number of patients whose diagnosis is learned"><span class="u">patients</span></label>
+    <p class="revise" hidden>Revise <a href="../f1-fairness/#privacy">F1 Privacy and consent</a>.</p>
+  </article>
+</section>
+
+<section id="robot" aria-labelledby="robot-h">
+  <h2 id="robot-h">Quantisation, memory and the latency budget</h2>
+
+  <article class="pq" id="q18" data-q="q18" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 18<span class="pq-st" hidden></span></span><span class="pq-tag">Quantisation, memory and the latency budget</span></h3>
+    <p class="pq-t tight">A layer of a network is stored with one scale \(s\) and one zero point \(z\), as in chapter F2: the stored code is an integer from 0 to \(2^b - 1\), and the robot uses the value \(s\,(q - z)\). Round the zero point to a whole number. The table gives the layer. What value does the robot use in place of the weight 0.37? Give three decimal places.</p>
+    <div class="pfig"><p class="fcap">Made-up numbers for one layer.</p>
+    <div class="tscroll"><table class="ptable lft" aria-label="The range of a layer, the bits and one weight">
+    <thead>
+    <tr><th>Quantity</th><th>Value</th></tr></thead><tbody>
+    <tr><th>Smallest weight of the layer</th><td>−0.62</td></tr>
+    <tr><th>Largest weight of the layer</th><td>0.94</td></tr>
+    <tr><th>Bits per weight</th><td>4</td></tr>
+    <tr><th>The weight to store</th><td>0.37</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 18, the value the robot uses"></label>
+    <p class="revise" hidden>Revise <a href="../f2-robots/#quant">F2 Fewer bits per weight</a>.</p>
+  </article>
+
+  <article class="pq" id="q19" data-q="q19" data-kind="num" data-dp="1">
+    <h3 class="pq-h"><span>Question 19<span class="pq-st" hidden></span></span><span class="pq-tag">Quantisation, memory and the latency budget</span></h3>
+    <p class="pq-t tight">A SharkCam robot has the loop in the table (chapter F2). The camera points where the shark was one latency plus one update period ago. A shark at distance \(d\) that moves across the view at speed \(v\) sweeps \(\omega = v/d\) radians per second at the middle of its pass. How many degrees behind the shark does the camera point? Give one decimal place.</p>
+    <div class="pfig"><p class="fcap">Made-up numbers in the style of chapter F2.</p>
+    <div class="tscroll"><table class="ptable lft" aria-label="Stage times, model cost, computer speed and shark speed">
+    <thead>
+    <tr><th>Quantity</th><th>Value</th></tr></thead><tbody>
+    <tr><th>Multiply-adds per frame of the model</th><td>900 million</td></tr>
+    <tr><th>Speed of the computer with this model</th><td>12 billion multiply-adds per second</td></tr>
+    <tr><th>Camera</th><td>36.8 ms</td></tr>
+    <tr><th>Decision</th><td>1 ms</td></tr>
+    <tr><th>Motor</th><td>60 ms</td></tr>
+    <tr><th>Update period</th><td>equal to the latency (one frame at a time)</td></tr>
+    <tr><th>Shark</th><td>0.8 m/s across the view, at a distance of 2.5 m</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 19, the pointing error"><span class="u">degrees</span></label>
+    <p class="revise" hidden>Revise <a href="../f2-robots/#loop">F2 Sense, decide, act</a> and <a href="../f2-robots/#budget">F2 Frames per second and memory</a>.</p>
+  </article>
+
+  <article class="pq" id="q20" data-q="q20" data-kind="mc">
+    <h3 class="pq-h"><span>Question 20<span class="pq-st" hidden></span></span><span class="pq-tag">Quantisation, memory and the latency budget</span></h3>
+    <p class="pq-t tight">The weights of the digit reader of chapter C2 were rounded to fewer bits (chapter F2). The charts show its accuracy on 10,000 held-out digits and the number of digits whose answer differs from the answer of the 32-bit network. Which statement do the charts support?</p>
+    <div class="pfig"><p class="fcap">The digit reader of chapter C2 with its weights rounded to fewer bits, 10,000 held-out digits (data file of chapter F2). The 2-bit accuracy, 20.9%, is below the left panel's range. Above 8 bits the number of changed answers is 0 or 1.</p><div class="pair">
+    <svg class="fg" viewBox="0 0 330 270" role="img" aria-label="Dot chart of the accuracy of the digit reader on 10,000 held-out digits against bits per weight, from 3 to 16 bits, with a dashed line at the accuracy of the 32-bit network. The 2-bit value is below the plotted range.">
+    <line class="gl" x1="70.5" y1="224.0" x2="70.5" y2="28.0"/>
+    <line class="gl" x1="111.4" y1="224.0" x2="111.4" y2="28.0"/>
+    <line class="gl" x1="152.3" y1="224.0" x2="152.3" y2="28.0"/>
+    <line class="gl" x1="193.2" y1="224.0" x2="193.2" y2="28.0"/>
+    <line class="gl" x1="234.2" y1="224.0" x2="234.2" y2="28.0"/>
+    <line class="gl" x1="275.1" y1="224.0" x2="275.1" y2="28.0"/>
+    <line class="gl" x1="316.0" y1="224.0" x2="316.0" y2="28.0"/>
+    <line class="gl" x1="50.0" y1="224.0" x2="316.0" y2="224.0"/>
+    <line class="gl" x1="50.0" y1="184.8" x2="316.0" y2="184.8"/>
+    <line class="gl" x1="50.0" y1="145.6" x2="316.0" y2="145.6"/>
+    <line class="gl" x1="50.0" y1="106.4" x2="316.0" y2="106.4"/>
+    <line class="gl" x1="50.0" y1="67.2" x2="316.0" y2="67.2"/>
+    <line class="gl" x1="50.0" y1="28.0" x2="316.0" y2="28.0"/>
+    <line class="ax" x1="50.0" y1="224.0" x2="320.0" y2="224.0"/><line class="ax" x1="50.0" y1="224.0" x2="50.0" y2="24.0"/>
+    <text class="tk" x="70.5" y="239.0" text-anchor="middle">4</text>
+    <text class="tk" x="111.4" y="239.0" text-anchor="middle">6</text>
+    <text class="tk" x="152.3" y="239.0" text-anchor="middle">8</text>
+    <text class="tk" x="193.2" y="239.0" text-anchor="middle">10</text>
+    <text class="tk" x="234.2" y="239.0" text-anchor="middle">12</text>
+    <text class="tk" x="275.1" y="239.0" text-anchor="middle">14</text>
+    <text class="tk" x="316.0" y="239.0" text-anchor="middle">16</text>
+    <text class="tk" x="43.0" y="228.0" text-anchor="end">90%</text>
+    <text class="tk" x="43.0" y="188.8" text-anchor="end">92%</text>
+    <text class="tk" x="43.0" y="149.6" text-anchor="end">94%</text>
+    <text class="tk" x="43.0" y="110.4" text-anchor="end">96%</text>
+    <text class="tk" x="43.0" y="71.2" text-anchor="end">98%</text>
+    <text class="tk" x="43.0" y="32.0" text-anchor="end">100%</text>
+    <path class="l1" d="M50.0,181.7 L70.5,73.7 L90.9,51.7 L111.4,50.9 L131.8,50.5 L152.3,50.1 L172.8,49.8 L193.2,50.0 L213.7,49.8 L234.2,49.8 L254.6,49.8 L275.1,49.8 L295.5,49.8 L316.0,49.8"/>
+    <circle class="d1" cx="50.0" cy="181.7" r="3"/>
+    <circle class="d1" cx="70.5" cy="73.7" r="3"/>
+    <circle class="d1" cx="90.9" cy="51.7" r="3"/>
+    <circle class="d1" cx="111.4" cy="50.9" r="3"/>
+    <circle class="d1" cx="131.8" cy="50.5" r="3"/>
+    <circle class="d1" cx="152.3" cy="50.1" r="3"/>
+    <circle class="d1" cx="172.8" cy="49.8" r="3"/>
+    <circle class="d1" cx="193.2" cy="50.0" r="3"/>
+    <circle class="d1" cx="213.7" cy="49.8" r="3"/>
+    <circle class="d1" cx="234.2" cy="49.8" r="3"/>
+    <circle class="d1" cx="254.6" cy="49.8" r="3"/>
+    <circle class="d1" cx="275.1" cy="49.8" r="3"/>
+    <circle class="d1" cx="295.5" cy="49.8" r="3"/>
+    <circle class="d1" cx="316.0" cy="49.8" r="3"/>
+    <line class="dv" x1="50.0" y1="49.8" x2="316.0" y2="49.8"/>
+    <text class="lbm" x="311.9" y="63.5" text-anchor="end">32 bits: 98.89%</text>
+    <text class="at" x="50" y="17" text-anchor="start">Accuracy on 10,000 digits</text>
+    <text class="at" x="183.0" y="264" text-anchor="middle">bits per weight</text>
+    <text class="at" transform="translate(11 126.0) rotate(-90)" text-anchor="middle">accuracy</text>
+    </svg>
+    <svg class="fg" viewBox="0 0 330 270" role="img" aria-label="Bar chart on a log axis of the number of held-out digits whose answer differs from the answer of the 32-bit network, for 2 to 8 bits per weight.">
+    <line class="gl" x1="46.0" y1="224.0" x2="46.0" y2="28.0"/>
+    <line class="gl" x1="106.0" y1="224.0" x2="106.0" y2="28.0"/>
+    <line class="gl" x1="166.0" y1="224.0" x2="166.0" y2="28.0"/>
+    <line class="gl" x1="226.0" y1="224.0" x2="226.0" y2="28.0"/>
+    <line class="gl" x1="286.0" y1="224.0" x2="286.0" y2="28.0"/>
+    <line class="ax" x1="46.0" y1="224.0" x2="290.0" y2="224.0"/><line class="ax" x1="46.0" y1="224.0" x2="46.0" y2="24.0"/>
+    <text class="tk" x="46.0" y="239.0" text-anchor="middle">1</text>
+    <text class="tk" x="106.0" y="239.0" text-anchor="middle">10</text>
+    <text class="tk" x="166.0" y="239.0" text-anchor="middle">100</text>
+    <text class="tk" x="226.0" y="239.0" text-anchor="middle">1,000</text>
+    <text class="tk" x="286.0" y="239.0" text-anchor="middle">10,000</text>
+    <text class="lb0" x="39.0" y="46.0" text-anchor="end">2 bits</text>
+    <rect class="bn" x="46.0" y="34.0" width="233.9" height="16"/>
+    <text class="vl" x="284.9" y="47.0" text-anchor="start">7,910</text>
+    <text class="lb0" x="39.0" y="74.0" text-anchor="end">3 bits</text>
+    <rect class="bn" x="46.0" y="62.0" width="172.9" height="16"/>
+    <text class="vl" x="223.9" y="75.0" text-anchor="start">761</text>
+    <text class="lb0" x="39.0" y="102.0" text-anchor="end">4 bits</text>
+    <rect class="bn" x="46.0" y="90.0" width="135.9" height="16"/>
+    <text class="vl" x="186.9" y="103.0" text-anchor="start">184</text>
+    <text class="lb0" x="39.0" y="130.0" text-anchor="end">5 bits</text>
+    <rect class="bn" x="46.0" y="118.0" width="95.5" height="16"/>
+    <text class="vl" x="146.5" y="131.0" text-anchor="start">39</text>
+    <text class="lb0" x="39.0" y="158.0" text-anchor="end">6 bits</text>
+    <rect class="bn" x="46.0" y="146.0" width="84.9" height="16"/>
+    <text class="vl" x="135.9" y="159.0" text-anchor="start">26</text>
+    <text class="lb0" x="39.0" y="186.0" text-anchor="end">7 bits</text>
+    <rect class="bn" x="46.0" y="174.0" width="62.5" height="16"/>
+    <text class="vl" x="113.5" y="187.0" text-anchor="start">11</text>
+    <text class="lb0" x="39.0" y="214.0" text-anchor="end">8 bits</text>
+    <rect class="bn" x="46.0" y="202.0" width="46.7" height="16"/>
+    <text class="vl" x="97.7" y="215.0" text-anchor="start">6</text>
+    <text class="at" x="46" y="17" text-anchor="start">Answers that changed</text>
+    <text class="at" x="166.0" y="264" text-anchor="middle">digits whose answer differs from 32 bits (log scale)</text>
+    </svg>
+    </div></div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q20" value="0"><b>A</b><span>At 5 bits no answers change, because the accuracy is within 0.1 points of the 32-bit value.</span></label>
+      <label class="opt"><input type="radio" name="q20" value="1"><b>B</b><span>A bit removed always costs about the same share of accuracy, so the accuracy falls by about 1 point per bit.</span></label>
+      <label class="opt"><input type="radio" name="q20" value="2"><b>C</b><span>At 3 bits 761 of the 10,000 digits are read wrongly, which is why the accuracy is 92.2%.</span></label>
+      <label class="opt"><input type="radio" name="q20" value="3"><b>D</b><span>Going from 8 bits to 4 bits lowers the accuracy by about 1.2 points, but it multiplies the number of changed answers by about 30.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../f2-robots/#quant">F2 Fewer bits per weight</a>.</p>
+  </article>
+
+  <article class="pq" id="q21" data-q="q21" data-kind="mc">
+    <h3 class="pq-h"><span>Question 21<span class="pq-st" hidden></span></span><span class="pq-tag">Quantisation, memory and the latency budget</span></h3>
+    <p class="pq-t tight">A robot computer reaches 12 billion multiply-adds per second with 8-bit weights (chapter F2). Arithmetic with 32-bit weights is 2.5 times slower. The weights of the model may take at most 50 MB, and the model may take at most 80 ms per frame. The table gives three candidate models. Which of the four choices meets both limits?</p>
+    <div class="pfig"><p class="fcap">Made-up models. Weights are stored with the same number of bits as the arithmetic.</p>
+    <div class="tscroll"><table class="ptable cmx w2" aria-label="Three candidate models with their number of weights and multiply-adds per frame">
+    <thead>
+    <tr><th>Model</th><th>Weights</th><th>Multiply-adds per frame</th></tr></thead><tbody>
+    <tr><th>P</th><td>20,000,000</td><td>900 million</td></tr>
+    <tr><th>Q</th><td>9,000,000</td><td>3,600 million</td></tr>
+    <tr><th>R</th><td>4,000,000</td><td>400 million</td></tr>
+    </tbody></table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q21" value="0"><b>A</b><span>Model P stored with 32 bits.</span></label>
+      <label class="opt"><input type="radio" name="q21" value="1"><b>B</b><span>Model P stored with 8 bits.</span></label>
+      <label class="opt"><input type="radio" name="q21" value="2"><b>C</b><span>Model Q stored with 8 bits.</span></label>
+      <label class="opt"><input type="radio" name="q21" value="3"><b>D</b><span>Model R stored with 32 bits.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../f2-robots/#budget">F2 Frames per second and memory</a> and <a href="../f2-robots/#quant">F2 Fewer bits per weight</a>.</p>
+  </article>
+</section>
+
+<section id="system" aria-labelledby="system-h">
+  <h2 id="system-h">SharkCam end to end</h2>
+
+  <article class="pq" id="q22" data-q="q22" data-kind="num" data-dp="3">
+    <h3 class="pq-h"><span>Question 22<span class="pq-st" hidden></span></span><span class="pq-tag">SharkCam end to end</span></h3>
+    <p class="pq-t tight">SharkCam combines three sources about one animal with the product rule of chapter F3. The chance of a species is proportional to the product of its chances from the sources. The three results are rescaled to add up to 1. The table gives the chances. What is the fused chance that the animal is a grey bamboo shark? Give three decimal places.</p>
+    <div class="pfig"><p class="fcap">Made-up chances from three sources about one animal. The columns add up to 1.</p>
+    <div class="tscroll"><table class="ptable cmx w2" aria-label="Chances of three species from three sources">
+    <thead>
+    <tr><th>Species</th><th>Length and girth model</th><th>CLIP</th><th>Message</th></tr></thead><tbody>
+    <tr><th>Spadenose</th><td>0.50</td><td>0.20</td><td>0.10</td></tr>
+    <tr><th>Milk</th><td>0.10</td><td>0.15</td><td>0.10</td></tr>
+    <tr><th>Bamboo</th><td>0.40</td><td>0.65</td><td>0.80</td></tr>
+    </tbody></table></div>
+    </div>
+    <label class="pq-num"><span>Your answer</span><input type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Answer to question 22, the fused chance of the bamboo shark"></label>
+    <p class="revise" hidden>Revise <a href="../f3-sharkcam/#trace">F3 Trace one shark</a>.</p>
+  </article>
+
+  <article class="pq" id="q23" data-q="q23" data-kind="mc">
+    <h3 class="pq-h"><span>Question 23<span class="pq-st" hidden></span></span><span class="pq-tag">SharkCam end to end</span></h3>
+    <p class="pq-t tight">The SharkCam crew reports three problems and has three tools, as the tables show. Which pairing of problems and tools is right?</p>
+    <div class="pfig"><p class="fcap">Three invented problems of the SharkCam crew and three tools from the chapters.</p>
+    <div class="tscroll"><table class="ptable lft w2" aria-label="Three problems reported by the crew">
+    <thead>
+    <tr><th>Report</th><th>What the crew sees</th></tr></thead><tbody>
+    <tr><th>Problem 1</th><td>A caption model's attention map is bright on the same dozen patches for all words.</td></tr>
+    <tr><th>Problem 2</th><td>The camera trails a passing shark by about 8 degrees, although the model names the shark correctly.</td></tr>
+    <tr><th>Problem 3</th><td>A vision-language model tells a fisher that the shark it sees is protected by a law that covers marine mammals.</td></tr>
+    </tbody></table></div>
+    <div class="tscroll"><table class="ptable lft w2" aria-label="Three tools of the crew">
+    <thead>
+    <tr><th>Tool</th><th>What it does</th></tr></thead><tbody>
+    <tr><th>E3</th><td>Compare the weight of a patch with the length of its value, and set aside empty patches.</td></tr>
+    <tr><th>F2</th><td>Add up the times of the stages and compare the sum with the budget.</td></tr>
+    <tr><th>E4</th><td>Split the question, and check the claim against a table that people keep.</td></tr>
+    </tbody></table></div>
+    </div>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q23" value="0"><b>A</b><span>Problem 1 with F2, problem 2 with E3, problem 3 with E4.</span></label>
+      <label class="opt"><input type="radio" name="q23" value="1"><b>B</b><span>Problem 1 with E4, problem 2 with F2, problem 3 with E3.</span></label>
+      <label class="opt"><input type="radio" name="q23" value="2"><b>C</b><span>Problem 1 with E3, problem 2 with F2, problem 3 with E4.</span></label>
+      <label class="opt"><input type="radio" name="q23" value="3"><b>D</b><span>Problem 1 with E3, problem 2 with E4, problem 3 with F2.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../f3-sharkcam/#breaks">F3 Where it breaks</a>.</p>
+  </article>
+
+  <article class="pq" id="q24" data-q="q24" data-kind="mc">
+    <h3 class="pq-h"><span>Question 24<span class="pq-st" hidden></span></span><span class="pq-tag">SharkCam end to end</span></h3>
+    <p class="pq-t">SharkCam's rule multiplies the chances of its sources. It accepts a species at 90% or more when at least two sources name it (chapter F3). For an old drawing of a Ganges shark, the photo model and the length-and-girth model both name a spadenose shark, and the rule accepts it at 92%. The call is wrong. Which action fits the cause?</p>
+    <fieldset class="opts"><legend class="sr">Choose one answer</legend>
+      <label class="opt"><input type="radio" name="q24" value="0"><b>A</b><span>Test the rule on held-out cases that include rare species and drawings. Two sources built from the same kind of examples can share a blind spot, and then their agreement counts once.</span></label>
+      <label class="opt"><input type="radio" name="q24" value="1"><b>B</b><span>Raise the accept level to 99%, because a wrong call from the sources cannot reach that level.</span></label>
+      <label class="opt"><input type="radio" name="q24" value="2"><b>C</b><span>Add a third model of the same kind, because more sources that agree make a wrong call less likely.</span></label>
+      <label class="opt"><input type="radio" name="q24" value="3"><b>D</b><span>Lower the temperature of CLIP, so that its chances for the drawing become less certain.</span></label>
+    </fieldset>
+    <p class="revise" hidden>Revise <a href="../f3-sharkcam/#trace">F3 Trace one shark</a> and <a href="../f3-sharkcam/#breaks">F3 Where it breaks</a>.</p>
+  </article>
+</section>
+
+<section id="score" aria-labelledby="score-h">
+  <h2 id="score-h">Finish and score</h2>
+  <p>Press the button when you are done. Blank answers count as missed. The page then locks your answers, shows your score by area and links to the sections to revise. It does not show the correct answers.</p>
+  <div class="bar"><button type="button" class="btn btn-main" id="btn-score">Score my answers</button><span class="status" id="score-note" aria-live="polite"></span></div>
+  <div class="card res" id="results" tabindex="-1" hidden></div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Where the numbers come from</h2>
+  <ol>
+    <li>The charts and tables of questions 3, 5, 6, 7, 10, 14, 15 and 20 are read from the data files of the chapters: <code>e1-vision-transformers/data/shuffle.json</code> (question 3), <code>e2-clip/data/clip.json</code> (5, 6 and 7), <code>e3-cross-attention/data/occ.json</code> (10), <code>e4-vlms/data/vlm2.json</code> (14), <code>f1-fairness/data/clinic.json</code> (15) and <code>f2-robots/data/quant.json</code> (20).</li>
+    <li>The networks behind them are the torchvision ViT-B/16 and ResNet-18 (question 3) and CLIP ViT-B/32 of OpenAI (5, 6 and 7). They are also BLIP image captioning of Salesforce (10; BSD-3-Clause licence) and Qwen3-VL-2B-Instruct (14; Apache-2.0 licence). Question 15 uses a logistic regression on the Pima women, and question 20 uses the digit reader of chapter C2. The Pima data is a published dataset of women of Pima heritage, measured in the United States, and not data from Mumbai.</li>
+    <li>Many numbers are invented for practice. These are the program of question 2 and the cosines of question 4. They are also the keys and values of question 8, the sizes of questions 9, 11, 12 and 13, and the base rates and rates of question 16. The table of patients of question 17 is invented.</li>
+    <li>The layer and the weight of question 18 are invented. So are the stage times, the computer and the shark of question 19, the models and limits of question 21, and the chances of question 22. The problems of questions 23 and 24 are invented, and the 92% of question 24 is the example of chapter F3. The photo size in question 1 is a made-up size.</li>
+    <li>The script <code>data/make_tables.py</code> reproduces the chart data. The solutions to all questions are kept apart from this page.</li>
+    <li>The ideas come from chapters E1 to F3, listed at the top of this page.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=e92d596e" defer></script>
+<script src="pf-practice.js?v=1f6c120e" defer></script>
+<a id="primer-preview-pill" href="https://mailab.in/primer/pf-practice/" style="position:fixed;right:14px;bottom:14px;z-index:2147483647;display:block;margin:0;padding:7px 13px;border:1px solid #5b6470;border-radius:999px;background:#fffdf7;background-image:none;color:#14181c;font:13px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:0;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:none;">Preview v2 &middot; open current version</a>
+</body>
+</html>

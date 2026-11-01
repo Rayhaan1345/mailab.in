@@ -1,0 +1,92 @@
+{
+ "about": "Weights of a softmax classifier fitted offline (scikit-learn, no regularisation to speak of) to the 600 made-up catch records, using length and girth. Scores z_k = w_length * L + w_girth * G + b for L in cm and G in cm. Training accuracy only: the model was graded on the records it learned from.",
+ "classes": [
+  "spadenose",
+  "milk",
+  "bamboo",
+  "hammerhead",
+  "ganges"
+ ],
+ "w_length": [
+  0.09293,
+  0.07721,
+  0.21477,
+  -0.02671,
+  -0.35821
+ ],
+ "w_girth": [
+  -1.12223,
+  0.07008,
+  -1.18954,
+  0.56026,
+  1.68143
+ ],
+ "b": [
+  16.4982,
+  -1.3269,
+  10.7304,
+  -6.3968,
+  -19.5049
+ ],
+ "mean": [
+  53.975,
+  16.3125
+ ],
+ "sd": [
+  22.77491474554113,
+  8.155300551379657
+ ],
+ "train_accuracy": 0.7733,
+ "right": {
+  "spadenose": 257,
+  "milk": 181,
+  "bamboo": 3,
+  "hammerhead": 20,
+  "ganges": 3
+ },
+ "n": {
+  "spadenose": 268,
+  "milk": 200,
+  "bamboo": 72,
+  "hammerhead": 57,
+  "ganges": 3
+ },
+ "cross_entropy": 0.5723,
+ "confusion": [
+  [
+   257,
+   5,
+   6,
+   0,
+   0
+  ],
+  [
+   8,
+   181,
+   2,
+   9,
+   0
+  ],
+  [
+   58,
+   11,
+   3,
+   0,
+   0
+  ],
+  [
+   3,
+   34,
+   0,
+   20,
+   0
+  ],
+  [
+   0,
+   0,
+   0,
+   0,
+   3
+  ]
+ ]
+}

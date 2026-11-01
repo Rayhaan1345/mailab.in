@@ -1,0 +1,123 @@
+{
+  "about": "Sixteen short messages about shark sightings and catches. They are INVENTED for the primer and were not sent by any fisher or researcher. The numbers match the made-up catch table (for example Tag 4127). Hindi and Marathi texts need a check by a native speaker before they are shown as examples of how people write.",
+  "invented": true,
+  "scripts": {
+    "Latin": "English and Hinglish",
+    "Devanagari": "Hindi and Marathi"
+  },
+  "notes": [
+    "Marathi names for sharks follow the FishBase common-name table: mushi for the spadenose shark, baravla for the grey bamboo shark, kan mushi for the scalloped hammerhead and pisori for the milk shark. Port names differ.",
+    "Three Marathi messages (m09, m11 and m12) use Devanagari digits and m10 uses the digits 0 to 9, because both are common. Tokenizer chapters can use this on purpose.",
+    "Hinglish spelling is not standard. Other writers would spell the same words differently."
+  ],
+  "messages": [
+    {
+      "id": "m01", "language": "English", "script": "Latin", "speaker": "fisher", "place": "Sassoon Dock",
+      "text": "Fifteen spadenose sharks came in at Sassoon Dock this morning. The biggest was about 50 cm and the smallest about 25 cm. Prices were low because the auction started late.",
+      "gloss_en": null, "species_ids": ["spadenose"], "numbers": [15, 50, 25],
+      "needs_native_check": false, "invented": true
+    },
+    {
+      "id": "m02", "language": "English", "script": "Latin", "speaker": "researcher", "place": "Juhu",
+      "text": "Found a young grey bamboo shark in a rock pool at Juhu at low tide. Length 44 cm, dark bands across its back. We photographed it and put it back. Tag 4127.",
+      "gloss_en": null, "species_ids": ["bamboo"], "numbers": [44, 4127],
+      "needs_native_check": false, "invented": true
+    },
+    {
+      "id": "m03", "language": "English", "script": "Latin", "speaker": "fisher", "place": "Versova",
+      "text": "Our gillnet caught one hammerhead near Versova, about 80 cm long. It looked young, so we let it go.",
+      "gloss_en": null, "species_ids": ["hammerhead"], "numbers": [80],
+      "needs_native_check": false, "invented": true
+    },
+    {
+      "id": "m04", "language": "English", "script": "Latin", "speaker": "researcher", "place": "Uran",
+      "text": "Water at Uran was 28 degrees at 6 metres. We could see about 4 metres ahead. Two milk sharks swam past the rocks.",
+      "gloss_en": null, "species_ids": ["milk"], "numbers": [28, 6, 4, 2],
+      "needs_native_check": false, "invented": true
+    },
+    {
+      "id": "m05", "language": "Hindi", "script": "Devanagari", "speaker": "fisher", "place": "Sassoon Dock",
+      "text": "आज सुबह ससून डॉक पर 15 स्पेडनोज शार्क आईं। सबसे बड़ी करीब 50 सेंटीमीटर की थी।",
+      "gloss_en": "This morning 15 spadenose sharks came in at Sassoon Dock. The biggest was about 50 centimetres.",
+      "species_ids": ["spadenose"], "numbers": [15, 50],
+      "needs_native_check": true, "invented": true
+    },
+    {
+      "id": "m06", "language": "Hindi", "script": "Devanagari", "speaker": "researcher", "place": "Juhu",
+      "text": "जुहू में भाटे के समय चट्टानी पोखर में एक छोटी बांस शार्क मिली। लंबाई 44 सेंटीमीटर थी और पीठ पर गहरी धारियां थीं। हमने फोटो ली और उसे छोड़ दिया। टैग 4127।",
+      "gloss_en": "At low tide in a rock pool at Juhu we found a small bamboo shark. It was 44 centimetres long with dark bands on its back. We took a photo and let it go. Tag 4127.",
+      "species_ids": ["bamboo"], "numbers": [44, 4127],
+      "needs_native_check": true, "invented": true
+    },
+    {
+      "id": "m07", "language": "Hindi", "script": "Devanagari", "speaker": "fisher", "place": "Versova",
+      "text": "वर्सोवा के पास हमारे जाल में एक हैमरहेड शार्क फंसी, लगभग 80 सेंटीमीटर की। वह छोटी लग रही थी, इसलिए हमने उसे छोड़ दिया।",
+      "gloss_en": "A hammerhead shark about 80 centimetres long got caught in our net near Versova. It looked young, so we let it go.",
+      "species_ids": ["hammerhead"], "numbers": [80],
+      "needs_native_check": true, "invented": true
+    },
+    {
+      "id": "m08", "language": "Hindi", "script": "Devanagari", "speaker": "researcher", "place": "Uran",
+      "text": "उरण में आज 6 मीटर की गहराई पर पानी का तापमान 28 डिग्री था। चट्टानों के पास दो मिल्क शार्क दिखीं, दोनों का वजन करीब 1.5 किलो होगा।",
+      "gloss_en": "At Uran today the water temperature was 28 degrees at a depth of 6 metres. Two milk sharks were seen near the rocks, both weighing about 1.5 kg.",
+      "species_ids": ["milk"], "numbers": [6, 28, 2, 1.5],
+      "needs_native_check": true, "invented": true
+    },
+    {
+      "id": "m09", "language": "Marathi", "script": "Devanagari", "speaker": "fisher", "place": "Sassoon Dock",
+      "text": "आज सकाळी ससून डॉकला १५ मुशी आल्या. सर्वात मोठी साधारण ५० सेंटीमीटरची होती.",
+      "gloss_en": "This morning 15 spadenose sharks (mushi) came in at Sassoon Dock. The biggest was about 50 centimetres.",
+      "species_ids": ["spadenose"], "numbers": [15, 50],
+      "needs_native_check": true, "invented": true
+    },
+    {
+      "id": "m10", "language": "Marathi", "script": "Devanagari", "speaker": "researcher", "place": "Juhu",
+      "text": "जुहूला ओहोटीच्या वेळी खडकांमधल्या डबक्यात एक लहान बारावळा शार्क सापडला. लांबी 44 सेंटीमीटर, पाठीवर गडद पट्टे. आम्ही फोटो काढला आणि त्याला परत सोडले. टॅग 4127.",
+      "gloss_en": "At low tide in a pool among the rocks at Juhu we found a small bamboo shark (baravla). Length 44 centimetres, dark bands on its back. We took a photo and put it back. Tag 4127.",
+      "species_ids": ["bamboo"], "numbers": [44, 4127],
+      "needs_native_check": true, "invented": true
+    },
+    {
+      "id": "m11", "language": "Marathi", "script": "Devanagari", "speaker": "fisher", "place": "Versova",
+      "text": "वर्सोव्याजवळ आमच्या जाळ्यात एक कानमुशी अडकली, सुमारे ८० सेंटीमीटरची. ती पिल्लू वाटत होती, म्हणून आम्ही तिला सोडून दिले.",
+      "gloss_en": "A hammerhead (kan mushi) about 80 centimetres long got caught in our net near Versova. It looked like a pup, so we let it go.",
+      "species_ids": ["hammerhead"], "numbers": [80],
+      "needs_native_check": true, "invented": true
+    },
+    {
+      "id": "m12", "language": "Marathi", "script": "Devanagari", "speaker": "researcher", "place": "Uran",
+      "text": "उरणला आज ६ मीटर खोलीवर पाण्याचे तापमान २८ अंश होते. खडकांजवळ दोन पिसोरी दिसल्या, दोन्हीचे वजन सुमारे १.५ किलो असेल.",
+      "gloss_en": "At Uran today the water temperature was 28 degrees at a depth of 6 metres. Two milk sharks (pisori) were seen near the rocks, both weighing about 1.5 kg.",
+      "species_ids": ["milk"], "numbers": [6, 28, 2, 1.5],
+      "needs_native_check": true, "invented": true
+    },
+    {
+      "id": "m13", "language": "Hinglish", "script": "Latin", "speaker": "fisher", "place": "Sassoon Dock",
+      "text": "Aaj subah Sassoon Dock pe 15 spadenose shark aayi. Sabse badi lagbhag 50 cm ki thi. Bhav kam tha kyunki boli der se shuru hui.",
+      "gloss_en": "This morning 15 spadenose sharks came in at Sassoon Dock. The biggest was about 50 cm. The price was low because the auction started late.",
+      "species_ids": ["spadenose"], "numbers": [15, 50],
+      "needs_native_check": false, "invented": true
+    },
+    {
+      "id": "m14", "language": "Hinglish", "script": "Latin", "speaker": "researcher", "place": "Juhu",
+      "text": "Juhu me low tide pe rock pool me ek chhoti bamboo shark mili, 44 cm ki, peeth pe kaali patti jaisi lines. Photo li aur wapas chhod di. Tag 4127.",
+      "gloss_en": "At low tide in a rock pool at Juhu we found a small bamboo shark, 44 cm long, with dark band-like lines on its back. We took a photo and let it go. Tag 4127.",
+      "species_ids": ["bamboo"], "numbers": [44, 4127],
+      "needs_native_check": false, "invented": true
+    },
+    {
+      "id": "m15", "language": "Hinglish", "script": "Latin", "speaker": "fisher", "place": "Versova",
+      "text": "Versova ke paas jaal me ek hammerhead fas gayi, lagbhag 80 cm. Bachcha lag raha tha, isliye wapas paani me daal diya.",
+      "gloss_en": "A hammerhead about 80 cm long got caught in the net near Versova. It looked like a pup, so we put it back in the water.",
+      "species_ids": ["hammerhead"], "numbers": [80],
+      "needs_native_check": false, "invented": true
+    },
+    {
+      "id": "m16", "language": "Hinglish", "script": "Latin", "speaker": "researcher", "place": "Uran",
+      "text": "Uran me aaj 6 meter pe paani 28 degree tha. Visibility 4 meter ke aas paas. Do milk shark chattan ke paas dikhi.",
+      "gloss_en": "At Uran today the water was 28 degrees at 6 metres. Visibility was about 4 metres. Two milk sharks were seen near the rocks.",
+      "species_ids": ["milk"], "numbers": [6, 28, 4, 2],
+      "needs_native_check": false, "invented": true
+    }
+  ]
+}

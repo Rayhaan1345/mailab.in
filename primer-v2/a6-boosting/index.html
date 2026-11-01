@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ensembles and boosting | How AI Learns</title>
+<meta name="description" content="Random forests in brief, boosting on residuals with stumps you add one at a time, the learning rate, XGBoost's leaf penalty, and four ways to ask which inputs matter, ending with a SHAP waterfall for one shark.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
+<style>
+.used, .bridge { max-width: 46em; margin: 8px 0 18px; padding: 6px 12px; border-left: 3px solid var(--sand); font-size: 15px; color: var(--ink-2); }
+.used b, .bridge b { color: var(--ink); }
+.bridge { border-left-color: var(--teal); background: var(--paper); border-radius: 0 6px 6px 0; }
+.datanote { max-width: 46em; margin: 14px auto 0; padding: 8px 14px; border: 1px solid var(--rule); border-radius: 6px; font-size: 15px; color: var(--ink-2); background: var(--paper); }
+.datanote b { color: var(--ink); }
+.card .eqn { margin: 8px 0 6px; }
+.refs li { overflow-wrap: anywhere; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; margin: 6px 0 0; }
+.tbl th, .tbl td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { font-weight: 500; color: var(--muted); }
+.tbl tr.pick td { background: var(--mark); color: var(--ink); font-weight: 600; }
+.mini-note { max-width: 46em; font-size: 14.5px; color: var(--muted); margin: 6px 0 0; }
+@media (max-width: 600px) { .tbl { font-size: 13px; } .tbl th, .tbl td { padding: 4px 4px; } }
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://mailab.in/primer/a6-boosting/">
+</head>
+<body data-chapter="a6">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part A, Learning from data</span><span>Chapter A6</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part A &middot; Chapter A6</p>
+  <h1>Ensembles and boosting</h1>
+  <p class="subtitle">Many small trees that vote, many small trees that correct one another, and how to ask a boosted model what it relies on.</p>
+</header>
+
+<div class="tldr">
+  <p>One tree is quick to read and jumpy: a different training sample grows a different tree. This chapter combines many trees in two ways. A random forest lets trees grown on different samples vote. Boosting adds small trees one after another, and the new tree fits what the earlier trees got wrong.</p>
+  <p>XGBoost is a fast library for boosting, with a penalty that stops a leaf from trusting a few sharks. At the end you ask a boosted SharkCam model which inputs it relies on, and you meet four answers that disagree, and SHAP values that share out one shark's score.</p>
+</div>
+<p class="youneed"><b>You will need:</b> trees, Gini impurity and the depth limit from <a href="../a5-decision-trees/#grow">A5</a>, and held-out sets from <a href="../a4-grading-models/#splits">A4</a>. You also need the learning rate and residuals from <a href="../a2-linear-regression/#rate">A2</a>, the sigmoid from <a href="../a3-logistic-regression/#sigmoid">A3</a>, <a href="../t4-discrete-maths/#counting">counting orders</a> and the <a href="../t7-probability/#ci">bootstrap</a>.</p>
+<p class="datanote"><b>The data.</b> This chapter uses the made-up SharkCam catch table: 600 records generated from published length-weight relationships, not field data. As in A5, sharks whose tag number ends in 0, 1 or 2 (164 sharks) are held out, and the other 436 are the training sharks. The question is "spadenose or not". Sections 1, 3 and 4 use length and depth. Section 2 predicts the weight of the 196 training spadenose sharks from length. Sections 5 and 6 use six measurements. In this table the girth was computed from the weight, so girth repeats part of what weight says.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#forest">Random forests in brief</a></li>
+    <li><a href="#boosting">Boosting: a new tree fits what is left over</a></li>
+    <li><a href="#boundary">Many small trees draw a boundary</a></li>
+    <li><a href="#xgboost">What XGBoost adds: a penalty on small leaves</a></li>
+    <li><a href="#importance">Which inputs matter? Four answers</a></li>
+    <li><a href="#shap">Sharing out a score: SHAP values</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ================= 1. Forest ================= -->
+<section id="forest" aria-labelledby="forest-h">
+  <h2 id="forest-h">Random forests in brief</h2>
+  <p class="ask"><b>Guess first.</b> Grow one tree on the 436 training sharks. Grow another on a different draw of 436 sharks from the same table. Will the two trees ask the same questions? If you let 100 such trees vote, will the vote be better than the average tree?</p>
+  <dl class="terms">
+    <div><dt>ensemble</dt><dd>many models whose answers are combined</dd></div>
+    <div><dt>bootstrap sample</dt><dd>a sample of the same size drawn with repeats from the training sharks (<a href="../t7-probability/#ci">0.7</a>)</dd></div>
+    <div><dt>random forest</dt><dd>trees grown on different bootstrap samples, with a randomly chosen measurement tried first at a split, whose answers are combined by a vote</dd></div>
+    <div><dt>vote share</dt><dd>the share of the trees that say "spadenose"</dd></div>
+  </dl>
+  <p class="claim">A forest lets many different trees vote, and the vote is steadier than a single tree.</p>
+  <div class="card bl" id="fo"></div>
+  <p class="cap"><b>A single tree grown this way gets 79% of the held-out sharks right on average. The vote of 100 trees gets 85%, with a boundary that is smoother than any one tree's.</b> Slide the number of trees, then click the map to see how the trees vote at one point.</p>
+  <p>To grow one tree of the forest, draw 436 sharks from the training sharks with repeats. A shark is left out of a draw with chance \((1 - 1/436)^{436}\), about 0.37. A tree therefore sees about 63% of the different sharks, and tree 1 here saw 267 of the 436. At a split the tree tries one randomly chosen measurement first. With only two measurements, that makes the six small trees at the right differ a lot. The trees are weak one by one, but their mistakes point in different directions, and a vote averages them out.</p>
+  <p>Click the map to move the marked point. The row of squares shows how all 100 trees vote there, and the equation box counts them. A point deep inside a region gets almost all the votes. A point near a boundary gets a split vote, and the vote share gives a rough sense of how sure the forest is. A vote share has not been tested as a probability (<a href="../a4-grading-models/#threshold">A4</a>).</p>
+  <div class="eqn" role="img" aria-label="Vote share example: 63 of 100 trees vote for spadenose, so the share is 0.63 and the forest calls spadenose"><span class="op"><i>v</i> =</span><span class="t c-coral"><b>63</b><i>trees voting spadenose</i></span><span class="op">&divide;</span><span class="t"><b>100</b><i>trees</i></span><span class="op">=</span><span class="t c-teal"><b>0.63</b><i>vote share</i></span><span class="op">&rArr;</span><span class="t"><b>spadenose</b><i>more than half</i></span></div>
+  <p class="math">\[ v(\mathbf{x}) = \frac{1}{B}\sum_{b=1}^{B} \mathbf{1}\big[\text{tree } b \text{ says class 1}\big], \qquad \text{call class 1 if } v(\mathbf{x}) > \tfrac{1}{2} \]</p>
+  <ul class="math-notes">
+    <li><b>\(B\)</b> is the number of trees, and <b>\(b\)</b> counts them from 1 to \(B\).</li>
+    <li><b>\(\mathbf{1}[\cdot]\)</b> is 1 when the statement inside is true and 0 otherwise, so the sum counts the votes for class 1.</li>
+    <li><b>\(v(\mathbf{x})\)</b> is the vote share for the shark with measurements \(\mathbf{x}\). The number 63 above is a made-up example, and the figure shows true counts.</li>
+  </ul>
+  <p>Why about 63%? One draw misses a given shark with chance \(1 - 1/n\), and \(n\) draws all miss it with chance \((1 - 1/n)^n\). For \(n = 5\) that is 0.328, for \(n = 50\) it is 0.364 and for \(n = 436\) it is 0.367. As \(n\) grows the value settles at \(1/e = 0.368\). The code below draws 1,000 samples of 436 and finds 276 different sharks on average, in a range of 252 to 298. So the 267 of tree 1 is an ordinary draw.</p>
+  <p>Now why a vote of weak trees can win. Take three trees that are right for 79% of the sharks, about the average single tree here, and suppose their mistakes are independent. The vote is right when all three are right, or when two are right and one is wrong:</p>
+  <div class="eqn" role="img" aria-label="Majority vote of three independent trees that are right 79 percent of the time: 0.493 plus 0.393 equals 0.886"><span class="t c-teal"><b>0.493</b><i>all three right: 0.79&sup3;</i></span><span class="op">+</span><span class="t c-coral"><b>0.393</b><i>two right, one wrong: 3 &times; 0.79&sup2; &times; 0.21</i></span><span class="op">=</span><span class="t c-sand"><b>0.886</b><i>the vote is right</i></span></div>
+  <p>With 11 independent trees the vote is right 98.5% of the time, and with 101 trees 100%. The forest of 100 trees reaches 85%, far below that, because its trees were grown on overlapping sharks and tend to make the same mistakes. If the three trees always agreed, the vote would be right 79% of the time, like one tree. A vote gains as much as its trees differ. The bootstrap samples and the random first question are there to make them differ.</p>
+  <p><b>In practice</b>, a forest of 100 to 500 trees is a common start, and more trees seldom hurt. The 37% of sharks that a tree did not see form a free test for it. Scoring a tree on its own left-out sharks, and pooling the results, gives the out-of-bag score, which scikit-learn reports with <code>oob_score=True</code>. Forests need no feature scaling. Like single trees, they cannot answer outside the range of the training data.</p>
+  <div class="break">
+    <p><b>Common belief.</b> More trees means more overfitting, so a forest of 1,000 trees is riskier than a forest of 10.</p>
+    <p><b>Why it fails.</b> The chart in the figure flattens after a few dozen trees and does not turn down. A new tree is one more vote, from a tree grown on its own sample, so it does not chase the mistakes of the others.</p>
+    <p><b>Better account.</b> More trees in a forest cost time and memory and give a steadier vote. The single trees can still overfit, so the depth limit still matters. Boosting, in the next section, behaves differently.</p>
+  </div>
+  <div class="break">
+    <p><b>Common belief.</b> A forest always beats the tree it is made of.</p>
+    <p><b>Why it fails.</b> The depth-2 tree in <a href="../a5-decision-trees/#depth">A5</a> got 86.0% of these 164 held-out sharks right, and the forest of 100 trees gets 84.8%. The gap of 1.2 points is smaller than the noise of a 164-shark test (about 2.7 points). Here the individual trees are also weaker than that tree, because they try a random measurement first.</p>
+    <p><b>Better account.</b> A forest pays off when single trees are jumpy and the boundary is complicated. Compare it with the simple model on held-out data before choosing it (<a href="../a1-what-is-a-model/#lazy">A1</a>).</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Check that the trees differ. If they are grown on the same sharks with the same choices, they are copies, and a vote of copies is a single tree.</p>
+  </div>
+<pre class="code" data-run><code>import numpy as np
+from math import comb
+
+# 1. how many different sharks does one bootstrap sample contain?
+rng = np.random.RandomState(4127)
+n = 436
+seen = [len(np.unique(rng.randint(0, n, n))) for _ in range(1000)]
+print("left out, from the formula:", round((1 - 1 / n) ** n, 3))
+print("different sharks per tree: mean", round(np.mean(seen), 1),
+      "range", min(seen), "to", max(seen))
+
+# 2. a vote of k trees, right with chance 0.79 apiece, mistakes independent
+def vote_accuracy(k, p):
+    return sum(comb(k, i) * p ** i * (1 - p) ** (k - i)
+               for i in range(k // 2 + 1, k + 1))
+
+for k in (1, 3, 11, 101):
+    print(f"{k:3d} in the vote: accuracy {vote_accuracy(k, 0.79):.3f}")</code></pre>
+<pre class="out">left out, from the formula: 0.367
+different sharks per tree: mean 275.8 range 252 to 298
+  1 in the vote: accuracy 0.790
+  3 in the vote: accuracy 0.886
+ 11 in the vote: accuracy 0.985
+101 in the vote: accuracy 1.000</pre>
+  <p>The vote of independent trees climbs toward 100%. The forest in the figure stops at 85%, and the gap measures how alike its trees are.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why does drawing with repeats leave a tree with only about 63% of the different training sharks?</summary><p>A given shark is missed by one draw with chance \(1 - 1/n\), and by all \(n\) draws with chance \((1 - 1/n)^n\), close to 0.37. So about 37% of the sharks are left out and about 63% appear at least once.</p></details>
+    <details><summary>Why can a vote of weak trees be better than the average tree?</summary><p>The trees make different mistakes, because they saw different sharks and tried different questions. Where the mistakes differ, the majority is right more often than any single tree.</p></details>
+    <details><summary>Three trees are right for 80% of the sharks. What is the accuracy of their vote if they always make the same mistakes, and if their mistakes are independent?</summary><p>If they always agree, the vote is one tree: 80%. If the mistakes are independent, the vote is right with chance \(0.8^3 + 3 \times 0.8^2 \times 0.2 = 0.512 + 0.384 = 0.896\), about 90%.</p></details>
+  </div>
+</section>
+
+<!-- ================= 2. Boosting ================= -->
+<section id="boosting" aria-labelledby="boosting-h">
+  <h2 id="boosting-h">Boosting: a new tree fits what is left over</h2>
+  <p class="ask"><b>Guess first.</b> A model that always answers with the average weight of a spadenose shark is wrong by about 0.13 kg. A second model learns only the leftover errors, and the two answers are added. Will the sum be better than the first model? What if a third model learns what is left after that?</p>
+  <dl class="terms">
+    <div><dt>boosting</dt><dd>adding small trees one after another, with a new tree fitted to what the trees so far got wrong</dd></div>
+    <div><dt>residual</dt><dd>\(r = y - F(\mathbf{x})\) as in <a href="../a2-linear-regression/#line">A2</a>: the actual value minus the model's current answer; the "left over" in the figure</dd></div>
+    <div><dt>stump</dt><dd>a tree with one question and two leaves</dd></div>
+    <div><dt>learning rate</dt><dd>\(\eta\), as in <a href="../a2-linear-regression/#rate">A2</a>: here the share of a new tree's answer that is added to the model</dd></div>
+  </dl>
+  <p class="claim">Boosting builds a good model by adding small trees one at a time, with the new tree fitted to the residuals of the sum so far.</p>
+  <div class="card bl" id="b1"></div>
+  <p class="cap"><b>With 100 stumps and a learning rate of 0.3, the staircase follows the curve. The training error falls from 0.134 kg to 0.030 kg, and the held-out error from 0.158 kg to 0.041 kg.</b> Press Step a few times, then Play. Then change the learning rate and the tree depth and play again.</p>
+  <p>The upper plot shows 196 training sharks, with weight against length, and the teal staircase is the model after \(k\) trees. At \(k = 0\) the model is the average weight. The lower plot shows what the model gets wrong, \(r = y - F\), for all sharks. Press Step. A stump is fitted to the leftovers. It picks the cut that separates the sharks with positive leftovers from those with negative ones, and it answers with the average leftover on both sides. That is the coral step in the lower plot. Its answer, multiplied by \(\eta\), is added to the model. The faint dots in the lower plot are the old leftovers, the navy dots are the new ones, and the thin lines show how far the dots moved.</p>
+  <p>The equation boxes below follow one shark. Choose Tag 3646, a 50.1 cm shark of 0.430 kg, and press Step once. Its leftover is 0.430 &minus; 0.219 = 0.211 kg. The first stump cuts at 42.15 cm, and the 70 sharks on the long side have leftovers that average 0.144 kg. The model's answer for Tag 3646 moves by \(0.3 \times 0.144\):</p>
+  <div class="eqn" role="img" aria-label="Tag 3646: model before 0.219 plus 0.3 times 0.144 equals 0.262, leaving 0.168"><span class="t c-teal"><b>0.219</b><i>model before (the average)</i></span><span class="op">+</span><span class="t c-sand"><b>0.3</b><i>learning rate &eta;</i></span><span class="op">&times;</span><span class="t c-coral"><b>0.144</b><i>tree's answer h<sub>1</sub></i></span><span class="op">=</span><span class="t c-teal"><b>0.262</b><i>model after one tree</i></span><span class="op">&rArr;</span><span class="t c-coral"><b>0.168</b><i>left over now (was 0.211)</i></span></div>
+  <p class="math">\[ F_0 = \bar{y}, \qquad r_i = y_i - F_{k-1}(\mathbf{x}_i), \qquad F_k(\mathbf{x}) = F_{k-1}(\mathbf{x}) + \eta\, h_k(\mathbf{x}) \]</p>
+  <ul class="math-notes">
+    <li><b>\(F_k\)</b> is the model after \(k\) trees, and <b>\(F_0 = \bar{y}\)</b> is the average of the training values.</li>
+    <li><b>\(r_i\)</b> is the residual of training shark \(i\): its value minus the model's answer before tree \(k\).</li>
+    <li><b>\(h_k\)</b> is tree \(k\), fitted to the residuals \(r_i\). On a leaf it answers with the average residual of the sharks in that leaf.</li>
+    <li><b>\(\eta\)</b> is the learning rate, between 0 and 1. A small \(\eta\) takes small steps and needs more trees.</li>
+  </ul>
+  <p>Try three experiments. Set \(\eta\) to 1: the first trees remove most of the error, and with stumps the held-out error bottoms out near 0.042 kg after about 60 trees. Set \(\eta\) to 0.05: after 100 trees the model has only just caught up, with a held-out error of 0.041 kg, and it is still improving. Set the depth to 3 with \(\eta\) at 0.3. The training error falls to 0.017 kg, but the held-out error is best at 10 trees (0.040 kg) and then rises to 0.045 kg. The numbers differ by a few thousandths of a kilogram, so look at the two curves in the chart rather than at single values.</p>
+<pre class="code" data-run><code>import numpy as np
+
+def best_stump(x, r):
+    """The cut that lowers the squared error of the left-over values r the most."""
+    order = np.argsort(x)
+    x, r = x[order], r[order]
+    n = len(r)
+    left_sum = np.cumsum(r)[:-1]
+    n_left = np.arange(1, n)
+    right_sum = r.sum() - left_sum
+    n_right = n - n_left
+    gain = left_sum ** 2 / n_left + right_sum ** 2 / n_right   # larger is better
+    gain[x[1:] == x[:-1]] = -np.inf                             # no cut between equal values
+    i = gain.argmax()
+    return (x[i] + x[i + 1]) / 2, left_sum[i] / n_left[i], right_sum[i] / n_right[i]
+
+x = np.array([30., 34., 38., 42., 46., 50., 54., 58.])          # length, cm (made up)
+y = np.array([.07, .11, .17, .24, .31, .42, .52, .66])          # weight, kg (made up)
+eta = 0.3
+F = np.full(len(y), y.mean())                                   # F_0: the average
+for k in range(3):
+    r = y - F                                                   # what is left over
+    cut, left, right = best_stump(x, r)
+    F = F + eta * np.where(x < cut, left, right)                # F_k = F_(k-1) + eta * h_k
+    print(k + 1, cut, round(float(np.sqrt(np.mean((y - F) ** 2))), 4))</code></pre>
+<pre class="out">1 48.0 0.1506
+2 44.0 0.1211
+3 52.0 0.0977</pre>
+  <p>The next block runs the same loop on the 196 training spadenose sharks of the made-up table, with <code>best_stump</code> from the block above. It prints the first stump, then the root-mean-square error (RMSE) on the training and the held-out sharks after 0, 1, 10 and 100 stumps. The first cut, 42.15 cm, is the same first question that a regression tree picks in <a href="../a5-decision-trees/#regression">A5</a>.</p>
+<pre class="code"><code>import numpy as np
+import pandas as pd
+
+df = pd.read_csv("catch.csv")                              # made-up records
+sp = df[df.species == "spadenose"]
+train, test = sp[sp.record_id % 10 &gt;= 3], sp[sp.record_id % 10 &lt; 3]
+x, y = train.length_cm.to_numpy(), train.weight_kg.to_numpy()
+xt, yt = test.length_cm.to_numpy(), test.weight_kg.to_numpy()
+
+eta = 0.3
+F, Ft = np.full(len(y), y.mean()), np.full(len(yt), y.mean())
+rmse_train = [np.sqrt(np.mean((y - F) ** 2))]
+rmse_test = [np.sqrt(np.mean((yt - Ft) ** 2))]
+stumps = []                                                # keep every stump: (cut, left, right)
+for k in range(100):
+    cut, left, right = best_stump(x, y - F)                # best_stump comes from the block above
+    stumps.append((cut, left, right))
+    F = F + eta * np.where(x &lt; cut, left, right)
+    Ft = Ft + eta * np.where(xt &lt; cut, left, right)
+    rmse_train.append(np.sqrt(np.mean((y - F) ** 2)))
+    rmse_test.append(np.sqrt(np.mean((yt - Ft) ** 2)))
+
+cut0, left0, right0 = stumps[0]
+print("first stump:", round(cut0, 2), round(left0, 3), round(right0, 3))
+for k in (0, 1, 10, 100):
+    print(k, round(rmse_train[k], 4), round(rmse_test[k], 4))</code></pre>
+<pre class="out">first stump: 42.15 -0.08 0.144
+0 0.1345 0.1582
+1 0.1105 0.1316
+10 0.0427 0.0473
+100 0.0302 0.0407</pre>
+  <p>For comparison, the depth-3 regression tree of A5 had errors of 0.036 kg and 0.045 kg, and a straight line had 0.047 kg and 0.048 kg. A hundred stumps, too small to be useful alone, do better than both on the held-out sharks.</p>
+  <p>The toy block by hand. The eight weights add up to 2.50 kg, so \(F_0 = 0.3125\), and the leftovers are &minus;0.2425, &minus;0.2025, &minus;0.1425, &minus;0.0725, &minus;0.0025, +0.1075, +0.2075 and +0.3475. The cut at 48.0 cm puts the first five sharks on the left, with an average leftover of &minus;0.1325, and the last three on the right, with +0.2208. Multiply by \(\eta = 0.3\) and the answers are &minus;0.040 and +0.066. So \(F_1\) is 0.273 on the left and 0.379 on the right, and the RMSE falls from 0.194 to 0.151, the first line of the output.</p>
+  <p>Why does the code pick the cut by <code>left_sum ** 2 / n_left + right_sum ** 2 / n_right</code>? If a side answers with its average leftover, the squared error left on that side is \(\sum r^2 - (\sum r)^2/n\). Add the two sides. The total is \(\sum r^2\) over all sharks, which is the same for any cut, minus the two terms of the code. So the best cut is the one that makes those two terms largest.</p>
+  <p>Back to Tag 3646. After stump 1 its model value is 0.2622 and its leftover 0.1678. Stump 2 cuts at 46.15 cm. The 40 sharks on the long side still have leftovers that average 0.1614. The model value moves by \(0.3 \times 0.1614 = 0.0484\), to 0.3106, and the leftover falls to 0.1194. Stump 3 cuts at 35.7 cm and answers +0.0501 for the long side. The model value becomes 0.3256 and the leftover 0.1044. Over three stumps the leftover of this shark falls from 0.211 to 0.168, 0.119 and 0.104 kg.</p>
+  <p>Why residuals? For squared error the loss of one shark is \(\tfrac{1}{2}(y - F)^2\), and its slope with respect to \(F\) is \(-(y - F) = -r\). The residual is the downhill direction. Adding \(\eta\,h_k\) to \(F\) is a step of gradient descent (<a href="../a2-linear-regression/#descent">A2</a>) on the model's answers for the training sharks. A tree cannot move one shark alone, so it moves a whole leaf by its average leftover. For log loss the slope is \(p - y\), and the leftover \(y - p\) of the next section is its negative.</p>
+  <p><b>In practice</b>, \(\eta\) and the number of trees go together: a smaller \(\eta\) needs more trees and usually gives a slightly better model. Set \(\eta\) first, for instance 0.05 to 0.1, and let early stopping (the next section) choose the number of trees. Shallow trees, from stumps to depth 5, are the usual weak learners.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Boosting is a forest with a different name: many trees whose answers are averaged.</p>
+    <p><b>Why it fails.</b> In a forest the trees are grown separately and get equal votes. In boosting tree \(k\) is fitted to the leftovers of trees 1 to \(k-1\), so it cannot be grown before them. The first trees make large moves and the later ones make small corrections.</p>
+    <p><b>Better account.</b> A forest averages independent trees to steady a jumpy answer. Boosting adds dependent trees to remove the error that is left, which lowers the bias, and it can overfit if it runs too long.</p>
+  </div>
+  <div class="break">
+    <p><b>Analogy.</b> Boosting resembles a golfer. The first shot is long and gets near the hole, and the later shots aim at the distance that is left.</p>
+    <p><b>Where it breaks.</b> A golfer sees the hole. A tree sees only the leftovers of the training sharks, and these contain noise, so after many shots the trees start aiming at noise.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Look at the leftovers in the lower plot. A pattern, such as a curve or a wider spread for long sharks, means the model is still missing structure. A cloud with no pattern means more trees will only fit noise. Stop adding trees when the held-out error stops falling (early stopping).</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>In \(F_k = F_{k-1} + \eta\, h_k\), what does a small \(\eta\) do?</summary><p>It scales down a tree's answer, so a step is small and more trees are needed to reach the same error. The same idea as a small learning rate in gradient descent.</p></details>
+    <details><summary>What is a stump fitted to, and what does it answer on either side?</summary><p>It is fitted to the residuals of the model so far. On either side of its cut it answers with the average residual of the sharks on that side.</p></details>
+    <details><summary>A shark has a leftover of 0.20 kg, and a stump answers 0.20 for it. With \(\eta = 0.1\), what are the model's change and the new leftover?</summary><p>The model value rises by \(0.1 \times 0.20 = 0.02\) kg, so the leftover falls from 0.20 to 0.18 kg. A small \(\eta\) removes only a tenth of what the stump sees.</p></details>
+  </div>
+</section>
+
+<!-- ================= 3. Boundary ================= -->
+<section id="boundary" aria-labelledby="boundary-h">
+  <h2 id="boundary-h">Many small trees draw a boundary</h2>
+  <p class="ask"><b>Guess first.</b> Boosting also answers yes/no questions. After 100 trees on length and depth, will its boundary be one clean line, or a patchwork? Will it find more of the held-out sharks than the single tree of A5, which got 86.0% right?</p>
+  <dl class="terms">
+    <div><dt>score</dt><dd>\(F(\mathbf{x})\): the model's number before the sigmoid, as \(z\) in <a href="../a3-logistic-regression/#sigmoid">A3</a></dd></div>
+    <div><dt>log loss</dt><dd>the loss from <a href="../a3-logistic-regression/#logloss">A3</a>: low when the chance given to the true class is high</dd></div>
+    <div><dt>early stopping</dt><dd>stopping at the number of trees where the held-out loss is lowest</dd></div>
+  </dl>
+  <p class="claim">A new tree nudges the scores of the sharks in its boxes, so the boundary sharpens, and past a point it starts to follow noise.</p>
+  <div class="card bl" id="bd"></div>
+  <p class="cap"><b>The held-out loss is lowest near 45 trees, at 0.324, and rises to 0.390 by 300 trees while the training loss keeps falling.</b> Press Play, then try a learning rate of 1 and of 0.01, and switch the depth between 1 and 4.</p>
+  <p>The model starts with a score that gives all sharks the same chance, the share of spadenose among the training sharks (45%). A new tree adds a score to the sharks in its boxes, so the colour moves toward coral or navy there. The first trees draw the big box that A5's tree drew. Later trees add small patches. Watch the black line, where the chance is 0.5, grow ragged around the training sharks as the trees multiply.</p>
+  <p>The leftover for a yes/no question is the gap between the label and the model's current chance: \(y - p\). A leaf answers with the sum of these gaps divided by a count of how uncertain its sharks are, plus a penalty (next section). The score then goes through the sigmoid, \(p = \sigma(F_k)\), as in <a href="../a3-logistic-regression/#sigmoid">A3</a>.</p>
+  <p class="math">\[ p_i = \sigma\bigl(F_k(\mathbf{x}_i)\bigr) \qquad r_i = y_i - p_i \qquad F_k(\mathbf{x}) = F_{k-1}(\mathbf{x}) + \eta\, h_k(\mathbf{x}) \]</p>
+  <ul class="math-notes">
+    <li><b>\(F_k(\mathbf{x})\)</b> is the score after \(k\) trees. The sigmoid \(\sigma\) turns the score into the chance \(p_i\) that shark \(i\) is a spadenose.</li>
+    <li><b>\(y_i\)</b> is 1 for a spadenose shark and 0 for any other shark, so the leftover \(r_i\) is how far the chance is from the right answer. \(h_k\) is tree \(k\), fitted to these leftovers, and \(\eta\) is the learning rate.</li>
+  </ul>
+  <p>The learning rate and the number of trees trade against one another. At \(\eta = 1\), 100 trees reach 99.8% on the training sharks and 82.3% on the held-out sharks. The held-out loss is 0.519, far above the 0.324 that a gentler model reaches. At \(\eta = 0.01\), 100 trees have hardly moved the score from the average. Training accuracy is 91.3% and held-out accuracy 86.0%, but the held-out loss is 0.406 and keeps falling to 0.327 at 300 trees. A small \(\eta\) with many trees is slower but gentler.</p>
+  <p>The boosted model does not beat the single tree here. At its best it gets about 85% of the held-out sharks right, against 86.0% for the depth-2 tree, and the difference is within noise. With two inputs the true boundary is close to a box, which one small tree already draws, and the extra flexibility is a risk. A boosted model pays off when the boundary is intricate. The <a href="../t8-charts/#matrix">confusion matrices in 0.8</a> show a species task with six measurements. There a depth-3 tree and a boosted model have almost the same accuracy but differ on the rare Ganges shark.</p>
+  <p>Some numbers for the 2D model. Before any tree, all training sharks get the chance 196/436 = 0.4495 of being a spadenose. XGBoost estimates this start from the labels. It is the score \(F_0 = \ln(0.4495/0.5505) = -0.203\). The log loss of this start is 0.688, only a little below the 0.693 of always saying 0.5. One tree of depth 3 with \(\eta = 0.1\) lowers the training loss to 0.620. The code below prints the losses after more trees.</p>
+  <p>The held-out loss falls to 0.324 at 45 trees. Read it as a chance: the model gives the true class a typical chance of \(e^{-0.324} = 0.72\). Then the held-out loss rises to 0.344 at 100 trees and 0.390 at 300, while the training loss keeps falling to 0.085. The model has begun to memorise the training sharks.</p>
+  <p><b>In practice</b>, let the library stop for you. Carve a validation set out of the training sharks, pass it to <code>fit</code> as the <code>eval_set</code>, and set <code>early_stopping_rounds=20</code>. It stops 20 trees after the validation loss last improved, and it records the best round. A small \(\eta\) makes the minimum wide and flat, so the stopping point matters less. The held-out sharks stay untouched for the final score.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Boosting beats a single tree.</p>
+    <p><b>Why it fails.</b> On this task it ties at best. At \(\eta = 1\) it is worse, because it memorises the training sharks: 99.8% right on them and 82.3% on the held-out sharks.</p>
+    <p><b>Better account.</b> A boosted model has dials (trees, learning rate, depth, penalty) that must be set by held-out loss. Compare the result with the simpler model, and do not credit boosting for what the data allow anyway.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When the held-out loss rises while the training loss falls, there are too many trees for this learning rate. Choose the number of trees on a validation set cut from the training sharks, and keep the held-out sharks for one final check (<a href="../a4-grading-models/#splits">A4</a>). Choosing it on the held-out sharks makes the final score too good.</p>
+  </div>
+<pre class="code"><code>import numpy as np, pandas as pd, xgboost as xgb
+
+df = pd.read_csv("catch.csv")                  # made-up records
+df["spadenose"] = (df.species == "spadenose").astype(int)
+held = df.record_id % 10 &lt; 3
+X = ["length_cm", "depth_m"]
+tr, he = df[~held], df[held]
+
+model = xgb.XGBClassifier(n_estimators=300, max_depth=3, learning_rate=0.1,
+                          reg_lambda=1, tree_method="exact", random_state=0,
+                          eval_metric="logloss")
+model.fit(tr[X], tr.spadenose, verbose=False,
+          eval_set=[(tr[X], tr.spadenose), (he[X], he.spadenose)])
+loss = model.evals_result()
+train_loss = np.array(loss["validation_0"]["logloss"])
+held_loss = np.array(loss["validation_1"]["logloss"])
+for k in (1, 10, 45, 100, 300):
+    print(f"{k:3d} trees: train {train_loss[k - 1]:.3f}  held-out {held_loss[k - 1]:.3f}")
+print("lowest held-out loss:", held_loss.argmin() + 1, "trees,", round(held_loss.min(), 3))</code></pre>
+<pre class="out">  1 trees: train 0.620  held-out 0.629
+ 10 trees: train 0.333  held-out 0.404
+ 45 trees: train 0.188  held-out 0.324
+100 trees: train 0.145  held-out 0.344
+300 trees: train 0.085  held-out 0.390
+lowest held-out loss: 45 trees, 0.324</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The training loss falls from tree 1 to tree 300, and the held-out loss falls and then rises. Where would you stop, and why?</summary><p>Near the lowest held-out loss, about 45 trees here. After it the trees fit noise in the training sharks, which does not help new sharks.</p></details>
+    <details><summary>Why does a small learning rate need more trees?</summary><p>A tree moves the scores by only a small share of its answer. It takes many such steps to reach a score as far from the average as a large \(\eta\) reaches in a few.</p></details>
+    <details><summary>A model gives the true class a chance of 0.8 for all records. What is its log loss?</summary><p>The loss of one record is \(-\ln 0.8 = 0.223\), and the average of identical values is the same, 0.223. A model that gives 0.5 to all records scores \(\ln 2 = 0.693\).</p></details>
+  </div>
+</section>
+
+<!-- ================= 4. XGBoost ================= -->
+<section id="xgboost" aria-labelledby="xgboost-h">
+  <h2 id="xgboost-h">What XGBoost adds: a penalty on small leaves</h2>
+  <p class="ask"><b>Guess first.</b> One leaf has 2 sharks whose leftovers add up to 0.10 kg. Another leaf has 120 sharks whose leftovers add up to 6.0 kg. Both average 0.05 kg. Should the model trust the two leaves equally?</p>
+  <dl class="terms">
+    <div><dt>XGBoost</dt><dd>a library that fits boosted trees quickly, with the penalties below (Chen and Guestrin)</dd></div>
+    <div><dt>regularisation</dt><dd>a penalty that discourages the model from fitting noise</dd></div>
+    <div><dt>\(\lambda\)</dt><dd>the leaf penalty: added to the count of sharks in a leaf's denominator</dd></div>
+    <div><dt>\(\gamma\)</dt><dd>the least improvement a split must give, or the tree does not make it</dd></div>
+  </dl>
+  <p class="claim">XGBoost shrinks the answer of a leaf with few sharks more than the answer of a leaf with many, so a few unusual sharks cannot move the model far.</p>
+  <div class="card bl" id="lf"></div>
+  <p class="cap"><b>With \(\lambda = 3\), a leaf of 2 sharks answers with 40% of its plain average, a leaf of 12 with 80% and a leaf of 120 with 98%.</b> Slide \(\lambda\) up to 20 and watch the small leaf fade first.</p>
+  <p>A leaf's plain answer is the average of its leftovers, the sum divided by the count. XGBoost divides by the count plus \(\lambda\). With \(\lambda = 0\) the answer is the plain average. With \(\lambda = 3\), the sum 0.10 over \(2 + 3\) gives 0.020, where the plain average is 0.050, and the sum 6.0 over \(120 + 3\) gives 0.049. A two-shark leaf is probably noise, so its answer is pulled toward zero, and a leaf with 120 sharks keeps almost all of its answer. The 1D and 2D figures have a \(\lambda\) slider too. In the 2D figure, set \(\lambda\) to 20 and play to 300 trees: the held-out loss at 300 trees falls from 0.390 to 0.330.</p>
+  <p class="math">\[ h_{\text{leaf}} = \frac{\sum_{i\,\in\,\text{leaf}} r_i}{n_{\text{leaf}} + \lambda}, \qquad \text{gain} = \tfrac{1}{2}\Big[\tfrac{G_L^{2}}{H_L+\lambda} + \tfrac{G_R^{2}}{H_R+\lambda} - \tfrac{(G_L+G_R)^{2}}{H_L+H_R+\lambda}\Big] - \gamma \]</p>
+  <ul class="math-notes">
+    <li><b>\(r_i\)</b> is the residual of shark \(i\), and <b>\(n_{\text{leaf}}\)</b> the number of sharks in the leaf. The first formula is the simplified form for squared error.</li>
+    <li><b>\(G\)</b> and <b>\(H\)</b> are the sums over a side of the first and second slopes of the loss (<a href="../t6-gradients/#curvature">0.6</a>). For squared error \(G = -\sum r_i\) and \(H = n\), which gives the first formula. For yes/no labels, \(H\) is the sum of \(p(1-p)\) over the sharks.</li>
+    <li><b>\(L\)</b> and <b>\(R\)</b> mark the two sides of a split. The gain compares the two leaves with the leaf they replace, and the split is made only if the gain is above zero after subtracting \(\gamma\).</li>
+  </ul>
+  <p>These formulas come from the XGBoost documentation. A tree is allowed to grow only while splits have a positive gain. So the dials are the number of trees, the learning rate \(\eta\), the depth, \(\lambda\) and \(\gamma\). This is how a few lines produce the six-measurement model of the next two sections (the code keeps the table's made-up records):</p>
+<pre class="code"><code>import pandas as pd, xgboost as xgb
+
+df = pd.read_csv("catch.csv")                              # made-up records
+df["spadenose"] = (df.species == "spadenose").astype(int)
+held = df.record_id % 10 &lt; 3
+F6 = ["length_cm", "weight_kg", "girth_cm", "depth_m", "temp_c", "month"]
+
+model = xgb.XGBClassifier(n_estimators=100, max_depth=3, learning_rate=0.1,
+                          tree_method="exact", random_state=0)
+model.fit(df[~held][F6], df[~held].spadenose)
+print("train", round(model.score(df[~held][F6], df[~held].spadenose), 4),
+      "held-out", round(model.score(df[held][F6], df[held].spadenose), 4))</code></pre>
+<pre class="out">train 0.9748 held-out 0.8537</pre>
+  <p>The model gets 97.5% of the training sharks right and 85.4% of the held-out sharks, about the same as the model that sees only length and depth. The extra measurements add little accuracy here.</p>
+  <p>Now the leaf formula for a yes/no question, with numbers. In the 2D model all sharks start at the chance \(p = 196/436 = 0.4495\). Take the 161 training sharks longer than 59.85 cm. All are other sharks, so \(y = 0\), and the leftover of a shark is \(y - p = -0.4495\). The leftovers add up to &minus;72.4. A shark has \(p(1-p) = 0.2475\), and these add up to 39.8. With \(\lambda = 1\) the leaf answers:</p>
+  <div class="eqn" role="img" aria-label="Leaf value for the 161 long sharks: minus 72.4 divided by 39.8 plus 1, times 0.1, equals minus 0.177"><span class="t c-navy"><b>&minus;72.4</b><i>sum of leftovers: 161 &times; (&minus;0.4495)</i></span><span class="op">&divide;</span><span class="t"><b>40.8</b><i>sum of p(1 &minus; p), 39.8, plus &lambda; = 1</i></span><span class="op">&times;</span><span class="t c-sand"><b>0.1</b><i>learning rate &eta;</i></span><span class="op">=</span><span class="t c-teal"><b>&minus;0.177</b><i>added to the score of all 161 sharks</i></span></div>
+  <p>The score of these sharks moves from &minus;0.203 to &minus;0.380, a chance of 0.406. The first tree of the library's model for the 2D setting has this leaf, with the value &minus;0.1772. The penalty touches a big leaf lightly: \(\lambda = 1\) keeps 97.6% of the plain value here (39.8 / 40.8). For a leaf of 3 sharks, \(\sum p(1-p)\) is 0.74, and \(\lambda = 1\) keeps only 43% of the plain value (0.74 / 1.74).</p>
+  <p>The gain formula needs numbers too. Use the first split of the weight example in <a href="../a5-decision-trees/#regression">A5</a>, with squared error. Of the 196 training sharks, 126 are shorter than 42.15 cm and 70 are longer. The leftovers around the average add up to &minus;10.07 on the left and +10.07 on the right. So \(G_L = +10.07\), \(G_R = -10.07\), \(H_L = 126\) and \(H_R = 70\), and the parent term is zero because \(G_L + G_R = 0\). The gain is half the sum of the two fractions, less \(\gamma\):</p>
+  <table class="tbl" style="max-width: 36em" aria-label="Gain of the first split of the weight example for four values of lambda">
+    <tr><th>&lambda;</th><th>left term \(G_L^2/(H_L+\lambda)\)</th><th>right term \(G_R^2/(H_R+\lambda)\)</th><th>gain (with &gamma; = 0)</th></tr>
+    <tr><td>0</td><td>0.804</td><td>1.448</td><td>1.126</td></tr>
+    <tr class="pick"><td>1</td><td>0.798</td><td>1.428</td><td>1.113</td></tr>
+    <tr><td>3</td><td>0.786</td><td>1.388</td><td>1.087</td></tr>
+    <tr><td>20</td><td>0.694</td><td>1.126</td><td>0.910</td></tr>
+  </table>
+  <p class="mini-note">Made-up records, spadenose sharks, squared error. The marked row is the XGBoost default, \(\lambda = 1\).</p>
+  <p>With \(\lambda = 0\) the gain is half the drop in squared error found in A5 (2.252 / 2 = 1.126). A larger \(\lambda\) lowers the gain of all splits, and lowers it more when the sides are small. A split is made only if the gain beats \(\gamma\). With \(\gamma = 1\) this split is made at \(\lambda = 1\), since 1.113 &minus; 1 is positive, and refused at \(\lambda = 20\), since 0.910 &minus; 1 is negative.</p>
+  <p><b>In practice</b>, XGBoost's defaults are \(\eta = 0.3\), depth 6, \(\lambda = 1\) and \(\gamma = 0\). It also asks for a sum of \(H\) of at least 1 in a leaf (<code>min_child_weight</code>). For yes/no labels \(H\) is at most 0.25 per shark, so that minimum forbids leaves of fewer than 4 sharks. The scikit-learn wrapper builds 100 trees unless you say otherwise. For a table of a few hundred rows, depth 3 to 5 and \(\eta\) from 0.01 to 0.1 with early stopping are a more usual start. Set \(\eta\) and the depth first, then tune \(\lambda\) and \(\gamma\) one at a time on validation data.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A penalty only makes a model worse, because it pulls the answers away from the data.</p>
+    <p><b>Why it fails.</b> The answers it pulls hardest are those of leaves with few sharks, which are mostly noise. In the 2D figure the held-out loss at 300 trees is 0.390 with \(\lambda = 1\) and 0.330 with \(\lambda = 20\).</p>
+    <p><b>Better account.</b> A penalty trades a little fit to the training sharks for steadiness on new ones. Treat \(\lambda\) and \(\gamma\) as dials and set them by held-out loss.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If training accuracy is near 100% and held-out accuracy is far lower, raise \(\lambda\) or \(\gamma\), lower the depth, lower \(\eta\) and stop earlier. Change one dial at a time and keep a table of the held-out loss.</p>
+  </div>
+<pre class="code" data-run><code>import numpy as np
+
+p = 196 / 436            # all sharks start at the same chance of "spadenose"
+n = 161                  # sharks longer than 59.85 cm: all other sharks, y = 0
+G = n * p                # sum of (p - y) over the leaf
+H = n * p * (1 - p)      # sum of p(1 - p) over the leaf
+print("G", round(G, 2), "  H", round(H, 2))
+for lam in (0, 1, 3):
+    w = -G / (H + lam)
+    print(f"lambda {lam}: leaf {w:.3f}, after eta = 0.1: {0.1 * w:.4f}")</code></pre>
+<pre class="out">G 72.38   H 39.84
+lambda 0: leaf -1.817, after eta = 0.1: -0.1817
+lambda 1: leaf -1.772, after eta = 0.1: -0.1772
+lambda 3: leaf -1.689, after eta = 0.1: -0.1689</pre>
+  <div class="bridge"><p><b>Bridge to my project.</b> My diabetes screening report used XGBoost with feature-importance explanations. A rebuilt model with 100 trees of depth 3 and a learning rate of 0.01 gets 78.6% of 154 held-out women right. The data are the Pima data: 768 women of Pima heritage, measured in the United States, so not data from Mumbai. The dials above are the ones I had to set. Read more in my <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">diabetes primer</a>.</p></div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Leaf A has 4 sharks with leftovers adding up to 0.2 kg, and \(\lambda = 4\). What does the leaf answer, and what is the plain average?</summary><p>The answer is \(0.2/(4+4) = 0.025\) kg. The plain average is \(0.2/4 = 0.05\) kg, so the penalty halves it.</p></details>
+    <details><summary>What does \(\gamma\) do?</summary><p>It subtracts a fixed cost from the gain of any split, so a split that improves the score by less than \(\gamma\) is not made.</p></details>
+    <details><summary>A split has \(G_L = 4\), \(H_L = 10\), \(G_R = -4\), \(H_R = 6\), with \(\lambda = 2\) and \(\gamma = 0.5\). Find its gain. Is the split made?</summary><p>The parent term is \((4 - 4)^2/(16 + 2) = 0\). The gain is \(\tfrac{1}{2}[16/12 + 16/8 - 0] - 0.5 = \tfrac{1}{2}(1.333 + 2) - 0.5 = 1.17\). It is positive, so the split is made.</p></details>
+  </div>
+</section>
+
+<!-- ================= 5. Importance ================= -->
+<section id="importance" aria-labelledby="importance-h">
+  <h2 id="importance-h">Which inputs matter? Four answers</h2>
+  <p class="ask"><b>Guess first.</b> In the six-measurement model, the trees ask about length 84 times and about weight 82 times. Which of the two matters more to the model's calls? How would you check?</p>
+  <dl class="terms">
+    <div><dt>feature importance</dt><dd>any number that says how much a model relies on an input</dd></div>
+    <div><dt>split count</dt><dd>how many times the trees ask about an input</dd></div>
+    <div><dt>gain</dt><dd>the average improvement in the training score per question about an input</dd></div>
+    <div><dt>shuffle test</dt><dd>shuffle one input among the held-out sharks and see how much accuracy drops (also called permutation importance)</dd></div>
+  </dl>
+  <p class="claim">The four common importance measures can disagree, because they answer different questions.</p>
+  <div class="card bl" id="im"></div>
+  <p class="cap"><b>Length is asked about 84 times, more often than weight (82), yet shuffling length costs 0.1 points of held-out accuracy and shuffling weight costs 8.1.</b> Click a row, then run 50 shuffles for an input and watch the dots.</p>
+  <p>Weight is the clear leader in gain (17.95) and the shuffle test (8.1 points) and in SHAP, which comes in the next section. The split count disagrees: depth is asked about 122 times and girth 98, more than weight. The count measures how often the trees ask, not how much any answer changes. Length is a good example. The made-up weights follow a law of length, and the girths are built from the weights, so weight and girth contain nearly all the information that length has. Once the trees have asked about weight, a question about length only adjusts a score slightly, so it is asked often and moves little.</p>
+  <p>The shuffle test is direct. It keeps the values of a column but breaks their link to the shark. If the held-out accuracy falls, the model was using the input. Water temperature gets a shuffle cost of &minus;3.0 points. Shuffling it makes the model more accurate, because the model had learned a pattern from temperature in the training sharks that does not apply to new ones. Month costs no accuracy.</p>
+  <div class="eqn" role="img" aria-label="Importance of weight equals 85.37 percent minus 77.22 percent, about 8.15 points"><span class="op"><i>I</i> =</span><span class="t c-coral"><b>8.15</b><i>points lost, weight</i></span><span class="op">=</span><span class="t"><b>85.37%</b><i>held-out accuracy as it is</i></span><span class="op">&minus;</span><span class="t c-teal"><b>77.22%</b><i>with weight shuffled (mean of 50)</i></span></div>
+  <p class="math">\[ I_j = \text{accuracy}(\text{held-out sharks}) - \text{accuracy}(\text{held-out sharks with column } j \text{ shuffled}) \]</p>
+  <ul class="math-notes">
+    <li><b>\(I_j\)</b> is the shuffle importance of input \(j\), in points of accuracy. A repeat of the shuffle gives a slightly different value, so the figure averages 50 shuffles.</li>
+    <li>A negative \(I_j\) means that shuffling the input helped, which suggests the model fitted noise in it.</li>
+  </ul>
+  <p>Does a shuffle cost of 0.1 mean length is useless? No. The check is to drop it and retrain. The model without length gets 85.4% of the held-out sharks right, the same score as the model with all six, so for this model length is redundant. A model that sees only length and depth gets 84.8%, and one that sees weight alone gets 82.9%. Length is unimportant to this model because two other inputs repeat it. A shuffle test can underrate an input whose information appears elsewhere, since the model leans on the copy.</p>
+  <p>The gain column explains part of the disagreement. The figure lists the average gain per question: weight 17.95, girth 6.34, depth 3.52 and length 1.32. Multiply by the count to get the total gain of an input. Weight gives 82 &times; 17.95 &asymp; 1,472, girth 98 &times; 6.34 &asymp; 621, depth 122 &times; 3.52 &asymp; 430 and length 84 &times; 1.32 &asymp; 111. Depth is asked about most often, but its questions gain little, so its total is under a third of weight's. Gain is still measured on the training sharks, so it can overrate an input just as a count does.</p>
+  <p>Now the shuffle arithmetic. The model gets 140 of the 164 held-out sharks right. With weight shuffled it gets 126.6 right on average, so it loses 13.4 sharks, about 8.1 points. A single shuffle is noisy. The cost of one shuffle of weight swings by about 2.5 points (one SD) around its average, so the figure averages 50 of them. The error of that average is about \(2.5/\sqrt{50} = 0.35\) points.</p>
+  <p>Shuffling has a limit too. It can build sharks that cannot exist, such as a 40 cm shark with the weight of a 90 cm one, and the model has seen none like that. Part of the cost then measures how the model behaves in odd places. <b>In practice</b>, run the shuffle test on held-out or validation sharks, repeat it, and plant a random column as a control. Scikit-learn's <code>permutation_importance</code> repeats the shuffles for you with <code>n_repeats</code>.</p>
+  <div class="break">
+    <p><b>Common belief.</b> The input a model asks about most often is the one that matters most.</p>
+    <p><b>Why it fails.</b> A count includes the many small adjustments of questions that change almost no calls. A column of random numbers can be asked about often too. Adding one to the model, a column of normal random numbers, gets it asked about 73 times, more than length (47) or temperature (42) in that run. Shuffling it costs about 1 point, which is within the noise of the test.</p>
+    <p><b>Better account.</b> Measure the effect directly, with a shuffle test or SHAP values, and say which question a number answers. Where two measures disagree, find out why before reporting either.</p>
+  </div>
+  <div class="bridge"><p><b>Bridge to my project.</b> My <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">diabetes primer</a> shows the same pattern on the Pima data: the rebuilt model's trees ask about blood pressure 52 times, and shuffling it costs no accuracy. My report ranked inputs with XGBoost's importance chart, which counts questions.</p></div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Rank the inputs by one measure and then check the top three with another. A shuffle test needs held-out sharks and many repeats, because one shuffle is noisy: run it 50 times and look at the spread of the dots. Plant a column of random numbers as a control.</p>
+  </div>
+<pre class="code"><code>import numpy as np
+
+booster = model.get_booster()                  # the model of the last section
+counts = booster.get_score(importance_type="weight")
+print("split counts:", {k: int(v) for k, v in counts.items()})
+
+rng = np.random.default_rng(4127)              # the seed of the figure
+Xh, yh = df[held][F6], df[held].spadenose.to_numpy()
+base = (model.predict(Xh) == yh).mean()
+print("held-out accuracy", round(base, 4))
+for col in F6:
+    cost = []
+    for _ in range(50):                        # 50 shuffles of one column
+        Xs = Xh.copy()
+        Xs[col] = rng.permutation(Xs[col].to_numpy())
+        cost.append(base - (model.predict(Xs) == yh).mean())
+    print(f"{col:10s} shuffle cost {100 * np.mean(cost):5.1f} points"
+          f"   (sd {100 * np.std(cost):.1f})")</code></pre>
+<pre class="out">split counts: {'length_cm': 84, 'weight_kg': 82, 'girth_cm': 98, 'depth_m': 122, 'temp_c': 52, 'month': 32}
+held-out accuracy 0.8537
+length_cm  shuffle cost   0.1 points   (sd 1.1)
+weight_kg  shuffle cost   8.1 points   (sd 2.5)
+girth_cm   shuffle cost   3.3 points   (sd 2.1)
+depth_m    shuffle cost   3.5 points   (sd 1.7)
+temp_c     shuffle cost  -3.0 points   (sd 0.9)
+month      shuffle cost  -0.1 points   (sd 0.8)</pre>
+  <p>The split counts and the shuffle costs match the figure, because the shuffles use its seed. The sd is the spread of the cost over single shuffles, and it is large next to the cost of length.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>What does a split count measure that a shuffle test does not?</summary><p>It measures how often the trees ask about an input. It does not show how much those questions change the calls, which is what the shuffle test checks.</p></details>
+    <details><summary>Shuffling water temperature raises held-out accuracy by 3 points. What does that suggest?</summary><p>The model fitted a pattern in temperature that applies to the training sharks only. Shuffling removes the pattern, so the calls improve. The input is worse than useless for this model.</p></details>
+    <details><summary>Input A is asked about 100 times with an average gain of 0.5. Input B is asked about 20 times with an average gain of 5. Which has the larger total gain?</summary><p>A has \(100 \times 0.5 = 50\) and B has \(20 \times 5 = 100\). B has twice the total gain, although it is asked about a fifth as often.</p></details>
+  </div>
+</section>
+
+<!-- ================= 6. SHAP ================= -->
+<section id="shap" aria-labelledby="shap-h">
+  <h2 id="shap-h">Sharing out a score: SHAP values</h2>
+  <p class="ask"><b>Guess first.</b> The model gives Tag 3305, the Sassoon spadenose, a score of 4.00, which is a 98% chance of spadenose. The model's average score is &minus;0.24. The 4.24 points between them are shared out among six measurements. Which measurement gets the biggest share, and which the smallest?</p>
+  <dl class="terms">
+    <div><dt>average score</dt><dd>the model's score for a typical training shark, the starting point of the waterfall</dd></div>
+    <div><dt>SHAP value</dt><dd>\(\phi_j\): an input's share of the gap between a shark's score and the average score</dd></div>
+    <div><dt>Shapley value</dt><dd>the game idea behind it: an input's added effect, averaged over all orders in which the inputs could be revealed</dd></div>
+    <div><dt>waterfall</dt><dd>a chart that adds the shares one by one from the average score to the shark's score</dd></div>
+  </dl>
+  <p class="claim">A shark's score is the average score plus one share per input. A share is the input's average added effect over all 720 orders in which the six measurements could be revealed.</p>
+  <div class="card bl" id="wf"></div>
+  <p class="cap"><b>For Tag 3305 the shares add up to 4.24: weight +2.05, girth +1.14, depth +0.52, month +0.32, length +0.19 and temperature +0.02.</b> Switch to "One order" to see one way of revealing the measurements, press "Another order", and click a row to see its step in all 720 orders.</p>
+  <p>Imagine the model first knowing none of the measurements, so it answers with the average score. Now reveal the measurements one at a time. After a reveal the expected score moves. A measurement's step depends on the order: weight adds more when it comes first than when girth, which says nearly the same, has come before. So take all orders and average a measurement's steps. There are \(6! = 720\) orders (<a href="../t4-discrete-maths/#counting">0.4</a>). In the "One order" view, the diamonds mark the average step, and the coral or navy bars are the steps of that one order. The strip on the right shows the 720 steps of one input, and their average is its SHAP value.</p>
+  <p>How can a tree ensemble score a shark when some measurements are unknown? For a known measurement the trees follow the shark's value. For an unknown one the trees split their answer between both branches, in proportion to the share of training sharks that went either way. The figure does this for all \(2^6 = 64\) sets of known measurements and combines them. For 30 inputs that would be a billion sets, so TreeSHAP (Lundberg et al.) shares the work along the paths of the trees, and XGBoost's <code>pred_contribs</code> uses that method.</p>
+  <p class="math">\[ F(\mathbf{x}) = \phi_0 + \sum_{j=1}^{d} \phi_j, \qquad \phi_j = \sum_{S \subseteq \{1,\dots,d\}\setminus\{j\}} \frac{|S|!\,(d-|S|-1)!}{d!}\,\big[v(S\cup\{j\}) - v(S)\big] \]</p>
+  <ul class="math-notes">
+    <li><b>\(F(\mathbf{x})\)</b> is the shark's score, <b>\(\phi_0\)</b> the average score, and <b>\(\phi_j\)</b> the SHAP value of input \(j\). The first formula is the sum in the equation boxes of the figure.</li>
+    <li><b>\(S\)</b> is a set of inputs already revealed, <b>\(d\)</b> is the number of inputs (6), and <b>\(v(S)\)</b> is the model's expected score when only the inputs in \(S\) are known.</li>
+    <li>The fraction is the share of the \(d!\) orders in which only the inputs of \(S\) come before \(j\), so the sum is an average over orders.</li>
+  </ul>
+  <p>The same numbers from the library, for Tag 3305. The last value is the average score, and the shares plus the average add up to the model's own score:</p>
+<pre class="code"><code>booster = model.get_booster()                                # the model from the last section
+tag = df[df.record_id == 3305][F6]                           # the Sassoon spadenose
+shares = booster.predict(xgb.DMatrix(tag), pred_contribs=True)[0]
+print([round(float(v), 2) for v in shares])                  # six shares, then the average score
+print(round(float(shares.sum()), 2), round(float(booster.predict(xgb.DMatrix(tag), output_margin=True)[0]), 2))</code></pre>
+<pre class="out">[0.19, 2.05, 1.14, 0.52, 0.02, 0.32, -0.24]
+4.0 4.0</pre>
+  <p>Now press Tag 4127, the juvenile bamboo shark from the Juhu rock pool. Its score is &minus;3.74, a 2% chance of spadenose. The depth of 0.4 m gets the share &minus;3.51, far more than the others, because nearly all rock-pool animals in the table are not spadenose. Tag 5519, the young hammerhead, scores &minus;5.37, mostly from its weight (&minus;2.24) and girth (&minus;2.32): it is a big, heavy shark for a spadenose.</p>
+  <p>Tag 4127 adds up the same way. The average score is &minus;0.24. The shares are length &minus;0.24, weight +0.63, girth 0.00, depth &minus;3.51, temperature &minus;0.08 and month &minus;0.30. The sum is &minus;3.74, a chance of \(\sigma(-3.74) = 0.023\). Weight pushes the score toward spadenose, and the depth share outweighs it by far.</p>
+  <p>Now a check on the fraction in the formula, for \(d = 6\). The weight of a set \(S\) is the share of the 720 orders in which the inputs of \(S\), and no others, come before \(j\). The inputs of \(S\) can be ordered in \(|S|!\) ways, then \(j\), then the other \(d - |S| - 1\) inputs in \((d - |S| - 1)!\) ways. With \(|S| = 0\) that is \(0! \times 5! = 120\) orders, a weight of 120/720 = 1/6. With \(|S| = 2\) it is \(2! \times 3! = 12\) orders, a weight of 1/60. The table gives all sizes.</p>
+  <table class="tbl" style="max-width: 36em" aria-label="Weights of the subsets in the SHAP formula for six inputs">
+    <tr><th>size of \(S\)</th><th>sets of that size</th><th>weight of one set</th><th>weight of all of them</th></tr>
+    <tr><td>0</td><td>1</td><td>1/6</td><td>1/6</td></tr>
+    <tr><td>1</td><td>5</td><td>1/30</td><td>1/6</td></tr>
+    <tr><td>2</td><td>10</td><td>1/60</td><td>1/6</td></tr>
+    <tr><td>3</td><td>10</td><td>1/60</td><td>1/6</td></tr>
+    <tr><td>4</td><td>5</td><td>1/30</td><td>1/6</td></tr>
+    <tr><td>5</td><td>1</td><td>1/6</td><td>1/6</td></tr>
+    <tr class="pick"><td>all</td><td>32</td><td></td><td>1</td></tr>
+  </table>
+  <p class="mini-note">The 32 sets are the subsets of the five other inputs, \(2^5 = 32\).</p>
+  <p>The sets of one size share a sixth of the weight. So \(\phi_j\) is the plain average of six numbers, where the number for size \(s\) is the average step of \(j\) over the sets of size \(s\).</p>
+  <p>Why this rule for sharing? Lundberg and Lee (2017) show that one rule, and only one, meets three demands. The shares add up to the score. An input the model never uses gets zero. An input's share never falls when the model comes to rely on it more. The SHAP value is that rule.</p>
+  <p>Inputs that repeat one another split the credit. Tag 3305's weight and girth get +2.05 and +1.14 although they contain almost the same information. A small share does not prove that an input is unneeded, which is the limit the shuffle test had for length.</p>
+  <p><b>In practice</b>, the shares are in score units (log-odds), so add them to the average score and apply the sigmoid to get a chance. The mean of the absolute shares over a set of sharks gives a ranking of the inputs. The code below does this for the 164 held-out sharks. The order is weight, girth, depth, length, month and temperature, which differs from the split counts, where depth came first.</p>
+<pre class="code"><code># 164 rows: six shares, then the average score
+all_shares = booster.predict(xgb.DMatrix(df[held][F6]), pred_contribs=True)
+mean_abs = np.abs(all_shares[:, :6]).mean(axis=0)
+for name, v in zip(F6, mean_abs):
+    print(f"{name:10s} mean |share| {v:.2f}")
+print("average score", round(float(all_shares[0, 6]), 2))</code></pre>
+<pre class="out">length_cm  mean |share| 0.52
+weight_kg  mean |share| 1.76
+girth_cm   mean |share| 1.38
+depth_m    mean |share| 0.58
+temp_c     mean |share| 0.20
+month      mean |share| 0.30
+average score -0.24</pre>
+  <div class="break">
+    <p><b>Common belief.</b> A SHAP value shows what made the shark the species that it is.</p>
+    <p><b>Why it fails.</b> It explains the model, not the shark. Press "A wrong call". Tag 8512 is a bamboo shark of 42.4 cm and 0.157 kg, and the model gives it a 99% chance of spadenose. The shares are correct for the model: weight +1.99 and girth +1.28, because the shark is light and slim and the model reads that as spadenose. The explanation is accurate and the call is wrong. The model also gets 24 of the 164 held-out sharks wrong.</p>
+    <p><b>Better account.</b> A SHAP waterfall says why the model gave this score. Use it to find odd reasons and to question the model, then check against the data. Also note that the sliders can build a shark that could not exist, and the model still answers.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Check that the shares add up: the average score plus all the shares must equal the model's own score, as the two numbers 4.0 and 4.0 above do. If they differ, you may have mixed scores with probabilities.</p>
+  </div>
+  <div class="bridge"><p><b>Bridge to my project.</b> My <a href="https://rayhaan1345.github.io/projects/diabetes-screening/">project page</a> has an "Explain one score" panel that runs this kind of calculation in the browser, and my <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">primer</a> builds the same idea for one woman's score.</p></div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why is the SHAP value an average over orders instead of one step?</summary><p>A measurement's step depends on which measurements were revealed before it, especially when inputs repeat one another. Averaging over all orders gives an input a fair share that does not depend on one chosen order.</p></details>
+    <details><summary>The shares for one shark are +1.0, +0.5 and &minus;0.2, and the average score is &minus;0.3. What is the shark's score and its chance?</summary><p>The score is \(-0.3 + 1.0 + 0.5 - 0.2 = 1.0\). The chance is \(\sigma(1.0) = 1/(1+e^{-1}) \approx 0.73\).</p></details>
+    <details><summary>Tag 4127 has a depth share of &minus;3.51 and a weight share of +0.63. What does the +0.63 say?</summary><p>On its own, the shark's weight pushed the score toward spadenose. The depth share of &minus;3.51 outweighed it, so the final score is &minus;3.74. A share describes the model's reading of one input, and the model's reading can differ from what the input means for the animal.</p></details>
+  </div>
+</section>
+
+<!-- ================= Exercises ================= -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> The average weight is 0.219 kg. A shark of 50.1 cm and 0.430 kg falls in a leaf where the average residual is 0.144 kg. With \(\eta = 0.3\), find its leftover before tree 1, its model value \(F_1\), and its leftover after tree 1. Tree 2 answers 0.10 for this shark. Find \(F_2\) and the leftover after tree 2.</p>
+        <details class="hint"><summary>Hint</summary><p>Use \(F_k = F_{k-1} + \eta h_k\) and \(r = y - F\) at any step.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> A leaf has \(n\) sharks whose leftovers add to \(s\). Write its answer with \(\lambda\). For \(\lambda = 3\), find the number of sharks above which the answer is at least 90% of the plain average. Repeat for \(\lambda = 10\).</p></li>
+      <li><p><span class="ex-tag">theory</span> Suppose a tree could answer with the shark's own leftover. Show that the leftover is multiplied by \((1 - \eta)\) whenever a tree is added, and find how many trees bring it below 1% of its starting size for \(\eta = 0.3\), 0.1 and 0.01. How does this resemble the moving average with decay \(\beta\) in <a href="../t7-probability/#ema">0.7</a>?</p></li>
+      <li><p><span class="ex-tag">theory</span> Three inputs A, B and C have set values \(v(\varnothing) = 0\), \(v(A) = 10\), \(v(B) = 0\), \(v(C) = 0\), \(v(AB) = 10\), \(v(AC) = 30\), \(v(BC) = 0\) and \(v(ABC) = 30\). List the 6 orders, find the steps of all three inputs in all six orders, and average them to get \(\phi_A\), \(\phi_B\) and \(\phi_C\). Check that they add to \(v(ABC) - v(\varnothing)\).</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Run the stump code on the training spadenose sharks with \(\eta\) = 0.05, 0.3 and 1, and record the held-out RMSE as trees are added. Plot the three curves. For all three, give the number of trees at the lowest point, and say what happens after it.</p></li>
+      <li><p><span class="ex-tag">practice</span> Fit <code>XGBClassifier</code> with 300 trees on length and depth. Carve a validation set of 25% from the training sharks, log its loss as trees are added with <code>eval_set</code>, and choose the number of trees there. Then refit with that number and report the held-out accuracy once. Why must the held-out sharks not choose the number of trees?</p></li>
+      <li><p><span class="ex-tag">practice</span> Add a column of random normal numbers to the six measurements and refit. Compare its split count and shuffle importance with length and temperature. What does the result say about split counts as a way to rank inputs?</p></li>
+      <li><p><span class="ex-tag">practice</span> Use <code>pred_contribs=True</code> for Tag 4127 and Tag 5519. Check that the shares and the average add up to the score, and name the input with the largest negative share for both sharks. Does it match the figure?</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> A clinic uses a boosted model to flag women for a diabetes test, and wants to tell a woman why she was flagged using SHAP shares. What could go wrong with such an explanation? What would you check before showing one, and what would you tell the woman?</p></li>
+      <li><p><span class="ex-tag">open</span> Weight and girth repeat one another. Design a test that tells apart "this input is unimportant" from "this input is repeated by another". What would you shuffle, drop or retrain, and what would the results mean?</p></li>
+      <li><p><span class="ex-tag">open</span> SharkCam moves to a coast where sharks are lighter for their length than in the table. What happens to the boosted model and to its SHAP explanations? How would you notice, and what would you do about it?</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Try these after two days, and again after a week. Answer first, then open the box.</p>
+  <div class="recall comeback">
+    <details><summary>A forest of 100 trees gets 85% right and its average single tree 79%. Using the bootstrap idea from <a href="../t7-probability/#ci">0.7</a>, why do different trees disagree, and why does a vote help?</summary><p>A tree is grown on a resample, which leaves out about 37% of the sharks and repeats others, so the trees ask different questions and make different mistakes. A majority is right more often than a typical tree when the mistakes differ.</p></details>
+    <details><summary>The learning rate appears in gradient descent (<a href="../a2-linear-regression/#descent">A2</a>) and in boosting. What do the two have in common, and what differs?</summary><p>Both scale a step: a small value takes small steps, needs more of them, and is gentler. In gradient descent the step moves weights along a slope. In boosting the step adds a share of a new tree's answer to the model.</p></details>
+    <details><summary>The six-measurement model has 720 orders and 64 sets of known inputs. How many orders and sets would 30 inputs have, and why does that matter for SHAP? (<a href="../t4-discrete-maths/#counting">0.4</a>)</summary><p>\(30!\) is about \(2.7 \times 10^{32}\) orders and \(2^{30}\) is about \(10^9\) sets. Listing either is too slow, so TreeSHAP uses the structure of the trees to get the same averages without listing them.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Chen, T. and Guestrin, C. (2016). XGBoost: A scalable tree boosting system. <i>Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining</i>, 785&ndash;794. <a href="https://arxiv.org/abs/1603.02754">arxiv.org/abs/1603.02754</a></li>
+    <li>XGBoost documentation, "Introduction to Boosted Trees": the leaf weight \(-G/(H+\lambda)\), the split gain and the roles of \(\gamma\) and \(\lambda\). <a href="https://xgboost.readthedocs.io/en/stable/tutorials/model.html">xgboost.readthedocs.io/en/stable/tutorials/model.html</a></li>
+    <li>XGBoost documentation, "XGBoost Parameters": the defaults of \(\eta\), depth, \(\lambda\), \(\gamma\) and <code>min_child_weight</code>, and the estimate of <code>base_score</code>. <a href="https://xgboost.readthedocs.io/en/stable/parameter.html">xgboost.readthedocs.io/en/stable/parameter.html</a></li>
+    <li>scikit-learn documentation, "Ensembles": bootstrap samples and random feature subsets in random forests, shrinkage and the number of trees in gradient boosting. <a href="https://scikit-learn.org/stable/modules/ensemble.html">scikit-learn.org/stable/modules/ensemble.html</a></li>
+    <li>Lundberg, S. M. and Lee, S.-I. (2017). A unified approach to interpreting model predictions. <i>Advances in Neural Information Processing Systems 30 (NIPS 2017)</i>. The paper that introduced SHAP values. <a href="https://arxiv.org/abs/1705.07874">arxiv.org/abs/1705.07874</a></li>
+    <li>Lundberg, S. M., Erion, G. G. and Lee, S.-I. (2018). Consistent individualized feature attribution for tree ensembles. arXiv preprint. The TreeSHAP algorithm. <a href="https://arxiv.org/abs/1802.03888">arxiv.org/abs/1802.03888</a></li>
+    <li>Lundberg, S. M., Erion, G., Chen, H. and co-authors (2020). From local explanations to global understanding with explainable AI for trees. <i>Nature Machine Intelligence</i>, 2, 56&ndash;67. The peer-reviewed version of TreeSHAP. <a href="https://doi.org/10.1038/s42256-019-0138-9">doi.org/10.1038/s42256-019-0138-9</a></li>
+    <li>Breiman, L. (2001). Random forests. <i>Machine Learning</i>, 45(1), 5&ndash;32. The paper that introduced random forests. <a href="https://doi.org/10.1023/A:1010933404324">doi.org/10.1023/A:1010933404324</a></li>
+    <li>Friedman, J. H. (2001). Greedy function approximation: a gradient boosting machine. <i>The Annals of Statistics</i>, 29(5), 1189&ndash;1232. The gradient boosting method behind the residual-fitting loop of this chapter. <a href="https://doi.org/10.1214/aos/1013203451">doi.org/10.1214/aos/1013203451</a></li>
+    <li>The catch table is made up for teaching: <code>primer/data/sharks/catch.csv</code>. The trees behind the importance and SHAP figures were trained offline with XGBoost 3 and exported to <code>data/xgb6.json</code> by <code>data/make_xgb6.py</code>.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=e92d596e" defer></script>
+<script src="boostlab.js?v=755bd7cb" defer></script>
+<script src="a6-boosting.js?v=1f54f5a6" defer></script>
+<a id="primer-preview-pill" href="https://mailab.in/primer/a6-boosting/" style="position:fixed;right:14px;bottom:14px;z-index:2147483647;display:block;margin:0;padding:7px 13px;border:1px solid #5b6470;border-radius:999px;background:#fffdf7;background-image:none;color:#14181c;font:13px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:0;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:none;">Preview v2 &middot; open current version</a>
+</body>
+</html>

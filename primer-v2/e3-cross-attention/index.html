@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cross-attention | How AI Learns</title>
+<meta name="description" content="Cross-attention: queries from one sequence, keys and values from another. Self-attention and cross-attention side by side, four patches by hand, and the actual cross-attention of a captioning model (BLIP) on shark photos, including the empty patches that take most of the weight.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
+<style>
+/* Local additions for this chapter only. */
+.bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; margin: 0 0 8px; }
+.check { display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; color: var(--ink-2); cursor: pointer; }
+.check input, .card input[type=range] { accent-color: var(--teal); }
+.card canvas { display: block; max-width: 100%; border-radius: 4px; }
+.card select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); max-width: 100%; }
+.card .controls select { width: 100%; min-width: 0; }
+.card .controls label { min-width: 0; }
+.eqs { margin: 10px 0 0; }
+.credit { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.pane-h { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+.hintline { font-size: 14.5px; color: var(--muted); padding: 4px 0; }
+.wchip { font: inherit; font-size: 14.5px; padding: 2px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--bg); color: var(--ink-2); cursor: pointer; }
+.wchip[aria-pressed="true"] { border-color: var(--coral); background: var(--mark); color: var(--ink); font-weight: 600; }
+.wchip:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.sx-wrap { width: 100%; }
+#sx-cv { cursor: pointer; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
+.wk-grid { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 12px 24px; align-items: start; }
+#wk-plane { display: block; width: 100%; max-width: 260px; height: auto; touch-action: none; }
+#wk-tiles { display: flex; flex-wrap: wrap; gap: 10px 14px; }
+.wk-col { width: 74px; text-align: center; padding: 4px 4px 6px; border: 2px solid var(--rule); border-radius: 8px; background: var(--bg); }
+.wk-col.top { border-color: var(--teal); background: var(--paper); }
+.wk-col canvas { margin: 0 auto; }
+.wk-name { font-size: 14px; color: var(--ink); margin-top: 3px; font-weight: 600; }
+.wk-score { font-size: 12.5px; color: var(--muted); margin: 2px 0; line-height: 1.2; }
+.wk-score b { display: block; font-size: 15px; color: var(--ink); font-weight: 600; font-feature-settings: "tnum" 1; }
+.wk-bar { height: 10px; background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; margin: 2px 0; }
+.wk-bar i { display: block; height: 100%; background: var(--teal); }
+.wk-w { font-size: 15px; color: var(--ink); }
+.seg-bar { display: flex; height: 26px; border-radius: 4px; overflow: hidden; border: 1px solid var(--rule); margin: 8px 0 0; background: var(--paper); }
+.seg-bar .seg { display: block; padding: 0; margin: 0; border: 0; border-radius: 0; gap: 0; font-size: 13px; line-height: 24px; text-align: center; color: var(--bg); white-space: nowrap; overflow: hidden; }
+.seg.c-navy { background: var(--navy); } .seg.c-teal { background: var(--teal); } .seg.c-sand { background: var(--sand); }
+.hd-grid { display: flex; flex-wrap: wrap; gap: 10px 10px; }
+.hd-cell { text-align: center; }
+.hd-lab { font-size: 12.5px; color: var(--ink-2); line-height: 1.25; margin-top: 2px; }
+.hd-lab b { color: var(--ink); }
+.oc-maps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; margin: 6px 0 10px; }
+.oc-maps figure { margin: 0; }
+.oc-maps figcaption { font-size: 13px; color: var(--ink-2); margin-top: 3px; }
+.co-row { display: grid; grid-template-columns: 17em minmax(0, 1fr) 8em; gap: 8px; align-items: center; font-size: 14px; margin: 3px 0; }
+.co-name { color: var(--ink-2); }
+.co-track { display: block; height: 14px; background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.co-track i { display: block; height: 100%; }
+.co-track i.c-navy { background: var(--navy); } .co-track i.c-teal { background: var(--teal); }
+.co-row b { text-align: right; font-weight: 500; color: var(--ink); font-feature-settings: "tnum" 1; }
+.bridge { max-width: 46em; margin: 12px 0 18px; padding: 8px 14px; border-left: 3px solid var(--teal); background: var(--paper); border-radius: 0 6px 6px 0; font-size: 15px; color: var(--ink-2); }
+.bridge p { margin: 5px 0; }
+.bridge b { color: var(--ink); }
+details.credits { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+details.credits summary { cursor: pointer; color: var(--link); }
+.key { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 4px 0 0; font-size: 13.5px; }
+@media (max-width: 760px) {
+  .two, .wk-grid, .oc-maps { grid-template-columns: minmax(0, 1fr); }
+  .co-row { grid-template-columns: minmax(0, 1fr) 6.5em; }
+  .co-row .co-track { grid-column: 1 / -1; grid-row: 2; }
+  #wk-plane { margin: 0 auto; }
+}
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://mailab.in/primer/e3-cross-attention/">
+</head>
+<body data-chapter="e3">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part E, Vision and language</span><span>Chapter E3</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part E &middot; Chapter 3</p>
+  <h1>Cross-attention</h1>
+  <p class="subtitle">Let the words of a caption look at the patches of a photo: the queries come from the text, the keys and values from the image</p>
+</header>
+
+<div class="tldr">
+  <p>Self-attention (<a href="../d4-self-attention/#qkv">D4</a>) lets the words of one text read one another. Cross-attention changes one thing. The keys and the values come from a second sequence. When a captioning model writes a word, the query of that word meets the keys of the 576 patches of a photo. The word then receives a mix of the patch values. This chapter builds that from the formula, runs it by hand on four patches, and then looks at the actual cross-attention of BLIP, a captioning model, on four shark photos. The weights are less tidy than the textbook picture. The chapter shows why, and how to read them with care.</p>
+  <p>The weights come from BLIP (Salesforce, BSD-3-Clause), run offline on four photos of the shark chapters. A model with cross-attention was needed, and the text decoder of BLIP is one. Both captions of a photo are run through BLIP's decoder word by word: BLIP's own, and one written for this page. Four photos is a small test, and the page says so where it matters. Photos are credited under the figures.</p>
+</div>
+<p class="youneed"><b>You will need:</b> <a href="../d4-self-attention/#score">queries, keys, values and the softmax</a> (D4), <a href="../d5-transformer/#block">the transformer block</a> (D5), <a href="../e1-vision-transformers/#cut">patches as tokens</a> (E1) and <a href="../e2-clip/#encoder">encoders</a> (E2).</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#sources">Who asks and who answers</a></li>
+    <li><a href="#worked">Four patches by hand</a></li>
+    <li><a href="#heatmap">Click a word, see the photo</a></li>
+    <li><a href="#empty">Where most of the weight goes</a></li>
+    <li><a href="#heads">Twelve heads, one word</a></li>
+    <li><a href="#occ">Does the map show what matters?</a></li>
+    <li><a href="#cost">What the image costs</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. sources ============================ -->
+<section id="sources" aria-labelledby="sources-h">
+  <h2 id="sources-h">Who asks and who answers</h2>
+  <p class="ask"><b>Guess first.</b> In D4 the queries, the keys and the values of a layer all came from one text. A captioning model has written "a hammerhead shark with a tall" and now wants the next word, which depends on the photo. Which of the three (query, key, value) would you take from the photo, and which from the words written so far? Why?</p>
+  <dl class="terms">
+    <div><dt>cross-attention</dt><dd>attention in which the queries come from one sequence and the keys and values from another</dd></div>
+    <div><dt>target and source</dt><dd>the sequence that asks (here the words) and the sequence that answers (here the patches)</dd></div>
+    <div><dt>decoder</dt><dd>the part of a model that writes text, one token after another, with a causal mask (<a href="../d5-transformer/#families">D5</a>)</dd></div>
+    <div><dt>teacher forcing</dt><dd>feeding a model a text that is already known and reading what it computes at a position</dd></div>
+  </dl>
+  <p class="claim">Cross-attention is attention with the queries taken from one sequence and the keys and values from another. The formula is the one of D4.</p>
+  <div class="card" id="sx-box">
+    <div id="sx-bar"></div>
+    <div id="sx-words"></div>
+    <div class="sx-wrap"><canvas id="sx-cv" role="img" aria-label="Two tables of attention weights. Left: self-attention among 11 words, a triangle. Right: cross-attention of the same 11 words over 576 patch tokens of the photo, with no mask."></canvas></div>
+    <div class="bar" id="sx-btns"></div>
+    <p class="status" id="sx-status" aria-live="polite"></p>
+    <p class="pane-h" style="margin-top:10px">Sizes of the tables, for one head</p>
+    <div class="eqn eqs" id="sx-dims"></div>
+    <p class="pane-h" style="margin-top:6px">The selected row</p>
+    <div class="eqn eqs" id="sx-eq" aria-live="polite"></div>
+    <p class="credit">Photo: A scalloped hammerhead swimming in open blue water off Jarvis Island. Kevin Lino, NOAA/NMFS/PIFSC/ESD (NOAA Photo Library), public domain, via Wikimedia Commons. Weights: BLIP, mean of the 12 heads of the chosen decoder layer.</p>
+  </div>
+  <p class="cap"><b>Both tables come from the same formula. Only the source of the keys and values differs, and with it the size of the table. It is 11 by 11 for the words and 11 by 577 for the photo (576 patches and the class token).</b> The left table is a triangle because of the causal mask. The right table has no mask.</p>
+  <p>Press "Next step" four times, or "Play". The words are in the rows. A row is named after the word that is being written. Its query is the vector of the word before it, as in D4, where the model predicts the next token from the last position. So the row "fin" is the query that chooses the word "fin". The first row is made by the start token and chooses the first word.</p>
+  <p>BLIP's text decoder has 12 layers. A layer has three parts (<a href="../d5-transformer/#block">D5</a>): causal self-attention among the words, cross-attention to the photo, and an MLP. The figure shows one layer, and it shows the self part and the cross part together. The photo is cut by a vision transformer (<a href="../e1-vision-transformers/#cut">E1</a>) into 24 by 24 = 576 patches of 16 by 16 pixels, and a class token is added. The 577 tokens have 768 numbers apiece. They are computed once, before the first word, and all 12 layers of the decoder read the same 577 tokens with their own matrices \(W_K\) and \(W_V\).</p>
+  <div class="eqn" role="img" aria-label="Cross-attention: softmax of Q times K transposed over root d k, times V"><span class="op">output:</span><span class="t c-teal"><b>11 &times; 768</b><i>new word vectors</i></span><span class="op">=</span><span class="t c-sand"><b>softmax</b><i>per row</i></span><span class="op">(</span><span class="t c-coral"><b>Q</b><i>11 &times; 64, from the words</i></span><span class="op">&times;</span><span class="t c-navy"><b>K<sup>T</sup></b><i>64 &times; 577, from the photo</i></span><span class="op">&divide;&nbsp;8)</span><span class="op">&times;</span><span class="t c-sand"><b>V</b><i>577 &times; 64, from the photo</i></span></div>
+  <p class="math">\[ \mathrm{CrossAttn}(X_{\text{txt}}, X_{\text{img}}) = \mathrm{softmax}\!\left(\frac{Q_{\text{txt}}\,K_{\text{img}}^{\top}}{\sqrt{d_k}}\right) V_{\text{img}},\qquad Q_{\text{txt}} = X_{\text{txt}}W_Q,\quad K_{\text{img}} = X_{\text{img}}W_K,\quad V_{\text{img}} = X_{\text{img}}W_V \]</p>
+  <ul class="math-notes">
+    <li><b>\(X_{\text{txt}}\)</b> contains the vectors of the \(n_{\text{txt}}\) words (the stream of <a href="../d5-transformer/#block">D5</a>). <b>\(X_{\text{img}}\)</b> contains the \(n_{\text{img}}\) image tokens, 577 in BLIP, with 768 numbers apiece.</li>
+    <li><b>\(W_Q, W_K, W_V\)</b> are learned matrices. They turn a vector of 768 numbers into a head's vector of \(d_k = 64\) numbers (12 heads of 64 give 768). \(\sqrt{d_k} = 8\).</li>
+    <li>The table of weights has \(n_{\text{txt}}\) rows and \(n_{\text{img}}\) columns, and a row sums to 1. For self-attention replace \(X_{\text{img}}\) by \(X_{\text{txt}}\) and apply the causal mask (<a href="../d4-self-attention/#mask">D4</a>).</li>
+  </ul>
+  <p>A worked count with the numbers of the figure. The page caption has 10 words, so there are 11 rows with the end token. Per head, the cross table has 11 &times; 577 = 6,347 weights. The 12 heads give 76,164 weights per layer, and the 12 layers give 913,968. The self table has 11 &times; 12 / 2 = 66 allowed weights per head, which is 9,504 for all heads and layers. The photo gets the larger table because it is the longer sequence, and the decoder reads it at all 12 layers.</p>
+  <p>The weights of cross-attention are computed from two things that never meet in a plain model: a vector built from words and a vector built from pixels. Training teaches \(W_Q\) and \(W_K\) to make them comparable, in the way that D4's \(W_Q\) and \(W_K\) made two words comparable. A practical point: because the photo does not change while words are written, the keys and values of the photo can be computed once and kept. For BLIP that is 2 &times; 577 &times; 768 = 886,272 numbers per layer and 10.6 million for 12 layers, which is 21 MB at 16 bits. This is the same idea as the key-value cache of <a href="../d5-transformer/#generate">D5</a>, applied to the source.</p>
+  <p>Cross-attention is older than the self-attention transformer. Bahdanau and others (2015) let a translation model search the source sentence for the words relevant to the next target word. The original transformer (Vaswani and others, 2017) kept it as the "encoder-decoder attention" layer. Xu and others (2015) used it to caption images, and showed the weights as maps over the photo. BLIP (Li and others, 2022) is a recent captioner built the same way.</p>
+  <pre class="code" data-run><code>import numpy as np
+def cross_attention(X_txt, X_img, Wq, Wk, Wv):
+    Q = X_txt @ Wq                        # n_txt x d_k
+    K = X_img @ Wk                        # n_img x d_k
+    V = X_img @ Wv                        # n_img x d_v
+    S = Q @ K.T / np.sqrt(K.shape[1])     # n_txt x n_img scores
+    S = S - S.max(1, keepdims=True)       # for a stable softmax
+    A = np.exp(S); A = A / A.sum(1, keepdims=True)
+    return A, A @ V
+rng = np.random.default_rng(4127)         # made-up numbers, d = 6, d_k = 4
+X_txt = rng.normal(size=(3, 6))           # 3 words
+X_img = rng.normal(size=(5, 6))           # 5 patches
+Wq, Wk, Wv = (rng.normal(size=(6, 4)) / np.sqrt(6) for _ in range(3))
+A, out = cross_attention(X_txt, X_img, Wq, Wk, Wv)
+print(A.shape, out.shape)
+print(A.sum(1).round(3))                  # a row adds up to 1
+print(A.round(2))</code></pre>
+  <pre class="out">(3, 5) (3, 4)
+[1. 1. 1.]
+[[0.07 0.08 0.02 0.06 0.77]
+ [0.22 0.12 0.26 0.19 0.21]
+ [0.16 0.34 0.2  0.24 0.06]]</pre>
+  <p>The table has 3 rows (words) and 5 columns (patches). The output has the length of the text, 3, and the width of a value, 4. The patches are never changed. In this code the two lengths differ on purpose, so that a mistake in the transpose raises an error.</p>
+  <div class="break">
+    <p><b>Common belief.</b> In a captioning model the photo and the words are put into one long sequence, and the model attends over all of it.</p>
+    <p><b>Why it fails.</b> That is one design, and E4 shows it (LLaVA). In cross-attention the two stay in two sequences. The words read the photo through the cross layers, and no information flows back: the 577 photo tokens are the same at all layers of BLIP's decoder.</p>
+    <p><b>Better account.</b> The words are the only sequence that is updated. The photo is a read-only source that any layer may consult.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Test the sizes with different lengths for the two sequences. If both have 11 tokens, a transposed matrix still multiplies and the mistake goes unseen. Also check that the rows of the weights add up to 1 and that no mask was applied to the photo side.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The caption has 9 tokens and the photo 577. What is the size of one head's table of weights, and how many of its entries does a mask remove?</summary><p>It is 9 by 577, which is 5,193 weights. The cross part has no mask, so it removes none. The self part of the same layer has 9 by 9 entries and a causal mask that keeps 9 &times; 10 / 2 = 45.</p></details>
+    <details><summary>Why can the keys and values of the photo be computed once?</summary><p>They depend only on the photo and on the matrices \(W_K\) and \(W_V\). The words never change the photo tokens, so a new word needs one new query and no new keys or values.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. worked ============================ -->
+<section id="worked" aria-labelledby="worked-h">
+  <h2 id="worked-h">Four patches by hand</h2>
+  <p class="ask"><b>Guess first.</b> The word "fin" has the query (0.3, 1.5). Four patches have the keys water (&minus;1.2, 0.3), fin (0.2, 1.4), head (1.3, 0.4) and body (0.5, &minus;1.1). Which patch gets the largest weight, and which the smallest? Work out one dot product before you press anything.</p>
+  <dl class="terms">
+    <div><dt>score</dt><dd>the dot product of a query and a key, divided by \(\sqrt{d_k}\) (<a href="../d4-self-attention/#score">D4</a>)</dd></div>
+    <div><dt>weight</dt><dd>the softmax of the scores of one query, so the weights of a word add up to 1</dd></div>
+    <div><dt>output</dt><dd>the weighted sum of the values, the new vector that the word receives</dd></div>
+  </dl>
+  <p class="claim">A word's query is compared with the key of all patches. The softmax of the scores gives the weights, and the new vector of the word is the weighted sum of the values.</p>
+  <div class="card" id="wk">
+    <div class="bar-row" id="wk-bar"></div>
+    <div class="controls" id="wk-controls"></div>
+    <div class="wk-grid">
+      <div><p class="pane-h">Keys of the four patches (navy) and the query (coral, drag its tip)</p><svg id="wk-plane" role="img" aria-label="A plane with four navy key arrows and one coral query arrow that you can drag"></svg></div>
+      <div><p class="pane-h">The four patches of the photo and their weights</p><div id="wk-tiles"></div></div>
+    </div>
+    <div class="eqn eqs" id="wk-eq1"></div>
+    <div class="eqn eqs" id="wk-eq2"></div>
+    <div class="eqn eqs" id="wk-eq3"></div>
+    <p class="status" id="wk-status" aria-live="polite"></p>
+    <p class="credit">Patches: four cells of the hammerhead photo (Kevin Lino, NOAA, public domain, via Wikimedia Commons), squeezed as BLIP sees them. The keys and values are made up for this figure and are not from a trained model.</p>
+  </div>
+  <p class="cap"><b>With the query of "fin" the fin patch gets 57%, the head 25%, the water 13% and the body 4%.</b> The weights follow the dot products, and they add up to 100%.</p>
+  <p>The dot product is large when the query and the key point the same way (<a href="../t5-vectors-matrices/#dot">0.5</a>). Here it is 2.16 for the fin, 0.99 for the head, 0.09 for the water and &minus;1.50 for the body. Divide by \(\sqrt{2} = 1.41\) to get the scores 1.53, 0.70, 0.06 and &minus;1.06. Then take \(e^{s}\): 4.60, 2.01, 1.07 and 0.35. They add up to 8.03, so the weights are 57%, 25%, 13% and 4%. The output is the sum of the four values times these weights: (&minus;0.12, 0.49). Most of it is the fin's value, (&minus;0.7, 0.8).</p>
+  <p>A second case. Press "water", or drag the tip of the query to the left. The query (&minus;1.5, 0.3) gives dot products 1.89, 0.12, &minus;1.83 and &minus;1.08. After the division by 1.41 the scores are 1.34, 0.09, &minus;1.29 and &minus;0.76. The exponentials are 3.80, 1.09, 0.27 and 0.47, which add up to 5.63. The weights are 68% water, 19% fin, 8% body and 5% head. The query moved, and the weights followed it. The rest stayed fixed: the keys and values are fixed numbers, as they are when a trained model reads one photo.</p>
+  <p>Now press "Shuffle the patches". The tiles change places, a tile keeps its weight, and the output is the same. A sum does not depend on the order of its terms. So cross-attention, like self-attention in D4, cannot tell where a patch is. The position has to be inside the keys and values. This is why a ViT adds position embeddings to its patch tokens (<a href="../e1-vision-transformers/#position">E1</a>, which tested the effect by moving patches around).</p>
+  <p class="math">\[ s_j = \frac{\mathbf{q}\cdot\mathbf{k}_j}{\sqrt{d_k}},\qquad a_j = \frac{e^{s_j}}{\sum_{i=1}^{4} e^{s_i}},\qquad \mathbf{o} = \sum_{j=1}^{4} a_j\,\mathbf{v}_j \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{q}\)</b> is the query of the word and <b>\(\mathbf{k}_j\)</b>, <b>\(\mathbf{v}_j\)</b> are the key and the value of patch \(j\). Here \(d_k = 2\), so \(\sqrt{d_k} = 1.41\).</li>
+    <li><b>\(s_j\)</b> is the score, <b>\(a_j\)</b> the weight and <b>\(\mathbf{o}\)</b> the output. This is the formula of the first section for one row and four columns.</li>
+  </ul>
+  <p>Why it works, and where it misleads. The keys act like labels that the training chose, the query like a request, the values like the content that travels. Here the labels have names ("fin") so that you can follow. In a trained model nobody names them, and a key is 64 numbers that the training found useful. A weighted sum can also blur. If two patches get 50% apiece and their values differ a lot, the output looks like neither of them.</p>
+  <div class="break">
+    <p><b>Common belief.</b> The word "fin" looks for a fin patch and takes that patch.</p>
+    <p><b>Why it fails.</b> The word takes a mix. With these numbers the fin patch has 57% of the weight, and 43% goes to three other patches. The output is a blend of the four values.</p>
+    <p><b>Better account.</b> The softmax is a soft choice. A sharp choice needs a large gap in the scores, and the training decides how large.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Switch off the division by \(\sqrt{2}\) and watch the weights become sharper. With 64 numbers per key the effect is larger (<a href="../d4-self-attention/#scale">D4</a>). If one weight is always near 100% from the first step of training, look at the scale before anything else. If all weights are about equal, the queries and keys are not yet useful.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Make the query (0, 0). What are the weights, and why?</summary><p>All dot products are 0, all scores 0, and the softmax gives 25% to all four patches. The output is the plain average of the four values, (0.25, 0.03).</p></details>
+    <details><summary>Does the output change if two patches swap places?</summary><p>No. The weight of a patch depends on its key only, and a sum has no order. Position must be added to the patch tokens before the keys are made.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. heatmap ============================ -->
+<section id="heatmap" aria-labelledby="heatmap-h">
+  <h2 id="heatmap-h">Click a word, see the photo</h2>
+  <p class="ask"><b>Guess first.</b> BLIP writes a caption word by word. When it writes the word for the animal, which part of the photo should its query attend to? And when it writes a word for the background, such as "sand"? What would you expect at layer 0, where the words have only just been embedded?</p>
+  <dl class="terms">
+    <div><dt>attention map</dt><dd>the weights of one query over the patches, drawn over the photo</dd></div>
+    <div><dt>layer, head</dt><dd>BLIP's decoder has 12 layers of 12 heads; the maps here are means over the heads of one layer (<a href="../d4-self-attention/#heads">D4</a>)</dd></div>
+    <div><dt>inside the animal</dt><dd>the share of a row's weight that falls on the patches inside a region marked by hand on the photo (dashed outline)</dd></div>
+    <div><dt>effective number of patches</dt><dd>\(e^{H}\) of the weights, the number of equal patches that would be as spread out (<a href="../e2-clip/#temp">E2</a>, <a href="../d3-next-token/#distribution">D3</a>)</dd></div>
+  </dl>
+  <p class="claim">A row of cross-attention has one weight per patch, so it can be drawn over the photo as a heat map. Click a word, and the map of the row that writes it appears.</p>
+  <div class="card" id="hm-box">
+    <div id="hm-bar"></div>
+    <div id="hm-words"></div>
+    <canvas id="hm-cv" role="img" aria-label="Photo with a heat map"></canvas>
+    <div class="seg-bar" id="hm-share" aria-hidden="true"></div>
+    <div class="eqn eqs" id="hm-eq" aria-live="polite"></div>
+    <p class="credit" id="hm-credit"></p>
+    <details class="credits"><summary>About the captions and the marked outline</summary><p>BLIP's own caption is its greedy output for the photo. The captions written for this page are passed through BLIP's decoder with teacher forcing, so BLIP did not write them. It gives several of their words a low probability. For "hammerhead" it is 0.02%, since BLIP would write "shark". The attention is what the decoder computes while it reads them. The animal outline is a rough polygon drawn by hand for this page. The photo is squeezed to 384 by 384 pixels before BLIP cuts it, and the grid is drawn back at the original proportions.</p></details>
+  </div>
+  <p class="cap"><b>With the empty patches set aside, the row that writes "shark" on the bamboo shark photo puts 69% of its weight inside the animal at layer 11. The animal covers 11% of the patches. The row that writes "sand" puts 5% there.</b> Before the empty patches are set aside, a few patches glow for all words.</p>
+  <p>Start on the hammerhead photo with its page caption, layer 11, and click through the words. Something is the same for all words: a dozen bright squares scattered in the water. Those are the patches the next section is about. Tick "set the empty patches aside", and the map of a word comes out. "hammerhead" now puts 52% of its weight on the shark and "shark" puts 36%, and the shark covers 22% of the patches. "water" puts 10% there. Move to layer 0. The maps are flat. At layer 0 the query contains only the word itself, and the weights do not yet separate the animal from the water. The separation grows with the layers.</p>
+  <p>A second case, on the turtle photo. The row that writes "turtle" puts 40% of its weight inside the turtle (21% of the patches) and the row that writes "sand" 12%. On the white board photo the row of "shark" puts 38% inside the shark, which covers 9% of the patches, and the row of "ruler" 17%. These shares are for layer 11. At layers 0 and 3 the maps are much flatter.</p>
+  <p>The row writes a word, and the model already has the previous words as context. Take the row that writes "pale" on the turtle photo, before the animal is named. It puts 62% of its weight inside the turtle, because the next word will be the animal. The caption words therefore show what a row is preparing to write. Where it works: object words with a compact object, on a photo with one animal. Where it misleads: adjectives, small words and the end token.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A heat map shows what the model is looking at.</p>
+    <p><b>Why it fails.</b> It shows where the weights of a row lie. What the word receives is the weighted sum of the values, and a patch with a short value adds little even with a large weight (next section). A tile is also drawn on its own scale, so a row with a largest weight of 4% looks as bright as one with 40%.</p>
+    <p><b>Better account.</b> A heat map is a clue about where to look. To learn what the word used, test it (the section on hiding patches below).</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Before you read a heat map, read its scale. The readout gives the largest patch share and the effective number of patches. Take the row that writes "shark" at layer 11 on the bamboo shark photo, with the empty patches set aside. Its largest patch has 3% of the weight, so the map is spread over about 100 patches, and a bright spot is a slight preference.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why does the row of "a" at the start of the caption look at the animal?</summary><p>The row is the query that writes the next word, and the next word is about the animal. The words before it give it little else to go on, so the photo decides.</p></details>
+    <details><summary>The photo is squeezed to 384 by 384 before the 24 by 24 grid. How does that change what a patch is?</summary><p>A patch covers 16 by 16 pixels of the squeezed picture. In the original photo of 640 by 362 pixels it covers 26.7 pixels across and 15.1 down. A patch is wider than it is tall, and the figure draws the grid in the same way.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. empty ============================ -->
+<section id="empty" aria-labelledby="empty-h">
+  <h2 id="empty-h">Where most of the weight goes</h2>
+  <p class="ask"><b>Guess first.</b> In the raw maps the same few patches glow for all words. What do you think those patches contain? And if a word puts 75% of its weight on them, how much of the photo does the word receive?</p>
+  <dl class="terms">
+    <div><dt>empty patch</dt><dd>an image token of length under 2. The other 540 to 560 tokens of a photo have lengths from 4 to 17</dd></div>
+    <div><dt>value length</dt><dd>the length of a value vector, \(\lVert\mathbf{v}_j\rVert\); a short value adds little to a sum</dd></div>
+    <div><dt>share of what is added</dt><dd>the sum of weight times value length over the empty patches, divided by the same sum over all patches</dd></div>
+    <div><dt>attention sink</dt><dd>a token that takes weight without giving much back (<a href="../d6-long-context/#cut">D6</a>)</dd></div>
+  </dl>
+  <p class="claim">In BLIP, 17 to 27 of the 576 patches of a photo are almost empty tokens. They take about three quarters of the cross-attention weight and add under 10% of what the words receive.</p>
+  <div class="card" id="em-box">
+    <div id="em-bar"></div>
+    <div class="controls" id="em-controls"></div>
+    <div class="two">
+      <div><p class="pane-h">The empty patches of this photo (coral)</p><canvas id="em-cv" role="img" aria-label="Photo with the empty patches marked in coral"></canvas></div>
+      <div><p class="pane-h">By decoder layer, for all words of the page caption</p><div class="plot short" id="em-plot" role="img" aria-label="Share of the weight on the empty patches and share of what the words receive from them, by layer"></div></div>
+    </div>
+    <div class="eqn eqs" id="em-eq" aria-live="polite"></div>
+    <p class="credit">Weights and lengths from BLIP. The photos are those of the figure above, credited there. An empty patch is a patch whose image token (the output of BLIP's vision encoder) is shorter than 2.</p>
+  </div>
+  <p class="cap"><b>On the hammerhead photo 27 of 576 patches (4.7%) take 74% of the weight at layer 11 and add 5.5% of what the words receive.</b> Their value vectors have length 0.2, against 11.7 for the others. On the four photos the weight share is between 66% and 75% at layer 11, and the share of what is added between 3% and 6%.</p>
+  <p>Why would a model do this? A softmax row must add up to 1 (<a href="../d4-self-attention/#score">D4</a>). If no patch matches what the query wants, the weight still goes somewhere. The queries of the decoder have learned to give small or negative scores to most patches. The largest scores then go to patches whose keys are nearly zero, since a dot product with a short key is near 0. The values of these patches are short too, so the weight that goes there adds almost no content to the word. The row is parked on a slot with no content. Language models do the same with the first token (<a href="../d6-long-context/#cut">D6</a>).</p>
+  <p>The numbers behind the claim, for the hammerhead photo. The empty patches have a mean token length of 0.86, against 15.6 for the others. At layer 11 the mean value length is 0.21 for them and 11.7 for the rest, a factor of 56. The weight on them, averaged over the 12 heads and the 11 rows of the page caption, is 74%. Multiply a weight by the length of its value, add up, and the empty patches supply 5.5% of the total. Compare 74% with 5.5%: a weight of three quarters buys one eighteenth of the content. At layer 0 the weight share is 69% and the added share 7.2%. Kobayashi and others (2020) argued for this correction in language models: look at the weight and at the length of the vector it multiplies.</p>
+  <p>The rule is simple, and two routes agree. By length (under 2) it finds 27, 18, 22 and 17 patches on the four photos. By weight it finds the same patches on three photos and 21 of the 22 on the white board photo. The weight rule is a weight above three times the average of 1/576, taken over all words, heads and layers. The class token takes under 0.1% of the weight on all four. The empty patches tend to be in plain background. Darcet and others (2023) found high-norm artefact tokens in background regions of vision transformers, and added register tokens to give the model a place for them. Here the odd tokens are short, with a length under 2, so the mechanism may differ. That was not tested. Four photos is a small sample, so the rule describes these four photos only.</p>
+  <div class="eqn" role="img" aria-label="Contribution equals weight times value length"><span class="op">at layer 11:</span><span class="t c-teal"><b>74%</b><i>weight on the 27 empty patches, layer 11</i></span><span class="op">&times;</span><span class="t c-navy"><b>0.21 &divide; 11.7</b><i>value length, empty over others</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>5.5%</b><i>share of what is added</i></span></div>
+  <p class="math">\[ c_j = a_j\,\lVert\mathbf{v}_j\rVert,\qquad \text{share of what is added by a set } E = \frac{\sum_{j\in E} c_j}{\sum_{j} c_j} \]</p>
+  <ul class="math-notes">
+    <li><b>\(a_j\)</b> is the weight of patch \(j\) and <b>\(\lVert\mathbf{v}_j\rVert\)</b> the length of its value vector (<a href="../t5-vectors-matrices/#dot">0.5</a>). The figure computes the sum per head, with the head's 64 numbers of the value, and averages over the rows.</li>
+    <li>This is a measure of how much a patch can change the word's vector. It does not say whether the change is useful, and the directions of the values can cancel.</li>
+  </ul>
+  <pre class="code" data-run><code>import numpy as np
+# one row over four patches; the last patch is an empty slot. Made-up numbers.
+scores = np.array([-2.0, -1.5, -2.5, 0.0])       # the patches with content score below 0, the empty slot at 0
+V = np.array([[1.0, 0.2], [0.8, -0.4], [0.1, 0.9], [0.0, 0.0]])
+a = np.exp(scores) / np.exp(scores).sum()
+print("weights   ", a.round(2))
+print("output    ", (a @ V).round(3))
+b = a[:3] / a[:3].sum()                          # set the empty slot aside and renormalise
+print("without it", (b @ V[:3]).round(3))
+c = a * np.linalg.norm(V, axis=1)
+print("added by the empty slot:", round(c[3] / c.sum(), 3))</code></pre>
+  <pre class="out">weights    [0.09 0.15 0.06 0.69]
+output     [0.224 0.008]
+without it [0.731 0.027]
+added by the empty slot: 0.0</pre>
+  <p>Read the output. The empty slot takes 69% of the weight and adds no content: its share of what is added is 0.0. It still changes the result. The output with the slot is (0.224, 0.008), which is the output without it, (0.731, 0.027), times 0.31. The direction is the same and the length is 31% of the other. So the weight on an empty slot works like a volume knob. A row that puts 69% there takes in 31% as much of the photo as a row that puts none there. This is why the figures offer "set the empty patches aside": the map then shows the direction of what the word takes in, with the knob turned up to full.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A weight of 75% on a patch means that 75% of the word's information comes from there.</p>
+    <p><b>Why it fails.</b> The word receives the sum of weight times value. A patch with a value of length 0.2 and a weight of 75% adds less than a patch with a value of length 12 and a weight of 2%. Exercise 3 works one such case.</p>
+    <p><b>Better account.</b> The weight says how the row divides one unit of attention. The value says what a part of the unit is worth. Read both.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Draw the maps of several different words side by side. A patch that is bright in all of them is a sink. It answers none of them. Then check its value length. If you see one, set it aside and look at the rest, as the figures here do.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A row has weight 0.8 on a patch whose value has length 0.2 and 0.1 on two patches with value length 12. What share of what is added comes from the first patch?</summary><p>The three products are 0.16, 1.2 and 1.2, and they add up to 2.56. The first patch gives 0.16 / 2.56 = 6%, although it has 80% of the weight.</p></details>
+    <details><summary>Why do the weights have to go somewhere when no patch matches the word?</summary><p>A softmax row adds up to 1, and it cannot be all zeros. The weight goes to the largest scores, and when the useful patches score low, the empty patches with scores near 0 win.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. heads ============================ -->
+<section id="heads" aria-labelledby="heads-h">
+  <h2 id="heads-h">Twelve heads, one word</h2>
+  <p class="ask"><b>Guess first.</b> The maps so far average the 12 heads of a layer. For the word "shark" at the last layer, would you expect all 12 heads to put most of their weight on the animal? If not, how would the heads differ?</p>
+  <dl class="terms">
+    <div><dt>head</dt><dd>one of the 12 attention maps of a layer, with its own \(W_Q, W_K, W_V\) of 64 numbers apiece (<a href="../d4-self-attention/#heads">D4</a>)</dd></div>
+    <div><dt>specialisation</dt><dd>a head that behaves differently from its neighbours in a way that repeats over photos</dd></div>
+  </dl>
+  <p class="claim">The heads of one layer do different jobs. Some put most of their weight on the animal, others on the background, and some mostly on empty patches.</p>
+  <div class="card" id="hd-box">
+    <div id="hd-bar"></div>
+    <div id="hd-words"></div>
+    <div class="hd-grid" id="hd-grid"></div>
+    <div class="eqn eqs" id="hd-eq" aria-live="polite"></div>
+    <p class="credit" id="hd-credit"></p>
+  </div>
+  <p class="cap"><b>At layer 11, head 9 puts 72%, 89% and 62% of its weight inside the animal for the animal word of three photos.</b> Those words are "hammerhead" on the hammerhead photo, "shark" on the bamboo shark photo and "turtle" on the turtle photo. The weakest of the 12 heads puts 8%, 11% and 6%. Empty patches are set aside in these numbers.</p>
+  <p>Keep "set the empty patches aside" ticked and click through the words and photos. Look for a head that is bright on the animal for the animal word, and darker for a background word such as "sand". Head 9 does it on all three photos where it is best. Tick the sort box to put the heads in order. Untick the other box to see how many heads park most of their weight on the empty patches. For "hammerhead" the share goes from 9% for one head to 93% for another. The mean over the heads mixes the two kinds, and the mix is dominated by the heads that park.</p>
+  <p>A second case. For the word "sand" on the bamboo shark photo, the heads put between 0% and 16% inside the animal, and the animal covers 11% of the patches. Heads do not all look at objects. For "ruler" on the white board photo, head 4 puts 49% inside the animal, and the animal is not what a ruler is. The ruler lies just below the shark, and the marked outline does not include it. Check the map before you trust the number, because a number inside a region you drew only tells you about that region.</p>
+  <p>Why heads differ: a head has its own matrices, and no rule forces two heads to learn the same thing. The loss only needs the sum of the outputs of the heads to be useful. Training therefore often finds different jobs for different heads. Where it breaks: a head that looks specialised on four photos can be ordinary on others. This page shows head 9 on three photos, and it makes no claim about head 9 in general.</p>
+  <div class="break">
+    <p><b>Common belief.</b> The mean over the heads is the attention of the layer, and averaging loses no information.</p>
+    <p><b>Why it fails.</b> The weights of a head sum to 1, and a head that parks 90% on empty patches adds a bright dot pattern to the mean. The mean also blurs the maps of the heads that do point somewhere.</p>
+    <p><b>Better account.</b> Look at heads one at a time first. Average after the empty patches are set aside, and only over heads that you have looked at.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When a head-averaged map looks blurry, compute the spread of the 12 maps before you decide that the model is unsure. Twelve sharp maps that point to different places average to a blur.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Head 9 puts 89% of its weight inside the animal and the animal covers 11% of the patches. How many times more than an even spread is that?</summary><p>The ratio is 89 / 11 = 8.1 times. An even spread would put 11% inside.</p></details>
+    <details><summary>Why can the mean over the heads look worse than the best head?</summary><p>The mean adds the maps of heads with different jobs. The sharp head is mixed with heads that spread out or park on empty patches, and it makes up one twelfth of the sum.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 6. occlusion ============================ -->
+<section id="occ" aria-labelledby="occ-h">
+  <h2 id="occ-h">Does the map show what matters?</h2>
+  <p class="ask"><b>Guess first.</b> For the word "ruler" the model's row has its weight on some patches. You hide the 32 patches with the most weight, and then 32 patches at random. Which hides more of what the word needs? And would you expect the answer to be the same for the word "a"?</p>
+  <dl class="terms">
+    <div><dt>hiding a patch</dt><dd>setting its 16 by 16 pixels to the mean colour of the training photos, which is 0 after BLIP's normalisation</dd></div>
+    <div><dt>fall</dt><dd>the drop in the log probability that BLIP gives to the word, in nats (<a href="../d3-next-token/#loss">D3</a>). A fall of 1 nat means the word became 2.7 times less likely</dd></div>
+    <div><dt>single-patch test</dt><dd>hide one patch at a time and record the fall of the word: 576 runs per photo. This is occlusion (<a href="../b9-explaining/#occlusion">B9</a>)</dd></div>
+    <div><dt>rank correlation</dt><dd>how well two lists agree on the order of their items: 1 for the same order, 0 for no relation, &minus;1 for the opposite order</dd></div>
+  </dl>
+  <p class="claim">Cross-attention weights are a weak guide to which patches a word needs. They work for a few object words and on most words do no better than random patches.</p>
+  <div class="card" id="oc-box">
+    <div id="oc-bar"></div>
+    <div id="oc-words"></div>
+    <div class="controls" id="oc-controls"></div>
+    <div class="oc-maps" id="oc-maps">
+      <figure><canvas id="oc-a" role="img" aria-label="Attention map of the chosen word with empty patches set aside"></canvas><figcaption>Attention of the row (mean of 12 layers), empty patches set aside</figcaption></figure>
+      <figure><canvas id="oc-o" role="img" aria-label="Map of the fall in log probability when a single patch is hidden"></canvas><figcaption>Fall of the word when only that patch is hidden (teal)</figcaption></figure>
+      <figure><canvas id="oc-p" role="img" aria-label="Photo with the chosen patches hidden"></canvas><figcaption>The photo with the patches of the chosen rule hidden</figcaption></figure>
+    </div>
+    <div class="plot short" id="oc-plot" role="img" aria-label="Fall in log probability of the word against the number of patches hidden, for four ways of choosing the patches"></div>
+    <div class="eqn eqs" id="oc-eq" aria-live="polite"></div>
+    <p class="credit" id="oc-credit"></p>
+  </div>
+  <p class="cap"><b>On the white board photo, hiding the 32 most attended patches (empty patches set aside) lowers the log probability of "ruler" by 4.97 nats. Hiding 32 random patches changes it by &minus;0.07. On 40 words of four photos the median rank correlation between attention and the single-patch map is 0.02.</b> Attention beats random patches by more than 0.3 nats in 6 of 80 cases (word and k of 32 or 128).</p>
+  <p>Choose "ruler" on the white board photo, set the rule to attention with the empty patches set aside, and move k. At 32 patches (5.6% of the photo) the word's log probability falls by 5 nats. The attention found the ruler. Now choose "shark" on the same photo. The attention curve rises late, to 2.6 nats at 128 patches. The animal itself matters for this word: hiding all 51 animal patches lowers "shark" by 2.55 nats, and hiding 51 random background patches lowers it by 0.06. Now click through the other photos. For "hammerhead" on the hammerhead photo, hiding the 128 most attended patches changes the log probability by &minus;0.21, which is within the noise. The single-patch test finds a fall of 0.57 with the same number of patches.</p>
+  <p>The test has three weak points. First, hiding a patch with a grey patch makes a photo that BLIP never saw, and its response to that is part of what is measured. Second, a ViT patch token contains information from the whole photo after 12 blocks (<a href="../e1-vision-transformers/#attend">E1</a>). The weight points to a place in the token grid, and the pixels behind it may be elsewhere. Third, the model is redundant: hiding 128 random patches (22% of the photo) changes the log probability by less than 0.5 nats for 39 of the 40 words. The single-patch rule costs 576 runs of the model, and it ranks patches one at a time. A group that matters only together can escape it. The ruler is the case. It is a long object, and hiding one patch of it changes little (0.37 nats for the best 32 patches). Attention finds the group (4.97 nats).</p>
+  <p>This agrees with what Jain and Wallace (2019) found for language models: attention weights often disagree with other measures of importance. Wiegreffe and Pinter (2019) replied that it depends on what one asks of an explanation, and that an attention map can be useful as one clue. Both are consistent with the figure. For a compact object such as a ruler or an animal, the map is a good clue. For most words it falls short. The practical rule is to treat a map as a hypothesis. Test it with a deletion test or an occlusion map before you show it to a fisher as an explanation.</p>
+  <div class="break">
+    <p><b>Common belief.</b> An attention map explains why the model wrote a word.</p>
+    <p><b>Why it fails.</b> On 40 words of four photos the weights of a row and the effect of hiding patches have a median rank correlation of 0.02. The attention rule is near the random rule for most words.</p>
+    <p><b>Better account.</b> The map is a clue. The test that settles what the word needed is to hide patches and measure the fall.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Run a deletion test on any explanation map: hide the patches that it ranks first, hide the same number at random, and compare the falls. If they match, the map is no guide to what the word needed. Use the same number of patches for both.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>For "ruler" the attention rule beats the single-patch test at 32 patches (4.97 against 0.37 nats). Why?</summary><p>The ruler is long. Hiding one of its patches leaves the rest visible, so one patch has a small effect, and the single-patch test ranks them low. Attention weights point at the whole ruler, and hiding 32 of its patches together removes it.</p></details>
+    <details><summary>Hiding 128 random patches lowers a word by 0.1 nats, and hiding the animal lowers it by 2.5. What does that say about the model?</summary><p>The model does not depend on any single scattered patch, and it does depend on the animal. A good explanation has to find the animal. The scattered patches matter little.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 7. cost ============================ -->
+<section id="cost" aria-labelledby="cost-h">
+  <h2 id="cost-h">What the image costs</h2>
+  <p class="ask"><b>Guess first.</b> A photo is 576 patches and a caption is 12 words. In cross-attention, how many pairs of query and key does a layer compute for one head? How many would there be if the 576 patches were placed in the sequence in front of the words, and any token could attend to the tokens before it?</p>
+  <dl class="terms">
+    <div><dt>image token</dt><dd>one patch turned into a vector (<a href="../e1-vision-transformers/#embed">E1</a>); \(N = (S/P)^2\) of them for a photo of side \(S\) and patch side \(P\)</dd></div>
+    <div><dt>pair</dt><dd>one query meeting one key; the number of pairs is the number of weights (<a href="../d6-long-context/#cost">D6</a>)</dd></div>
+    <div><dt>prefix design</dt><dd>the image tokens are placed in front of the words and go through all layers of the language model like words (E4)</dd></div>
+  </dl>
+  <p class="claim">With cross-attention the photo adds \(n_{\text{txt}} \cdot N\) pairs per layer. As tokens in the sequence it adds \(N^2\) more, and the tokens also go through the MLP of all layers.</p>
+  <div class="card" id="co-box">
+    <div class="controls" id="co-controls"></div>
+    <div id="co-bars"></div>
+    <div class="eqn eqs" id="co-eq" aria-live="polite"></div>
+    <p class="credit">Counts per head and per layer for a decoder of width 768 (BLIP's), as defined in the text. The multiply-adds count what the photo adds: the keys and values of the photo for cross-attention, and the whole block for tokens in the sequence.</p>
+  </div>
+  <p class="cap"><b>For BLIP's photo (384 pixels, patch 16, N = 576) and a caption of 12 words, cross-attention computes 6,990 pairs per head and layer. Image tokens in the sequence need 338,766, a factor of 48.5.</b> The gap grows with the size of the photo, to 192 times at 768 pixels.</p>
+  <p>The count has two parts. In cross-attention the 12 words meet all 576 patches, which is 6,912 pairs. The words also read one another, with 12 &times; 13 / 2 = 78 allowed pairs, so the total is 6,990. In the prefix design the 576 patches also attend to one another, which adds 576 &times; 576 = 331,776 pairs. Most designs let the image tokens read one another in both directions. The multiply-adds tell the same story with a smaller factor. A block of width \(d\) spends about \(12 d^2\) multiply-adds per token on its attention matrices and its MLP (4 \(d^2\) and 8 \(d^2\), D5). In the prefix design the 576 image tokens spend that in all layers: 576 &times; 12 &times; 768&sup2; = 4.08 billion per layer. In cross-attention the photo needs a key and a value per token (2 \(d^2\)), and a word needs a query and an output matrix (2 \(d^2\)). The total is (576 + 12) &times; 2 &times; 768&sup2; = 0.69 billion, a factor of 5.9.</p>
+  <p>Two things complete the picture. First, cross-attention adds weights. BLIP's decoder has 12 cross-attention sublayers of 2,363,904 numbers apiece, 28.4 million in total, which is 12.7% of the 224 million numbers of the model. The prefix design adds no layers and only a connection from the vision encoder (E4). Second, cross-attention lets the words read the photo only through those layers, so the information has a narrow path, and a designer controls how wide it is. Flamingo (Alayrac and others, 2022) narrows it on purpose. It first squeezes the photo to 64 tokens with a small resampler. In its 9 billion parameter model it adds cross-attention to one layer in four. This cuts the cost and the extra weights, and the paper measures the loss of accuracy that follows.</p>
+  <p class="math">\[ N = \left(\frac{S}{P}\right)^{2},\qquad \text{pairs}_{\text{prefix}} = N^{2} + n\,N + \frac{n(n+1)}{2},\qquad \text{pairs}_{\text{cross}} = n\,N + \frac{n(n+1)}{2} \]</p>
+  <ul class="math-notes">
+    <li><b>\(S\)</b> is the side of the photo in pixels, <b>\(P\)</b> the side of a patch (E1), <b>\(N\)</b> the number of image tokens, and <b>\(n\)</b> the number of words (\(n_{\text{txt}}\) above).</li>
+    <li>The word-to-word term \(n(n+1)/2\) is the causal triangle of D4. The term \(nN\) is the words reading the image tokens. The term \(N^2\) exists only in the prefix design.</li>
+  </ul>
+  <pre class="code" data-run><code>def pairs_sequence(n_img, n_txt):          # photo in the sequence
+    return n_img ** 2 + n_txt * n_img + n_txt * (n_txt + 1) // 2
+def pairs_cross(n_img, n_txt):             # cross-attention
+    return n_txt * n_img + n_txt * (n_txt + 1) // 2
+for side in (224, 384, 768):
+    n_img = (side // 16) ** 2
+    s, c = pairs_sequence(n_img, 12), pairs_cross(n_img, 12)
+    print(side, n_img, s, c, round(s / c, 1))
+d = 768
+print("multiply-adds per layer:", 576 * 12 * d * d, (576 + 12) * 2 * d * d)</code></pre>
+  <pre class="out">224 196 40846 2430 16.8
+384 576 338766 6990 48.5
+768 2304 5336142 27726 192.5
+multiply-adds per layer: 4076863488 693633024</pre>
+  <p>Read the last row of the table. At 768 pixels the photo is 2,304 tokens. The prefix design needs 5.3 million pairs per head and layer, and the cross design needs 27,726. A language model with 32 layers and 32 heads multiplies both by 1,024. This is the reason why the long-context chapter (<a href="../d6-long-context/#cost">D6</a>) matters for vision-language models, and why E4 measures the number of image tokens of actual models.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Cross-attention is cheaper, so it is the better design.</p>
+    <p><b>Why it fails.</b> It is cheaper in pairs and multiply-adds, and it adds 28 million numbers to BLIP and a narrow path for the photo. The prefix design costs more per photo and needs no new layers, and its words read the photo with the full width of the language model.</p>
+    <p><b>Better account.</b> The two designs spend a different resource. E4 shows which one the current open models use, and what they cost in tokens.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When a vision-language model runs out of memory on a large photo, count the image tokens first. Doubling the side of a photo multiplies the tokens by 4 and the prefix pairs by 16.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Halve the patch side from 16 to 8 on a 384 pixel photo. By what factor do the image tokens, the cross pairs and the prefix pairs change (12 words)?</summary><p>The tokens go from 576 to 2,304, a factor of 4. The cross pairs go from 6,990 to 27,726 (about 4 times). The prefix pairs go from 338,766 to 5,336,142 (about 16 times), because the \(N^2\) term dominates.</p></details>
+    <details><summary>The keys and values of the photo are computed once. How many numbers does BLIP keep for them, for all 12 layers?</summary><p>The count is 2 &times; 577 &times; 768 &times; 12 = 10,635,264 numbers, about 21 MB at 16 bits.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> A decoder layer has 12 heads of \(d_k = 64\). A caption has 9 tokens and the photo has 577. Give the sizes of \(Q\), \(K\), \(V\) and the table of weights for one head. Give the number of weights for all heads of one layer. Give the number of numbers that must be kept so that the keys and values of the photo are not recomputed at a new word (12 layers).</p>
+        <details class="hint"><summary>Hint</summary><p>The queries come from the words and the keys and values from the photo. Keep the keys and the values, for the heads of all layers.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> Show that the output of cross-attention does not change if the \(n_{\text{img}}\) patches are put in a different order. Then say what must be added to the patch tokens so that the model can tell where a patch was, and where in this primer that was done.</p></li>
+      <li><p><span class="ex-tag">theory</span> A row of weights is (0.80, 0.10, 0.10) over three patches, with value lengths (0.2, 12, 12). Find the share of the weight and the share of what is added for the three patches. Then find the length of the output when the first patch is set aside and the row is renormalised, if the three values are parallel with the stated lengths.</p>
+        <details class="hint"><summary>Hint</summary><p>The share of what is added of patch \(j\) is \(a_j \lVert v_j\rVert\) divided by the sum over the three patches.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> The self part of a decoder layer has a causal mask and the cross part has none. Explain why the two choices are made. What would go wrong if the cross part had a mask that hid the right half of the photo from all words?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Write <code>cross_attention</code> as in the first code block with \(d_k = 4\) and your own seed. Check that the rows add up to 1. Replace one patch's key and its value by the zero vector. Report the weight it receives, and the change of the output when you set it aside and renormalise.</p></li>
+      <li><p><span class="ex-tag">practice</span> Open <code>data/blip.json</code> of this chapter (<code>https://mailab.in/primer/e3-cross-attention/data/blip.json</code>) with Python. For the set <code>bamboo-1-page</code>, read the field <code>read</code> at layer index 4 (layer 11). The entry at index 3 (counting from 0) is the share of the weight inside the animal with the empty patches set aside. Divide it by the share of the animal in patches (66 of 576) and list the words with a ratio above 3.</p></li>
+      <li><p><span class="ex-tag">practice</span> Extend <code>pairs_sequence</code> and <code>pairs_cross</code> to count pairs for all 12 heads and 12 layers. Plot the ratio of the two against the patch side \(P\) from 8 to 64, for a photo of side 384 and 12 words. Say where the ratio is largest.</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> BLIP writes "shark" for the hammerhead photo and gives "hammerhead" a probability of 0.02%. SharkCam wants the species. Where could the missing knowledge be: in the image tokens, in the cross-attention, or in the language side? Design a test for the three, say which photos and which measurement you would use, and what result would exclude a place.</p></li>
+      <li><p><span class="ex-tag">open</span> You want to show a fisher a map that explains why SharkCam flagged a frame. Which of the methods in this chapter and in <a href="../b9-explaining/#occlusion">B9</a> would you offer? How would you check that the map is faithful for that frame? What would you write under the map?</p></li>
+      <li><p><span class="ex-tag">open</span> A new captioning model might park weight on empty tokens too. Design a check that finds such tokens from the model's own numbers, without a human marking the animal. Say which two measurements you would combine and what false findings you expect.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Answer after two days and again after a week, without looking back.</p>
+  <div class="recall comeback">
+    <details><summary>Write cross-attention in one line. Say which of Q, K and V come from the photo. Say what differs from self-attention in the size of the table of weights.</summary><p>softmax(Q_txt K_img^T / sqrt(d_k)) V_img. K and V come from the photo and Q from the words. The table has the words as rows and the patches as columns, with no causal mask. The table of self-attention is square and triangular (<a href="#sources">sources</a>).</p></details>
+    <details><summary>D4 showed that a causal model needs a mask or it leaks the answer. Why does cross-attention to a photo not need one?</summary><p>The photo is not part of the text that is being predicted. Reading all of it, before and after, leaks no information about the next word. The words still need the mask in the self part (<a href="../d4-self-attention/#mask">D4</a>).</p></details>
+    <details><summary>B9 showed an occlusion map for a CNN. How does the occlusion test of this chapter relate to the attention map, and which one would you trust to say what a word needed?</summary><p>Occlusion measures the effect of hiding patches on the model's own output, and the attention map only reports weights. For what the word needed, trust the occlusion test, and use attention as a clue (<a href="#occ">occ</a>, <a href="../b9-explaining/#occlusion">B9</a>).</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Li, J., Li, D., Xiong, C., Hoi, S. (2022). BLIP: bootstrapping language-image pre-training for unified vision-language understanding and generation. <i>ICML 2022</i> (PMLR 162). arXiv:2201.12086. Model used here: <code>Salesforce/blip-image-captioning-base</code> (Hugging Face), BSD-3-Clause, described on its card as pretrained on COCO captions and for research use. I read the numbers of layers, heads and sizes from the model files.</li>
+    <li>Bahdanau, D., Cho, K., Bengio, Y. (2015). Neural machine translation by jointly learning to align and translate. <i>ICLR 2015</i>. arXiv:1409.0473. The first soft search over a source sentence.</li>
+    <li>Vaswani, A., and others (2017). Attention is all you need. <i>NeurIPS 2017</i>. arXiv:1706.03762. The transformer with its encoder-decoder attention layer.</li>
+    <li>Xu, K., Ba, J., Kiros, R., Cho, K., Courville, A., Salakhutdinov, R., Zemel, R., Bengio, Y. (2015). Show, attend and tell: neural image caption generation with visual attention. <i>ICML 2015</i>. arXiv:1502.03044. Attention maps over a photo while a caption word is written.</li>
+    <li>Darcet, T., Oquab, M., Mairal, J., Bojanowski, P. (2023). Vision transformers need registers. <i>ICLR 2024</i>. arXiv:2309.16588. High-norm artefact tokens in background regions, and register tokens.</li>
+    <li>Kobayashi, G., Kuribayashi, T., Yokoi, S., Inui, K. (2020). Attention is not only a weight: analyzing transformers with vector norms. <i>EMNLP 2020</i>. arXiv:2004.10102. Weights and the lengths of the vectors they mix.</li>
+    <li>Jain, S., Wallace, B. C. (2019). Attention is not explanation. <i>NAACL 2019</i>, arXiv:1902.10186. Wiegreffe, S., Pinter, Y. (2019). Attention is not not explanation. <i>EMNLP-IJCNLP 2019</i>, arXiv:1908.04626. The two sides of the debate on attention as explanation.</li>
+    <li>Alayrac, J.-B., and others (2022). Flamingo: a visual language model for few-shot learning. <i>NeurIPS 2022</i>. arXiv:2204.14198. Cross-attention layers inserted into a frozen language model (one layer in four for the 9B model), 64 visual tokens per image.</li>
+    <li>Dosovitskiy, A., and others (2021). An image is worth 16x16 words. <i>ICLR 2021</i>. arXiv:2010.11929. The vision transformer of E1, which is BLIP's image encoder.</li>
+    <li>Photos: Wikimedia Commons, credited under the figures (<code>data/sharks/photos.json</code>). The animal outlines are drawn by hand for this page. The data were computed by <code>data/make_blip.py</code> and <code>data/make_occlusion.py</code>: 8 captions on 4 photos, 576 single-patch runs per photo and rule tests with 20 random draws per size. The empty patches are those with an image token of length under 2. The rank correlation is over the patches that are not empty.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=e92d596e" defer></script>
+<script src="e3-cross-attention.js?v=e7488957" defer></script>
+<a id="primer-preview-pill" href="https://mailab.in/primer/e3-cross-attention/" style="position:fixed;right:14px;bottom:14px;z-index:2147483647;display:block;margin:0;padding:7px 13px;border:1px solid #5b6470;border-radius:999px;background:#fffdf7;background-image:none;color:#14181c;font:13px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:0;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:none;">Preview v2 &middot; open current version</a>
+</body>
+</html>

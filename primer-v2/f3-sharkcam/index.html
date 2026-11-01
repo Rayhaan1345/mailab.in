@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SharkCam, end to end | How AI Learns</title>
+<meta name="description" content="Join the models of the book into one SharkCam system, follow Tag 4127 through it, collect the ways it breaks, recall six equations, and map the book to my projects.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
+<style>
+/* Local additions for this chapter only. */
+code { overflow-wrap: anywhere; }
+.math { position: relative; }
+.refs li { overflow-wrap: anywhere; }
+.card .bar .label { margin-right: 4px; }
+.card .bar { row-gap: 8px; }
+.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
+.mini-note { max-width: 46em; font-size: 14.5px; color: var(--muted); margin: 6px 0 0; }
+.sub-h3 { margin: 24px 0 8px; font-size: 19px; font-weight: 600; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; margin: 6px 0 0; }
+.tbl th, .tbl td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; vertical-align: top; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { font-weight: 500; color: var(--muted); }
+.tbl tr.pick td { background: var(--mark); color: var(--ink); font-weight: 600; }
+.tbl.words td, .tbl.words th { text-align: left; font-feature-settings: normal; }
+.tbl.words td:first-child { color: var(--ink); font-weight: 600; }
+.tbl-wrap { overflow-x: auto; max-width: 100%; }
+@media (max-width: 600px) { .tbl { font-size: 13px; } .tbl th, .tbl td { padding: 4px 4px; } }
+.counts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.counts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 760px) { .counts.three span { font-size: 12.5px; } }
+.bridge { max-width: 46em; margin: 16px 0; padding: 8px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--sand); border-radius: 0 6px 6px 0; background: var(--paper); }
+.bridge p { margin: 5px 0; color: var(--ink-2); }
+.bridge b { color: var(--ink); }
+.card .bar .group, .tr-in .group { border-radius: 18px; }
+.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
+
+/* system diagram */
+#sys-svg { max-width: 100%; }
+#sys-svg g.node { cursor: pointer; outline: none; }
+#sys-svg g.node:focus-visible rect.edge { stroke-width: 3.5; }
+.detail { margin: 12px 0 0; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.detail h3 { margin: 0 0 8px; font-size: 19px; font-weight: 600; color: var(--ink); }
+.detail h3 small { font-size: 14px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+.detail dl { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 6px 14px; margin: 0; font-size: 15.5px; line-height: 1.45; }
+.detail dt { color: var(--muted); font-size: 14px; padding-top: 1px; }
+.detail dd { margin: 0; color: var(--ink-2); }
+.detail dd a { font-weight: 600; }
+.detail .cite { color: var(--muted); font-size: 14px; }
+.runs { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 13px; border: 1.5px solid var(--navy); color: var(--ink); }
+.runs.robot { border-color: var(--teal); } .runs.both { border-color: var(--sand); }
+@media (max-width: 600px) { .detail dl { grid-template-columns: minmax(0, 1fr); gap: 1px 0; } .detail dt { margin-top: 8px; } }
+
+/* trace */
+.tr-in { display: grid; gap: 10px 22px; margin: 0 0 6px; }
+.tr-in .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.tr-in .row > .label { font-size: 14px; color: var(--muted); min-width: 6.2em; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 6px; }
+.thumbs button { width: 64px; padding: 2px; border: 1.5px solid var(--rule); border-radius: 6px; background: var(--bg); cursor: pointer; color: var(--ink-2); font: inherit; font-size: 11.5px; line-height: 1.15; }
+.thumbs button img { display: block; width: 100%; height: 40px; object-fit: cover; border-radius: 3px; background: #fff; }
+.thumbs button[aria-pressed="true"] { border-color: var(--teal); box-shadow: 0 0 0 2px var(--mark); color: var(--ink); font-weight: 600; }
+.thumbs button:disabled { opacity: 0.45; cursor: default; }
+.steps { display: grid; gap: 12px; margin: 14px 0 0; }
+.step { border: 1px solid var(--rule); border-radius: 8px; background: var(--bg); padding: 10px 14px 12px; }
+.step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 8px; }
+.step-head .num { display: inline-flex; width: 26px; height: 26px; align-items: center; justify-content: center; border-radius: 50%; background: var(--ink); color: var(--bg); font-weight: 600; font-size: 14px; flex: none; }
+.step-head b { font-size: 17.5px; color: var(--ink); }
+.step-head .chap { font-size: 14.5px; color: var(--muted); }
+.badge { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 12.5px; line-height: 1.6; border: 1.5px solid var(--rule); color: var(--ink-2); white-space: nowrap; }
+.badge.stored { border-color: var(--navy); } .badge.comp { border-color: var(--teal); } .badge.script { border-color: var(--coral); border-style: dashed; }
+.step-body { display: grid; gap: 10px 20px; font-size: 15.5px; color: var(--ink-2); }
+.step-body.two { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: start; }
+@media (max-width: 700px) { .step-body.two { grid-template-columns: minmax(0, 1fr); } }
+.step-body p { margin: 0 0 6px; max-width: none; }
+.kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; margin: 10px 0 0; padding: 8px 0 0; border-top: 1px dashed var(--rule); font-size: 14.5px; }
+.kv div { min-width: 0; }
+.kv i { display: block; font-style: normal; font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.kv span { color: var(--ink-2); overflow-wrap: anywhere; }
+@media (max-width: 700px) { .kv { grid-template-columns: minmax(0, 1fr); } }
+.src { margin: 6px 0 0; font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
+.digits { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 6px; }
+.digit { text-align: center; font-size: 13.5px; color: var(--muted); }
+.digit canvas { display: block; width: 62px; height: 62px; image-rendering: pixelated; background: #fff; border: 1.5px solid var(--rule); border-radius: 4px; }
+.digit b { display: block; font-size: 20px; color: var(--ink); line-height: 1.2; }
+.pbars { display: grid; gap: 3px; margin: 0; }
+.pbar { display: grid; grid-template-columns: 8.2em minmax(0, 1fr) 3.6em; align-items: center; gap: 6px; font-size: 14px; }
+.pbar span.n { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pbar .tr { height: 12px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+.pbar .tr i { display: block; height: 100%; background: var(--navy); border-radius: 3px; min-width: 1px; }
+.pbar.top .tr i { background: var(--teal); }
+.pbar.wrong .tr i { background: var(--coral); }
+.pbar b { text-align: right; font-weight: 600; color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.pbar.top span.n { color: var(--ink); font-weight: 600; }
+@media (max-width: 500px) { .pbar { grid-template-columns: 6.6em minmax(0, 1fr) 3.4em; font-size: 13px; } }
+.photo-box canvas, .photo-box img { display: block; width: 100%; max-width: 360px; height: auto; border-radius: 6px; border: 1px solid var(--rule); background: #fff; }
+.photo-box .credit { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); max-width: 360px; line-height: 1.35; }
+.fuse { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.fuse th, .fuse td { padding: 4px 6px; border-bottom: 1px solid var(--rule); text-align: left; }
+.fuse th { font-weight: 500; color: var(--muted); font-size: 13px; }
+.fuse td.cell { position: relative; min-width: 4.4em; }
+.fuse td.cell i { position: absolute; left: 0; top: 3px; bottom: 3px; background: var(--navy); opacity: 0.2; border-radius: 3px; }
+.fuse td.cell span { position: relative; }
+.fuse tr.win td { background: var(--mark); font-weight: 600; color: var(--ink); }
+.fuse td.fz i { background: var(--teal); opacity: 0.35; }
+.fuse td.mx span { text-decoration: underline; }
+@media (max-width: 600px) { .fuse { font-size: 12.5px; } .fuse th, .fuse td { padding: 3px 3px; } .fuse th { font-size: 11.5px; } .fuse td.cell { min-width: 0; } }
+.verdict { margin: 8px 0 0; padding: 8px 12px; border-radius: 6px; border: 1.5px solid var(--teal); background: var(--mark); color: var(--ink); font-size: 15.5px; }
+.verdict.ask { border-color: var(--coral); background: color-mix(in srgb, var(--coral) 12%, transparent); }
+.say { margin: 4px 0 6px; padding: 8px 12px; border-left: 3px solid var(--coral); background: var(--paper); border-radius: 0 6px 6px 0; font-style: italic; color: var(--ink); }
+.ck { margin: 3px 0; font-size: 14.5px; }
+.ck b.ok { color: var(--link-hover); } .ck b.no { color: var(--coral); }
+.msg-box { margin: 0 0 8px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); font-size: 16px; line-height: 1.5; }
+.msg-box small { display: block; margin-top: 4px; color: var(--muted); font-size: 13.5px; }
+.rec-out { margin: 14px 0 0; padding: 12px 14px; border: 2px solid var(--teal); border-radius: 8px; background: var(--paper); }
+.rec-out.ask { border-color: var(--coral); }
+.rec-out h3 { margin: 0 0 6px; font-size: 17.5px; font-weight: 600; }
+.rec-out p { margin: 4px 0; color: var(--ink-2); }
+.rec-out .row { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.rec-out .row span b { color: var(--ink); }
+
+/* failure gallery */
+.fails { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 10px 0 0; }
+@media (max-width: 860px) { .fails { grid-template-columns: minmax(0, 1fr); } }
+.fcard { border: 1px solid var(--rule); border-radius: 8px; background: var(--bg); padding: 10px 14px 12px; }
+.fcard h3 { margin: 0 0 4px; font-size: 18px; font-weight: 600; display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; }
+.fcard h3 .ch { font-size: 14px; font-weight: 400; color: var(--muted); }
+.fcard p { margin: 4px 0; font-size: 15.5px; color: var(--ink-2); max-width: none; }
+.fcard .counts { margin-top: 8px; }
+.fcard .counts b { font-size: 21px; }
+.fcard .counts span { font-size: 12.5px; }
+.fcard .q { margin: 10px 0 4px; font-weight: 600; color: var(--ink); font-size: 15.5px; }
+.opts { display: grid; gap: 5px; }
+.opts button { text-align: left; font: inherit; font-size: 14.5px; color: var(--ink-2); background: var(--paper); border: 1.5px solid var(--rule); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.35; }
+.opts button:hover:not(:disabled) { border-color: var(--teal); }
+.opts button:disabled { cursor: default; }
+.opts button.right { border-color: var(--teal); background: var(--mark); color: var(--ink); font-weight: 600; }
+.opts button.wrong { border-color: var(--coral); text-decoration: line-through; text-decoration-color: var(--coral); }
+.opts button em { font-style: normal; color: var(--muted); margin-left: 4px; }
+.fcard .reveal { margin-top: 8px; padding: 8px 10px; border-left: 3px solid var(--navy); background: var(--paper); border-radius: 0 6px 6px 0; font-size: 15px; color: var(--ink-2); }
+.fcard .reveal p { margin: 3px 0; font-size: 15px; }
+.fcard .reveal b { color: var(--ink); }
+.tally { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; margin: 0 0 10px; font-size: 15.5px; color: var(--ink-2); }
+.tally b { color: var(--ink); font-size: inherit; line-height: inherit; font-weight: 600; }
+
+/* equation cards */
+.eqs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 10px 0 0; }
+@media (max-width: 900px) { .eqs { grid-template-columns: minmax(0, 1fr); } }
+.eqcard { border: 1px solid var(--rule); border-radius: 8px; background: var(--bg); padding: 10px 14px 12px; min-width: 0; }
+.eqcard h3 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+.eqcard h3 .ch { font-size: 14px; font-weight: 400; margin-left: 6px; }
+.eqcard p { margin: 4px 0 8px; font-size: 15.5px; color: var(--ink-2); max-width: none; }
+.eqcard textarea { width: 100%; min-height: 3.2em; font: inherit; font-size: 15px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); resize: vertical; }
+.eqcard .acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; align-items: center; }
+.eqcard .shown { margin-top: 8px; }
+.eqcard .shown .math { max-width: none; margin: 4px 0; }
+.eqcard .shown .math-notes { font-size: 14.5px; margin: 4px 0 8px; }
+.eqcard .shown .live { margin: 8px 0 0; padding: 8px 10px; border: 1px dashed var(--rule); border-radius: 6px; }
+.eqcard .shown .live .eqn { margin: 4px 0 0; }
+.eqcard .shown .live label { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 14.5px; color: var(--ink-2); }
+.eqcard .shown .live input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--teal); }
+.eqcard .rate .btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.eqcard .rate-res { font-size: 14px; color: var(--muted); }
+.eqcard .eqn .t b { font-size: 17px; }
+
+/* book map */
+.bookmap { display: grid; gap: 6px; margin: 0 0 8px; }
+.bm-row { display: grid; grid-template-columns: 5.6em minmax(0, 1fr); gap: 4px 10px; align-items: start; }
+.bm-row > span { font-size: 13px; color: var(--muted); padding-top: 6px; line-height: 1.2; }
+.bm-tiles { display: flex; flex-wrap: wrap; gap: 4px; }
+.tile { min-width: 42px; padding: 4px 6px; font: inherit; font-size: 13.5px; color: var(--ink-2); background: var(--paper); border: 1.5px solid var(--rule); border-radius: 6px; cursor: pointer; font-feature-settings: "tnum" 1, "lnum" 1; }
+.tile.lit { background: var(--teal); border-color: var(--teal); color: #fff; font-weight: 600; }
+:root[data-theme="dark"] .tile.lit { color: #0f1317; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tile.lit { color: #0f1317; } }
+.tile.sel { box-shadow: 0 0 0 2px var(--coral); }
+.tile:focus-visible { outline: 2px solid var(--coral); outline-offset: 1px; }
+@media (max-width: 600px) { .bm-row { grid-template-columns: minmax(0, 1fr); } .bm-row > span { padding-top: 0; } .tile { min-width: 40px; } }
+.proj-info { margin: 10px 0 0; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-size: 15.5px; color: var(--ink-2); }
+.proj-info h3 { margin: 0 0 6px; font-size: 18px; font-weight: 600; color: var(--ink); }
+.proj-info p { margin: 4px 0; max-width: none; }
+.proj-info ul { margin: 6px 0 4px; padding-left: 1.2em; }
+.proj-info li { margin: 2px 0; }
+.legend-line { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 0 0; font-size: 14px; color: var(--ink-2); }
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://mailab.in/primer/f3-sharkcam/">
+</head>
+<body data-chapter="f3">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part F, AI in the world</span><span>Chapter F3</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part F &middot; Chapter F3</p>
+  <h1>SharkCam, end to end</h1>
+  <p class="subtitle">Join the models of the book into one system, follow one shark through it, and test what you can still recall.</p>
+</header>
+
+<div class="tldr">
+  <p>This chapter teaches no new method. It puts the book together. SharkCam takes a photo, a handwritten tag and a short message about a shark. It has to end with a record, a species call, an answer to a question and a decision. You will see which chapter built which part, follow Tag 4127 through all of it, and collect the ways the system breaks.</p>
+  <p>Then you recall six equations from memory and run one short program that joins two stages. You see which chapters support my projects. You also get a short list of what the book left out, with a free source for the topics.</p>
+</div>
+<p class="youneed"><b>You will need:</b> the chapters this one joins. A link follows the claims, so you can open the chapter and check them. Most useful to have read first are <a href="../a4-grading-models/">A4</a> for grading a model, <a href="../c3-domain-shift/">C3</a> for murky water, <a href="../e2-clip/">E2</a> for CLIP, <a href="../f1-fairness/">F1</a> for fairness and <a href="../f2-robots/">F2</a> for the robot.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#system">The whole system</a></li>
+    <li><a href="#trace">Trace one shark</a></li>
+    <li><a href="#breaks">Where it breaks</a></li>
+    <li><a href="#equations">The book in six equations</a></li>
+    <li><a href="#projects">My projects</a></li>
+    <li><a href="#next">What to learn next</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. the whole system ============================ -->
+<section id="system" aria-labelledby="system-h">
+  <h2 id="system-h">The whole system</h2>
+  <p class="ask"><b>Guess first.</b> SharkCam's robot has about a quarter of a second to point its camera at a shark. Which of these can run inside that loop on a Raspberry Pi: a small photo model, the image encoder of CLIP, or a vision-language model?</p>
+  <dl class="terms">
+    <div><dt>stage</dt><dd>one box of the system, with a fixed input and a fixed output</dd></div>
+    <div><dt>interface</dt><dd>what a stage takes in and what it gives out; the next stage depends on both</dd></div>
+    <div><dt>failure mode</dt><dd>the usual way a stage goes wrong, and the test that would show it</dd></div>
+    <div><dt>runs on</dt><dd>the robot, inside the loop with a deadline, or a shore computer that works after the dive</dd></div>
+  </dl>
+  <p class="claim">SharkCam is ten stages joined by the numbers they pass on. A join can fail even when the models on both sides of it are fine.</p>
+  <div class="card" id="sys">
+    <div class="bar" id="sys-bar"></div>
+    <svg id="sys-svg" role="img" aria-label="Diagram of SharkCam. Inputs on the left (dive footage, photo, tag, message) feed readers, then models and records, then a decision, with a fairness and privacy check under the decision."></svg>
+    <p class="status" id="sys-status" aria-live="polite"></p>
+    <div class="detail" id="sys-detail" aria-live="polite"></div>
+  </div>
+  <p class="cap"><b>Only the camera loop and a small photo model must finish inside a quarter of a second. The other stages work on a shore computer, when a message arrives or after the dive.</b> Click a box for what it takes in, what it gives out, its model, one measured number with the chapter it comes from, and its usual failure. Choose a path and press Step to see the order in which Tag 4127 meets the boxes.</p>
+  <p>The numbers in the panel come from the chapter named beside them, so you can check them there. A number that no chapter states is marked as counted or computed. Take the catch record. A6 measured 85.4% on 164 held-out sharks for the question "spadenose or not". The lazy answer gets 56.1%. The same box adds a warning from A4. A tree with no depth limit scored 94.7% when frames of the same sharks were in both parts, and 83.6% on new sharks.</p>
+  <p>Now choose a path and press Step. The boxes light up in the order the input reaches them, and the number on a box says when. A photo of Tag 4127 meets seven boxes. Its tag number meets five. The tag path and the message path join at the catch record, because both end as one row of the table. Switch the colour to "where it runs" to see the split between robot and shore.</p>
+
+  <h3 class="sub-h3">Which stages fit the loop?</h3>
+  <p>The guess has arithmetic behind it. Choose the model that runs in the robot's loop and read the pointing error. The loop adds the time of four stages. A shark that swims across the view makes the camera lag behind by the angle the shark sweeps while the command is on its way. F2 builds this figure in detail; here it answers one question.</p>
+  <div class="card" id="bd">
+    <div class="bar" id="bd-bar"></div>
+    <div class="eqn" role="img" aria-label="Worked example of the loop time for the chosen model" id="bd-eq"></div>
+    <div class="counts four" id="bd-counts"></div>
+    <p class="status" id="bd-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>On a Pi 4, the image encoder of CLIP would take about 387 ms for one picture and point the camera 18.5 degrees behind the shark, where 5 are allowed. MobileNetV2 takes 26 ms and gives 4.7.</b> The CLIP time is an estimate, and so are the camera, decision and motor times and the shark's speed. F2 states which values are assumed.</p>
+  <p class="math">\[ L = t_{\text{cam}} + t_{\text{model}} + t_{\text{dec}} + t_{\text{motor}} \qquad \theta_{\text{err}} \approx \omega\,(L + T) \qquad \omega = \frac{v}{d} \]</p>
+  <ul class="math-notes">
+    <li><b>\(L\)</b> is the latency, the sum of the four stage times in milliseconds. <b>\(T\)</b> is the time between two commands, which is \(L\) when the robot finishes one frame before it takes the next.</li>
+    <li><b>\(\omega\)</b> is the angle the shark sweeps per second, from its speed \(v\) and distance \(d\). <b>\(\theta_{\text{err}}\)</b> is how far behind the shark the camera points. The values are those of <a href="../f2-robots/#loop">F2</a>: a shark at 1 m/s and 3 m sweeps 19.1 degrees per second, and 5 degrees is allowed.</li>
+  </ul>
+  <p>The CLIP number comes from two earlier results. E1 lists 4.4 billion operations for a ViT-B/32, in the same unit that F2 uses for multiply-adds. F2 derives 11.4 billion per second for a Pi 4 with 8-bit weights. The image encoder of CLIP has the same width, depth and patch size as that ViT, so its cost should be close. Dividing gives 387 ms, and the whole loop takes 485 ms. This is an estimate, not a measurement on a Pi. A vision-language model contains an image encoder of this kind and a language model on top, so it costs more again. A message arrives when it arrives, so its reader does not belong in the loop. A sensible split keeps only the small model on the robot and sends one frame in a while to the shore computer.</p>
+  <div class="break">
+    <p><b>Common belief.</b> If the models in a system are good, the system is good.</p>
+    <p><b>Why it fails.</b> Errors multiply along a chain, and the joins have their own errors. The tag reader of C2 is right on 98.89% of single digits, so a four-digit tag is right 95.6% of the time if errors are independent. A wrong tag number writes a good prediction into the wrong row of the table.</p>
+    <p><b>Better account.</b> Test the joins as well as the models: the tag number, the units, the thresholds and the order of the columns.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When the final answer is wrong, replay the case through the stages in order and print what the stage received. The first stage whose input is already wrong is where to look. B8 calls this testing one component at a time (<a href="../b8-debugging/#component">B8</a>).</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Which of the three candidates can run in the robot's loop, and what decides it?</summary><p>A small photo model such as MobileNetV2. The decision is arithmetic. The camera, model, decision and motor times add up to the latency. The latency times the angle the shark sweeps per second must stay under the allowed angle. CLIP's image encoder and a vision-language model take far longer.</p></details>
+    <details><summary>The Hindi version of the Tag 4127 report costs 227 GPT-2 tokens and the English one 40. Which stage pays, and why?</summary><p>The message reader pays, because the tokenizer cuts Devanagari text into many small pieces (D1). The cost is in tokens, and the context window and the time both depend on tokens.</p></details>
+    <details><summary>A digit is read right 98.89% of the time, with independent errors. How often is a whole four-digit tag right?</summary><p>\(0.9889^4 = 0.956\), about 95.6%. Out of 1,000 tags, about 44 are read wrongly.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. trace ============================ -->
+<section id="trace" aria-labelledby="trace-h">
+  <h2 id="trace-h">Trace one shark</h2>
+  <p class="ask"><b>Guess first.</b> A photo, a handwritten tag and a message about Tag 4127 reach SharkCam. How many separate trained models does this page run or quote before SharkCam acts: 3, 8 or 20?</p>
+  <dl class="terms">
+    <div><dt>trace</dt><dd>the answers of the stages, in order, for one input</dd></div>
+    <div><dt>stored</dt><dd>an output saved in the data folder of an earlier chapter, named under the step</dd></div>
+    <div><dt>computed here</dt><dd>calculated on this page from stored weights or numbers</dd></div>
+    <div><dt>scripted</dt><dd>written by hand for this page, to show what a stage would say</dd></div>
+    <div><dt>confidence</dt><dd>the chance a stage gives its own answer, which is not the chance that the answer is right</dd></div>
+  </dl>
+  <p class="claim">A stage gives an answer and a confidence. A confident stage can be wrong, and sources that fail for different reasons are worth more together than one alone.</p>
+  <div class="card" id="tr">
+    <div class="tr-in" id="tr-controls"></div>
+    <div class="steps" id="tr-steps" aria-live="polite"></div>
+    <div id="tr-record"></div>
+  </div>
+  <p class="cap"><b>With the controls as they load, the sources disagree at first: the length-and-girth classifier says spadenose (76%), while CLIP and the message say grey bamboo shark. The product of the three gives 99.6% for the bamboo shark, and the rule accepts it.</b> The controls load with the placeholder photo at 0 m, a message that names the grey bamboo shark with trust 0.8, and an accept threshold of 0.90. Change the photo, the depth, the message or the thresholds and watch which steps change. The record is made up, the photo is a placeholder from an aquarium, and the handwritten digits are MNIST digits.</p>
+  <p>The trace uses eight models. They are the digit reader (C2), the language model behind the message reader (D7), the length-and-girth classifier (A3) and XGBoost (A6). The others are a maturity model for bamboo sharks (A3 again), ViT-B/16 (E1), CLIP (E2) and the vision-language model (E4). Two of them, the message reader and the vision-language model, are scripted substitutes, and the step cards say so. The badge on a step tells you where its numbers come from.</p>
+  <p>Look at step 3 first. The classifier built on length and girth is wrong about Tag 4127: it gives spadenose 76%. It got 3 of the 72 bamboo sharks of the table right (A3). Bamboo sharks are 12% of the records, and in those two measurements they look like small spadenose sharks. XGBoost, which also sees depth, says "not spadenose" at 97.7%. Most of that comes from the depth of 0.4 m (A6). None of the 268 spadenose sharks in the table was found shallower than 5.6 m, so depth works as a shortcut. It works for this record and would probably fail for a spadenose shark found in a pool.</p>
+  <p>Now look at step 6. The three sources are combined by multiplying their chances for a species and rescaling so that they add to 1. The worked boxes show the winner and the runner-up. With the other controls as they load, drag the depth slider to 16 m and watch CLIP lose confidence while the other sources do not change. The fused chance falls to 87%, and the rule sends the case to a person. Choose a photo that does not match the record, for example a hammerhead, and see what the sources do. That is the case the rule exists for. The product also lets a source veto a species. For a hammerhead photo the tabular model gives the hammerhead 0.05%, which cancels CLIP's call, and the product favours spadenose. The check that two sources must agree catches it. It does not catch all cases. Try the 1839 drawing of the Ganges shark, with the other controls as they load. The tabular model and CLIP both say spadenose, two sources agree, and the record is accepted at 92%. Both are wrong, and the rule cannot tell. A rule like this needs a test on held-out cases that include rare species and drawings.</p>
+  <div class="eqn" role="img" aria-label="Worked example: the fused chance of the grey bamboo shark is the product of three chances, rescaled" id="tr-eqn"></div>
+  <p class="math">\[ p(s) \;\propto\; p_{\text{tab}}(s)\;p_{\text{clip}}(s)\;p_{\text{msg}}(s) \qquad\text{rescaled so that } \sum_{s} p(s) = 1 \]</p>
+  <ul class="math-notes">
+    <li><b>\(s\)</b> is a species, one of five. <b>\(p_{\text{tab}}(s)\)</b> is the chance from the length-and-girth classifier (A3), and <b>\(p_{\text{clip}}(s)\)</b> the chance from CLIP's softmax over nine captions (E2).</li>
+    <li><b>\(p_{\text{msg}}(s)\)</b> comes from the species the message names. That species gets the trust set by the slider, and the other four share the rest.</li>
+    <li>The product is the rule for independent sources. It is a simplification here: the message and the photo come from the same person, and the tabular model reads the same animal. The fused chance is therefore an upper bound on how much to trust the call.</li>
+  </ul>
+  <div class="eqn" role="img" aria-label="Worked example: four digits each right with the same chance" id="tr-chain"></div>
+  <p class="math">\[ P(\text{whole tag right}) = \prod_{i=1}^{n} p_i = 0.9889^{\,n} \]</p>
+  <ul class="math-notes">
+    <li><b>\(n\)</b> is the number of digits in the tag and <b>\(p_i\)</b> the chance that digit \(i\) is read right. The last step assumes that the digits are right with the same chance and that errors are independent. The chance of 0.9889 is the accuracy of the digit reader on the 10,000 test digits of <a href="../c2-cnns/#read">C2</a>. On the four digits shown, the reader is far more confident (above 99.9%) than that average. Confidence on clear digits is not accuracy on all digits.</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> When three sources agree, the answer is right.</p>
+    <p><b>Why it fails.</b> The product assumes that the sources fail for different reasons. A photo and a message from the same person, or two models that learned the same shortcut, fail together. Then agreement counts once, and 99.6% is far too high.</p>
+    <p><b>Better account.</b> Ask what a source could not know. Use the product to rank the species, set the accept rule on held-out cases (<a href="../a4-grading-models/#splits">A4</a>), and send disagreements to a person.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Read the three columns of the table in step 6 before the fused column. If one source gives the winner under 5%, the product has hidden a disagreement, and a person should see it. The rule on this page checks that at least two sources name the winner.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Leave the other controls as they load and set the message to name "spadenose shark" with trust 0.8. What happens to the decision for Tag 4127, and why?</summary><p>The tabular model and the message now name spadenose, and CLIP names bamboo. The product is nearly split, about 51% bamboo and 49% spadenose. Only one source names the winner and the chance is far below 90%, so the case goes to a person. The message has pulled the product away from a photo that was right, which is why a rule should not trust one source.</p></details>
+    <details><summary>Which stage in the trace gives no confidence at all, and what do you use in its place?</summary><p>The vision-language model. A sentence has no single probability of being right. The page checks its claims against the species table instead: the species name must match the fused call, and the conservation status must match the table (D7).</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. where it breaks ============================ -->
+<section id="breaks" aria-labelledby="breaks-h">
+  <h2 id="breaks-h">Where it breaks</h2>
+  <p class="ask"><b>Guess first.</b> Which of these three failures can a normal test set not show you at all: leakage, murky water or forgetting? Think about what has to be in the test set before you can see the failure.</p>
+  <dl class="terms">
+    <div><dt>symptom</dt><dd>what you see: a number that is too good, too bad or different from what you expected</dd></div>
+    <div><dt>cause</dt><dd>the mechanism behind the symptom</dd></div>
+    <div><dt>tool</dt><dd>a check, from a chapter of this book, that would have shown the cause</dd></div>
+  </dl>
+  <p class="claim">A test set shows only the failures it contains. The tool that makes a failure visible comes from a chapter you have read.</p>
+  <div class="card" id="fl">
+    <div class="tally" id="fl-score" aria-live="polite"></div>
+    <div class="fails" id="fl-grid"></div>
+  </div>
+  <p class="cap"><b>All three failures in the guess depend on the test set. Leakage hides in a test set that shares sharks with the training set. Murky water appears only if the test photos include murky water. Forgetting appears only if you test the old task again.</b> A card gives a symptom with its numbers. Choose the tool you would reach for, then read the cause, the debug tip and the chapter.</p>
+  <p>The eight cards are the failures this book showed in miniature. Leakage and overfitting (A4, B8) inflate the number you report. Murky water (C3) and forgetting (B7) change the data or the model after you have measured. Spurious cues (B9) and hallucination (D7, E4) make an answer look better supported than it is. Subgroup gaps (F1) hide behind an average. Quantisation flips (F2) hide behind an accuracy that barely moves. Hallucination in a vision-language model follows the same logic as D7's GPT-2 examples, and the E3 and E4 chapters (<a href="../e3-cross-attention/#occ">cross-attention</a> and <a href="../e4-vlms/#fail">vision-language models</a>) show what the image adds.</p>
+  <p>The program below joins two stages and finds one failure of the list in a few lines. The first stage is a logistic score fitted by gradient descent (A3). The second stage is a threshold followed by a check by site (A4, F1). Murky water is modelled as a noisier reading of the shark's length at the dive site. All data are made up.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+rng = np.random.default_rng(4127)
+n = 600
+site = rng.integers(0, 2, n)                 # 0 = dock landing, 1 = dive in murky water (made up)
+y = (rng.random(n) < 0.25).astype(float)     # 1 = hammerhead (made up)
+length = np.where(y == 1, rng.normal(100, 25, n), rng.normal(55, 15, n))
+x = length + rng.normal(0, 1, n) * np.where(site == 1, 18.0, 3.0)   # murky water blurs the reading
+z = (x - x.mean()) / x.std()
+
+# Stage 1: a logistic score, fitted by gradient descent (A3)
+w, b = 0.0, 0.0
+for _ in range(2000):
+    p = 1 / (1 + np.exp(-(w * z + b)))
+    w -= 0.5 * np.mean((p - y) * z)
+    b -= 0.5 * np.mean(p - y)
+p = 1 / (1 + np.exp(-(w * z + b)))
+
+# Stage 2: a threshold, then a check by site (A4, F1)
+flag = p >= 0.4
+print(f"stage 1: w = {w:.2f}, b = {b:.2f}")
+sens, prec = [], []
+for s, name in [(0, "dock"), (1, "dive")]:
+    m = site == s
+    tp = int(np.sum(flag[m] &amp; (y[m] == 1)))
+    pos = int(np.sum(y[m] == 1))
+    fp = int(np.sum(flag[m] &amp; (y[m] == 0)))
+    sens.append(tp / pos)
+    prec.append(tp / (tp + fp))
+    print(f"stage 2, {name}: found {tp} of {pos} ({sens[-1]:.0%}), {fp} false alarms, precision {prec[-1]:.0%}")
+gap = max(abs(sens[0] - sens[1]), abs(prec[0] - prec[1]))
+print(f"largest gap between sites: {gap * 100:.0f} points", "-> check before release" if gap > 0.10 else "-> ok")</code></pre>
+  <pre class="out">stage 1: w = 2.38, b = -1.95
+stage 2, dock: found 52 of 70 (74%), 5 false alarms, precision 91%
+stage 2, dive: found 47 of 71 (66%), 22 false alarms, precision 68%
+largest gap between sites: 23 points -> check before release</pre>
+  <p>Look at the two numbers. Sensitivity drops 8 points, from 74% to 66%. Precision drops 23 points, from 91% to 68%. The overall accuracy would hide both. The blur makes the lengths of the two groups overlap, so a threshold tuned on pooled data lets more small sharks through at the dive site. A check by site shows it in one line. F1 adds a harder case, where the groups also differ in how common the target is, and shows why no single threshold can then equalise all the scores. The fix is a decision for people: a threshold per site, a better reading of length in murky water (C3), or a human check at the dive site (F1).</p>
+  <div class="break">
+    <p><b>Common belief.</b> If all the stages pass their own tests, the system passes.</p>
+    <p><b>Why it fails.</b> The stage tests above were run on pooled data. The join between a score and a threshold depends on who is in the data, and a gap by group appears only when you split by group.</p>
+    <p><b>Better account.</b> Write the check that would reveal a failure before you need it, and run it on all the splits that matter: site, water, language, age.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Re-run the program with the noise at the dive site set to 6.0 instead of 18.0. The largest gap falls from 23 points to 10, and the program prints ok. A failure you can switch on and off in a toy is a failure you can test for in the full system.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Which two cards have a symptom that an overall accuracy number would hide?</summary><p>Subgroup gaps (the average hides the groups) and quantisation flips (accuracy barely moves while answers change). Forgetting also hides if you only test the new task.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. six equations ============================ -->
+<section id="equations" aria-labelledby="equations-h">
+  <h2 id="equations-h">The book in six equations</h2>
+  <p class="ask"><b>Guess first.</b> Which of these six equations could you write from memory? Rank them before you start: the linear model, the log loss, the gradient descent update, the chain rule, attention and CLIP's loss.</p>
+  <dl class="terms">
+    <div><dt>retrieval</dt><dd>pulling an idea out of memory without the page in front of you, which strengthens it more than rereading</dd></div>
+    <div><dt>reveal</dt><dd>the button that shows the equation after you have tried to write it</dd></div>
+    <div><dt>owner chapter</dt><dd>the chapter that defines the equation and its symbols</dd></div>
+  </dl>
+  <p class="claim">A few equations cover most of the book. Try to write one before you reveal it, then say how close you were.</p>
+  <div class="card" id="eq">
+    <div class="tally" id="eq-summary" aria-live="polite"></div>
+    <div class="bar" id="eq-bar"></div>
+    <div class="eqs" id="eq-grid"></div>
+  </div>
+  <p class="cap"><b>Writing an equation from memory before you see it works better than reading it again. The cards ask for the guess first and reveal the answer with live numbers from the chapters.</b> The self-rating is yours alone, and the page stores and sends no text. Missed equations are listed with a link back to the owner chapter.</p>
+  <p>Look at what the six share. A number comes in, a rule turns it into a score, and a measure says how wrong the score is. The linear model gives a weight, the sigmoid a chance, attention a mixture of values and CLIP a similarity. The losses say how far the output is from the label. They are squared error, log loss and the contrastive loss. The update rule and the chain rule say how to change the dials. If you can say where a symbol came from, you can rebuild the rest of the book around them.</p>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a card is hard, do not reread the whole chapter. Rewrite the equation with the live number in the worked box, then change the number and predict the output before you look. The cards let you do that with a slider.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Which equation has a square root in it, and what does the square root do?</summary><p>Attention. Dividing the scores by \(\sqrt{d_k}\) keeps the dot products from growing with the key size, so that the softmax does not saturate (D4).</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. projects ============================ -->
+<section id="projects" aria-labelledby="projects-h">
+  <h2 id="projects-h">My projects</h2>
+  <p class="ask"><b>Guess first.</b> I am porting a test-time training method to a vision-language model, so that the model can adapt to an input while it is being used. Before you open the map, list the chapters of this book you think support that project.</p>
+  <dl class="terms">
+    <div><dt>bridge</dt><dd>a short link between a chapter of this book and a project it explains</dd></div>
+    <div><dt>project page</dt><dd>my own write-up of a project, linked where it exists</dd></div>
+  </dl>
+  <p class="claim">My projects rest on a few chapters of this book. The map shows which ones, in both directions.</p>
+  <div class="card" id="mp">
+    <div class="bar" id="mp-bar"></div>
+    <div class="bookmap" id="mp-tiles" role="group" aria-label="Chapters of the book as tiles, in parts"></div>
+    <div class="proj-info" id="mp-info" aria-live="polite"></div>
+  </div>
+  <p class="cap"><b>Pick a project to light its chapters, or pick a chapter to see which projects use it. The diabetes project uses the most chapters (A2 to A6, B1 to B3 and F1), while the Socratic Tutor rests on D7 and the robot on F2.</b> The facts about the projects come from my project pages. The chapters named for a project are the ones that teach its ideas, and the project pages go further.</p>
+  <p>The map follows the table of contents of this book. For the diabetes screening app, A2 to A6 teach the models and how to grade them, B1 to B3 the small neural network, and F1 the check across groups. For the optimizer-state work, B5 teaches Adam's two stored quantities and B7 the Fisher information that the paper uses. For In-Place TTT and the port to a vision-language model, C3 introduces test-time training for the shark. D4 and D5 teach the attention and the MLP block, and D6 covers test-time training and long context. E4 covers the model class the method is ported to. The Socratic Tutor is the tool-and-skill idea of D7. The robot is F2.</p>
+  <div class="bridge">
+    <p><b>Bridge to the whole book.</b> My motivation for the TTT work is the same question as SharkCam's: recognising a shark when the water, the light and the animals change between dives. The tag, the message, the photo, the record and the robot of this chapter are the pieces such a system needs.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Which chapters does the optimizer-state project use, and what does it add?</summary><p>B5 and B7. B5 gives Adam's first and second moments and what is lost when the optimiser state is missing. B7 gives the Fisher information and elastic weight consolidation, which the paper links to the second moment.</p></details>
+    <details><summary>Which chapter would you open first to see how the Socratic Tutor is built?</summary><p>D7: prompts, tools and skills. The tutor is a plugin made of two skills (socratic-tutor and quiz-me).</p></details>
+  </div>
+</section>
+
+<!-- ============================ 6. what next ============================ -->
+<section id="next" aria-labelledby="next-h">
+  <h2 id="next-h">What to learn next</h2>
+  <p class="ask"><b>Guess first.</b> The book left out eight topics. Pick the one you think SharkCam would need first, then check your pick against the quiz at the end of this section.</p>
+  <dl class="terms">
+    <div><dt>left out</dt><dd>a topic the book did not teach, listed in the table of contents as "still left out"</dd></div>
+    <div><dt>source</dt><dd>a free page or paper, opened to check that it says what this table says</dd></div>
+  </dl>
+  <p class="claim">The book teaches one path from a line to a vision-language model. Beside that path lie eight topics, and all of them have a good free place to start.</p>
+  <div class="tbl-wrap">
+  <table class="tbl words" aria-label="Topics the book left out, where the book touches them and one free source">
+    <thead><tr><th>Topic</th><th>Where the book comes close</th><th>A free place to start</th></tr></thead>
+    <tbody>
+      <tr><td>Diffusion and image generation</td><td>E1 cuts a photo into patches; E2's reconstructions are a first look at filling in a hidden image.</td><td>Lilian Weng, <i>What are Diffusion Models?</i> (2021). Mathematical, with the forward and reverse process.</td></tr>
+      <tr><td>Generative adversarial networks</td><td>A3's loss and B3's training loop apply, with two networks that train against one another.</td><td>Goodfellow and others (2014), <i>Generative Adversarial Networks</i>, arXiv:1406.2661.</td></tr>
+      <tr><td>Reinforcement learning</td><td>D7 mentions learning from preferences, which uses a reward.</td><td>OpenAI Spinning Up, <i>Part 1: Key Concepts in RL</i>. Written for newcomers.</td></tr>
+      <tr><td>Support vector machines</td><td>A3's decision boundary. An SVM draws the boundary with the widest margin.</td><td>scikit-learn user guide, section 1.4, <i>Support Vector Machines</i>, with code.</td></tr>
+      <tr><td>k-nearest neighbours</td><td>D2's nearest words and E2's nearest captions are neighbour searches.</td><td>scikit-learn user guide, section 1.6, <i>Nearest Neighbors</i>, with code.</td></tr>
+      <tr><td>Principal component analysis</td><td>D2 and E2 draw maps with PCA, and 0.5 has the eigenvectors.</td><td>Shlens (2014), <i>A Tutorial on Principal Component Analysis</i>, arXiv:1404.1100.</td></tr>
+      <tr><td>Distributed training</td><td>D6 and F2 count memory and time for one machine.</td><td>Austin and others, <i>How to Scale Your Model</i>, an online book from Google DeepMind.</td></tr>
+      <tr><td>Mixture of experts</td><td>D5's MLP block is the part that experts replace.</td><td>Sanseviero and others (2023), <i>Mixture of Experts Explained</i>, Hugging Face blog.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="cap"><b>The topics start where the book stops: a boundary, a neighbour search, a reward, a second network or a bigger machine.</b> The sources are free to read. They differ in level. The diffusion post and the GAN paper assume the maths of Parts A and B. The scikit-learn pages are short and run code. The Spinning Up page is the gentlest entry to reinforcement learning.</p>
+  <p>There are two cautions. First, order matters less than the next question you want to answer. If you want SharkCam to find the nearest known photo of a shark, read about neighbour search. If you want it to run on many GPUs, read about distributed training. Second, a source can be right and old: the 2014 GAN paper is the first step, and later work changed how such networks are trained. Check the date of any source before you rely on its numbers.</p>
+  <div class="card"><div id="nx-quiz"></div></div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When you pick up a new topic, rebuild its smallest example in NumPy before you read a large library. The book's code blocks are meant as the model for this: one idea, a few lines, a printed output you can check.</p>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> The digit reader of C2 is right on 98.89% of single digits. (a) If errors are independent, what is the chance that a four-digit tag is read right? (b) Out of 2,000 tags, how many are read wrongly? (c) Name one reason why digit errors from one writer may not be independent, and say whether that makes the true chance higher or lower than your answer.</p>
+        <details class="hint"><summary>Hint</summary><p>For (a), multiply four equal chances. For (c), think of one writer whose sevens look like ones.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> For one photo, CLIP gives bamboo 0.60, milk 0.30 and spadenose 0.10. The length-and-girth classifier gives bamboo 0.20, milk 0.10 and spadenose 0.70. The message names milk with a chance of 0.8 for milk and 0.1 for the others. (a) Compute the fused chances by hand. (b) Does the rule of the trace accept at a threshold of 0.9, with at least two sources naming the winner? (c) Which source would you check first, and why?</p>
+        <details class="hint"><summary>Hint</summary><p>Multiply the three numbers for a species, add the three products, and divide the products by the sum.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> A new detector needs 0.9 billion multiply-adds per frame. Use the values of the loop figure. The camera takes 36.8 ms, the decision 1 ms and the motor 60 ms. A Pi 4 does 11.4 billion multiply-adds per second, the shark sweeps 19.1 degrees per second and 5 degrees are allowed. Does it fit when the robot finishes one frame before it takes the next? Does it fit when the stages are pipelined?</p>
+        <details class="hint"><summary>Hint</summary><p>Find the model time first, then \(L\), then \(\omega (L+T)\). When pipelined, \(T\) is the larger of the camera interval (33.3 ms) and the model time.</p></details></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Load the catch table (<code>data/sharks/catch.csv</code>). Fit a logistic regression for "bamboo or not" on log length, log weight and depth. Report the recall for bamboo sharks from dives and from landings, with counts. Which group has the lower recall, and what in the table could explain it?</p>
+        <details class="hint"><summary>Hint</summary><p>Use five-fold cross-validated predictions so that no shark is scored by a model that saw it. Then group the predictions by the <code>source</code> column.</p></details></li>
+      <li><p><span class="ex-tag">practice</span> Extend the two-stage program of section 3 with a third stage. Cases with a score between 0.25 and 0.55 go to a person. Report the share of cases sent to a person at the two sites and the precision of the cases the machine decides alone.</p>
+        <details class="hint"><summary>Hint</summary><p>Build a boolean array <code>machine = (p &lt; 0.25) | (p &gt;= 0.55)</code>. Count the precision only over the cases where <code>machine</code> is true and the score is high.</p></details></li>
+      <li><p><span class="ex-tag">practice</span> Open <code>data/f3.json</code> and <code>data/bamboo_depth.json</code> of this chapter. In NumPy, reproduce the fused chance of the grey bamboo shark for the placeholder photo at 0 m, then at 16 m. At which even depth between 0 and 30 m does the rule first send the case to a person? The rule needs a fused chance of at least 0.90, two agreeing sources and a shark chance of at least 0.5.</p>
+        <details class="hint"><summary>Hint</summary><p>CLIP's chance is a softmax of 100 times the cosines over the nine captions. Use the template "a photo of a ..." (the second one).</p></details></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> <b>Capstone design.</b> Design one new SharkCam feature end to end. Pick one of four ideas. The first estimates a shark's length from a photo with a ruler in view. The second raises an alert when a Critically Endangered species appears in a landing photo. The third counts sharks in a dive video. The fourth is your own. Write a one-page design with six parts. (1) The data you need and how you would get it. (2) The model, and why. (3) The metric, and the baseline you must beat. (4) The failure test you would write before training. (5) The fairness and privacy check. (6) The latency budget, with a decision on whether it runs on the robot or on shore.</p>
+        <details class="hint"><summary>Hint</summary><p>Use the stages of section 1 as a checklist. For the six parts, name the chapter whose tool you would use and one number you would measure.</p></details></li>
+      <li><p><span class="ex-tag">open</span> Suppose SharkCam had to run with half of its stages. Which stage would you remove first, and what would the rest lose? Argue from the measured numbers of two chapters, and say what you would test to find out whether you were right.</p></li>
+      <li><p><span class="ex-tag">open</span> In the made-up table, 40 of the 72 bamboo records come from landings and 32 from dives. Who is missing from this data? How would you find out whether SharkCam works for the animals that are missing? Name one test from F1 and one from C3.</p>
+        <details class="hint"><summary>Hint</summary><p>Think about the sites, the water and the sizes of animals that the table does not contain, and about which of them the robot will meet.</p></details></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p class="mini-note">Answer these two days and one week from now. They mix the whole book.</p>
+  <div class="recall comeback">
+    <details><summary>A five-class model starts training with a loss of 4.2 and ends with a training loss of 0.3 and a validation loss of 1.8. Name two checks from two different chapters.</summary><p>The starting loss should be near \(\ln 5 = 1.61\) (B8), so 4.2 points to oversized starting scores or a bug in the inputs or labels. The gap between 0.3 and 1.8 is overfitting or leakage: plot learning curves (B8) and test with a group split (A4).</p></details>
+    <details><summary>A model adapts its weights while it reads, as in test-time training. Why can that cause forgetting, and what would you measure to find out?</summary><p>Updates move weights that the old behaviour also needed (B7), so the old task can get worse as the model adapts to the new input (C3, D6). Measure the old task on a held-out set before and after adapting, and compare with replay or elastic weight consolidation.</p></details>
+    <details><summary>Here are three cases. A Hindi report costs 5.0 times as many tokens as its English meaning (D1). CLIP is shown an animal that is not on its caption list (E2). A diabetes model flags a woman from another population (F1). What do the three have in common?</summary><p>They are coverage gaps. The system was built from a vocabulary, a list or a population that leaves the case out, and it still answers. The remedy is the same: ask who or what is missing, and test on it.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Vaswani, A. and others (2017). Attention is all you need. <a href="https://arxiv.org/abs/1706.03762" rel="noopener">arXiv:1706.03762</a>. The source of the attention equation (owner chapter D4).</li>
+    <li>Radford, A. and others (2021). Learning transferable visual models from natural language supervision. <a href="https://arxiv.org/abs/2103.00020" rel="noopener">arXiv:2103.00020</a>. CLIP and its contrastive training (owner chapter E2).</li>
+    <li>Weng, L. (2021). What are diffusion models? Lil'Log, <a href="https://lilianweng.github.io/posts/2021-07-11-diffusion-models/" rel="noopener">lilianweng.github.io/posts/2021-07-11-diffusion-models/</a>. Math-heavy.</li>
+    <li>Goodfellow, I. J. and others (2014). Generative adversarial networks. <a href="https://arxiv.org/abs/1406.2661" rel="noopener">arXiv:1406.2661</a>.</li>
+    <li>OpenAI. Spinning Up in Deep RL, Part 1: Key concepts in RL. <a href="https://spinningup.openai.com/en/latest/spinningup/rl_intro.html" rel="noopener">spinningup.openai.com/en/latest/spinningup/rl_intro.html</a>.</li>
+    <li>scikit-learn documentation. User guide 1.4, Support vector machines: <a href="https://scikit-learn.org/stable/modules/svm.html" rel="noopener">scikit-learn.org/stable/modules/svm.html</a>. User guide 1.6, Nearest neighbors: <a href="https://scikit-learn.org/stable/modules/neighbors.html" rel="noopener">scikit-learn.org/stable/modules/neighbors.html</a>.</li>
+    <li>Shlens, J. (2014). A tutorial on principal component analysis. <a href="https://arxiv.org/abs/1404.1100" rel="noopener">arXiv:1404.1100</a>.</li>
+    <li>Austin, J., Douglas, S., Frostig, R., Levskaya, A. and others. How to scale your model. Google DeepMind, online book, <a href="https://jax-ml.github.io/scaling-book/" rel="noopener">jax-ml.github.io/scaling-book/</a>. It covers how chips work and communicate and the ways to split a model over many chips.</li>
+    <li>Sanseviero, O., Tunstall, L., Schmid, P., Mangrulkar, S., Belkada, Y. and Cuenca, P. (2023). Mixture of experts explained. Hugging Face blog, <a href="https://huggingface.co/blog/moe" rel="noopener">huggingface.co/blog/moe</a>.</li>
+    <li>My project pages: <a href="https://rayhaan1345.github.io/projects/diabetes-screening/">diabetes screening</a> and its <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">primer</a>; <a href="https://rayhaan1345.github.io/projects/optimizer-state/">optimizer state</a> and its <a href="https://rayhaan1345.github.io/projects/optimizer-state/primer/">primer</a>; <a href="https://rayhaan1345.github.io/projects/in-place-ttt/">In-Place TTT</a> and its <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">primer</a>; the <a href="https://mailab.in/socratic-tutor/">Socratic Tutor report</a>.</li>
+    <li>Numbers in the figures come from these earlier chapters: <a href="../a4-grading-models/">A4</a>, <a href="../a6-boosting/">A6</a>, <a href="../b7-continual-learning/">B7</a>, <a href="../c2-cnns/">C2</a>, <a href="../c3-domain-shift/">C3</a>, <a href="../d1-tokenisation/">D1</a>, <a href="../d6-long-context/">D6</a>, <a href="../d7-assistants/">D7</a>, <a href="../e1-vision-transformers/">E1</a>, <a href="../e2-clip/">E2</a>, <a href="../f1-fairness/">F1</a> and <a href="../f2-robots/">F2</a>. The photos are credited under the trace. The catch records, messages and dive log are made up, as stated where they appear. The handwritten digits are MNIST digits (see C2).</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=e92d596e" defer></script>
+<script src="f3-sharkcam.js?v=bda2f826" defer></script>
+<a id="primer-preview-pill" href="https://mailab.in/primer/f3-sharkcam/" style="position:fixed;right:14px;bottom:14px;z-index:2147483647;display:block;margin:0;padding:7px 13px;border:1px solid #5b6470;border-radius:999px;background:#fffdf7;background-image:none;color:#14181c;font:13px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:0;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:none;">Preview v2 &middot; open current version</a>
+</body>
+</html>
