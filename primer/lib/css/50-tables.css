@@ -1,0 +1,10 @@
+/* Tables: table styles shared by chapters. */
+
+.sv-table { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.sv-table th, .sv-table td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: right; }
+.sv-table th:first-child, .sv-table td:first-child { text-align: left; }
+.sv-table th { font-weight: 500; color: var(--muted); }
+.sv-table tbody tr[data-order] { cursor: pointer; }
+.sv-table tbody tr[data-order]:hover td { background: var(--mark); }
+.sv-table tbody tr.on td { background: var(--mark); color: var(--ink); font-weight: 600; }
+.sv-table tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 2px solid var(--rule); }

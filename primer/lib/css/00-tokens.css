@@ -1,0 +1,58 @@
+/* Tokens: the colour palette in light and dark, and the colour-scheme switch. All other files read these variables. */
+
+:root {
+  --bg: #ffffff;
+  --paper: #f6f7f6;
+  --ink: #17191c;
+  --ink-2: #3d434a;
+  --muted: #6a717a;
+  --rule: #e2e5e8;
+  --link: #2c4a86;
+  --link-hover: #0b7f6b;
+  --teal: #0f9a80;
+  --navy: #3b4f82;
+  --sand: #a8957c;
+  --coral: #c2563a;
+  --mark: rgba(15, 154, 128, 0.12);
+  --fig-bg: #ffffff;
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1317;
+    --paper: #161b20;
+    --ink: #e8eaed;
+    --ink-2: #c3c8ce;
+    --muted: #8f98a2;
+    --rule: #262d34;
+    --link: #a3b8ee;
+    --link-hover: #5fd4bb;
+    --teal: #3cc7a8;
+    --navy: #8ea2d8;
+    --sand: #cbb697;
+    --coral: #ec8a6c;
+    --mark: rgba(60, 199, 168, 0.14);
+    --fig-bg: #f4f4f2;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1317;
+  --paper: #161b20;
+  --ink: #e8eaed;
+  --ink-2: #c3c8ce;
+  --muted: #8f98a2;
+  --rule: #262d34;
+  --link: #a3b8ee;
+  --link-hover: #5fd4bb;
+  --teal: #3cc7a8;
+  --navy: #8ea2d8;
+  --sand: #cbb697;
+  --coral: #ec8a6c;
+  --mark: rgba(60, 199, 168, 0.14);
+  --fig-bg: #f4f4f2;
+  color-scheme: dark;
+}

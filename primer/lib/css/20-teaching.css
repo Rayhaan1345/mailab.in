@@ -1,0 +1,74 @@
+/* Teaching blocks: guess first, terms, claim, caption, break box, debug tip, notes, quick quiz, exercises, Q and A. */
+
+.cap { margin: 12px 0 0; font-size: 15px; line-height: 1.5; color: var(--ink-2); max-width: 52em; }
+.cap b { color: var(--ink); font-weight: 600; }
+.note { font-size: 14px; color: var(--muted); }
+ul.plain { max-width: 46em; color: var(--ink-2); padding-left: 1.2em; margin: 0 0 14px; }
+ul.plain li { margin: 4px 0; }
+.qa { max-width: 46em; }
+.qa details { border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); margin: 8px 0; }
+.qa summary { cursor: pointer; padding: 10px 14px; font-weight: 600; color: var(--ink); }
+.qa details[open] summary { border-bottom: 1px solid var(--rule); }
+.qa details p { margin: 10px 14px 12px; color: var(--ink-2); }
+
+/* Section pattern: guess first, terms, claim, figure, where it breaks, quick quiz. */
+
+.ask { max-width: 46em; margin: 0 0 14px; padding: 10px 14px; border-left: 3px solid var(--teal); background: var(--mark); border-radius: 0 6px 6px 0; color: var(--ink); }
+.terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px 18px; max-width: 46em; margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); font-size: 15px; line-height: 1.4; }
+.terms div { margin: 0; }
+.terms dt { display: inline; font-weight: 600; color: var(--ink); }
+.terms dt::after { content: "\00a0\2013\00a0"; font-weight: 400; color: var(--muted); }
+.terms dd { display: inline; margin: 0; color: var(--ink-2); }
+.claim { max-width: 46em; font-weight: 600; color: var(--ink); }
+.task { max-width: 46em; color: var(--ink-2); }
+.task-a { max-width: 46em; margin: -6px 0 14px; color: var(--ink-2); }
+.task-a summary { cursor: pointer; color: var(--link); }
+.break { max-width: 46em; margin: 16px 0; padding: 8px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--coral); border-radius: 0 6px 6px 0; }
+.break p { margin: 5px 0; color: var(--ink-2); }
+.break b { color: var(--ink); }
+.break details { margin: 6px 0 4px; }
+.break summary { cursor: pointer; color: var(--link); }
+.recall { max-width: 46em; margin: 18px 0 0; }
+.recall-h { margin: 0 0 6px; font-family: "Spectral SC", "Spectral", Georgia, serif; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+.recall details { border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); margin: 8px 0; }
+.recall summary { cursor: pointer; padding: 10px 14px; font-weight: 600; color: var(--ink); }
+.recall details[open] summary { border-bottom: 1px solid var(--rule); }
+.recall details p { margin: 10px 14px 12px; color: var(--ink-2); }
+.recall summary a { font-weight: 600; }
+
+/* Warm-up quiz, asked again at the end. */
+
+.quiz { max-width: 46em; }
+.quiz fieldset { margin: 0 0 12px; padding: 10px 14px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); }
+.quiz legend { padding: 0 6px; font-weight: 600; color: var(--ink); }
+.quiz label { display: block; margin: 4px 0; padding: 4px 8px; border-radius: 4px; color: var(--ink-2); cursor: pointer; }
+.quiz label:hover { background: var(--mark); }
+.quiz input { accent-color: var(--teal); margin-right: 4px; }
+.quiz label.ok { background: var(--mark); color: var(--ink); font-weight: 600; }
+.quiz label.ok::after { content: "  \2713 right answer"; font-weight: 400; color: var(--link-hover); }
+.quiz label.no { text-decoration: line-through; text-decoration-color: var(--coral); }
+.quiz .was { font-style: italic; color: var(--muted); }
+.quiz .fb { margin: 6px 8px 4px; color: var(--ink-2); }
+.quiz .fb:empty { display: none; }
+
+/* Debug tip. */
+
+.debug { max-width: 46em; margin: 16px 0; padding: 8px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--navy); border-radius: 0 6px 6px 0; }
+.debug p { margin: 5px 0; color: var(--ink-2); }
+.debug b { color: var(--ink); }
+
+/* Exercises: theory, practice, think deeper. Hints only; solutions are kept off the page. */
+
+.exercises { max-width: 46em; }
+.exercises h3 { margin: 26px 0 8px; font-size: 19px; font-weight: 600; }
+.exercises ol { margin: 0; padding-left: 1.4em; }
+.exercises li { margin: 0 0 14px; color: var(--ink-2); }
+.exercises li > p { margin: 0 0 6px; }
+.exercises .hint summary { cursor: pointer; color: var(--link); font-size: 15px; }
+.exercises .hint p { margin: 6px 0 0; }
+.ex-tag { display: inline-block; margin-right: 6px; padding: 0 8px; border-radius: 999px; background: var(--mark); color: var(--ink); font-size: 13px; }
+
+/* "Used in" line at the end of a teaching section (p.used), shared by the toolkit chapters. */
+
+p.used { max-width: 46em; margin: 8px 0 18px; padding: 6px 12px; border-left: 3px solid var(--sand); font-size: 15px; color: var(--ink-2); }
+p.used b { color: var(--ink); }

@@ -1,0 +1,146 @@
+/* Figure frame: the card around a figure, its controls and readouts, bars and buttons, layouts, counters, sliders. */
+
+.card {
+  margin: 22px 0 0;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 18px 18px 14px;
+}
+
+.card svg { display: block; width: 100%; height: auto; overflow: visible; }
+.card svg text { font-family: "Spectral", Georgia, serif; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 0 0 12px; }
+.group { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border: 1px solid var(--rule); border-radius: 999px; background: var(--bg); }
+
+.group button, .btn {
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--ink-2);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 12px;
+  cursor: pointer;
+}
+
+.group button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.btn { border: 1px solid var(--rule); background: var(--bg); padding: 3px 14px; }
+.btn:hover { border-color: var(--teal); color: var(--link-hover); }
+.btn[disabled] { opacity: 0.4; cursor: default; }
+.bar .label { font-size: 14px; color: var(--muted); }
+.pace { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.pace input { width: 120px; accent-color: var(--teal); }
+.status { margin: 10px 0 0; font-size: 15px; color: var(--ink-2); min-height: 1.5em; }
+
+/* Progress dots for step-through figures. The current dot is wide. */
+
+.dots { display: flex; gap: 6px; }
+.dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--rule); transition: background 0.2s, width 0.2s; }
+.dots span.on { background: var(--teal); width: 22px; border-radius: 4px; }
+
+.replay {
+  margin: 16px 0 0;
+  background: #0d1216;
+  color: #d9e1e8;
+  border-radius: 6px;
+  padding: 14px 16px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.replay .head { color: #8a96a3; font-size: 12.5px; margin-bottom: 8px; }
+.replay .out { white-space: pre-wrap; min-height: 1.6em; }
+
+/* Bars that split a share between parts, animated by width. */
+
+.share { margin-top: 8px; display: grid; gap: 16px; }
+.share .track { height: 16px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+.share .fill { height: 100%; width: 0; border-radius: 3px; transition: width 1.6s cubic-bezier(.2,.7,.2,1); }
+.share .fill.min { min-width: 3px; }
+
+/* Plates: a framed image. */
+
+.plates { display: grid; gap: 30px; margin-top: 22px; }
+.plate figure { margin: 0; }
+.plate .frame { background: var(--fig-bg); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; }
+.plate img { display: block; width: 100%; height: auto; }
+
+@media (max-width: 760px) {
+  .card { padding: 14px 12px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share .fill { transition: none; }
+}
+
+/* Pipeline steps: numbered boxes joined by arrows. */
+
+.flow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; counter-reset: flow; }
+.flow li { position: relative; background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; counter-increment: flow; }
+.flow li b { display: block; font-weight: 600; color: var(--ink); }
+.flow li b::before { content: counter(flow) ". "; color: var(--teal); }
+.flow li span { display: block; margin-top: 4px; font-size: 15px; color: var(--ink-2); line-height: 1.4; }
+.flow li + li::before { content: "\2192"; position: absolute; left: -13px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; }
+
+@media (max-width: 760px) {
+  .flow { grid-template-columns: 1fr; gap: 10px; }
+  .flow li + li::before { content: "\2193"; left: 50%; top: -12px; transform: translateX(-50%); }
+}
+
+.sliders label { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; font-size: 15px; color: var(--ink-2); }
+.sliders label .unit { color: var(--muted); font-size: 13.5px; }
+.sliders output { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.sliders input { grid-column: 1 / -1; width: 100%; margin: 2px 0 0; accent-color: var(--teal); }
+.counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 14px 0 0; }
+.counts div { background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px; }
+.counts b { display: block; font-size: 24px; font-weight: 600; line-height: 1.1; font-feature-settings: "tnum" 1, "lnum" 1; }
+.counts span { display: block; font-size: 13.5px; color: var(--muted); line-height: 1.3; margin-top: 2px; }
+.counts .hit b { color: var(--teal); }
+.counts .miss b { color: var(--coral); }
+.sliders { display: grid; gap: 9px; margin: 0; }
+.leaves { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; font-size: 14.5px; color: var(--ink-2); }
+.leaves li::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: 0; background: var(--navy); opacity: 0.6; }
+.leaves li.yes::before { background: var(--coral); }
+
+/* Rebuild the tree from memory. */
+
+.redraw { margin: 6px 0 12px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); }
+.redraw svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 0 auto 6px; }
+.redraw svg text { font-family: "Spectral", Georgia, serif; }
+.redraw .bar .status { margin: 0 0 0 10px; }
+
+@media (max-width: 760px) {
+  .counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .leaves { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Plotly and D3 figure areas inside a .card. */
+
+.plot { width: 100%; min-height: 320px; }
+.plot.tall { min-height: 440px; }
+.plot.short { min-height: 220px; }
+.card .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; margin: 4px 0 12px; }
+.card .controls label { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; font-size: 14.5px; color: var(--ink-2); }
+.card .controls label input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--teal); }
+.card .controls output { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.card .controls select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.split2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 22px; align-items: start; }
+.readout { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0 0; font-size: 15px; color: var(--ink-2); }
+.readout b { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+
+@media (max-width: 760px) {
+  .split2 { grid-template-columns: minmax(0, 1fr); }
+  .plot { min-height: 280px; }
+}
+
+/* KaTeX draws square roots and wide accents as svg. The .card svg rule gives height auto, which flattens them inside figure cards. */
+
+.card .katex svg { height: inherit; overflow: hidden; }
+.card .bar { row-gap: 8px; }
+.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
+
+/* Note: figures that animate are painted from script, frame by frame, so they play on request even with reduced motion.
+   Do not use CSS animations or transitions for figure content. */
