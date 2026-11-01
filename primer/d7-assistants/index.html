@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From language model to assistant | How AI Learns</title>
+<meta name="description" content="How a model that continues text becomes an assistant: pretraining, instruction tuning and learning from preferences, prompts and system prompts, in-context learning, tools and skills, and why a fluent model makes things up, with GPT-2 small, the Qwen2.5 chat template and the SharkCam tables.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css?v=1">
+<link rel="stylesheet" href="../assets/project.css?v=1">
+<link rel="stylesheet" href="../assets/components.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=1">
+<style>
+/* Local additions for this chapter only. */
+.row-chips { display: inline-block; margin: 0 10px 6px 0; }
+.card .bar { row-gap: 8px; }
+.card .bar label:has(input[type=range]) { display: grid; grid-template-columns: auto auto; gap: 2px 8px; align-items: center; min-width: 190px; }
+.card .bar label input[type=range] { grid-column: 1 / -1; width: 100%; }
+.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
+.chk { display: inline-flex; align-items: flex-start; gap: 4px; font-size: 14px; color: var(--ink-2); max-width: 100%; }
+.eq1 { margin: 10px 0 0; }
+.eqn .t { max-width: 100%; }
+.eqn .t i { max-width: 16em; }
+.stgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 8px; }
+.stgrid div { padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); font-size: 14.5px; color: var(--ink-2); }
+.stgrid b { display: block; color: var(--ink); font-size: 14px; letter-spacing: 0.02em; margin-bottom: 2px; }
+.split2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 22px; align-items: start; }
+.split2 > div { min-width: 0; }
+.side-h { margin: 6px 0 2px; font-size: 14px; font-weight: 500; color: var(--muted); }
+.qline { margin: 0 0 8px; padding: 8px 12px; border-radius: 6px; background: var(--mark); color: var(--ink); font-size: 16px; }
+.reply { margin: 0 0 8px; padding: 10px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--navy); border-radius: 0 6px 6px 0; background: var(--bg); color: var(--ink); font-size: 16.5px; min-height: 4.5em; overflow-wrap: anywhere; }
+.badge { display: inline-block; margin: 0 0 8px; padding: 2px 10px; border-radius: 999px; font-size: 13.5px; line-height: 1.4; }
+.badge.real { background: color-mix(in srgb, var(--teal) 22%, transparent); border: 1px solid var(--teal); color: var(--ink); }
+.badge.script { background: color-mix(in srgb, var(--sand) 25%, transparent); border: 1px dashed var(--sand); color: var(--ink); }
+.toks { display: flex; flex-wrap: wrap; gap: 4px 3px; margin: 6px 0 10px; }
+.tk { display: inline-flex; align-items: baseline; padding: 1px 5px; border: 1px solid var(--rule); border-radius: 4px; font: 14px/1.5 ui-monospace, Menlo, monospace; color: var(--ink); white-space: pre; }
+.tk sub { font-size: 10.5px; color: var(--muted); margin-left: 3px; }
+.tk.off { border-style: dashed; color: var(--muted); opacity: 0.6; }
+pre.prompt, .ctx { max-width: 100%; margin: 6px 0 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font: 13.5px/1.55 ui-monospace, Menlo, monospace; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.cursor { color: var(--coral); }
+.sp { padding: 0 3px; border-radius: 3px; background: color-mix(in srgb, var(--coral) 22%, transparent); }
+.ctx .old { color: var(--muted); }
+.ctx mark { background: color-mix(in srgb, var(--teal) 26%, transparent); color: var(--ink); padding: 0 2px; border-radius: 3px; }
+.ctx details { margin: 0 0 6px; }
+.ctx summary { cursor: pointer; font-family: "Spectral", Georgia, serif; font-size: 14px; color: var(--link); }
+.ctx details pre { margin: 6px 0 0; font: 12.5px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; color: var(--muted); }
+.run { margin: 6px 0 0; padding: 8px 12px; border-radius: 6px; background: var(--paper); border: 1px solid var(--rule); font: 13.5px/1.5 ui-monospace, Menlo, monospace; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.who { margin: 0; color: var(--ink-2); }
+.rs-row { display: grid; grid-template-columns: 8.4em minmax(0, 1fr) 3.4em; gap: 6px; align-items: center; padding: 2px 4px; margin: 1px 0; border-radius: 4px; font-size: 15px; }
+.rs-tok { font: 14px ui-monospace, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-track { position: relative; height: 14px; background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.rs-track i { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--teal) 70%, transparent); }
+.rs-row b { text-align: right; font-weight: 500; font-feature-settings: "tnum" 1; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin: 0 0 12px; }
+.pair button { text-align: left; font: inherit; font-size: 15px; line-height: 1.4; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; overflow-wrap: anywhere; }
+.pair button:hover { border-color: var(--teal); }
+.pair small { display: block; margin-top: 6px; color: var(--link); font-size: 13px; }
+.bridge { max-width: 46em; margin: 16px 0; padding: 8px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--sand); border-radius: 0 6px 6px 0; background: var(--paper); }
+.bridge p { margin: 5px 0; color: var(--ink-2); }
+.bridge b { color: var(--ink); }
+code { overflow-wrap: anywhere; }
+pre code { overflow-wrap: normal; }
+@media (max-width: 760px) { .split2, .pair, .stgrid { grid-template-columns: minmax(0, 1fr); } .rs-row { grid-template-columns: 6.4em minmax(0, 1fr) 3em; } }
+</style>
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body data-chapter="d7">
+<main class="proj">
+
+<nav class="topbar" aria-label="Site"><span><a href="https://mailab.in/">Mumbai AI Lab</a> &middot; <a href="../">How AI Learns</a> &middot; Part D, Language</span><span>Chapter D7</span></nav>
+
+<header class="hero">
+  <p class="kicker">Part D &middot; Chapter 7</p>
+  <h1>From language model to assistant</h1>
+  <p class="subtitle">How a model that continues text learns to answer, use tools and say what it does not know</p>
+</header>
+
+<div class="tldr">
+  <p>A pretrained model such as GPT-2 continues text. An assistant answers questions. This chapter follows the steps between them, pretraining, instruction tuning and learning from preferences, with the same question at all three stages. Then it looks at what a prompt can do without changing a weight (system prompts and in-context learning). Next come tools and skills, with a bridge to the Socratic Tutor of Mumbai AI Lab. The last section asks why a fluent model makes things up, using the next-token probabilities of <a href="../d3-next-token/#distribution">D3</a>.</p>
+  <p>The replies of the instruction-tuned and preference-tuned stages are scripted examples written for this page, and all of them are labelled. The pretrained reply, the in-context learning figure and the hallucination figure are computed from GPT-2 small. The chat template and its token counts come from the Qwen2.5 tokenizer. The tool in the tool-loop figure runs on the made-up catch table and dive log.</p>
+</div>
+<p class="youneed"><b>You will need:</b> the <a href="../d3-next-token/#loop">generation loop</a>, <a href="../d3-next-token/#sampling">sampling</a> and <a href="../d3-next-token/#loss">loss</a> (D3), <a href="../d4-self-attention/#qkv">attention</a> (D4), the <a href="../d1-tokenisation/#special">special tokens</a> (D1) and <a href="../b7-continual-learning/#transfer">fine-tuning</a> (B7).</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#stages">Three stages</a></li>
+    <li><a href="#sft">Instruction tuning: which tokens count</a></li>
+    <li><a href="#prefs">Learning from preferences</a></li>
+    <li><a href="#prompt">What the model reads: prompts and templates</a></li>
+    <li><a href="#icl">In-context learning</a></li>
+    <li><a href="#tools">Tools and skills</a></li>
+    <li><a href="#halluc">Why a model makes things up</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. stages ============================ -->
+<section id="stages" aria-labelledby="stages-h">
+  <h2 id="stages-h">Three stages</h2>
+  <p class="ask"><b>Guess first.</b> You type "How big does a grey bamboo shark grow?" into GPT-2, a model trained only to predict the next token. Do you expect an answer, a list of more questions, or something else?</p>
+  <dl class="terms">
+    <div><dt>pretraining</dt><dd>training to predict the next token on a very large amount of text (<a href="../d3-next-token/#loss">D3</a>)</dd></div>
+    <div><dt>base model</dt><dd>a pretrained model before any later training</dd></div>
+    <div><dt>instruction tuning</dt><dd>training the base model further on instructions paired with good replies</dd></div>
+    <div><dt>preference learning</dt><dd>training from judgments that one reply is better than another</dd></div>
+  </dl>
+  <p class="claim">A pretrained model continues text. Instruction tuning teaches it the form of an answer, and preference learning moves its answers toward the ones people choose.</p>
+  <div class="card" id="st">
+    <div class="bar" id="st-bar"></div>
+    <p class="qline"><b>Question:</b> <span id="st-q"></span></p>
+    <span class="badge" id="st-badge"></span>
+    <blockquote class="reply" id="st-reply" aria-live="polite"></blockquote>
+    <div id="st-info"></div>
+  </div>
+  <p class="cap"><b>The same question gets a continuation from the pretrained model, an answer from the instruction-tuned model and a more careful answer after preference tuning.</b> Only the first reply is a model's output (GPT-2 small). The other two are scripted examples of the style.</p>
+  <p>Press the three stages in turn, and change the question. The first reply is computed: the first 44 tokens that GPT-2 small writes with greedy decoding (<a href="../d3-next-token/#sampling">D3</a>). For the first question it says that a grey bamboo shark is the size of a small car, which is false, and then repeats the sentence. For the third question, about a species name made up for this page, it gives a length in meters as if the species existed. A base model continues the text in the most likely way, and a question followed by a confident answer is a likely text.</p>
+  <p>The stages change that behaviour. <b>Pretraining</b> is the training of D3: the model reads text and is rewarded for giving high probability to the next token. It learns language and many facts, and it has no idea that it is being asked. <b>Instruction tuning</b> continues training on pairs of an instruction and a good reply. Wei and others (2021) tuned a 137-billion-parameter model on more than 60 language tasks written as instructions. They found that it did much better on tasks it had not seen, without examples. Ouyang and others (2022) trained GPT-3 on replies written by labelers, then used human rankings of replies. People preferred the replies of their 1.3-billion-parameter model to those of GPT-3 with 175 billion, about 100 times as many parameters. The model was also more truthful and less toxic, and it still made simple mistakes. <b>Preference learning</b> is the next section. It is fine-tuning in the sense of <a href="../b7-continual-learning/#transfer">B7</a>: the same weights, small steps, and a risk of forgetting if it goes too far.</p>
+  <div class="break">
+    <p><b>Common belief.</b> An assistant is a bigger and cleverer model than the one that predicts the next token.</p>
+    <p><b>Why it fails.</b> The architecture and the generation loop stay as they were: the assistant still writes one token at a time from a probability table. A tuned model with 1.3 billion parameters was preferred to the base model with 175 billion (Ouyang and others, 2022).</p>
+    <p><b>Better account.</b> The stages change which continuations are likely. The size of the model sets what it can know, and the tuning sets what it does with that.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> A base model that rambles or repeats is not broken. Give it the text format it was trained on, or use the tuned version of the model. Greedy decoding also repeats a sentence once it is the most likely continuation of itself, as the first reply shows.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Which stage needs people to write whole replies, and which needs people only to compare two replies?</summary><p>Instruction tuning needs written replies (or tasks rewritten as instructions). Preference learning needs only a choice between two replies, which is quicker for the person.</p></details>
+    <details><summary>Why does the pretrained model give an answer-like text at all?</summary><p>Its training text contains questions followed by answers, so an answer is a likely continuation of a question. It has no way to tell whether the answer is true.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. sft ============================ -->
+<section id="sft" aria-labelledby="sft-h">
+  <h2 id="sft-h">Instruction tuning: which tokens count</h2>
+  <p class="ask"><b>Guess first.</b> In instruction tuning the model reads the question and the reply as one text. Should the loss count the question tokens too, or only the reply tokens?</p>
+  <dl class="terms">
+    <div><dt>loss mask</dt><dd>the choice of which positions add to the loss</dd></div>
+    <div><dt>nat</dt><dd>the unit of loss when logarithms are natural (<a href="../d3-next-token/#loss">D3</a>)</dd></div>
+  </dl>
+  <p class="claim">Instruction tuning uses the loss of pretraining. What differs is the data, and usually which tokens count: the reply.</p>
+  <div class="card" id="lm">
+    <div class="bar" id="lm-bar"></div>
+    <div class="toks" id="lm-toks"></div>
+    <div class="readout" id="lm-read" aria-live="polite"></div>
+    <div class="eq1" id="lm-eq" aria-live="polite"></div>
+  </div>
+  <p class="cap"><b>On this text GPT-2 small has a loss of 4.43 nats per token on the question and 4.28 on the reply.</b> Instruction tuning counts the 25 reply tokens only. The reply is a shortened version of the scripted answer of the last section, and the small number under a token is its loss in nats.</p>
+  <p>A token is shaded by GPT-2's loss on it (<a href="../d3-next-token/#perplexity">D3</a>): a stronger colour means the base model found it less likely. The specific words of the reply, such as "77", "44", "Juhu" and "rock", are among the ones the base model finds hardest. Instruction tuning lowers the loss on reply tokens that follow a question. A loss near 4.3 nats is a perplexity of \(e^{4.3} \approx 74\): the base model is as unsure as if it chose among about 74 equally likely tokens. The question tokens are left out of the loss because the tuning teaches the model to write answers, and predicting questions would spend its updates on the wrong job.</p>
+  <p class="math">\[ L_{\text{SFT}} = -\frac{1}{|R|}\sum_{t\in R}\ln p_\theta\big(x_t \mid x_{&lt;t}\big) \]</p>
+  <ul class="math-notes">
+    <li><b>\(x_t\)</b> is token \(t\) of the text (question and reply together) and <b>\(x_{&lt;t}\)</b> all tokens before it. <b>\(p_\theta\)</b> is the model's probability for the token.</li>
+    <li><b>\(R\)</b> is the set of reply positions and <b>\(|R|\)</b> its size. With \(R\) as all positions this is the loss of pretraining. Here \(|R| = 25\) and the mean is 4.28, so the total is \(25 \times 4.28 = 107\) nats.</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> The model should learn from the whole text, so the question tokens should count in the loss too.</p>
+    <p><b>Why it fails.</b> The question is written by the user when the model is in use, and the model never has to produce it. In the figure the question tokens have a loss of 4.43 nats, and counting them would spend part of the update on predicting questions.</p>
+    <p><b>Better account.</b> Counting the reply only is the usual choice, and it is a setting. A team can try both and test the answers.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Mask the padding tokens as well as the question. In a batch of replies of different lengths the short ones are filled with padding (<a href="../d1-tokenisation/#special">D1</a>), and a loss that counts it teaches the model to predict padding.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The mean loss on a reply of 40 tokens is 3.0 nats. What is the total loss, and what is the perplexity?</summary><p>The total is \(40 \times 3.0 = 120\) nats, and the perplexity is \(e^{3.0} = 20.1\).</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. prefs ============================ -->
+<section id="prefs" aria-labelledby="prefs-h">
+  <h2 id="prefs-h">Learning from preferences</h2>
+  <p class="ask"><b>Guess first.</b> Writing a perfect answer is hard, but saying which of two answers is better is easy. How could a model learn from only "A is better than B"?</p>
+  <dl class="terms">
+    <div><dt>preference pair</dt><dd>two replies to the same question and a mark for the one that is better</dd></div>
+    <div><dt>reward model</dt><dd>a model that gives a reply a score, trained so that preferred replies score higher</dd></div>
+    <div><dt>policy</dt><dd>the language model being tuned, seen as probabilities over replies</dd></div>
+    <div><dt>RLHF</dt><dd>reinforcement learning from human feedback: tune the policy to raise the reward</dd></div>
+    <div><dt>leash \(\beta\)</dt><dd>how strongly the policy is pulled back toward the starting model; a small \(\beta\) lets it move far</dd></div>
+  </dl>
+  <p class="claim">People compare replies, a reward model learns scores that predict their choices, and the policy is nudged toward higher scores while it stays close to where it started.</p>
+  <div class="card" id="pf">
+    <div class="bar" id="pf-bar"></div>
+    <div class="controls" id="pf-controls"></div>
+    <p class="side-h">Which answer to "How big does a grey bamboo shark grow?" is better? Click it, or let a simulated rater vote.</p>
+    <div class="pair"><button type="button" id="pf-left"><span id="pf-a"></span><small>This one is better</small></button><button type="button" id="pf-right"><span id="pf-b"></span><small>This one is better</small></button></div>
+    <div class="eq1" id="pf-eq" aria-live="polite"></div>
+    <div class="split2">
+      <div><p class="side-h">Reward scores learned from the votes</p><div class="plot short" id="pf-reward" role="img" aria-label="Reward score of the five answers"></div></div>
+      <div><p class="side-h">Policy: probability of giving an answer</p><div class="plot short" id="pf-policy" role="img" aria-label="Probability of the five answers before and after tuning"></div></div>
+    </div>
+    <div class="readout" id="pf-read" aria-live="polite"></div>
+  </div>
+  <p class="cap"><b>Starting from Reset, 30 votes from a careful rater raise the made-up usefulness score of the policy from 0.31 to 0.72, with answer A at 68%. Thirty votes from a rater who likes long answers move 61% of the policy to the rambling answer D and reach only 0.40.</b> Five answers, their starting probabilities and their usefulness scores are made up for this page. The reward model sees only the votes.</p>
+  <p>The figure is a toy with five replies, and it shows the three steps of RLHF. <b>Step 1, compare.</b> A rater picks the better of two replies. <b>Step 2, learn a reward.</b> The reward model gives a reply a score \(r\). The chance that \(a\) beats \(b\) is \(\sigma(r_a - r_b)\), the sigmoid of A3. This is the Bradley-Terry model (Bradley and Terry, 1952). A vote is a training example, and the loss is \(-\ln \sigma(r_{\text{win}} - r_{\text{lose}})\), the log loss of <a href="../a3-logistic-regression/#logloss">A3</a>. One gradient step raises the winner's score and lowers the loser's by the same amount. <b>Step 3, move the policy.</b> The best compromise between a high reward and staying near the starting policy has a simple form, and the second chart shows it for the \(\beta\) you choose.</p>
+  <p class="math">\[ P(a \succ b) = \sigma\big(r_a - r_b\big),\qquad \ell = -\ln\sigma\big(r_w - r_l\big),\qquad \pi^{*}(a) = \frac{\pi_{\text{ref}}(a)\,e^{\,r(a)/\beta}}{\sum_{a'}\pi_{\text{ref}}(a')\,e^{\,r(a')/\beta}} \]</p>
+  <ul class="math-notes">
+    <li><b>\(r_a\)</b> is the reward score of reply \(a\). <b>\(r_w\)</b> and <b>\(r_l\)</b> are the scores of the chosen (winning) and the other (losing) reply. <b>\(\sigma\)</b> is the sigmoid.</li>
+    <li>The gradient of \(\ell\) with respect to the gap \(r_w - r_l\) is \(-(1 - \sigma)\). A step of size \(\eta\) therefore adds \(\eta(1-\sigma)\) to \(r_w\) and subtracts it from \(r_l\). A vote that surprises the model (small \(\sigma\)) moves the scores more.</li>
+    <li><b>\(\pi_{\text{ref}}\)</b> is the starting policy and <b>\(\pi^{*}\)</b> the policy that maximises the expected reward minus \(\beta\) times its distance (KL, <a href="../b7-continual-learning/#fisher">B7</a>) from \(\pi_{\text{ref}}\). As \(\beta\) grows, \(\pi^{*}\) stays at \(\pi_{\text{ref}}\). As \(\beta\) falls, \(\pi^{*}\) piles up on the best-scoring reply.</li>
+  </ul>
+  <p>Worked example 1, the update. Answer A has score 1.2 and B has 0.2, and a rater prefers A. The gap is 1.0, \(\sigma(1.0) = 0.731\) and the loss is \(-\ln 0.731 = 0.313\). With \(\eta = 0.5\) the step is \(0.5 \times (1 - 0.731) = 0.134\): A goes to 1.334 and B to 0.066. Worked example 2, the policy. With the starting probabilities of the figure (A 0.22, B 0.18, C 0.10, D 0.15, E 0.35), scores (1.2, 0.2, 0, 0, \(-1\)) and \(\beta = 1\). The unnormalised weights are \(0.22 e^{1.2} = 0.730\), \(0.18 e^{0.2} = 0.220\), 0.10, 0.15 and \(0.35 e^{-1} = 0.129\). They add up to 1.329, so the policy is A 55%, B 17%, C 8%, D 11% and E 10%.</p>
+  <p>Systems in use differ from the toy in three ways. The reward model is a neural network that scores a whole reply. The policy is a language model with a huge space of replies, so the closed form above does not apply. Reinforcement learning takes its place, with a penalty on the distance from the starting model (Stiennon and others, 2020; Ouyang and others, 2022). Ouyang and others used the PPO algorithm for this step, with a KL penalty that is applied token by token and measured from the supervised model. Christiano and others (2017) had shown, in Atari games and simulated robot tasks, that a reward can be learned from people's comparisons of short clips. Direct preference optimization (Rafailov and others, 2023) uses the closed form to write the whole thing as a classification loss on the pairs. It needs no separate reward model and no reinforcement-learning loop.</p>
+  <p>Two cautions come from the figure. A reward model is a proxy for what people want, and pushing a policy hard against a proxy can lower the true quality. Gao and others (2022) measured this with a synthetic setup in which a fixed gold-standard reward model plays the part of the people. They found that optimising too hard against the proxy can lower the gold score. Singhal and others (2023) studied three settings. They found that much of the reward gain in RLHF came from longer outputs, and that a reward based on length alone recovered most of the gains. Set \(\beta\) to 0.5 and press the long-answer button three times from Reset: answer D reaches 90%. The simulated votes come from a fixed random sequence that restarts at Reset, so you see the numbers of the caption. In sixteen other sequences the careful rater reached 0.62 to 0.76 and the rater who likes long answers 0.35 to 0.53.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Learning from human feedback teaches a model what is true.</p>
+    <p><b>Why it fails.</b> A rater chooses the reply that looks better. A confident, fluent reply can win over a correct reply that hedges, and the reward model learns the raters' habits, including a taste for length.</p>
+    <p><b>Better account.</b> Preference learning steers style, tone and helpfulness. Truth has to come from the data, from tools and from checks.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a tuned model gets wordier without getting better, compare the reward of a long and a short reply with the same content. A reward that rises with length alone is the first thing to remove.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+r = np.array([1.2, 0.2])                 # reward scores of answers A and B
+winner, loser, eta = 0, 1, 0.5           # the rater prefers A
+p = sigmoid(r[winner] - r[loser])        # model's chance that A wins
+loss = -np.log(p)
+r[winner] += eta * (1 - p)
+r[loser] -= eta * (1 - p)
+print(f"P(A beats B) = {p:.3f}, loss = {loss:.3f}, scores after the step: {r.round(3)}")
+
+ref = np.array([0.22, 0.18, 0.10, 0.15, 0.35])    # starting policy over answers A to E (made up)
+r = np.array([1.2, 0.2, 0.0, 0.0, -1.0])
+for beta in (3.0, 1.0, 0.3):
+    w = ref * np.exp(r / beta)
+    pi = w / w.sum()
+    kl = (pi * np.log(pi / ref)).sum()
+    print(f"beta = {beta}: policy {pi.round(3)}, KL from the start {kl:.2f}")</code></pre>
+  <pre class="out">P(A beats B) = 0.731, loss = 0.313, scores after the step: [1.334 0.066]
+beta = 3.0: policy [0.321 0.188 0.098 0.147 0.246], KL from the start 0.04
+beta = 1.0: policy [0.55  0.165 0.075 0.113 0.097], KL from the start 0.31
+beta = 0.3: policy [0.951 0.028 0.008 0.012 0.001], KL from the start 1.29</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Two answers have equal scores. What is the chance that the first beats the second, and how far does one vote move the scores when \(\eta = 0.5\)?</summary><p>The gap is 0, so \(\sigma(0) = 0.5\). The step is \(0.5 \times (1 - 0.5) = 0.25\): the winner goes up by 0.25 and the loser down by 0.25.</p></details>
+    <details><summary>What does a very large \(\beta\) do to the policy?</summary><p>\(e^{r/\beta}\) is close to 1 for all replies, so \(\pi^{*}\) stays at \(\pi_{\text{ref}}\): the policy does not move away from the starting model.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. prompt ============================ -->
+<section id="prompt" aria-labelledby="prompt-h">
+  <h2 id="prompt-h">What the model reads: prompts and templates</h2>
+  <p class="ask"><b>Guess first.</b> A chat model reads your question and also the instruction "Answer in at most two sentences". Are the two given to the network in different inputs, or are they part of one stream of tokens?</p>
+  <dl class="terms">
+    <div><dt>prompt</dt><dd>all the text the model reads before it writes (<a href="../d3-next-token/#context">D3</a>)</dd></div>
+    <div><dt>system prompt</dt><dd>instructions from the developer, placed before the conversation</dd></div>
+    <div><dt>chat template</dt><dd>the fixed format that turns the messages of a conversation into one stream of tokens</dd></div>
+    <div><dt>role</dt><dd>who a message is from: system, user or assistant</dd></div>
+  </dl>
+  <p class="claim">A chat model reads one stream of tokens. The template marks who speaks with special tokens, and the system prompt is ordinary text placed first.</p>
+  <div class="card" id="ct">
+    <div class="bar" id="ct-bar"></div>
+    <pre class="prompt" id="ct-text" aria-live="polite"></pre>
+    <div class="readout" id="ct-read" aria-live="polite"></div>
+  </div>
+  <p class="cap"><b>A one-line question is 28 tokens with the Qwen2.5-0.5B template, because it adds a default system message. A system message of one sentence makes it 39.</b> The text is what the tokenizer of Qwen2.5-0.5B produces for the question "How big does a grey bamboo shark grow?". The instruct versions of Qwen2.5 use a longer default message ("You are Qwen, created by Alibaba Cloud. You are a helpful assistant."), so their counts differ. Pink marks are special tokens.</p>
+  <p>The two special tokens <code>&lt;|im_start|&gt;</code> and <code>&lt;|im_end|&gt;</code> are the special tokens of <a href="../d1-tokenisation/#special">D1</a>, with IDs 151644 and 151645. The text after <code>&lt;|im_start|&gt;assistant</code> is where the model writes. It stops by writing <code>&lt;|im_end|&gt;</code>, and the generation loop of D3 ends on that token. The model was tuned on text in this format, which is why the format matters: a model tuned on one template can answer badly if you use another.</p>
+  <p>The system prompt has no special status inside the network. It is text that comes first. The model follows it because the tuning data put instructions of this kind first and the preferred replies followed them. For the same reason it can fail to follow it. All tokens of the prompt also cost memory for the whole conversation, because their keys and values stay in the cache (<a href="../d6-long-context/#cache">D6</a>). A system prompt of 1,000 tokens in Qwen3-4B's sizes takes \(1{,}000 \times 147{,}456\) bytes, about 147 MB.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A system prompt is a rule the model must obey.</p>
+    <p><b>Why it fails.</b> It is text in the same stream as the user's message and as any document the model reads. The model has learned to give it weight, and no mechanism forces it. Instructions placed in a web page or a file that the model reads are text in the same stream.</p>
+    <p><b>Better account.</b> The system prompt is a strong hint, learned during tuning. Rules that must always apply are enforced outside the model, in the program around it.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a chat model behaves oddly, print the final string it received. A missing end token, a doubled system message or a different template than the model was tuned on explains many odd replies.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Where does the model stop writing its reply?</summary><p>When it writes the end token <code>&lt;|im_end|&gt;</code>. The program around the model watches for that token and ends the loop.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. icl ============================ -->
+<section id="icl" aria-labelledby="icl-h">
+  <h2 id="icl-h">In-context learning</h2>
+  <p class="ask"><b>Guess first.</b> You paste the sentence "The reef we dive on is called Velkar Ledge." above the question "What is the reef we dive on called?". Does the model's probability of "Velkar" change? Has the model learned anything?</p>
+  <dl class="terms">
+    <div><dt>in-context learning</dt><dd>changing what a model does by changing the prompt, with no change to its weights</dd></div>
+    <div><dt>few-shot prompt</dt><dd>a prompt that contains a few solved examples before the new case</dd></div>
+    <div><dt>induction head</dt><dd>an attention head that finds an earlier copy of the current token and copies what came next (<a href="../d4-self-attention/#question">D4</a>)</dd></div>
+  </dl>
+  <p class="claim">A prompt can change what a model says without changing a weight. GPT-2 small uses a fact placed in the prompt, and from labelled examples it mostly learns the format.</p>
+  <div class="card" id="ic">
+    <div class="bar" id="ic-bar"></div>
+    <div id="ic-body"></div>
+  </div>
+  <p class="cap"><b>Putting the fact in the prompt raises the probability of the answer's first piece from 0.008% to 22%. Six labelled examples raise the probability of yes or no from 0.2% to 97.2%.</b> All numbers are next-token probabilities from GPT-2 small, computed offline for all choices of prompt. The facts and the reports are made up.</p>
+  <p>In the first view, tick the fact "The reef we dive on is called Velkar Ledge." and ask about the reef. The model has no way to know the name, and the probability of the first piece "Vel" of "Velkar" rises from 0.008% to 22%. Tick the other four facts too and the probability falls to 2.9%: GPT-2 small, with 124 million weights, finds the right fact among five less often. Copying from earlier text is what induction heads do. Olsson and others (2022) report evidence that induction heads may drive most in-context learning in large transformers, causal evidence in small attention-only models and correlational evidence in larger ones. <a href="../d4-self-attention/#question">D4</a> found the head L5H5 of GPT-2 doing this on a repeated tag number.</p>
+  <p>In the second view the examples are labelled reports ("did the camera see a shark?"). With no example the model puts 0.2% of its probability on yes or no, since it does not know the form of the answer. With six examples it puts 97.2% there. But the right label comes out only a little more often than a coin toss. GPT-2 small gives more weight to the correct label for 4 of the 6 test reports with true labels, and for 2 of 6 with all labels flipped. The mean probability of the correct label (among yes and no) is 53% with true labels and 43% with flipped labels. Six test reports are too few to trust the ten-point gap. Min and others (2022) tested 12 models, including GPT-3, and found that replacing the labels of the examples at random barely hurt classification and multiple-choice tasks. They conclude that the examples help by showing the label space, the kind of input and the format. Brown and others (2020) showed with GPT-3 that few-shot performance, with no gradient update, improves with the size of the model.</p>
+  <p class="math">\[ p_\theta\big(y \mid x_1 y_1, \dots, x_k y_k,\; x\big) \]</p>
+  <ul class="math-notes">
+    <li><b>\(\theta\)</b> is the set of trained weights, the same in all prompts. <b>\(x_1 y_1, \dots, x_k y_k\)</b> are the \(k\) examples in the prompt, and <b>\(x\)</b> is the new case. Only the text before \(y\) changes.</li>
+    <li>The examples are read by attention (D4). Their keys and values are kept in the cache of D5 for as long as they are in the prompt, and they cost context (<a href="../d6-long-context/#cache">D6</a>).</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> In-context learning means the model learns the rule from the examples, as it would in training.</p>
+    <p><b>Why it fails.</b> No weight changes, and when the prompt is gone the learning is gone. In GPT-2 small, flipping all the labels moved the answers only a little. Min and others (2022) found that labels mattered little in classification tasks for 12 models.</p>
+    <p><b>Better account.</b> Examples are context. They tell the model the format, the possible labels and the kind of input. Larger models may use the pairing of input and label more, which has to be measured for the task. Learning that changes weights is a different thing: <a href="../d6-long-context/#ttt">test-time training</a> in D6.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Keep the examples in one identical format, including spaces and line breaks, and end the prompt where the answer should begin. In the second view all examples end with " Shark seen: yes" or " Shark seen: no". The new report ends with " Shark seen:", so the next token is the label.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Does the model remember the fact after the conversation ends?</summary><p>No. The fact was only in the prompt, so its keys and values were in the cache for that conversation. The weights did not change.</p></details>
+    <details><summary>What did six labelled examples teach GPT-2 small most clearly?</summary><p>The format: the answer is the word yes or no. The probability on those two words went from 0.2% to 97.2%. The choice between them improved only a little.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 6. tools ============================ -->
+<section id="tools" aria-labelledby="tools-h">
+  <h2 id="tools-h">Tools and skills</h2>
+  <p class="ask"><b>Guess first.</b> A model cannot read your catch table and cannot do long arithmetic reliably. What could it do instead of guessing, if it were allowed to ask for help?</p>
+  <dl class="terms">
+    <div><dt>tool</dt><dd>a function that the program around the model can run for it</dd></div>
+    <div><dt>tool call</dt><dd>text the model writes to ask for a tool, with the arguments</dd></div>
+    <div><dt>application</dt><dd>the ordinary program around the model: it builds the prompt, runs the tools and runs the generation loop</dd></div>
+    <div><dt>skill</dt><dd>a folder of written instructions that is read into the context when the request matches its description</dd></div>
+  </dl>
+  <p class="claim">A model with tools does not run them. It writes a request as text, a program runs it, and the result returns as more text.</p>
+  <div class="card" id="tl">
+    <div class="bar" id="tl-bar"></div>
+    <div class="ctx" id="tl-ctx" role="region" aria-label="The conversation text"></div>
+    <div id="tl-who"></div>
+    <div class="readout" id="tl-read" aria-live="polite"></div>
+  </div>
+  <p class="cap"><b>The model only writes text. A program runs the tool, and the result is added to the text before the model writes its answer.</b> The text is the actual Qwen2.5 template with tools. The model's lines are scripted for this page. The tool runs on the made-up catch table and dive log in your browser.</p>
+  <p>Press Next step and watch the text grow. The grey text was already there, and the green part is new. The tool definitions are text too: for three tools they take about 327 tokens in this template, and they are read again with all requests. In the Anthropic API the same loop appears as a stop reason <code>tool_use</code> with a block that names the tool and its arguments. Your code runs the operation and sends back a <code>tool_result</code>, and the model then writes the reply (Anthropic documentation, opened for this chapter). Switch to "misspells the species": the tool returns an error as text, and the model, which reads it, writes the call again. An application should also limit the number of rounds, so that a confused model cannot loop.</p>
+  <p>Models learn when to call a tool. Toolformer (Schick and others, 2023) trains a model to decide which tools to call, when and with what arguments, from a few examples per tool. ReAct (Yao and others, 2022) has the model write a short thought before an action. On two question-answering tasks it reduced hallucination compared with reasoning alone, by their report, because the facts came from a source and not from the weights.</p>
+  <p>A <b>skill</b> is the same idea for instructions. It is a folder with a file <code>SKILL.md</code> that has a name, a description and the instructions. The documentation of Anthropic describes three levels. Claude sees the name and description of a skill at the start, about 100 tokens per skill. When a request matches a description, Claude reads the body of <code>SKILL.md</code>, under 5,000 tokens. Extra files are read only when the instructions point to them, and a script's code never enters the context, only its output.</p>
+  <div class="card" id="sk">
+    <div class="bar" id="sk-bar"></div>
+    <svg id="sk-svg" role="img" aria-label="Bars of the text a skill adds to the context"></svg>
+    <p class="status" id="sk-text" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>Only the descriptions are always in the context. A skill's instructions are read when a request matches, and its extra files only when they are needed.</b> The sizes are the typical values stated in the documentation, drawn to one scale. The messages and the matching follow the test cases of the Socratic Tutor, where the model itself decides by reading the descriptions.</p>
+  <div class="bridge">
+    <p><b>Bridge to Rayhaan's project.</b> The Socratic Tutor of Mumbai AI Lab is a plugin that makes Claude tutor by asking questions. It has two skills, <code>socratic-tutor</code> and <code>quiz-me</code>, and no code, only written instructions. The report explains <a href="https://mailab.in/socratic-tutor/#plugins">how a Claude plugin works</a> and when a skill loads. It sets out <a href="https://mailab.in/socratic-tutor/#design">the rules of the tutor</a> and <a href="https://mailab.in/socratic-tutor/#evidence">the studies behind them</a>. The rules are one question per turn, a ladder of questions, a hint scale, and a rule for when it gives the answer. It works through the mechanism of this chapter: instructions added to the context, not a change of weights. The same text could be a system prompt. The skill form keeps it out of the context until a request needs it.</p>
+  </div>
+  <div class="break">
+    <p><b>Common belief.</b> A model with tools can check its own answers, so it cannot hallucinate.</p>
+    <p><b>Why it fails.</b> It may skip the tool, call it with the wrong arguments, misread the result, or trust a wrong source. The reply after the tool result is still written one token at a time.</p>
+    <p><b>Better account.</b> Tools move some facts from the weights to a source, which lowers made-up answers on those facts. They do not remove them. The transcript of calls and results is what you check.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When an answer from a tool-using model is wrong, read the transcript in three places. Was the call right? What did the tool return? Did the answer use the returned text?</p>
+  </div>
+  <pre class="code"><code>import json, numpy as np
+
+# the made-up catch table of the running example (records are rows of the table)
+catch = json.load(open("catch.json"))["records"]
+
+def mean_length(species):
+    rows = [r["length_cm"] for r in catch if r["species"] == species]
+    if not rows:
+        return f'error: unknown species "{species}"'
+    return f"{np.mean(rows):.1f} cm ({len(rows)} records)"
+
+TOOLS = {"mean_length": mean_length}
+
+def scripted_model(messages):
+    """A scripted replacement for the language model: it only ever returns text."""
+    last = messages[-1]
+    if last["role"] == "user":
+        return 'CALL mean_length("bamboos")'               # a misspelling, on purpose
+    if last["content"].startswith("error"):
+        return 'CALL mean_length("bamboo")'
+    return "The bamboo sharks in the made-up table have a mean length of " + last["content"].split(" cm")[0] + " cm."
+
+messages = [{"role": "user", "content": "What is the mean length of the bamboo sharks?"}]
+for step in range(5):                                       # a limit, so a confused model cannot loop forever
+    reply = scripted_model(messages)
+    print("model  :", reply)
+    messages.append({"role": "assistant", "content": reply})
+    if not reply.startswith("CALL "):
+        break
+    name, arg = reply[5:].split("(")
+    result = TOOLS[name](arg.strip(')"'))
+    print("tool   :", result)
+    messages.append({"role": "tool", "content": result})</code></pre>
+  <pre class="out">model  : CALL mean_length("bamboos")
+tool   : error: unknown species "bamboos"
+model  : CALL mean_length("bamboo")
+tool   : 47.4 cm (72 records)
+model  : The bamboo sharks in the made-up table have a mean length of 47.4 cm.</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Who runs the tool, the model or the application?</summary><p>The application. The model writes the call as text. The application reads it, runs the function and adds the result to the text.</p></details>
+    <details><summary>Why can many skills be installed without filling the context?</summary><p>Only the name and description of a skill, about 100 tokens, are always in the context. The body and the extra files are read only when a request needs them.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 7. halluc ============================ -->
+<section id="halluc" aria-labelledby="halluc-h">
+  <h2 id="halluc-h">Why a model makes things up</h2>
+  <p class="ask"><b>Guess first.</b> GPT-2 reads "The Ganges shark was recorded at Sassoon Dock in Mumbai in the year". The true year is 2016. Which is likelier: that it puts most of its probability on 2016, on a few years near it, or on a wide spread of years? And what does it do if the animal in the question does not exist?</p>
+  <dl class="terms">
+    <div><dt>hallucination</dt><dd>a fluent statement that is false or has no support in the input or the data</dd></div>
+    <div><dt>calibration</dt><dd>confidence that matches how often the model is right</dd></div>
+    <div><dt>singleton</dt><dd>a fact that appears once only in the training data</dd></div>
+    <div><dt>grounding</dt><dd>tying an answer to a source that the model is given or can look up</dd></div>
+  </dl>
+  <p class="claim">A model always has to give a probability to some next token. When the true answer is rare in its training text, plausible wrong tokens take most of the probability, and a fluent false sentence follows.</p>
+  <div class="card" id="hl">
+    <div class="bar" id="hl-bar"></div>
+    <div class="controls" id="hl-controls"></div>
+    <pre class="prompt" id="hl-prompt"></pre>
+    <div class="plot short" id="hl-plot" role="img" aria-label="Bars of the most likely next tokens"></div>
+    <div class="eq1" id="hl-eq" aria-live="polite"></div>
+    <div class="readout" id="hl-read"></div>
+    <p class="status" id="hl-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>For a fact that appears in many texts GPT-2 small puts 67% on the true token. For a true fact that few texts state, it puts 2.2% on the true year and 75% on other years.</b> Teal is the true token, coral is a token of the right kind that is false or unsupported, and sand is any other token. The species name in the last two views is made up for this page.</p>
+  <p>Start with the first view: "Mumbai is the capital of the Indian state of". The model puts 67% on Maharashtra and 13% on Gujarat, and the effective number of choices is 4 (the entropy of <a href="../d3-next-token/#distribution">D3</a>). In the second view the fact is true and rarer. The model spreads its probability over years: 2000 at 17%, then 2010, 2015 and 2013 at 2 to 3%. The true year, 2016, has 2.2%, rank 9, and the effective number of choices is 97. About 75% of the probability is on tokens that look like years, so a sample or the greedy choice gives a fluent sentence with a false year. Press "Draw 200 continuations" to see how often. The third and fourth views ask about a species that does not exist. No token is true. Yet the model puts about 61% of its probability on numbers in the third view. In the fourth it puts about 18% on tokens that begin a person's name, such as Dr, William and Charles, with about 1,050 effective choices. It cannot tell that the question is empty, because for the model it is only a text to continue. GPT-2 small is a small model. A larger one knows more facts and would give the true year more weight, but it also has facts it saw once or never, and the same thing happens there.</p>
+  <p>Four causes appear in the research. They combine.</p>
+  <ul class="plain">
+    <li><b>The objective.</b> Pretraining rewards high probability for the observed next token (D3). The softmax gives all tokens a probability, and the model has no way to abstain unless the training text contained abstaining in that place. "I do not know" is a continuation that has to be learned.</li>
+    <li><b>Rare facts.</b> Kalai and Vempala (2023) prove a bound for facts that cannot be inferred from other training data. A calibrated model must hallucinate on them at a rate of at least about the share of facts that appear once only in training. Their bound applies even with error-free data and is not caused by the transformer architecture. Facts seen many times, and systematic facts such as arithmetic, do not face the same necessity.</li>
+    <li><b>Scoring that rewards guessing.</b> Kalai, Nachum, Vempala and Zhang (2025) argue that hallucinations begin as errors in telling valid from invalid statements, and stay because most tests are graded so that guessing pays. They propose changing how existing tests are scored.</li>
+    <li><b>Tuning toward answers.</b> The tuned model is trained on replies that answer, and a reward model that prefers confident, helpful replies keeps this habit. This is a plausible account, and this page does not measure it. The third stage of the first figure shows an admission of ignorance, which appears only if the training data and the preferences contain it.</li>
+  </ul>
+  <p>What helps? Putting the facts in the prompt: in the first view of the last section the probability of the right token rose from 0.008% to 22%. Tools that fetch a source: ReAct reduced hallucination in two question-answering tasks, by its authors' report. Asking for the source and checking it. Scoring tests so that a wrong answer costs more than an abstention. These reduce made-up answers and do not remove them.</p>
+  <p class="math">\[ H = -\sum_k p_k \ln p_k,\qquad \text{effective choices} = e^{H},\qquad \text{rate of hallucination} \gtrsim s \]</p>
+  <ul class="math-notes">
+    <li><b>\(p_k\)</b> is the probability of next token \(k\) (<a href="../d3-next-token/#distribution">D3</a>). <b>\(e^{H}\)</b> is the number of equally likely tokens that would give the same entropy: 4 for the Maharashtra context and 97 for the year context.</li>
+    <li><b>\(s\)</b> is the share of the training facts that appear once only, the singleton rate. The bound of Kalai and Vempala applies to facts that cannot be inferred from other data, and it ignores smaller terms (written \(\gtrsim\)).</li>
+  </ul>
+  <p>Worked example. In the year context, if the model chose uniformly among its 97 effective choices, the true year would have probability \(1/97 = 1.0\%\). The model gives it 2.2%, about twice that, and it gives 16.7% to the year 2000, which is wrong. The model has learned something, and that is too little to answer.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A model that states something false is lying, or knows the truth and hides it.</p>
+    <p><b>Why it fails.</b> A model has no intention. It computes probabilities over next tokens, and false tokens that fit the sentence take a share of the probability. The true year here had 2.2%.</p>
+    <p><b>Better account.</b> The model produces the likely continuation. Whether that is true depends on how often the fact was in the data, on how the model was tuned and on how it is checked.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Ask the same question several times at a temperature above zero. Answers that change show uncertainty. Answers that repeat do not show truth: the greedy choice for the year context is the false year 2000 in all runs.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why does GPT-2 answer a question about a species that does not exist?</summary><p>The softmax always gives some probability to all tokens, and a question followed by a number is a likely text. The model has no signal that the species is missing, and "I do not know" was not a likely continuation in its training text.</p></details>
+    <details><summary>Does a lower temperature remove hallucination?</summary><p>No. It makes the top token more likely. In the year context the top token is a false year, so a lower temperature makes the false year more certain.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> Two answers have scores \(r_a = 0.4\) and \(r_b = -0.2\). What is \(P(a \succ b)\)? What is the loss if a rater prefers \(a\), and what if the rater prefers \(b\)? How far does either outcome move the scores for \(\eta = 0.5\)?</p>
+        <details class="hint"><summary>Hint</summary><p>\(P = \sigma(0.6)\). The loss is \(-\ln\) of the probability of the outcome that happened. The step is \(\eta\) times (1 minus that probability).</p></details></li>
+      <li><p><span class="ex-tag">theory</span> A policy over two replies starts at \((0.5, 0.5)\), and the scores are \((1, 0)\). Compute \(\pi^{*}\) for \(\beta = 1\) and its KL distance from the start. What are \(\pi^{*}\) for \(\beta \to \infty\) and for \(\beta \to 0\)?</p></li>
+      <li><p><span class="ex-tag">theory</span> In the loss figure the 25 reply tokens have a mean loss of 4.28 nats. Give the total loss, and the perplexity of the reply. What would the perplexity be if the model assigned the same probability to all tokens of a vocabulary of 50,257?</p></li>
+      <li><p><span class="ex-tag">theory</span> In the year context the entropy is 4.58 nats. How many equally likely years does that correspond to? If the model put equal probability on all of them, what would be the chance of the right year, and how does this compare with the model's 2.2%?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Write a small NumPy program that learns reward scores for five answers from simulated votes. Let a careful rater prefer the answer with the larger usefulness score (0.9, 0.1, 0.5, 0.3, 0.0), draw 200 random pairs, update with \(\eta = 0.5\), and print the scores. Does the ranking of the scores match the ranking of the usefulness?</p>
+        <details class="hint"><summary>Hint</summary><p>Reuse the update of the first code block in a loop. Use <code>np.random.default_rng(0).choice</code> to draw a pair of different answers.</p></details></li>
+      <li><p><span class="ex-tag">practice</span> Build the chat string of the Qwen2.5 template by hand for a system message of your own and the question "How big does a grey bamboo shark grow?". Use the tags <code>&lt;|im_start|&gt;</code>, <code>&lt;|im_end|&gt;</code> and newlines as in the figure. Print it and check it against the figure.</p></li>
+      <li><p><span class="ex-tag">practice</span> Extend the tool-loop code with a second tool, <code>count_records(species)</code>, and a scripted model that answers "how many hammerhead records and what is their mean length?" with two calls. Add a limit of five rounds and test it with a model that always repeats the same call.</p>
+        <details class="hint"><summary>Hint</summary><p>Loop over the model's replies. If a reply starts with CALL, run it, append the result, and continue. Stop after five rounds.</p></details></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> You want an assistant for Mumbai AI Lab students that asks questions instead of giving answers. You could use a system prompt, examples in the prompt, a skill, fine-tuning or preference tuning. Which would you try first, and why? How would you measure whether it works?</p></li>
+      <li><p><span class="ex-tag">open</span> Design a test of hallucination using the made-up catch table: some questions have an answer in the table, some do not. How would you score answers so that guessing does not pay? What might go wrong with your scoring?</p></li>
+      <li><p><span class="ex-tag">open</span> A reward model is trained on comparisons made by raters in one city, in one language. Whose preferences does it build in, and what could you check before using it in a health clinic app in Mumbai (see F1)?</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <div class="recall comeback">
+    <details><summary>(D3) Why does greedy decoding sometimes repeat a sentence, as GPT-2 did in the first figure?</summary><p>Greedy decoding picks the most likely token at a step. Once a sentence is written, the most likely continuation of the text is often to write it again, so the loop repeats.</p></details>
+    <details><summary>(B7, D6) Instruction tuning changes weights, and in-context learning does not. Which of the two is test-time training closer to, and what is the difference?</summary><p>Test-time training changes weights, like tuning, but only fast weights, for one input, and they go back to the trained values for the next input. In-context learning changes only the prompt.</p></details>
+    <details><summary>(D5, D6) A system prompt of 1,000 tokens is added to all conversations with Qwen3-4B. How much cache does it use in 16-bit numbers?</summary><p>Qwen3-4B needs 147,456 bytes of cache per token, so \(1{,}000 \times 147{,}456 = 147\) MB, as long as the conversation lasts.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Wei, J. and others (2021). Finetuned Language Models Are Zero-Shot Learners. <a href="https://arxiv.org/abs/2109.01652">arXiv:2109.01652</a>.</li>
+    <li>Ouyang, L. and others (2022). Training language models to follow instructions with human feedback. <a href="https://arxiv.org/abs/2203.02155">arXiv:2203.02155</a>.</li>
+    <li>Christiano, P. and others (2017). Deep reinforcement learning from human preferences. <i>NeurIPS</i>. <a href="https://arxiv.org/abs/1706.03741">arXiv:1706.03741</a>.</li>
+    <li>Stiennon, N. and others (2020). Learning to summarize from human feedback. <i>NeurIPS</i>. <a href="https://arxiv.org/abs/2009.01325">arXiv:2009.01325</a>.</li>
+    <li>Rafailov, R. and others (2023). Direct Preference Optimization: Your Language Model is Secretly a Reward Model. <i>NeurIPS</i>. <a href="https://arxiv.org/abs/2305.18290">arXiv:2305.18290</a>.</li>
+    <li>Bradley-Terry model, as described in <a href="https://en.wikipedia.org/wiki/Bradley%E2%80%93Terry_model">Wikipedia</a>, with the original paper: R. A. Bradley and M. E. Terry (1952), Rank analysis of incomplete block designs: I. The method of paired comparisons, <i>Biometrika</i> 39(3/4), 324&ndash;345.</li>
+    <li>Gao, L., Schulman, J. and Hilton, J. (2022). Scaling Laws for Reward Model Overoptimization. <i>ICML</i> 2023. <a href="https://arxiv.org/abs/2210.10760">arXiv:2210.10760</a>.</li>
+    <li>Singhal, P., Goyal, T., Xu, J. and Durrett, G. (2023). A Long Way to Go: Investigating Length Correlations in RLHF. <i>COLM</i> 2024. <a href="https://arxiv.org/abs/2310.03716">arXiv:2310.03716</a>.</li>
+    <li>Brown, T. B. and others (2020). Language Models are Few-Shot Learners. <a href="https://arxiv.org/abs/2005.14165">arXiv:2005.14165</a>.</li>
+    <li>Min, S. and others (2022). Rethinking the Role of Demonstrations: What Makes In-Context Learning Work? <i>EMNLP</i>. <a href="https://arxiv.org/abs/2202.12837">arXiv:2202.12837</a>.</li>
+    <li>Olsson, C. and others (2022). In-context Learning and Induction Heads. <a href="https://arxiv.org/abs/2209.11895">arXiv:2209.11895</a>.</li>
+    <li>Schick, T. and others (2023). Toolformer: Language Models Can Teach Themselves to Use Tools. <a href="https://arxiv.org/abs/2302.04761">arXiv:2302.04761</a>.</li>
+    <li>Yao, S. and others (2022). ReAct: Synergizing Reasoning and Acting in Language Models. <i>ICLR</i> 2023. <a href="https://arxiv.org/abs/2210.03629">arXiv:2210.03629</a>.</li>
+    <li>Kalai, A. T. and Vempala, S. S. (2023). Calibrated Language Models Must Hallucinate. <i>STOC</i> 2024. <a href="https://arxiv.org/abs/2311.14648">arXiv:2311.14648</a>.</li>
+    <li>Kalai, A. T., Nachum, O., Vempala, S. S. and Zhang, E. (2025). Why Language Models Hallucinate. <a href="https://arxiv.org/abs/2509.04664">arXiv:2509.04664</a>.</li>
+    <li>Anthropic documentation: <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview">Tool use with Claude</a> and <a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview">Agent Skills</a>.</li>
+    <li>Qwen team. Tokenizer configuration of Qwen/Qwen2.5-0.5B and of Qwen/Qwen2.5-0.5B-Instruct on Hugging Face (chat template with tools, default system message). Apache 2.0 licence.</li>
+    <li>Radford, A. and others (2019). Language Models are Unsupervised Multitask Learners (GPT-2). MIT licence.</li>
+    <li>Khan, R. and Mumbai AI Lab. <a href="https://mailab.in/socratic-tutor/">How the Socratic Tutor works</a>.</li>
+  </ol>
+</section>
+
+<nav class="chap-nav" id="chap-nav" aria-label="Chapters"></nav>
+<footer>
+  <span><a href="../">How AI Learns</a> &middot; <a href="https://mailab.in/">Mumbai AI Lab</a></span>
+  <span><button type="button" class="theme-toggle" id="theme-toggle">dark mode</button></span>
+</footer>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
+<script src="../assets/kit.js?v=1" defer></script>
+<script src="d7-assistants.js?v=1" defer></script>
+</body>
+</html>

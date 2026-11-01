@@ -332,7 +332,7 @@
    "title": "Long context",
    "blurb": "The cost of attention, sparse attention and test-time training.",
    "part": "D",
-   "live": false
+   "live": true
   },
   {
    "id": "d7",
@@ -341,7 +341,7 @@
    "title": "From language model to assistant",
    "blurb": "Instruction tuning, preferences, prompts and tools.",
    "part": "D",
-   "live": false
+   "live": true
   },
   {
    "id": "pd",
