@@ -74,7 +74,7 @@
   </div>
   <p class="cap"><b>With spread 0.01 the activations fall to about \(10^{-20}\) by layer 20. With the He spread (0.141) both the activations and the slopes keep a size near their start.</b> A row of a table is one layer; darker cells contain more units. The line plot gives the typical size on a log axis, so a straight line down is a constant factor per layer.</p>
   <p>Pick the initialisations in turn, then switch between tanh and ReLU. With <b>zeros</b> all tables are one stripe at 0. With <b>too small</b> the activations collapse toward 0 layer after layer. With <b>too large</b> a tanh network saturates (units pile up at \(\pm1\), where the slope is near 0), and a ReLU network explodes. <b>Xavier</b> suits tanh and shrinks a ReLU network, and <b>He</b> suits ReLU. The slope tables (right) are the backward pass of <a href="../b4-backpropagation/#backward">B4</a> on random numbers. They show how big the slope reaching a layer is, from a slope of size 1 at layer 20.</p>
-  <p>The size of the signal follows a short calculation. A unit adds up \(n\) inputs times weights: \(z = \sum_{i=1}^{n} w_i x_i\). If the weights have mean 0 and spread \(\sigma\), and are independent of the inputs, the terms are independent, so their variances add: \(\mathrm{Var}(z) = \sum_i \mathrm{Var}(w_i x_i) = n\,\sigma^2\,\mathbb{E}[x^2]\). One layer multiplies the typical squared size by \(n\sigma^2\) (before the activation). That is a constant factor per layer, which is why the lines in the plot are straight.</p>
+  <p>The size of the signal follows a short calculation. A unit adds up \(n\) inputs times weights: \(z = \sum_{i=1}^{n} w_i x_i\). If the weights have mean 0 and spread \(\sigma\), and are independent of the inputs, the terms are independent, so their variances add: \(\mathrm{Var}(z) = \sum_i \mathrm{Var}(w_i x_i) = n\,\sigma^2\,\mathbb{E}[x^2]\). For one term, the mean of \(w_i x_i\) is 0 because the mean of \(w_i\) is 0. Its variance is then \(\mathbb{E}[w_i^2 x_i^2] = \mathbb{E}[w_i^2]\,\mathbb{E}[x_i^2] = \sigma^2\,\mathbb{E}[x_i^2]\), since \(w_i\) and \(x_i\) are independent. One layer multiplies the typical squared size by \(n\sigma^2\) (before the activation). That is a constant factor per layer, which is why the lines in the plot are straight.</p>
   <p class="math">\[ z = \sum_{i=1}^{n} w_i x_i \qquad \mathrm{Var}(z) = n\,\sigma^{2}\,\mathbb{E}[x^{2}] \]</p>
   <ul class="math-notes">
     <li><b>\(n\)</b> is the number of inputs of a unit, <b>\(w_i\)</b> a random weight with spread \(\sigma\) and <b>\(x_i\)</b> an input. <b>\(\mathbb{E}[x^{2}]\)</b> is the average squared size of an input.</li>
@@ -82,7 +82,58 @@
   </ul>
   <div class="eqn" role="img" aria-label="With n equal to 100 and spread 0.01, the factor per layer is 0.005 for ReLU; after 20 layers the size is about 1e-23. With spread 1, the factor is 50 per layer and the size after 20 layers is about 1e17"><span class="t c-navy"><b>n&sigma;&sup2; &divide; 2</b><i>100 &times; 0.01&sup2; &divide; 2, ReLU</i></span><span class="op">=</span><span class="t c-coral"><b>0.005</b><i>variance factor per layer</i></span><span class="op">&rarr; 20 layers &rarr;</span><span class="t c-coral"><b>(0.005)<sup>20</sup> &asymp; 10<sup>&minus;46</sup></b><i>variance, so size about 10<sup>&minus;23</sup></i></span><span class="op">|</span><span class="t c-navy"><b>n&sigma;&sup2; &divide; 2</b><i>100 &times; 1 &divide; 2, spread 1</i></span><span class="op">=</span><span class="t c-sand"><b>50</b><i>per layer</i></span><span class="op">&rarr;</span><span class="t c-sand"><b>50<sup>20</sup> &asymp; 10<sup>34</sup></b><i>variance, size about 10<sup>17</sup></i></span></div>
   <p>The box is a worked example for ReLU units (the factor \(n\sigma^2/2\) is explained in the next section). With spread 0.01, a layer cuts the variance to 0.5% of its size, so 20 layers leave a size of about \(10^{-23}\). With spread 1 a layer multiplies the variance by 50, and the size after 20 layers is about \(10^{17}\). The same factor, raised to the 20th power, explains both ends. The tanh case with spread 0.01 is the guess-first question: \(n\sigma^2 = 0.01\) per layer, so the size falls by a factor of \(0.1\) per layer, and \(0.1^{20}\) gives \(10^{-20}\), which matches the \(1.1\times10^{-20}\) of the figure.</p>
+  <p><b>A tanh example with numbers.</b> Take spread 0.05 and width 100. The factor is \(n\sigma^2 = 100\times0.0025 = 0.25\) in variance, so the size falls by \(\sqrt{0.25} = 0.5\) per layer, and \(0.5^{20} \approx 10^{-6}\). The code runs the forward pass of a random tanh network for six spreads and sends a slope of size 1 back from layer 20. It uses its own random numbers, so the digits differ a little from the figure.</p>
+<pre class="code" data-run><code>import numpy as np
+
+n, depth, batch = 100, 20, 256
+rms = lambda a: np.sqrt((a ** 2).mean())
+
+def tanh_net(sigma, seed=0):
+    rng = np.random.default_rng(seed)
+    Ws = [rng.standard_normal((n, n)) * sigma for _ in range(depth)]
+    x = rng.standard_normal((batch, n))                  # inputs of typical size 1
+    hs = []
+    for W in Ws:
+        x = np.tanh(x @ W); hs.append(x)
+    g = rng.standard_normal((batch, n))                  # a slope of typical size 1 at layer 20
+    for W, h in zip(reversed(Ws), reversed(hs)):
+        g = (g * (1 - h ** 2)) @ W.T                     # one layer back (the B4 rule)
+    return rms(hs[0]), rms(hs[9]), rms(hs[-1]), rms(g)
+
+print("spread   layer 1   layer 10   layer 20   slope at layer 1")
+for sigma in (0.01, 0.05, 0.1, 0.141, 0.3, 1.0):
+    a1, a10, a20, g1 = tanh_net(sigma)
+    print(f"{sigma:6.3f}   {a1:7.1e}   {a10:8.1e}   {a20:8.1e}   {g1:8.1e}")</code></pre>
+<pre class="out">spread   layer 1   layer 10   layer 20   slope at layer 1
+ 0.010   9.9e-02    9.1e-11    9.0e-21    9.3e-21
+ 0.050   4.1e-01    7.1e-04    6.8e-07    7.2e-07
+ 0.100   6.3e-01    2.2e-01    1.5e-01    1.9e-01
+ 0.141   7.2e-01    5.5e-01    5.6e-01    1.9e+00
+ 0.300   8.6e-01    8.4e-01    8.3e-01    4.7e+02
+ 1.000   9.6e-01    9.6e-01    9.6e-01    2.3e+07</pre>
+  <p>Read the rows. At 0.01 and 0.05 the activations and the slope vanish together, because a square layer applies the same factor in both directions. At 0.1 they shrink slowly. At 0.141 the activations stay near 0.55 and the slope near 2. At 0.3 and 1 the units are saturated, with a size near 1, the limit of tanh, and the slope explodes by a factor of 470 and of 23 million. Large weights fail in two ways at once: the activations pile up at the ends of tanh, and the slope grows.</p>
+  <p><b>How close is close enough?</b> The factor per layer is raised to the 20th power. A variance factor of 1.1 gives \(1.1^{20} = 6.7\) after 20 layers, a size 2.6 times too large. A factor of 0.9 gives 0.12, a size of 0.35. A factor of 2 gives \(10^{6}\) in variance. Since the factor is proportional to \(\sigma^2\), a spread within about 5% of the right value keeps the variance within 10% per layer. The right band for a deep network is narrow. A default that is close enough for 3 layers can be far off for 20.</p>
   <p><b>Why zeros fail.</b> With all weights 0 the units compute 0. The slope that reaches a layer's weights is the layer's input times a slope that is also 0, so no weight moves. Even if all weights were set to one shared nonzero value, all units in a layer would compute the same number and get the same slope. They would stay identical after all updates (symmetry). A layer of 100 identical units is one unit. Random starting values break the tie. This is why a network starts from small random numbers and why the spread of those numbers matters.</p>
+  <p>The code shows the tie holding. Two hidden units start with the same weights, 0.5 in all positions, and the network trains for 200 steps on Tag 3305. The two rows of \(W^{[1]}\) stay equal. A second run, with slightly different starting rows, ends with different rows.</p>
+<pre class="code" data-run><code>import numpy as np
+
+x = np.array([0.22, 0.21]); y = 1.0
+
+def train(W1, steps=200, eta=0.5):
+    b1, v, c = np.zeros(2), np.array([0.9, 0.9]), 0.0
+    for _ in range(steps):
+        h = np.tanh(W1 @ x + b1); p = 1 / (1 + np.exp(-(v @ h + c)))
+        d = p - y; d1 = d * v * (1 - h ** 2)
+        W1 = W1 - eta * np.outer(d1, x); b1 = b1 - eta * d1; v = v - eta * d * h; c = c - eta * d
+    return -np.log(p), W1
+
+loss, W1 = train(np.full((2, 2), 0.5))                          # two identical hidden units
+print("equal start:  loss", round(loss, 3), " rows of W1:", W1.round(4).tolist())
+loss, W1 = train(np.array([[0.5, 0.4], [0.3, 0.5]]))            # a slightly different start
+print("unequal start: loss", round(loss, 3), " rows of W1:", W1.round(4).tolist())</code></pre>
+<pre class="out">equal start:  loss 0.003  rows of W1: [[0.7525, 0.741], [0.7525, 0.741]]
+unequal start: loss 0.003  rows of W1: [[0.7567, 0.645], [0.5594, 0.7476]]</pre>
+  <p>Both runs reach the same loss on this one shark, so the loss does not reveal the problem. With many sharks the second network can learn two different features. The first can learn only one.</p>
   <div class="break">
     <p><b>Common belief.</b> Starting all weights at zero is the neutral choice, and small random numbers are a safe second best.</p>
     <p><b>Why it fails.</b> Zero weights give zero signal and zero slope, and any equal starting values give units that never differ. A random start with a small spread still shrinks the signal by a constant factor from layer to layer, and that factor compounds over 20 layers.</p>
@@ -95,6 +146,7 @@
     <p class="recall-h">Quick quiz</p>
     <details><summary>With \(n = 100\) and spread 0.1, what is the variance factor per layer before the activation, and what does it predict for a tanh network?</summary><p>\(n\sigma^2 = 100 \times 0.01 = 1\). The variance is kept, so the signal should stay near its size. (In the figure it shrinks slowly, because tanh squashes large values.)</p></details>
     <details><summary>Why must the factor of a single layer be close to 1, when only the product of all 20 matters?</summary><p>The signal after 20 layers is the starting size times the product of 20 factors. If the factor is 0.9 in all layers the product is 0.12, and if it is 0.5 in all layers the product is \(10^{-6}\). Small deviations per layer grow exponentially with depth.</p></details>
+    <details><summary>A tanh network has width 100 and weight spread 0.05. About how large are its activations at layer 20?</summary><p>The variance factor per layer is \(100\times0.05^2 = 0.25\), so the size falls by a factor of 0.5 per layer. After 20 layers that is \(0.5^{20}\approx10^{-6}\). The code above gives \(7\times10^{-7}\).</p></details>
   </div>
 </section>
 
@@ -123,9 +175,25 @@
     <li><b>\(\mathrm{Var}(w)\)</b> is the variance of a random starting weight, so the spread is \(\sigma = \sqrt{\mathrm{Var}(w)}\).</li>
     <li><b>\(n_{\text{in}}\)</b> and <b>\(n_{\text{out}}\)</b> are the fan-in and fan-out of the layer. For a square layer \(n_{\text{in}} = n_{\text{out}} = n\) and Xavier gives \(\sigma = 1/\sqrt{n}\).</li>
   </ul>
-  <p><b>Where the two rules come from.</b> Forward: the variance factor is \(n_{\text{in}}\mathrm{Var}(w)\) (the calculation of the last section). For tanh near 0 the activation changes little, so the factor should be 1: \(\mathrm{Var}(w) = 1/n_{\text{in}}\). A ReLU keeps the positive half of a distribution that is symmetric around 0, so \(\mathbb{E}[\mathrm{ReLU}(z)^2] = \tfrac12 \mathbb{E}[z^2]\). The factor becomes \(n_{\text{in}}\mathrm{Var}(w)/2\), and setting it to 1 gives \(\mathrm{Var}(w) = 2/n_{\text{in}}\), the He rule. Backward: the slope sent to a layer's inputs is \(W^\top\boldsymbol\delta\) (<a href="../b4-backpropagation/#layers">B4</a>), a sum over \(n_{\text{out}}\) terms, so its variance factor is \(n_{\text{out}}\mathrm{Var}(w)\), and a factor of 1 needs \(\mathrm{Var}(w) = 1/n_{\text{out}}\). The forward rule wants \(1/n_{\text{in}}\), the backward rule \(1/n_{\text{out}}\). Xavier takes \(2/(n_{\text{in}} + n_{\text{out}})\), which is the harmonic compromise between them (it equals both when \(n_{\text{in}} = n_{\text{out}}\)).</p>
+  <p><b>Where the two rules come from.</b> Forward: the variance factor is \(n_{\text{in}}\mathrm{Var}(w)\) (the calculation of the last section). For tanh near 0 the activation changes little, so the factor should be 1: \(\mathrm{Var}(w) = 1/n_{\text{in}}\). A ReLU keeps the positive half of a distribution that is symmetric around 0. The square \(z^2\) is the same for \(z\) and \(-z\), so half of \(\mathbb{E}[z^2]\) comes from the positive values, and \(\mathbb{E}[\mathrm{ReLU}(z)^2] = \tfrac12 \mathbb{E}[z^2]\). The factor becomes \(n_{\text{in}}\mathrm{Var}(w)/2\), and setting it to 1 gives \(\mathrm{Var}(w) = 2/n_{\text{in}}\), the He rule. Backward: the slope sent to a layer's inputs is \(W^\top\boldsymbol\delta\) (<a href="../b4-backpropagation/#layers">B4</a>). It is a sum over \(n_{\text{out}}\) terms \(\delta_i W_{ij}\), independent with mean 0 as before. Its variance factor is \(n_{\text{out}}\mathrm{Var}(w)\), and a factor of 1 needs \(\mathrm{Var}(w) = 1/n_{\text{out}}\). The forward rule wants \(1/n_{\text{in}}\), the backward rule \(1/n_{\text{out}}\). Xavier takes \(2/(n_{\text{in}} + n_{\text{out}})\), which is the harmonic compromise between them (it equals both when \(n_{\text{in}} = n_{\text{out}}\)).</p>
   <div class="eqn" role="img" aria-label="Worked example for a layer with 100 inputs and 50 outputs: Xavier variance 2 over 150 is 0.0133, spread 0.115; He variance 2 over 100 is 0.02, spread 0.141; uniform bound square root of 6 over 150 is 0.2"><span class="t c-navy"><b>variance 2 &divide; (100 + 50)</b><i>Xavier, 100 in, 50 out</i></span><span class="op">=</span><span class="t c-teal"><b>0.0133</b><i>spread 0.115</i></span><span class="op">|</span><span class="t c-navy"><b>variance 2 &divide; 100</b><i>He</i></span><span class="op">=</span><span class="t c-teal"><b>0.02</b><i>spread 0.141</i></span><span class="op">|</span><span class="t c-navy"><b>&radic;(6 &divide; 150)</b><i>Xavier bound if uniform</i></span><span class="op">=</span><span class="t c-teal"><b>0.2</b><i>weights in &minus;0.2 to 0.2</i></span></div>
   <p>The box is a second worked example, for a layer with 100 inputs and 50 outputs. The last cell uses the uniform version of Xavier: weights drawn evenly from \(-a\) to \(a\) have variance \(a^2/3\), so \(a = \sqrt{6/(n_{\text{in}}+n_{\text{out}})}\) gives variance \(2/(n_{\text{in}}+n_{\text{out}})\). Some libraries draw from this uniform range and some from a normal distribution with the same variance.</p>
+  <p><b>A wider layer.</b> Move to width 400, the guess-first case. The He spread is \(\sqrt{2/400} = 0.071\), and the Xavier spread for a square layer is \(1/\sqrt{400} = 0.05\). Suppose the width-100 value 0.1 is kept by mistake. For tanh the variance factor becomes \(400\times0.01 = 4\), so the signal would double per layer. Tanh cannot exceed 1, so the units saturate and the slopes grow instead. For ReLU the factor is \(4/2 = 2\), the size grows by \(\sqrt2\) per layer, and \(2^{10}\approx10^{3}\) after 20 layers.</p>
+  <p><b>Layers that are not dense.</b> A convolution (<a href="../c1-convolution/#filter">C1</a>) adds up channels times height times width inputs. For a \(3\times3\) filter over 64 channels the fan-in is \(64\times9 = 576\), and the fan-out of 128 filters is \(128\times9 = 1152\). The He spread is \(\sqrt{2/576} = 0.059\). The same weight is used at many positions, but the variance depends on the number of terms in one sum, and that is the fan-in. The code checks the formulas against PyTorch's initialisers.</p>
+<pre class="code"><code>import torch, torch.nn as nn
+
+torch.manual_seed(0)
+conv = nn.Conv2d(64, 128, kernel_size=3)           # 64 input channels, 128 filters of size 3 by 3
+fan_in, fan_out = 64 * 3 * 3, 128 * 3 * 3
+print("fan-in:", fan_in, " fan-out:", fan_out)
+nn.init.kaiming_normal_(conv.weight, nonlinearity="relu")
+print("He spread: formula", round((2 / fan_in) ** 0.5, 4), " measured", round(conv.weight.std().item(), 4))
+nn.init.xavier_normal_(conv.weight)
+print("Xavier spread: formula", round((2 / (fan_in + fan_out)) ** 0.5, 4), " measured", round(conv.weight.std().item(), 4))</code></pre>
+<pre class="out">fan-in: 576  fan-out: 1152
+He spread: formula 0.0589  measured 0.059
+Xavier spread: formula 0.034  measured 0.0341</pre>
+
   <p><b>Where this stops being right.</b> The derivation assumes independent weights with mean 0 and inputs of a steady size, and it treats the activation as linear (tanh) or as a clean half (ReLU). Actual tanh units saturate when inputs are large, so the figure's tanh curve shows the signal shrinking a little even at Xavier. After training starts, weights are no longer random. Normalisation layers (next section) make the starting scale matter much less. <b>In practice</b>, use He for ReLU-type activations and Xavier for tanh and sigmoid, and trust the library defaults unless you change the width or the activation. PyTorch's default for <code>nn.Linear</code> is a uniform draw with variance \(1/(3\,n_{\text{in}})\), which the code below confirms. A common mistake is to copy the spread of a narrow layer into a wide one.</p>
 <pre class="code" data-run><code>import numpy as np
 rng = np.random.default_rng(0)
@@ -172,6 +240,7 @@ xavier_normal_ spread:        0.1002   (sqrt(2/200) = 0.1 )</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>A ReLU layer has 256 inputs. What is the He spread?</summary><p>\(\sqrt{2/256} = 0.0884\).</p></details>
     <details><summary>Why does the He rule have a 2 where the tanh rule has a 1?</summary><p>A ReLU sets the negative half of its inputs to 0, which halves the second moment of the signal. A weight variance twice as large makes up for it.</p></details>
+    <details><summary>A convolution with ReLU has \(3\times3\) filters over 32 input channels. What is the He spread?</summary><p>The fan-in is \(32\times9 = 288\), so the spread is \(\sqrt{2/288} = 1/12 = 0.083\).</p></details>
   </div>
 </section>
 
@@ -225,8 +294,51 @@ RMS norm:   [[0.218 0.655 1.091 1.528]]  mean 0.873  rms 1.0
 torch LayerNorm: [[-1.342 -0.447  0.447  1.342]]  eps = 1e-05
 BatchNorm1d eps = 1e-05  momentum = 0.1
 batch of one in training mode: Expected more than 1 value per channel when training, got input size torch.Size([1, 4])</pre>
+  <p><b>Scale, shift and groups in numbers.</b> Take the normalised row \((-1.342, -0.447, 0.447, 1.342)\) and learned values \(\gamma = 2\) and \(\beta = 0.5\). The output is \(2\times(-1.342) + 0.5 = -2.18\), then \(-0.39\), \(1.39\) and \(3.18\): mean 0.5 and spread 2. Training can move \(\gamma\) and \(\beta\) away from 1 and 0 if the next layer prefers another scale.</p>
+  <p>Groups change which cells share statistics. Take a row of 8 values, \((1, 3, 5, 7)\) followed by \((2, 4, 6, 8)\), where the second half is shifted up by 1. Layer norm treats the row as one set, so the shift remains as a difference of 0.44 between the halves. Group norm with two groups normalises the halves separately, so both become the same row. The code prints both.</p>
+<pre class="code" data-run><code>import numpy as np
+
+row = np.array([1.0, 3.0, 5.0, 7.0, 2.0, 4.0, 6.0, 8.0])        # two halves; the second is shifted up by 1
+norm = lambda a: (a - a.mean()) / np.sqrt(a.var() + 1e-5)
+
+print("layer norm: ", norm(row).round(3).tolist())
+print("group norm: ", np.concatenate([norm(row[:4]), norm(row[4:])]).round(3).tolist())
+gamma, beta = 2.0, 0.5
+print("layer norm of the first half, with gamma 2 and beta 0.5:", (gamma * norm(row[:4]) + beta).round(3).tolist())</code></pre>
+<pre class="out">layer norm:  [-1.528, -0.655, 0.218, 1.091, -1.091, -0.218, 0.655, 1.528]
+group norm:  [-1.342, -0.447, 0.447, 1.342, -1.342, -0.447, 0.447, 1.342]
+layer norm of the first half, with gamma 2 and beta 0.5: [-2.183, -0.394, 1.394, 3.183]</pre>
+
   <p><b>Why normalising helps.</b> A layer then receives inputs of a fixed scale, whatever the weights before it did. The signal does not drift to 0 or to huge values, and the slopes of <a href="../b4-backpropagation/#vanish">B4</a> stay in range. This allows a larger learning rate and makes the starting scale matter less. It is the same idea as standardising the inputs of <a href="../a2-linear-regression/#scaling">A2</a>, applied to the hidden values inside the network. The original batch-norm paper explained the benefit as a reduction of "internal covariate shift", the change in a layer's input distribution during training. Whether that is the reason is debated (Santurkar and others, 2018, argue against this account), so treat the effect as better established than the mechanism.</p>
   <p><b>The differences, with numbers.</b> Take the figure's default cell, Tag 3305 and \(h_3\), with value 1.6. Batch norm uses the six values in its column: mean 3.38, variance 1.72, so \(\hat x = (1.6 - 3.38)/1.31 = -1.36\). Layer norm uses the eight values in its row: mean 0.30, variance 2.50, so \(\hat x = (1.6 - 0.30)/1.58 = +0.82\). The same cell becomes negative under one norm and positive under the other, because it is compared with different cells. Layer norm does not change when the other sharks change. Group norm uses 4 of the 8 values (2 groups) or 2 (4 groups). It is a middle way, useful when a batch is too small for batch norm and the features are too varied for one shared mean. Batch norm in training mode uses the batch statistics. At test time a single shark has no batch. The layer uses stored averages kept during training as an exponential moving average (<a href="../t7-probability/#ema">0.7</a>), with PyTorch's default momentum 0.1. The figure shows these stored values below the grid.</p>
+  <p><b>A third answer for the same cell.</b> Switch the figure to "Stored averages (test time)". For \(h_3\) the stored mean is 2.01 and the stored variance 4.29, kept from 80 more made-up sharks. The cell becomes \((1.6 - 2.01)/\sqrt{4.29} = -0.20\). That is a third value for the same number, and it is the one the layer uses at test time. The batch of six had mean 3.38 and variance 1.72. Six sharks gave a mean that is off by 1.4 and a variance that is 2.5 times too small, so a small batch is a noisy estimate of the statistics.</p>
+  <p>The code below trains a batch-norm layer on batches with mean about 5 and spread 2, then normalises the same shark next to two different neighbours. In evaluation mode the answer does not change. In training mode the neighbour sets the answer: with two values in the batch the shark can only come out as \(-1\) or \(+1\).</p>
+<pre class="code"><code>import torch, torch.nn as nn
+
+torch.manual_seed(0)
+bn = nn.BatchNorm1d(1)
+for _ in range(300):
+    bn(torch.randn(16, 1) * 2 + 5)                  # training batches: values around 5, spread 2
+mean, var = bn.running_mean.item(), bn.running_var.item()
+print("stored mean", round(mean, 2), " stored variance", round(var, 2))
+
+shark = torch.tensor([[6.0]])
+bn.eval()                                           # evaluation mode: use the stored averages
+for neighbour in (7.0, 1.0):
+    out = bn(torch.cat([shark, torch.tensor([[neighbour]])]))[0].item()
+    print(f"eval mode,  neighbour {neighbour}: shark -&gt; {out:.3f}")
+print("by hand, (6 - mean) / sqrt(var + eps) =", round((6 - mean) / (var + 1e-5) ** 0.5, 3))
+bn.train()                                          # training mode: use the batch of two
+for neighbour in (7.0, 1.0):
+    out = bn(torch.cat([shark, torch.tensor([[neighbour]])]))[0].item()
+    print(f"train mode, neighbour {neighbour}: shark -&gt; {out:.3f}")</code></pre>
+<pre class="out">stored mean 5.0  stored variance 3.81
+eval mode,  neighbour 7.0: shark -&gt; 0.513
+eval mode,  neighbour 1.0: shark -&gt; 0.513
+by hand, (6 - mean) / sqrt(var + eps) = 0.513
+train mode, neighbour 7.0: shark -&gt; -1.000
+train mode, neighbour 1.0: shark -&gt; 1.000</pre>
+  <p><b>What a norm layer adds.</b> PyTorch starts \(\gamma\) at 1 and \(\beta\) at 0, so a new norm layer begins as plain standardising. A layer norm over 512 features has 1,024 learned numbers, one \(\gamma\) and one \(\beta\) per feature. Batch norm has the same 1,024 and also stores a running mean and a running variance per feature. Those 1,024 stored numbers are updated while the model trains and are not learned by gradient descent.</p>
   <p><b>Where they break.</b> Batch norm needs a batch bigger than 1, and its error grows as the batch shrinks (Wu and He, 2018). The stored averages can also differ from the statistics of new data, which is one more way a model can fail when the water changes (<a href="../c3-domain-shift/#adapt">C3</a>). Layer norm does not depend on the batch and is the usual choice for text, where a token is normalised on its own (<a href="../d5-transformer/#block">D5</a>). RMS norm drops the mean subtraction. Zhang and Sennrich (2019) report that it works about as well as layer norm and is cheaper, with 7% to 64% less running time in their models. <b>In practice</b>, use batch norm for image networks with ordinary batch sizes, group norm when the batch is small, and layer norm or RMS norm for sequences. A common mistake is forgetting <code>model.eval()</code>: the layer then keeps using batch statistics at test time, and one shark's answer changes with its neighbours.</p>
   <div class="break">
     <p><b>Common belief.</b> Normalisation treats a shark on its own, so its output depends only on the shark.</p>
@@ -240,6 +352,7 @@ batch of one in training mode: Expected more than 1 value per channel when train
     <p class="recall-h">Quick quiz</p>
     <details><summary>Which of batch, layer, RMS and group norm give a shark the same output whatever else is in the batch?</summary><p>Layer norm, RMS norm and group norm, because a shark's cells are normalised using only that shark's own row. Batch norm in training mode uses the other sharks.</p></details>
     <details><summary>What does batch norm do for a batch of one shark in training mode, and why?</summary><p>A hidden unit has a single value, so its variance is 0 and \(x - \mu = 0\): the normalised value is 0 for all cells and the output is just \(\beta\). The layer has no information to work with, and PyTorch raises an error instead, as the code shows.</p></details>
+    <details><summary>A row has two halves, \((1, 3, 5, 7)\) and \((2, 4, 6, 8)\). Which of layer norm and two-group norm keeps the difference between the halves?</summary><p>Layer norm keeps it. The second half comes out 0.44 higher than the first. Group norm normalises the two halves separately, so they become the same row and the difference is gone.</p></details>
   </div>
 </section>
 
@@ -270,7 +383,29 @@ batch of one in training mode: Expected more than 1 value per channel when train
   </ul>
   <p><b>Why the slope persists.</b> A block \(y = x + F(x)\) uses \(x\) twice, so by the sum rule of B4 the slope to \(x\) is the sum of two paths. Through \(L\) blocks the slope picks up a product \(\prod_l (I + J_l)\) with \(J_l = \partial F_l/\partial \mathbf{x}\). Multiply out the product: it contains the term \(I\) (all shortcuts), plus terms with one or more \(J_l\). The identity term does not shrink with depth. In a plain stack the slope is the product \(\prod_l J_l\) alone, which is the chain of small factors of B4. With scalar numbers: if a block's slope is \(f = 0.8\), a plain stack gives \(0.8^{29} \approx 0.0015\) over 30 blocks (the ReLU example of B4). With a shortcut the per-block factor is \(1 + f\); for a block slope of \(+0.05\) it is \(1.05^{29} \approx 4.1\), and for \(-0.05\) it is \(0.95^{29} \approx 0.23\). The shortcut keeps the factor near 1 when the blocks are gentle.</p>
   <div class="eqn" role="img" aria-label="Plain: 0.8 to the power 29 is 0.0015. Residual with block slope 0.05: 1.05 to the power 29 is 4.1. With block slope minus 0.05: 0.95 to the power 29 is 0.23"><span class="t c-coral"><b>plain: 0.8<sup>29</sup> &asymp; 0.0015</b><i>block slope 0.8</i></span><span class="op">|</span><span class="t c-teal"><b>shortcuts: 1.05<sup>29</sup> &asymp; 4.1</b><i>block slope +0.05</i></span><span class="op">|</span><span class="t c-teal"><b>shortcuts: 0.95<sup>29</sup> &asymp; 0.23</b><i>block slope &minus;0.05</i></span></div>
-  <p><b>Where it breaks.</b> The activations also add up, so with blocks of gain near 1 the size of \(x\) grows with depth, and the slope can grow too (the figure shows this at larger weight scales). Deep residual networks therefore combine shortcuts with normalisation layers or with small starting weights in the last layer of a block (<a href="../d5-transformer/#block">D5</a> shows the arrangement in a transformer block). The shortcut also needs \(x\) and \(F(x)\) to have the same size. When a block changes the width, the shortcut passes through a small learned layer instead. He and others (2016) reported that residual learning made much deeper networks easier to optimise, up to 152 layers on ImageNet. <b>In practice</b>, nearly all very deep networks (image models with tens or hundreds of layers, and transformers) use residual connections. A common mistake is a shortcut that adds tensors of different sizes, which fails loudly, or one that skips the normalisation and lets the scale drift.</p>
+  <p><b>Two blocks by hand.</b> Let two blocks have slopes \(f_1 = 0.1\) and \(f_2 = 0.2\). With shortcuts the slope through both is \((1+0.1)(1+0.2) = 1.32\). Multiply it out: \(1 + 0.1 + 0.2 + 0.02\). The 1 is the path through both shortcuts. The 0.1 and 0.2 are the paths through one block only, and 0.02 is the path through both blocks. A plain stack has only the last term, 0.02, which is 66 times smaller than 1.32. With 30 blocks there are \(2^{30}\) paths, and the one that skips all blocks always has the weight 1.</p>
+  <div class="eqn" role="img" aria-label="The slope through two residual blocks is 1.1 times 1.2, which is 1.32, equal to 1 plus 0.1 plus 0.2 plus 0.02"><span class="op">two blocks:</span><span class="t c-navy"><b>1.1 &times; 1.2</b><i>(1 + f<sub>1</sub>)(1 + f<sub>2</sub>)</i></span><span class="op">=</span><span class="t c-teal"><b>1</b><i>both shortcuts</i></span><span class="op">+</span><span class="t c-teal"><b>0.1</b><i>block 1 only</i></span><span class="op">+</span><span class="t c-teal"><b>0.2</b><i>block 2 only</i></span><span class="op">+</span><span class="t c-coral"><b>0.02</b><i>both blocks, the only term a plain stack keeps</i></span></div>
+  <p>The code builds the figure's setting in NumPy: width 64, 30 blocks and weight scale 0.6. Its random numbers differ from the figure's, so the digits differ a little (the figure shows \(1.5\times10^{-7}\) without shortcuts and 6.0 with them). Over 40 other seeds the slope without shortcuts ranged from \(7\times10^{-8}\) to \(2.4\times10^{-7}\) and with shortcuts from 5.2 to 6.9, so the figure's numbers are typical. Without shortcuts both the activations and the slope are tiny. With shortcuts the slope is larger than at the output, and the activations have grown too.</p>
+<pre class="code" data-run><code>import numpy as np
+
+n, depth, batch, scale = 64, 30, 16, 0.6            # width, blocks, sharks, weight scale of a block
+rng = np.random.default_rng(13)
+Ws = [rng.standard_normal((n, n)) * scale / np.sqrt(n) for _ in range(depth)]
+x0 = rng.standard_normal((batch, n)); g_out = rng.standard_normal((batch, n))
+size = lambda a: np.linalg.norm(a, axis=1).mean()
+
+for residual in (False, True):
+    h, zs = x0, []
+    for W in Ws:
+        z = h @ W; zs.append(z)
+        h = np.tanh(z) + (h if residual else 0)         # a block: tanh(Wh), plus the shortcut if on
+    g = g_out
+    for W, z in zip(reversed(Ws), reversed(zs)):
+        g = (g * (1 - np.tanh(z) ** 2)) @ W.T + (g if residual else 0)
+    print(f"residual {str(residual):5s}: slope at block 0 = {size(g) / size(g_out):.1e} of the output slope, activation size {np.sqrt((h ** 2).mean()):.1e}")</code></pre>
+<pre class="out">residual False: slope at block 0 = 1.9e-07 of the output slope, activation size 1.9e-07
+residual True : slope at block 0 = 5.8e+00 of the output slope, activation size 4.2e+00</pre>
+  <p><b>Where it breaks.</b> The activations also add up, so with blocks of gain near 1 the size of \(x\) grows with depth, and the slope can grow too (the figure shows this at larger weight scales). Deep residual networks therefore combine shortcuts with normalisation layers or with small starting weights in the last layer of a block (<a href="../d5-transformer/#block">D5</a> shows the arrangement in a transformer block). The shortcut also needs \(x\) and \(F(x)\) to have the same size. When a block changes the width, the shortcut passes through a small learned layer instead, called a projection. Going from 64 to 128 channels with a \(1\times1\) projection costs \(64\times128 = 8{,}192\) weights. He and others (2016) reported that residual learning made much deeper networks easier to optimise, up to 152 layers on ImageNet. <b>In practice</b>, nearly all very deep networks (image models with tens or hundreds of layers, and transformers) use residual connections. A common mistake is a shortcut that adds tensors of different sizes, which fails loudly, or one that skips the normalisation and lets the scale drift.</p>
   <div class="break">
     <p><b>Common belief.</b> A shortcut only adds a copy of the input, so it cannot change how the network learns.</p>
     <p><b>Why it fails.</b> The shortcut gives the slope a direct path back. At weight scale 0.6 the slope reaching block 0 is about \(10^{-7}\) of the output's without shortcuts and 6.0 times the output's with them.</p>
@@ -283,6 +418,7 @@ batch of one in training mode: Expected more than 1 value per channel when train
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why is the slope through a residual block a sum of two terms?</summary><p>The block's input \(x\) is used twice: once added directly to the output and once inside \(F\). By the rule of <a href="../b4-backpropagation/#paths">B4</a>, a value used twice gets the sum of the slopes along both paths: \(I\) and \(\partial F/\partial x\).</p></details>
     <details><summary>If all blocks of a 30-block residual stack have slope +0.1, what is the slope reaching block 0 compared with the output?</summary><p>\(1.1^{29} \approx 15.9\). The slope grows, which is why shortcuts need small blocks or normalisation.</p></details>
+    <details><summary>A stack has 30 blocks, all with slope \(-0.1\). What slope reaches block 0, using the chapter's count of 29 steps?</summary><p>The factor per block is \(1 - 0.1 = 0.9\), and \(0.9^{29} = 0.047\). A slightly negative block slope shrinks the slope slowly, and about 5% of it is left after 29 blocks. In a plain stack with the same block slope the result would be \((-0.1)^{29}\), about \(10^{-29}\) in size.</p></details>
   </div>
 </section>
 
@@ -329,10 +465,28 @@ print("mean of 10000 training outputs:", many.mean().round(decimals=3).item(), "
 training: tensor([0.0000, 1.6000, 0.0000, 1.6000, 0.0000, 1.6000, 1.6000, 1.6000])
 eval:     tensor([0.8000, 0.8000, 0.8000, 0.8000, 0.8000, 0.8000, 0.8000, 0.8000])
 mean of 10000 training outputs: 0.7990000247955322  variance: 0.6399999856948853</pre>
+  <p><b>All the masks of a tiny layer.</b> Take three hidden values \(a = (0.8, 0.5, 0.3)\) with weights \((1.0, -0.6, 0.9)\) into one unit of the next layer. At test time the input is \(0.8 - 0.3 + 0.27 = 0.77\). With \(p = 0.5\) there are \(2^3 = 8\) masks, and a kept value is doubled. The code lists the input for all eight. They run from \(-0.6\) to 2.14. The mean is 0.77, the test-time value, and without the doubling it would be 0.385. The spread across masks is 0.90, larger than the signal. That spread is the noise that dropout adds, and the network has to give good answers despite it.</p>
+<pre class="code" data-run><code>import itertools, numpy as np
+
+a = np.array([0.8, 0.5, 0.3])                        # three hidden values
+w = np.array([1.0, -0.6, 0.9])                       # their weights into one unit of the next layer
+print("test-time input:", round(a @ w, 3))
+
+p = 0.5; totals = []
+for mask in itertools.product([0, 1], repeat=3):     # all 8 masks, equally likely
+    totals.append((np.array(mask) * a / (1 - p)) @ w)
+totals = np.array(totals)
+print("inputs over the 8 masks:", totals.round(3).tolist())
+print("mean with scaling:", round(totals.mean(), 3), " mean without scaling:", round(totals.mean() * (1 - p), 3), " spread:", round(totals.std(), 3))</code></pre>
+<pre class="out">test-time input: 0.77
+inputs over the 8 masks: [0.0, 0.54, -0.6, -0.06, 1.6, 2.14, 1.0, 1.54]
+mean with scaling: 0.77  mean without scaling: 0.385  spread: 0.896</pre>
+
   <div class="break">
     <p><b>Analogy.</b> A team of many small networks, trained on random subsets of units, whose answers are averaged at test time. The original dropout paper (Srivastava and others, 2014) describes it this way.</p>
     <p><b>Where it breaks.</b> The sub-networks are not independent models. They share all their weights, and a full network with scaled weights only approximates the average of their predictions. The picture also hides why dropout helps: a unit cannot rely on a particular partner being present, so it has to learn features that work with many different partners.</p>
   </div>
+  <p><b>How many units are on?</b> With 100 hidden units and \(p = 0.5\), the number kept on a step is random with mean 50 and spread \(\sqrt{100\times0.5\times0.5} = 5\). Most steps keep between 40 and 60 units, so the sub-network has about the same size on all steps. The scaling by \(1/(1-p)\) fixes the mean, and the fluctuation stays as noise. A layer with 10 units keeps 5 on average with a spread of 1.6. Most steps keep between 2 and 8, so the size of the sub-network changes a lot.</p>
   <p><b>In practice.</b> Common values of \(p\) run from 0.1 to 0.5, and the largest are used on wide fully connected layers. Dropout helps most when the training set is small for the size of the network, as with a table of 600 records. It is often reduced or switched off when data is plentiful. It slows training because a step sees a noisier network, and it can interact badly with batch norm, since dropped units shift the variance that batch norm estimates. A common mistake is to leave the model in training mode at test time: the predictions are then random, and the same shark gets different answers on different runs.</p>
   <div class="debug">
     <p><b>Debug tip.</b> If a model's test accuracy changes from run to run on fixed data, check <code>model.eval()</code> first. If training loss is much higher than expected and does not fall, try \(p = 0\): dropout may be too strong for a small network.</p>
@@ -341,6 +495,7 @@ mean of 10000 training outputs: 0.7990000247955322  variance: 0.6399999856948853
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why multiply the kept units by \(1/(1-p)\) during training?</summary><p>To keep the average input to the next layer equal to what the full network produces at test time. Without it, the next layer would see about \((1-p)\) times the test-time signal in training.</p></details>
     <details><summary>With \(p = 0.2\) and a unit value of 1.0, what are the mean and variance of what the unit passes on?</summary><p>Mean 1.0. Variance \(1.0^2 \times 0.2/0.8 = 0.25\).</p></details>
+    <details><summary>What does <code>model.eval()</code> change for a dropout layer and for a batch-norm layer?</summary><p>Dropout stops dropping units and passes the values through unchanged, since the scaling by \(1/(1-p)\) was done in training. Batch norm stops using the batch and uses its stored averages. Forgetting it makes dropout predictions random and batch-norm predictions depend on the neighbours.</p></details>
   </div>
 </section>
 

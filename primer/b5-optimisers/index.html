@@ -88,16 +88,43 @@
   <p>The numbers follow from <a href="../t6-gradients/#curvature">0.6</a>. Along a direction with curvature \(\lambda\), one step shrinks the distance to the bottom by the factor \(1 - \eta\lambda\). Across the valley that factor is \(1 - 0.07 \times 25 = -0.75\): the sign flips (the zig-zag) and the distance shrinks by 25% per step. Along the valley it is \(1 - 0.07 \times 0.3 = 0.979\): the distance shrinks by only 2.1% per step.</p>
   <div class="eqn" role="img" aria-label="Across factor minus 0.75, along factor 0.979, loss after 10 steps 0.008 plus 0.393"><span class="t c-navy"><b>&minus;0.75</b><i>across: 1 &minus; 0.07 &times; 25</i></span><span class="op">|</span><span class="t c-navy"><b>0.979</b><i>along: 1 &minus; 0.07 &times; 0.3</i></span><span class="op">&rarr; 10 steps &rarr;</span><span class="t c-coral"><b>0.008</b><i>across part of the loss</i></span><span class="op">+</span><span class="t c-coral"><b>0.393</b><i>along part of the loss</i></span><span class="op">=</span><span class="t c-teal"><b>0.40</b><i>loss, from 3.13</i></span></div>
   <p>Take the start \((-2.0,\ 0.45)\) with the valley aligned to the weights. After 10 steps the across distance is \(0.45 \times 0.75^{10} = 0.025\), so that part of the loss is \(\tfrac12 \times 25 \times 0.025^2 = 0.008\). The along distance is \(2.0 \times 0.979^{10} = 1.62\), which still costs \(\tfrac12 \times 0.3 \times 1.62^2 = 0.393\). The steep part is solved and the flat part has barely started. To bring the along loss from 0.6 to below 0.01 takes \(\ln(7.7)/0.021 \approx 97\) steps, which matches the 110 of the figure (the noise adds a few).</p>
-  <p>Could a better single \(\eta\) help? Choose \(\eta\) so that the two factors have equal size and opposite sign: \(1 - \eta \times 0.3 = -(1 - \eta \times 25)\), so \(\eta^* = 2/(0.3 + 25) = 0.079\). The factor is then \(0.976\) per step, and the steps needed are still \(\ln(7.7)/0.024 \approx 86\). The best single rate saves only a few steps. The cost comes from the condition number, not from a poor choice.</p>
+  <p>Could a better single \(\eta\) help? The factors across and along have equal size and opposite sign when \(1 - \eta \times 0.3 = -(1 - \eta \times 25)\). That gives \(\eta^* = 2/(0.3 + 25) = 0.079\). At \(\eta = 0.079\) the factors are \(-0.975\) across and \(0.976\) along, the best worst case. From this start it does not pay. The large across wobble decays at only 0.975 per step, and the run needs 115 steps instead of 97. A rate just below it, \(\eta = 0.078\), needs 88. A well-chosen rate saves about a tenth of the steps, and the slowness comes from the condition number.</p>
   <p class="math">\[ \theta_t = \theta_{t-1} - \eta\, g_t \qquad\qquad \text{distance after } t \text{ steps} = (1 - \eta\lambda)^{t}\times \text{start} \]</p>
   <ul class="math-notes">
     <li><b>\(\theta\)</b> is a weight, <b>\(g_t\)</b> the slope of the loss for it at step \(t\), and <b>\(\eta\)</b> the learning rate.</li>
     <li><b>\(\lambda\)</b> is the curvature of the valley along the weight's direction (written \(k\) in <a href="../t6-gradients/#curvature">0.6</a> for one weight; for many weights it is an eigenvalue of the table of curvatures). A step is stable while \(\lvert 1 - \eta\lambda\rvert < 1\), which means \(\eta < 2/\lambda\).</li>
   </ul>
+  <p><b>The noise floor in numbers.</b> Take one direction with curvature \(\lambda\) and a slope with noise of size \(s\). Write \(x\) for the distance to the bottom. A step gives \(x_{t+1} = (1-\eta\lambda)\,x_t - \eta\,\xi_t\), where \(\xi_t\) is the noise. In the long run the variance of \(x\) stops changing, so \(\mathrm{Var}(x) = (1-\eta\lambda)^2\,\mathrm{Var}(x) + \eta^2 s^2\). Solving gives \(\mathrm{Var}(x) = \eta s^2/\big(\lambda(2-\eta\lambda)\big)\). The average loss in that direction is \(\tfrac12\lambda\,\mathrm{Var}(x) = \eta s^2/\big(2(2-\eta\lambda)\big)\).</p>
+  <p>In the valley with \(\eta = 0.07\) and \(s = 0.5\), the across direction gives \(0.07\times0.25/(2\times0.25) = 0.035\) and the along direction gives 0.0044. The floor is 0.039, four times the threshold. The loss is a sum of squares of random numbers, so it dips below 0.01 on a few steps (about 3 in 10) but does not stay there. With \(s = 0.1\) the floor is 0.0016 and the loss stays under the threshold on nearly all steps. Halving \(\eta\) to 0.035 lowers the floor at \(s = 0.5\) from 0.039 to 0.006. The code finds the steps for four rates, then compares the formula with a noisy run.</p>
+<pre class="code" data-run><code>import numpy as np
+
+H = np.array([0.3, 25.0])                         # curvatures along and across the valley
+loss = lambda th: 0.5 * np.sum(H * th ** 2)
+
+def steps_to(eta, thr=0.01):                      # no noise: first step with loss below thr
+    th = np.array([-2.0, 0.45])
+    for t in range(1, 5000):
+        th = th - eta * H * th
+        if loss(th) &lt; thr: return t
+
+print("steps to 0.01:", {eta: steps_to(eta) for eta in (0.05, 0.07, 0.078, 0.079)})
+
+rng = np.random.default_rng(1)
+for eta, s in [(0.07, 0.1), (0.07, 0.5), (0.035, 0.5)]:
+    th, L = np.zeros(2), []
+    for t in range(40000):
+        th = th - eta * (H * th + s * rng.standard_normal(2)); L.append(loss(th))
+    formula = np.sum(eta * s ** 2 / (2 * (2 - eta * H)))
+    L = np.array(L[5000:])
+    print(f"eta {eta}, noise {s}: floor from the run {L.mean():.4f}, from the formula {formula:.4f}, share of steps below 0.01: {np.mean(L < 0.01):.2f}")</code></pre>
+<pre class="out">steps to 0.01: {0.05: 136, 0.07: 97, 0.078: 88, 0.079: 115}
+eta 0.07, noise 0.1: floor from the run 0.0016, from the formula 0.0016, share of steps below 0.01: 0.99
+eta 0.07, noise 0.5: floor from the run 0.0394, from the formula 0.0394, share of steps below 0.01: 0.30
+eta 0.035, noise 0.5: floor from the run 0.0061, from the formula 0.0061, share of steps below 0.01: 0.81</pre>
   <p><b>Where this picture is too simple.</b> Actual losses are not perfect bowls. Near a minimum they are close enough (<a href="../t6-gradients/#curvature">0.6</a>). Far from it the curvature changes from place to place, so one safe \(\eta\) at the start may be too large later. <b>In practice</b>, a common first range for plain SGD on standardised inputs is 0.01 to 0.1. The mini-batch noise means the loss never settles to zero: it bounces in a band whose height grows with \(\eta\). Lowering \(\eta\) late in training narrows the band, which is the job of the schedules in a later section.</p>
   <div class="break">
     <p><b>Common belief.</b> Use the largest learning rate that does not blow up, and training is as fast as it can be.</p>
-    <p><b>Why it fails.</b> The steep direction sets that limit, and then the flat direction crawls. At \(\eta = 0.07\) the flat factor is 0.979 per step, and even the best single rate (0.079) saves only a few steps.</p>
+    <p><b>Why it fails.</b> The steep direction sets that limit, and then the flat direction crawls. At \(\eta = 0.07\) the flat factor is 0.979 per step. Even a well-chosen rate (0.078) saves only about a tenth of the steps, 88 against 97.</p>
     <p><b>Better account.</b> The speed is set by the condition number, 83 here. A better \(\eta\) cannot fix it, so the next sections change the step itself.</p>
   </div>
   <div class="debug">
@@ -107,6 +134,7 @@
     <p class="recall-h">Quick quiz</p>
     <details><summary>With \(\eta = 0.07\), by what factor does the across distance change per step, and what does the negative sign mean?</summary><p>\(1 - 0.07 \times 25 = -0.75\). The weight jumps to the other side of the valley floor on all steps, ending 75% as far from it as before.</p></details>
     <details><summary>Why does making the valley narrower (a larger condition number) slow SGD down?</summary><p>The steep curvature fixes the largest safe \(\eta\), and the flat direction shrinks by \(1 - \eta\lambda_{\text{small}}\) per step, which is closer to 1 when \(\lambda_{\text{small}}\) is small.</p></details>
+    <details><summary>At \(\eta = 0.02\), what is the across factor, and has the zig-zag gone? What does it cost along the valley?</summary><p>The factor is \(1 - 0.02\times25 = 0.5\). It is positive, so the weight now approaches the floor from one side. Along the valley the factor is 0.994, and the loss needs 341 steps to fall below 0.01, against 97 at \(\eta = 0.07\).</p></details>
   </div>
 </section>
 
@@ -141,9 +169,13 @@
   <p class="math">\[ x_{t+1} = \big(1 + \beta_1 - \eta\lambda(1-\beta_1)\big)\,x_t - \beta_1\, x_{t-1} \]</p>
   <ul class="math-notes">
     <li>Its characteristic equation is \(r^2 - \big(1 + \beta_1 - \eta\lambda(1-\beta_1)\big) r + \beta_1 = 0\). The distance shrinks when both roots have size below 1.</li>
-    <li>For a quadratic \(r^2 - a r + \beta_1\) with \(\beta_1 < 1\), both roots are inside the unit circle exactly when \(\lvert a\rvert < 1 + \beta_1\). That gives \(\eta\lambda(1-\beta_1) < 2(1+\beta_1)\), so \(\eta < 2(1+\beta_1)/\big(\lambda(1-\beta_1)\big)\).</li>
+    <li>For a quadratic \(r^2 - a r + \beta_1\) with \(\beta_1 < 1\), both roots are inside the unit circle if and only if \(\lvert a\rvert < 1 + \beta_1\). That gives \(\eta\lambda(1-\beta_1) < 2(1+\beta_1)\), so \(\eta < 2(1+\beta_1)/\big(\lambda(1-\beta_1)\big)\).</li>
   </ul>
   <p>With \(\beta_1 = 0.9\) and \(\lambda = 25\) the limit is \(\eta < 2 \times 1.9/(25 \times 0.1) = 1.52\), nearly 19 times the limit of plain SGD (0.08). The figure uses 0.3, comfortably inside it. The price is a lag: the average needs about \(1/(1-\beta_1) = 10\) steps to catch up with a change, which is why momentum starts slowly and may overshoot.</p>
+  <p><b>Momentum in three steps.</b> Start at \((-2.0,\ 0.45)\) with \(\eta = 0.3\) and \(\beta_1 = 0.9\), no noise. The first slope is \(g = (-0.6,\ 11.25)\), so \(m = 0.1\,g = (-0.06,\ 1.125)\) and the weights move to \((-1.982,\ 0.1125)\). The step across is 0.34, against 0.79 for SGD. The new slope across is \(25\times0.1125 = 2.81\), and \(m = 0.9\times1.125 + 0.1\times2.81 = 1.294\) still points the old way. The weight overshoots to \(-0.276\), and the loss rises to 1.52.</p>
+  <div class="eqn" role="img" aria-label="Momentum across the valley: m is 1.125 and the weight 0.1125 after step 1; m is 1.294 and the weight minus 0.276 after step 2; m is 0.475 and the weight minus 0.418 after step 3"><span class="op">across the valley:</span><span class="t c-teal"><b>1.125</b><i>m after step 1</i></span><span class="op">&rarr;</span><span class="t c-navy"><b>0.1125</b><i>&theta;<sub>2</sub></i></span><span class="op">|</span><span class="t c-teal"><b>1.294</b><i>m after step 2</i></span><span class="op">&rarr;</span><span class="t c-navy"><b>&minus;0.276</b><i>&theta;<sub>2</sub>, overshoot</i></span><span class="op">|</span><span class="t c-teal"><b>0.475</b><i>m after step 3</i></span><span class="op">&rarr;</span><span class="t c-navy"><b>&minus;0.418</b><i>&theta;<sub>2</sub></i></span></div>
+  <p>At step 3 the slope across has flipped to \(-6.89\), but \(m = 0.9\times1.294 - 0.689 = 0.475\) is still positive, so the weight moves on to \(-0.418\). The loss is 2.73 here, the highest of the first 15 steps. Only after that does \(m\) turn negative and pull the weight back. The lag of about \(1/(1-\beta_1) = 10\) steps is the price of cancelling the zig-zag.</p>
+  <p><b>Momentum also averages away noise.</b> If the slopes are independent noise of size \(s\), then \(m_t = (1-\beta_1)\sum_k \beta_1^k g_{t-k}\) has variance \((1-\beta_1)^2 s^2 \sum_k \beta_1^{2k} = (1-\beta_1)^2 s^2/(1-\beta_1^2) = s^2(1-\beta_1)/(1+\beta_1)\). For \(\beta_1 = 0.9\) the size of \(m\) is \(0.23\,s\). The noise in the step falls to under a quarter, and a steady slope passes unchanged. The same 0.23 comes back in the section on optimiser state.</p>
   <p class="used"><b>Convention note.</b> PyTorch's <code>SGD(momentum=0.9)</code> keeps \(m \leftarrow \beta m + g\) and steps \(\theta \leftarrow \theta - \text{lr}\cdot m\). Its \(m\) is our \(m\) divided by \(1-\beta_1\), so its <code>lr</code> equals our \(\eta\,(1-\beta_1)\). Our \(\eta = 0.3\) is PyTorch's <code>lr = 0.03</code> with <code>momentum = 0.9</code>. We use the averaging form because it is also the form inside Adam.</p>
 <pre class="code" data-run><code>import numpy as np
 
@@ -179,6 +211,7 @@ momentum  eta=0.3: loss at steps 10, 50, 100 = 1.3e+00  1.2e-02  8.0e-06</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>The slope alternates \(+0.6, -0.6, +0.6, \dots\). Roughly how big is \(m\) with \(\beta_1 = 0.9\)?</summary><p>About \(0.6 \times 0.053 = 0.03\). The alternating pushes cancel in the average.</p></details>
     <details><summary>Why does momentum make a larger learning rate safe?</summary><p>The unsafe part of a large step is the back-and-forth across the steep direction. The running average cancels that part, so the stability limit rises from \(2/\lambda\) to \(2(1+\beta_1)/(\lambda(1-\beta_1))\).</p></details>
+    <details><summary>A tutorial trains with PyTorch's <code>SGD(lr=0.01, momentum=0.9)</code>. Which \(\eta\) is that in this chapter's convention?</summary><p>PyTorch's <code>lr</code> equals \(\eta\,(1-\beta_1)\), so \(\eta = 0.01/0.1 = 0.1\). The factor of ten appears because PyTorch's \(m\) sums the slopes, so for a steady slope it is ten times ours.</p></details>
   </div>
 </section>
 
@@ -211,6 +244,25 @@ momentum  eta=0.3: loss at steps 10, 50, 100 = 1.3e+00  1.2e-02  8.0e-06</pre>
   </ul>
   <p><b>A worked first step.</b> Take the aligned valley at the start, \((-2.0,\ 0.45)\), without noise. The slopes are \(g = (0.3 \times -2.0,\ 25 \times 0.45) = (-0.6,\ 11.25)\), a ratio of almost 19. SGD with \(\eta = 0.07\) moves the weights by \((0.042,\ -0.79)\): the across step overshoots from 0.45 to \(-0.34\). RMSProp starts with \(v = 0\), so \(v_1 = 0.01\,g^2\) and \(\sqrt{v_1} = 0.1\,\lvert g\rvert\). Both steps are then \(\eta \times g/(0.1\lvert g\rvert) = \pm 10\,\eta = \pm 0.3\). The weights go to \((-1.70,\ 0.15)\). The two slopes differed by 19 times and the steps are equal.</p>
   <p>Notice the factor 10. Because \(v\) starts at zero, \(\sqrt{v_1}\) is smaller than the true typical slope by \(\sqrt{1-\beta_2}\), and the first steps are \(1/\sqrt{1-\beta_2}\) times too large. Adam's bias correction, in the next section, removes this.</p>
+  <p><b>The second step.</b> The weights are at \((-1.70,\ 0.15)\), so the slopes are \(g = (-0.51,\ 3.75)\). The memory \(v\) still remembers the first slopes. Across, \(v_2 = 0.99\times1.266 + 0.01\times3.75^2 = 1.394\), so \(\sqrt{v_2} = 1.18\) and the step is \(0.03\times3.75/1.18 = 0.095\). Along, \(v_2 = 0.0062\), \(\sqrt{v_2} = 0.079\), and the step is \(0.03\times(-0.51)/0.079 = -0.195\). The across step fell by a factor of 3 because the slope fell by a factor of 3. The along step fell less, to 0.195. The along slope hardly changed, but \(v\) is still filling up from 0 and grew from 0.0036 to 0.0062. The weights move to \((-1.505,\ 0.055)\), the second row of the table in the race section.</p>
+  <div class="eqn" role="img" aria-label="Second RMSProp step across the valley: v is 1.394, its root is 1.18, and the step is 0.03 times 3.75 divided by 1.18, which is 0.095"><span class="op">across:</span><span class="t c-navy"><b>1.394</b><i>v = 0.99 &times; 1.266 + 0.01 &times; 3.75<sup>2</sup></i></span><span class="op">&rarr; root &rarr;</span><span class="t c-teal"><b>1.18</b><i>&radic;v</i></span><span class="op">|</span><span class="t c-sand"><b>0.03</b><i>&eta;</i></span><span class="op">&times;</span><span class="t c-coral"><b>3.75</b><i>slope g</i></span><span class="op">&divide;</span><span class="t c-teal"><b>1.18</b><i>&radic;v</i></span><span class="op">=</span><span class="t c-teal"><b>0.095</b><i>step across</i></span></div>
+  <p>The code below runs RMSProp on the aligned valley without noise. It reproduces these two steps and counts the steps to a loss below 0.01.</p>
+<pre class="code" data-run><code>import numpy as np
+
+H = np.array([0.3, 25.0])                         # the aligned valley: curvature along and across
+th, v = np.array([-2.0, 0.45]), np.zeros(2)
+eta, beta2 = 0.03, 0.99
+for t in range(1, 31):
+    g = H * th
+    v = beta2 * v + (1 - beta2) * g * g           # average of the squared slope
+    th = th - eta * g / (np.sqrt(v) + 1e-8)       # divide the step by its root
+    if t &lt;= 2: print("step", t, "slopes", g.round(3).tolist(), "weights", th.round(3).tolist())
+    if 0.5 * np.sum(H * th ** 2) &lt; 0.01:
+        print("loss below 0.01 after", t, "steps"); break</code></pre>
+<pre class="out">step 1 slopes [-0.6, 11.25] weights [-1.7, 0.15]
+step 2 slopes [-0.51, 3.75] weights [-1.505, 0.055]
+loss below 0.01 after 25 steps</pre>
+
   <p><b>In practice.</b> Common settings are \(\beta_2 = 0.99\) (PyTorch's default for <code>RMSprop</code>) and an \(\eta\) around \(10^{-3}\) to \(10^{-2}\) for networks, much smaller than a plain SGD rate times the scale of the slopes. Because a steady step is about \(\eta\) long, RMSProp hovers near the minimum at a distance of the order of \(\eta\) and does not settle. That is why it is used with a decaying rate. The sign-like step also explains the sensitivity to \(\epsilon\): if a weight's slopes are far below \(\epsilon\), the denominator is \(\epsilon\) and the step is small (see the next section and my primer on <a href="https://rayhaan1345.github.io/projects/optimizer-state/primer/#s-eps">when epsilon matters</a>).</p>
   <div class="break">
     <p><b>Common belief.</b> Dividing by a weight's typical slope straightens any narrow valley.</p>
@@ -224,6 +276,7 @@ momentum  eta=0.3: loss at steps 10, 50, 100 = 1.3e+00  1.2e-02  8.0e-06</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>One weight has slopes near 20 and another near 0.8. What step sizes does RMSProp give them, in units of \(\eta\)?</summary><p>Both about 1. A step is \(\eta\,g/\sqrt{v}\), and \(\sqrt{v}\) is near the typical size of that weight's slope.</p></details>
     <details><summary>Why does the tilt slider hurt RMSProp but not momentum?</summary><p>RMSProp rescales one weight at a time, so it can only fix a valley whose steep direction is a single weight. Momentum averages the slope vector as a whole and does not care which way the valley points.</p></details>
+    <details><summary>A weight's slope falls geometrically from 1 to 0.01 over 1000 steps, by a constant ratio between neighbouring steps. With \(\beta_2 = 0.99\), does RMSProp's step shrink with it?</summary><p>It shrinks much less. \(v\) follows the slope with a delay of about 100 steps, so \(g/\sqrt{v}\) is 1.0 at step 100, 0.5 at step 500 and 0.4 at step 1000. The step stays on the order of \(\eta\) while the slope falls by a factor of 100.</p></details>
   </div>
 </section>
 
@@ -258,6 +311,16 @@ momentum  eta=0.3: loss at steps 10, 50, 100 = 1.3e+00  1.2e-02  8.0e-06</pre>
   <p><b>Why the correction has this form.</b> Unroll the average: \(m_t = (1-\beta_1)\sum_{i=1}^{t}\beta_1^{\,t-i} g_i\). If the slopes have a steady mean \(\bar g\), then \(\mathbb{E}[m_t] = (1-\beta_1)\,\bar g \sum_{i=1}^{t}\beta_1^{\,t-i} = (1-\beta_1)\,\bar g\,\frac{1-\beta_1^{\,t}}{1-\beta_1} = (1-\beta_1^{\,t})\,\bar g\). The average is too small by the factor \(1-\beta_1^{\,t}\), so dividing by it removes the bias. The same steps work for \(v\).</p>
   <div class="eqn" role="img" aria-label="Worked first step: g equals 1.2, m is 0.12, v is 0.00144, corrected m is 1.2, corrected v is 1.44, step is eta"><span class="t c-coral"><b>g = 1.2</b><i>first slope</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>0.12</b><i>m = 0.1 g</i></span><span class="op">|</span><span class="t c-teal"><b>0.00144</b><i>v = 0.001 g<sup>2</sup></i></span><span class="op">&rarr; &divide; (1 &minus; &beta;<sup>1</sup>) &rarr;</span><span class="t c-teal"><b>1.2</b><i>m&#770;</i></span><span class="op">|</span><span class="t c-teal"><b>1.44</b><i>v&#770;</i></span><span class="op">&rarr;</span><span class="t c-navy"><b>1.2 &divide; 1.2 = 1</b><i>step ÷ η</i></span></div>
   <p>That is the worked example at \(t = 1\) with \(g_1 = 1.2\) and \((\beta_1, \beta_2) = (0.9, 0.999)\). Without the correction the ratio is \(m/\sqrt{v} = 0.12/\sqrt{0.00144} = 0.12/0.038 = 3.16 = (1-\beta_1)/\sqrt{1-\beta_2}\). For \((0.9, 0.95)\), the setting of the models in my project, the uncorrected first step would be \(0.1/\sqrt{0.05} = 0.45\), too small. The uncorrected error can go either way, and the correction fixes both.</p>
+  <p><b>Step 2.</b> Let the next slope be \(g_2 = 0.8\). Then \(m_2 = 0.9\times0.12 + 0.1\times0.8 = 0.188\) and \(v_2 = 0.999\times0.00144 + 0.001\times0.64 = 0.00208\). The corrections divide by \(1-0.9^2 = 0.19\) and \(1-0.999^2 = 0.002\), which gives \(\hat m_2 = 0.989\) and \(\hat v_2 = 1.040\). The step is \(\eta\times0.989/1.020 = 0.970\,\eta\). The corrected values are weighted means of the slopes seen so far. For example \(\hat m_2 = (0.9\times1.2 + 0.8)/1.9\), with a little more weight on the newer slope.</p>
+  <div class="eqn" role="img" aria-label="Second Adam step: m is 0.188 and v is 0.00208; corrected m is 0.989 and corrected v is 1.040; the step is 0.970 eta"><span class="op">step 2:</span><span class="t c-teal"><b>0.188</b><i>m = 0.9 &times; 0.12 + 0.1 &times; 0.8</i></span><span class="op">&divide; 0.19 &rarr;</span><span class="t c-teal"><b>0.989</b><i>m&#770;</i></span><span class="op">|</span><span class="t c-teal"><b>0.00208</b><i>v = 0.999 &times; 0.00144 + 0.001 &times; 0.64</i></span><span class="op">&divide; 0.002 &rarr;</span><span class="t c-teal"><b>1.040</b><i>v&#770;</i></span><span class="op">&rarr;</span><span class="t c-navy"><b>0.989 &divide; 1.020 = 0.970</b><i>step ÷ η</i></span></div>
+  <p>How long does the correction matter? The table gives the factor that \(m\) and \(v\) are divided by. For \(\beta_1 = 0.9\) it is gone after about 50 steps. For \(\beta_2 = 0.999\) it matters for thousands of steps: at step 1,000 the uncorrected \(v\) would still be 37% too small. This is why the first steps of a run, and of a restart, are the delicate ones.</p>
+  <table class="firsts"><thead><tr><th>step t</th><th>1 &minus; 0.9<sup>t</sup></th><th>1 &minus; 0.95<sup>t</sup></th><th>1 &minus; 0.99<sup>t</sup></th><th>1 &minus; 0.999<sup>t</sup></th></tr></thead><tbody>
+    <tr><td>1</td><td>0.100</td><td>0.050</td><td>0.010</td><td>0.001</td></tr>
+    <tr><td>10</td><td>0.651</td><td>0.401</td><td>0.096</td><td>0.010</td></tr>
+    <tr><td>50</td><td>0.995</td><td>0.923</td><td>0.395</td><td>0.049</td></tr>
+    <tr><td>100</td><td>1.000</td><td>0.994</td><td>0.634</td><td>0.095</td></tr>
+    <tr><td>1000</td><td>1.000</td><td>1.000</td><td>1.000</td><td>0.632</td></tr>
+  </tbody></table>
   <p>Now Adam in code. Two weights have slopes 75 times apart (0.4 and \(-30\)), and both move by \(\eta = 0.1\) per step, the sign of the slope times \(\eta\). The five lines of the function, counting its first line, are the whole algorithm. The last line shows that PyTorch's <code>Adam</code> gives the same numbers.</p>
 <pre class="code" data-run><code>import numpy as np
 
@@ -284,6 +347,7 @@ for t in range(3):
 print("torch   ", p.detach().numpy().round(4))</code></pre>
 <pre class="out">torch    [ 0.7 -1.7]</pre>
   <p><b>Where it breaks.</b> A steady slope gives a step of \(\eta\) whatever its size, so Adam does not shrink its steps as it nears a minimum unless the slope turns to noise. It treats all weights the same way even when a large slope means something different from a small one. And \(\epsilon\) can matter: with \(\epsilon = 10^{-8}\) and slopes near \(10^{-7}\), \(\epsilon\) is 10% of the slope and the step is cut by about 9% (a slope near \(10^{-8}\) would be cut by half). <b>In practice</b>, the defaults in PyTorch's <code>AdamW</code> are \(\eta = 10^{-3}\), \((\beta_1, \beta_2) = (0.9, 0.999)\), \(\epsilon = 10^{-8}\). The models in my project use \(\beta_2 = 0.95\), a lower value than the default. A common mistake is a home-made Adam without the bias correction, which works but takes a wrong first step.</p>
+  <p><b>Choosing \(\eta\).</b> The scale of \(\eta\) matters most. Adam moves a weight by about \(\eta\) per step, so \(\eta\) is a length in the units of the weights. A value of \(10^{-3}\) moves a weight of size 0.1 by 1% of its size. A practical way to start is to try values spaced by a factor of 3, such as \(3\times10^{-4}\), \(10^{-3}\) and \(3\times10^{-3}\), for a few hundred steps apiece. Keep the largest one whose loss falls smoothly without jumps.</p>
   <div class="break">
     <p><b>Common belief.</b> Adam takes smaller steps as it nears a minimum, so it settles by itself.</p>
     <p><b>Why it fails.</b> A steady slope gives a step of about \(\eta\) whatever its size, so a tiny steady slope moves a weight as fast as a huge one. The step shrinks only when the slope turns to noise.</p>
@@ -296,6 +360,7 @@ print("torch   ", p.detach().numpy().round(4))</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>At step 1 with \(g = 3\), what are \(\hat m\), \(\hat v\) and the step, for any \(\beta_1,\beta_2\)?</summary><p>\(m = (1-\beta_1)\times 3\), and dividing by \(1-\beta_1\) gives \(\hat m = 3\). Likewise \(\hat v = 9\). The step is \(\eta \times 3/3 = \eta\): the sign of the slope times \(\eta\).</p></details>
     <details><summary>A weight's slope is a steady 0.5 with no noise. How big is its Adam step in the long run?</summary><p>\(\hat m = 0.5\) and \(\sqrt{\hat v} = 0.5\), so the ratio is 1 and the step is \(\eta\). A tiny steady slope moves a weight as fast as a huge one.</p></details>
+    <details><summary>With \(\beta_2 = 0.999\), about how many steps pass before \(1-\beta_2^{\,t}\) reaches 0.63, and what does that say about the early steps?</summary><p>About 1,000, since \(0.999^{1000} \approx e^{-1} = 0.37\). Until then \(v\) is a young average, so \(\hat v\) rests on few slopes and the steps are less reliable. With \(\beta_2 = 0.95\) the same point comes after about 20 steps.</p></details>
   </div>
 </section>
 
@@ -327,6 +392,40 @@ print("torch   ", p.detach().numpy().round(4))</code></pre>
     <tr><td>Adam (0.2)</td><td>−1.800, 0.250</td><td>−1.601, 0.060</td><td>1.267, 0.430, 0.422</td></tr>
   </tbody></table>
   <p>SGD overshoots across the valley at once (0.45 to \(-0.34\)). Momentum has only a tenth of the slope in \(m\), so its first step is small, but its swing builds for three steps and its loss rises to 2.7 before it comes back. RMSProp and Adam move the two weights by the same amount (0.3 and 0.2), so they cut across without a wild overshoot. They move along the valley at a steady 0.2 to 0.3 per step. The table is the reason momentum looks slow at the start in the loss plot and why the ranking at step 10 differs from the ranking at step 50.</p>
+  <p><b>Adam's second step.</b> The figure uses \(\beta_2 = 0.99\). After the first step the weights are at \((-1.8,\ 0.25)\) and the slopes are \((-0.54,\ 6.25)\). Across, \(\hat m_2 = 8.62\) and \(\sqrt{\hat v_2} = 9.09\), so the ratio is 0.948 and the step is 0.19, a little less than the 0.2 before. The ratio is below 1 because the slope fell from 11.25 to 6.25 while \(\hat v\) still averages both. Along, the slope has hardly changed, the ratio is 0.996 and the step is 0.199. Adam is now at \((-1.601,\ 0.060)\), the second row of the table.</p>
+  <p>The quiz asks what Adam becomes at \(\beta_1 = 0\). The code checks it with one learning rate for both methods, \(\eta = 0.03\).</p>
+<pre class="code" data-run><code>import numpy as np
+
+H = np.array([0.3, 25.0]); eta, b2 = 0.03, 0.99
+
+def adam(b1, steps=3):
+    th, m, v, path = np.array([-2.0, 0.45]), np.zeros(2), np.zeros(2), []
+    for t in range(1, steps + 1):
+        g = H * th
+        m = b1 * m + (1 - b1) * g;  v = b2 * v + (1 - b2) * g * g
+        th = th - eta * (m / (1 - b1 ** t)) / (np.sqrt(v / (1 - b2 ** t)) + 1e-8)
+        path.append(th.round(3).tolist())
+    return path
+
+def rmsprop(correct, steps=3):
+    th, v, path = np.array([-2.0, 0.45]), np.zeros(2), []
+    for t in range(1, steps + 1):
+        g = H * th
+        v = b2 * v + (1 - b2) * g * g
+        vv = v / (1 - b2 ** t) if correct else v          # bias-correct v, or leave it as in the figure
+        th = th - eta * g / (np.sqrt(vv) + 1e-8)
+        path.append(th.round(3).tolist())
+    return path
+
+print("Adam, beta1 = 0:              ", adam(0.0))
+print("RMSProp, v bias-corrected:    ", rmsprop(True))
+print("RMSProp, as in the figure:    ", rmsprop(False))
+print("Adam, beta1 = 0.9:            ", adam(0.9))</code></pre>
+<pre class="out">Adam, beta1 = 0:               [[-1.97, 0.42], [-1.94, 0.391], [-1.911, 0.363]]
+RMSProp, v bias-corrected:     [[-1.97, 0.42], [-1.94, 0.391], [-1.911, 0.363]]
+RMSProp, as in the figure:     [[-1.7, 0.15], [-1.505, 0.055], [-1.355, 0.02]]
+Adam, beta1 = 0.9:             [[-1.97, 0.42], [-1.94, 0.39], [-1.91, 0.36]]</pre>
+  <p>With \(\beta_1 = 0\) Adam and the bias-corrected RMSProp take the same three steps. The RMSProp of the figure differs only in its first steps, the first of which is ten times as long because \(v\) starts at 0. Adam with \(\beta_1 = 0.9\) takes nearly the same early steps here, since the slope along the path changes slowly.</p>
   <p><b>Where the comparison is too simple.</b> This is a two-weight quadratic with made-up noise. Working networks have millions of weights, curvature that changes from place to place, and slopes that are mostly noise near a good solution. The ranking depends on the problem. People often start with Adam or AdamW because its default settings work on a wide range of problems. Well-tuned SGD with momentum is competitive on some of them, so it is worth testing on your own task. <b>In practice</b>, set \(\eta\) first, since it matters most. The \(\beta\) values rarely need changing.</p>
   <div class="break">
     <p><b>Common belief.</b> Adam is the best optimiser, so use it for all tasks.</p>
@@ -340,6 +439,7 @@ print("torch   ", p.detach().numpy().round(4))</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>You set \(\beta_1 = 0\) in Adam. Which of the other three optimisers does it now resemble?</summary><p>RMSProp: \(m\) is just the latest slope, the step is \(\eta g/\sqrt{v}\), and the only difference is the bias correction of \(v\).</p></details>
     <details><summary>Name one setting where Adam's advantage over SGD is large and one where it shrinks.</summary><p>Large: the valley is aligned with the weights and the slopes of different weights have very different scales. Small: a tilted valley, or slopes of similar scale in all weights.</p></details>
+    <details><summary>At tilt 0, RMSProp's first step moves both weights by 0.3 and Adam's by 0.2. Where do those numbers come from?</summary><p>RMSProp starts \(v\) at 0, so \(v_1 = 0.01\,g^2\) and the step is \(\eta g/(0.1\lvert g\rvert) = 10\eta = 0.3\) for \(\eta = 0.03\). Adam divides by \(1-\beta_2\) first, so \(\hat v_1 = g^2\) and the step is \(\eta = 0.2\).</p></details>
   </div>
 </section>
 
@@ -367,6 +467,25 @@ print("torch   ", p.detach().numpy().round(4))</code></pre>
     <li>In the left formula the extra term \(\omega\theta\) goes through \(m\) and \(v\), so the step shrinks the weight by about \(\eta\omega\theta/\sqrt{\hat v}\). In the right formula the decay \(\eta\omega\theta\) is added outside the division.</li>
   </ul>
   <p><b>Why plain SGD does not have this problem.</b> With SGD the L2 slope gives \(\theta \leftarrow \theta - \eta(g + \omega\theta) = (1-\eta\omega)\theta - \eta g\). That is weight decay, so people use the two names for one thing. Inside Adam the equivalence fails because of the division. Take \(\eta = 0.02\) and \(\omega = 0.5\). For the noisy weight, with typical slope size \(\sqrt{\hat v} \approx 3\), the decay per step is \(\eta\omega/\sqrt{\hat v} = 0.01/3 = 0.0033\). For the quiet weight the slope is mostly the penalty itself, \(\omega\theta \approx 0.5\), so \(m/\sqrt{v} \approx 1\) and the weight loses about \(\eta = 0.02\) per step, 6 times faster. With AdamW both lose the fraction \(\eta\omega = 0.01\) per step.</p>
+  <p><b>The first step of both.</b> Take the quiet weight \(\theta = 1\) with \(\omega = 0.5\), \(\eta = 0.02\) and no slope of its own. Inside Adam the slope is \(g = \omega\theta = 0.5\), so \(\hat m/\sqrt{\hat v} = 1\) and the first step is \(\eta\): the weight goes to 0.98. In AdamW the Adam part sees a slope of 0 and takes no step, and the decay removes \(\eta\omega\theta = 0.01\): the weight goes to 0.99. The quiet weight starts faster under the L2 penalty. The difference shows in the noisy weight, where the penalty is a small part of a big slope and its effect is divided by \(\sqrt{\hat v}\).</p>
+  <p>The code runs the library versions on 30 copies of a quiet weight and 30 copies of a noisy weight, with noise and no loss slope. The half-lives depend on the random draws, so they differ from the figure's 27, 253, 63 and 73. Over 30 other seeds, the noisy weight under L2 took 160 to 279 steps and under AdamW 57 to 83. The quiet weight under L2 took 27 steps with all of them. The ordering does not change: under L2 the noisy weight is at least five times slower than the quiet one, and under AdamW the two match closely.</p>
+<pre class="code"><code>import torch
+
+def half_life(opt_cls, noise, eta=0.02, omega=0.5, steps=600, seeds=30):
+    torch.manual_seed(0)
+    w = torch.nn.Parameter(torch.ones(seeds))            # 30 independent copies of one weight
+    opt = opt_cls([w], lr=eta, betas=(0.9, 0.99), weight_decay=omega)
+    for t in range(1, steps + 1):
+        w.grad = noise * torch.randn(seeds)              # no useful slope, only noise
+        opt.step()
+        if w.detach().abs().mean() &lt; 0.5:                # the average size has halved
+            return t
+
+for name, cls in [("Adam + L2", torch.optim.Adam), ("AdamW", torch.optim.AdamW)]:
+    print(f"{name:10s} half-life: quiet weight {half_life(cls, 0.05)} steps, noisy weight {half_life(cls, 3.0)} steps")</code></pre>
+<pre class="out">Adam + L2  half-life: quiet weight 27 steps, noisy weight 275 steps
+AdamW      half-life: quiet weight 69 steps, noisy weight 69 steps</pre>
+
   <p><b>Where it breaks.</b> Decoupled decay pulls all weights toward zero, even those that matter a lot; the gradient has to win against it. That is the point of the penalty, and also its cost. <b>In practice</b>, PyTorch's <code>AdamW</code> has <code>weight_decay = 0.01</code> by default, and the models in my project use 0.01 or 0.1. Biases and normalisation scales are often left out of the decay, since shrinking them has no regularising benefit. A common mistake is <code>torch.optim.Adam(..., weight_decay=...)</code>, which is the L2 version, when AdamW was intended.</p>
   <div class="break">
     <p><b>Common belief.</b> Weight decay and an L2 penalty are the same thing.</p>
@@ -380,6 +499,7 @@ print("torch   ", p.detach().numpy().round(4))</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why are L2 penalty and weight decay the same for SGD but not for Adam?</summary><p>For SGD the penalty's slope \(\omega\theta\) is multiplied by \(\eta\) and subtracted, which shrinks the weight by \(\eta\omega\). In Adam the slope is first divided by \(\sqrt{\hat v}\), so the shrinkage depends on how large that weight's slopes are.</p></details>
     <details><summary>With \(\eta = 0.001\) and \(\omega = 0.1\), what fraction does AdamW remove from a weight per step?</summary><p>\(\eta\omega = 10^{-4}\), that is 0.01% per step, the same for all weights.</p></details>
+    <details><summary>A large model uses \(\eta = 3\times10^{-4}\) and \(\omega = 0.1\). By what factor does AdamW shrink a weight with no slope over 10,000 steps at that constant rate?</summary><p>The decay per step is \(\eta\omega = 3\times10^{-5}\). Over 10,000 steps the factor is \((1-3\times10^{-5})^{10000} \approx e^{-0.3} = 0.74\). The weight loses about a quarter of its size, so the decay is a slow pull.</p></details>
   </div>
 </section>
 
@@ -433,6 +553,8 @@ step   49: lr = 5.00e-04
 step   99: lr = 1.00e-03
 step  550: lr = 5.50e-04
 step 1000: lr = 1.00e-04</pre>
+  <p><b>The first ten steps.</b> Without warm-up, the first ten Adam steps move a weight by about \(\eta = 10^{-3}\) apiece, up to 0.01 in total. With the 100-step warm-up the rates are \(10^{-5}, 2\times10^{-5}, \dots, 10^{-4}\), and the total is \(5.5\times10^{-4}\), 18 times smaller. By the time the rate reaches the peak, \(\hat v\) rests on 100 slopes and not on one.</p>
+  <p><b>Cosine against a straight line.</b> Take the same values and a straight line from the peak at step 100 to the final rate at step 1000. At a quarter of the way down (step 325) the cosine gives \(8.7\times10^{-4}\) and the line \(7.8\times10^{-4}\). At three quarters (step 775) the cosine gives \(2.3\times10^{-4}\) and the line \(3.3\times10^{-4}\). The cosine lies above the line in the first half of the decay and below it in the second half, and it is flat at both ends. Linear decay is a common alternative, and neither has been shown to win in all settings. Test the decay curve as one more setting.</p>
   <p><b>Why warm-up helps, and what is not settled.</b> In the first steps, \(\hat v\) averages only a few squared slopes, so \(\sqrt{\hat v}\) can be far from the weight's true typical slope. Liu and others (2020) argue that the adaptive rate has a large variance early in training and that warm-up works by reducing it. Goyal and others (2017) used a warm-up for large-batch SGD. There are other explanations, so treat "the variance of the adaptive rate" as one account. Cosine decay comes from the SGDR paper (Loshchilov and Hutter, 2017), which used cosine annealing with restarts. The decay lets the weights settle: with a constant rate they keep jittering by about \(\eta\) per step.</p>
   <p><b>In practice.</b> Warm-up is often a small share of training, from a few hundred to a few thousand steps for large models. The peak rate is the value you tune. The schedule depends on the total number of steps \(T\): if you change the length of the run, the whole curve changes. And when you resume a run, the step counter must be restored too, or the schedule restarts at the warm-up (the next section).</p>
   <div class="break">
@@ -447,6 +569,7 @@ step 1000: lr = 1.00e-04</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the rate at the halfway point of a cosine decay from 1.0 to 0.1?</summary><p>\(0.1 + 0.5 \times 0.9 \times (1 + \cos(\pi/2)) = 0.1 + 0.45 = 0.55\).</p></details>
     <details><summary>Why does a run that is stopped and restarted need to save the step counter?</summary><p>The schedule and Adam's bias correction both use \(t\). Without it the rate restarts in the warm-up and \(1-\beta^t\) restarts at \(1-\beta\).</p></details>
+    <details><summary>A run has a peak rate of \(3\times10^{-4}\), 200 warm-up steps, 2,000 steps in total and a final rate of \(3\times10^{-5}\). What is the rate at step 1,100?</summary><p>The point is \(s = (1100-200)/1800 = 0.5\) of the way down, so the cosine term is 0. The rate is \(3\times10^{-5} + 0.5\times(2.7\times10^{-4}) = 1.65\times10^{-4}\).</p></details>
   </div>
 </section>
 
@@ -491,6 +614,24 @@ m and v in fp32 (8 bytes):    0.992 GB
 checkpoint with the state:    1.24 GB, 5.0 times the weights alone
 {'step': torch.Size([]), 'exp_avg': torch.Size([3]), 'exp_avg_sq': torch.Size([3])}  step = 1
 after one step, m = [0.1 0.1 0.1]  v = [0.001 0.001 0.001]</pre>
+  <p><b>How big is a warm step?</b> Take a weight whose slope is pure noise of size 1, with \((\beta_1,\beta_2) = (0.9, 0.999)\). A cold start moves it by a full \(\eta\) on the first step. A warm run, thousands of steps in, moves it by about 0.23 \(\eta\), because \(\hat m\) has cancelled most of the noise (the momentum section derived the factor). The code simulates 6,000 steps with \(\eta = 1\) to read the sizes directly.</p>
+<pre class="code" data-run><code>import numpy as np
+
+rng = np.random.default_rng(0)
+b1, b2, eta, n = 0.9, 0.999, 1.0, 6000
+g = rng.standard_normal(n)                      # a weight whose slope is pure noise of size 1
+m = v = 0.0; steps = []
+for t in range(1, n + 1):
+    m = b1 * m + (1 - b1) * g[t - 1]; v = b2 * v + (1 - b2) * g[t - 1] ** 2
+    steps.append(eta * (m / (1 - b1 ** t)) / (np.sqrt(v / (1 - b2 ** t)) + 1e-8))
+steps = np.array(steps)
+print("first step, cold start:        ", round(abs(steps[0]), 3), "of eta")
+print("typical step after 5000 steps: ", round(np.sqrt((steps[5000:] ** 2).mean()), 3), "of eta")
+print("sqrt((1 - b1) / (1 + b1)) =    ", round(np.sqrt((1 - b1) / (1 + b1)), 3))</code></pre>
+<pre class="out">first step, cold start:         1.0 of eta
+typical step after 5000 steps:  0.235 of eta
+sqrt((1 - b1) / (1 + b1)) =     0.229</pre>
+  <p><b>How long the damage lasts.</b> After \(n\) steps, \(\hat v\) is an average of \(n\) squared slopes. The bias correction keeps it a plain average of the slopes seen so far until about \(1/(1-\beta_2)\) steps have passed. For noise from a normal distribution, \(\sqrt{\hat v}\) is then off by about \(1/\sqrt{2n}\) of its size: 22% after 10 steps and 7% after 100. The cold steps are wild at first and then settle as \(\hat v\) fills in. This matches the return of the coral path after a few dozen steps in the figure.</p>
   <div class="bridge">
     <p><b>Bridge to my project.</b> My optimizer-state work starts from this fact. Public checkpoints share a model's weights but usually not the optimizer state, so continued training often starts unstable. The question is whether that state can be rebuilt from public data. On LLaMA-3 8B at learning rate \(10^{-4}\), my <a href="https://rayhaan1345.github.io/projects/optimizer-state/primer/#s-cold">primer</a> reports that a cold start's smoothed training loss reached 2.39 nats at step 4, which is 0.4 above the checkpoint's own 1.98, while a warm start from the rebuilt state reached 2.07. My manuscript is under review at TMLR. The toy above has two weights; my experiments have billions, and the sizes of the effects come from the manuscript, not from this figure. See also the <a href="https://rayhaan1345.github.io/projects/optimizer-state/">project page</a>.</p>
   </div>
@@ -507,6 +648,7 @@ after one step, m = [0.1 0.1 0.1]  v = [0.001 0.001 0.001]</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>With \(m = v = 0\) and \(t = 0\), what is Adam's first step for a weight with slope 0.001 and for one with slope 50?</summary><p>Both are about \(\eta\) in the direction opposite the slope: \(\hat m/\sqrt{\hat v} = \pm1\).</p></details>
     <details><summary>Which of \(m\), \(v\) and \(t\) is the most expensive to lose, according to the figure?</summary><p>The sand path (keep \(v\) and \(t\), reset \(m\)) behaves almost like the warm start, so \(v\) and \(t\) matter most in this toy. Whether the same is true for a large model is a question for experiments like mine.</p></details>
+    <details><summary>A run resumes with \(m\) and \(v\) restored but the step count \(t\) reset to 0. With \((\beta_1,\beta_2) = (0.9, 0.999)\), how big is the first step compared with a normal one?</summary><p>At \(t = 1\) the corrections divide \(m\) by 0.1 and \(v\) by 0.001. The ratio becomes \(10\,m/(31.6\sqrt{v}) = 0.32\) times the normal value, so the first step is about three times too small. It gets worse before it gets better: the correction of \(m\) fades faster than that of \(v\), and the factor falls to 0.15 near \(t = 10\). It returns to 1 only after a few thousand steps. Restoring \(t\) avoids this.</p></details>
   </div>
 </section>
 
@@ -530,6 +672,21 @@ after one step, m = [0.1 0.1 0.1]  v = [0.001 0.001 0.001]</pre>
   <p class="cap"><b>For logistic regression on the made-up spadenose records, Adam's \(v\), the mean squared slope and the curvature of the loss all fall from about 0.2 to about 0.04 for the length weight. They stay within a factor of 2.5 of one another along the run and within 1.7 at the end.</b> The model sees one record per step, so \(v\) is an average of squared slopes of single records.</p>
   <p>The model is the maturity classifier of <a href="../a3-logistic-regression/#train">A3</a> (standardised length and girth, plus a bias). Move the step slider and switch between the three weights. Early in training, when the predictions are poor, \(v\) is the largest of the three, because it still averages the large slopes of the first steps. From about step 20 to 40 the curvature becomes the largest, and later all three come together. The bias weight has the largest values because its input is always 1.</p>
   <p><b>Why they agree near a fit.</b> For one record, the slope of the log loss for weight \(j\) is \(g_j = (p - y)\,x_j\) (<a href="../a3-logistic-regression/#train">A3</a>), so \(g_j^2 = (p-y)^2 x_j^2\). The curvature of the same loss is \(\partial g_j/\partial w_j = p(1-p)\,x_j^2\) (the slope of the sigmoid times \(x_j^2\)). If the model is calibrated, so that \(y\) is 1 with probability \(p\), then on average \((p-y)^2 = p(1-p)\), and the mean squared slope equals the curvature. This also shows where they differ. For one record, Tag 3305 has \(p = 0.970\) and \(y = 1\) (<a href="../a3-logistic-regression/#train">A3</a>), and \(x_1 = 0.216\) scaled. Its squared slope is \(0.030^2 \times 0.216^2 = 4.2\times10^{-5}\), and its curvature is \(0.970 \times 0.030 \times 0.216^2 = 1.4\times10^{-3}\), 32 times larger. The two match only on average, over records where the model is sometimes wrong.</p>
+  <p><b>A calibrated case.</b> Suppose the model says \(p = 0.8\) for records with a scaled length \(x_j\), and 80% of those records are adult. For the adult records the squared slope is \((0.8-1)^2 x_j^2 = 0.04\,x_j^2\). For the juvenile records it is \((0.8-0)^2 x_j^2 = 0.64\,x_j^2\). The average over all of them is \(0.8\times0.04 + 0.2\times0.64 = 0.16\) in units of \(x_j^2\). The curvature is \(p(1-p) = 0.16\) in the same units. They match. If only half of those records were adult, the average squared slope would be \(0.5\times0.04 + 0.5\times0.64 = 0.34\), more than twice the curvature. An overconfident model makes slopes that its curvature does not predict.</p>
+  <div class="eqn" role="img" aria-label="For a calibrated model with p equal to 0.8, the average squared slope is 0.8 times 0.04 plus 0.2 times 0.64, which is 0.16, equal to p times 1 minus p"><span class="op">average over records:</span><span class="t c-coral"><b>0.032</b><i>80% adult: 0.8 &times; 0.04</i></span><span class="op">+</span><span class="t c-coral"><b>0.128</b><i>20% juvenile: 0.2 &times; 0.64</i></span><span class="op">=</span><span class="t c-teal"><b>0.160</b><i>mean squared slope ÷ x<sub>j</sub><sup>2</sup></i></span><span class="op">=</span><span class="t c-navy"><b>0.160</b><i>p(1 &minus; p) = 0.8 &times; 0.2, the curvature ÷ x<sub>j</sub><sup>2</sup></i></span></div>
+  <p>The code draws 200,000 labels, once with a calibrated model and once with an overconfident one, and compares the two quantities for the length weight.</p>
+<pre class="code" data-run><code>import numpy as np
+
+rng = np.random.default_rng(0)
+x = 0.216                                           # a scaled length, as for Tag 3305
+n = 200000
+for model_p, true_p in [(0.8, 0.8), (0.8, 0.5)]:
+    y = (rng.random(n) &lt; true_p).astype(float)      # labels drawn with the true chance of "adult"
+    g = (model_p - y) * x                           # slope of the log loss for the length weight
+    print(f"model says {model_p}, truth {true_p}: mean squared slope {np.mean(g ** 2):.5f}, curvature {model_p * (1 - model_p) * x * x:.5f}")</code></pre>
+<pre class="out">model says 0.8, truth 0.8: mean squared slope 0.00741, curvature 0.00746
+model says 0.8, truth 0.5: mean squared slope 0.01587, curvature 0.00746</pre>
+
   <p class="math">\[ F_{jj} \;\approx\; \frac1m \sum_{i=1}^{m}\Big(\frac{\partial \ell_i}{\partial \theta_j}\Big)^{2} \qquad\qquad v_j \;\approx\; \text{running average of } g_j^{2} \]</p>
   <ul class="math-notes">
     <li><b>\(F_{jj}\)</b> is the diagonal entry of the Fisher information for weight \(j\); the form on the left (the mean squared slope) is its empirical version. <b>\(\ell_i\)</b> is the loss of record \(i\) and <b>\(m\)</b> the number of records here (not Adam's \(m\)).</li>
@@ -548,6 +705,7 @@ after one step, m = [0.1 0.1 0.1]  v = [0.001 0.001 0.001]</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>For a calibrated model, why is the mean squared slope close to the curvature?</summary><p>On average \((p - y)^2 = p(1-p)\), so \(\overline{(p-y)^2 x_j^2} = \overline{p(1-p)\,x_j^2}\), which is the curvature of the loss along weight \(j\).</p></details>
     <details><summary>Why can Adam's \(v\) not describe the tilt of a valley?</summary><p>It keeps one number per weight, the diagonal. A tilt is a relation between two weights, which needs the off-diagonal entries that \(v\) does not store.</p></details>
+    <details><summary>A model says \(p = 0.9\) for a group of records, but only 70% of them are adult. Is the mean squared slope above or below the curvature, and by how much?</summary><p>Above. The squared slope is \(0.01\,x_j^2\) for adults and \(0.81\,x_j^2\) for juveniles, so the average is \(0.7\times0.01 + 0.3\times0.81 = 0.25\,x_j^2\). The curvature is \(0.9\times0.1 = 0.09\,x_j^2\). The squared slope is 2.8 times larger.</p></details>
   </div>
 </section>
 
