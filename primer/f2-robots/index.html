@@ -130,7 +130,7 @@ code { overflow-wrap: anywhere; }
   </ul>
   <p>A second case with the figure. MobileNetV2 in 8 bits needs 26 ms in the model. The loop takes 124 ms, the update period is 124 ms when frames are taken one at a time, and the worst command age is 248 ms. That is inside the 262 ms budget, with an error of 4.7 degrees. In pipelined mode the period falls to the camera's 33 ms and the error to 3.0 degrees. The smaller model buys the whole difference between failing and keeping up. The decision and the motor cost the same in both cases.</p>
   <div class="bridge">
-    <p><b>Bridge to Rayhaan's robot.</b> Rayhaan has built a small robot that ran a vision model on a Raspberry Pi. The questions of this chapter are the ones such a build raises. How large a model fits in the memory? How many frames per second does it give? What does the delay from camera to motor do to how the robot behaves?</p>
+    <p><b>Bridge to my robot.</b> I have built a small robot that ran a vision model on a Raspberry Pi. The questions of this chapter are the ones such a build raises. How large a model fits in the memory? How many frames per second does it give? What does the delay from camera to motor do to how the robot behaves?</p>
   </div>
   <div class="break">
     <p><b>Common belief.</b> If the model runs at 30 frames per second, the robot reacts in 33 ms.</p>

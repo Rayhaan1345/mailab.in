@@ -222,7 +222,7 @@ print("train", round(tree.score(df[~held][X], df[~held].spadenose), 4), "held-ou
 
 train 0.9106 held-out 0.8598</pre>
   <p>This is the tree from the first figure, with a training accuracy of 91.1% and a held-out accuracy of 86.0%. Class 1 is spadenose.</p>
-  <div class="bridge"><p><b>Bridge to Rayhaan's project.</b> The diabetes screening project used the same tree idea on the Pima data: 768 women of Pima heritage, measured in the United States, so not data from Mumbai. Its <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">primer</a> splits glucose and BMI into four boxes. The final model in Rayhaan's report was XGBoost, a library for boosted trees (<a href="../a6-boosting/#xgboost">A6</a>).</p></div>
+  <div class="bridge"><p><b>Bridge to my project.</b> My diabetes screening project used the same tree idea on the Pima data: 768 women of Pima heritage, measured in the United States, so not data from Mumbai. Its <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">primer</a> splits glucose and BMI into four boxes. The final model in my report was XGBoost, a library for boosted trees (<a href="../a6-boosting/#xgboost">A6</a>).</p></div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why does a tree scan thresholds only between neighbouring different values?</summary><p>Any threshold between the same two neighbouring values gives the same two groups. A cut between two equal values cannot separate them at all.</p></details>

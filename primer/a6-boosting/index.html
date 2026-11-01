@@ -281,7 +281,7 @@ print("train", round(model.score(df[~held][F6], df[~held].spadenose), 4),
   <div class="debug">
     <p><b>Debug tip.</b> If training accuracy is near 100% and held-out accuracy is far lower, raise \(\lambda\) or \(\gamma\), lower the depth, lower \(\eta\) and stop earlier. Change one dial at a time and keep a table of the held-out loss.</p>
   </div>
-  <div class="bridge"><p><b>Bridge to Rayhaan's project.</b> The diabetes screening report used XGBoost with feature-importance explanations. A rebuilt model with 100 trees of depth 3 and a learning rate of 0.01 gets 78.6% of 154 held-out women right. The data are the Pima data: 768 women of Pima heritage, measured in the United States, so not data from Mumbai. The dials above are the ones he had to set. Read more in his <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">diabetes primer</a>.</p></div>
+  <div class="bridge"><p><b>Bridge to my project.</b> My diabetes screening report used XGBoost with feature-importance explanations. A rebuilt model with 100 trees of depth 3 and a learning rate of 0.01 gets 78.6% of 154 held-out women right. The data are the Pima data: 768 women of Pima heritage, measured in the United States, so not data from Mumbai. The dials above are the ones I had to set. Read more in my <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">diabetes primer</a>.</p></div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Leaf A has 4 sharks with leftovers adding up to 0.2 kg, and \(\lambda = 4\). What does the leaf answer, and what is the plain average?</summary><p>The answer is \(0.2/(4+4) = 0.025\) kg. The plain average is \(0.2/4 = 0.05\) kg, so the penalty halves it.</p></details>
@@ -316,7 +316,7 @@ print("train", round(model.score(df[~held][F6], df[~held].spadenose), 4),
     <p><b>Why it fails.</b> A count includes the many small adjustments of questions that change almost no calls. A column of random numbers can be asked about often too. Adding one to the model, a column of normal random numbers, gets it asked about 73 times, more than length (47) or temperature (42) in that run. Shuffling it costs about 1 point, which is within the noise of the test.</p>
     <p><b>Better account.</b> Measure the effect directly, with a shuffle test or SHAP values, and say which question a number answers. Where two measures disagree, find out why before reporting either.</p>
   </div>
-  <div class="bridge"><p><b>Bridge to Rayhaan's project.</b> His <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">diabetes primer</a> shows the same pattern on the Pima data: the rebuilt model's trees ask about blood pressure 52 times, and shuffling it costs no accuracy. Rayhaan's report ranked inputs with XGBoost's importance chart, which counts questions.</p></div>
+  <div class="bridge"><p><b>Bridge to my project.</b> My <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">diabetes primer</a> shows the same pattern on the Pima data: the rebuilt model's trees ask about blood pressure 52 times, and shuffling it costs no accuracy. My report ranked inputs with XGBoost's importance chart, which counts questions.</p></div>
   <div class="debug">
     <p><b>Debug tip.</b> Rank the inputs by one measure and then check the top three with another. A shuffle test needs held-out sharks and many repeats, because one shuffle is noisy: run it 50 times and look at the spread of the dots. Plant a column of random numbers as a control.</p>
   </div>
@@ -365,7 +365,7 @@ print(round(float(shares.sum()), 2), round(float(booster.predict(xgb.DMatrix(tag
   <div class="debug">
     <p><b>Debug tip.</b> Check that the shares add up: the average score plus all the shares must equal the model's own score, as the two numbers 4.0 and 4.0 above do. If they differ, you may have mixed scores with probabilities.</p>
   </div>
-  <div class="bridge"><p><b>Bridge to Rayhaan's project.</b> His <a href="https://rayhaan1345.github.io/projects/diabetes-screening/">project page</a> has an "Explain one score" panel that runs this kind of calculation in the browser, and his <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">primer</a> builds the same idea for one woman's score.</p></div>
+  <div class="bridge"><p><b>Bridge to my project.</b> My <a href="https://rayhaan1345.github.io/projects/diabetes-screening/">project page</a> has an "Explain one score" panel that runs this kind of calculation in the browser, and my <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">primer</a> builds the same idea for one woman's score.</p></div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why is the SHAP value an average over orders instead of one step?</summary><p>A measurement's step depends on which measurements were revealed before it, especially when inputs repeat one another. Averaging over all orders gives an input a fair share that does not depend on one chosen order.</p></details>
