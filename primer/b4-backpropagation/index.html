@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .card .bar { row-gap: 8px; }
@@ -101,7 +101,7 @@
   <div class="eqn" role="img" aria-label="z2 equals minus 0.4 times 0.22 plus 0.7 times 0.21 plus minus 0.2, which is minus 0.141, and tanh of that is minus 0.140"><span class="t c-navy"><b>&minus;0.4</b><i>w<sub>21</sub></i></span><span class="op">&times;</span><span class="t c-navy"><b>0.22</b><i>x<sub>1</sub></i></span><span class="op">+</span><span class="t c-navy"><b>0.7</b><i>w<sub>22</sub></i></span><span class="op">&times;</span><span class="t c-navy"><b>0.21</b><i>x<sub>2</sub></i></span><span class="op">+</span><span class="t c-navy"><b>&minus;0.2</b><i>b<sub>2</sub></i></span><span class="op">=</span><span class="t c-teal"><b>&minus;0.141</b><i>z<sub>2</sub></i></span><span class="op">&rarr; tanh &rarr;</span><span class="t c-teal"><b>&minus;0.140</b><i>h<sub>2</sub></i></span></div>
   <p>Now a second shark, to see the same graph give a different answer. Tag 4127 is a juvenile grey bamboo shark, so its label is \(y = 0\). Standardised with the spadenose numbers (44.0 cm and 12.4 cm) it reads 0.56 and 0.57. That scaling is only a convenient way to feed the network a second input, because a bamboo shark has its own average and spread. The forward pass gives \(z_1 = 0.208\), \(z_2 = -0.025\), \(h = (0.205, -0.025)\), \(z_o = -0.696\) and \(p = 0.333\). For \(y = 0\) the loss is \(-\ln(1 - 0.333) = 0.405\). The network happens to be right about this shark, so its loss is small.</p>
   <p>Why can we run the nodes in any order that respects the arrows? Because the graph has no loops (a DAG, <a href="../t4-discrete-maths/#graphs">0.4</a>), so a node never waits on itself. If a graph had a loop, one pass would not be enough to fill it. This chapter's graphs have none.</p>
-  <p><b>A practical check.</b> A network that has learned no pattern yet about a yes-or-no label should give \(p\) near 0.5, which makes the loss \(\ln 2 \approx 0.69\). Here the first loss is 1.07 because the made-up output bias is \(-0.9\). When you build your own network, compute the loss on the first batch before any training. If it is far from 0.69, look for a mistake in the inputs, the labels or the output layer (<a href="../b8-debugging/">B8</a>). Keep inputs near 0 with a spread of about 1, as in <a href="../a2-linear-regression/#scaling">A2</a>. Large inputs push tanh into its flat tails from the first step.</p>
+  <p><b>A practical check.</b> A network that has learned no pattern yet about a yes-or-no label should give \(p\) near 0.5, which makes the loss \(\ln 2 \approx 0.69\). Here the first loss is 1.07 because the made-up output bias is \(-0.9\). When you build your own network, compute the loss on the first batch before any training. If it is far from 0.69, look for a mistake in the inputs, the labels or the output layer (<a href="../b8-debugging/#recipe">B8</a>). Keep inputs near 0 with a spread of about 1, as in <a href="../a2-linear-regression/#scaling">A2</a>. Large inputs push tanh into its flat tails from the first step.</p>
   <div class="break">
     <p><b>Analogy.</b> The graph is a spreadsheet. A cell is a formula of the cells before it, and you fill the cells in from the top.</p>
     <p><b>Where it breaks.</b> In a spreadsheet you type the numbers and leave them alone. In a network the weights are numbers that training will change, and the backward pass answers how the last cell, the loss, reacts when you change one of them. A spreadsheet has no step that runs backward.</p>
@@ -149,7 +149,7 @@
   <p><b>Why it works, and where it stops.</b> The chain rule is a statement about small nudges. A local slope describes a node near its current value, and the product tells you what a small nudge of a weight does to the loss. It breaks where a node has no usable slope. ReLU has a corner at 0 (libraries pick 0 or 1 there). Rounding, a hard threshold or an argmax has a slope of 0 at nearly all points, so no slope reaches the weights behind it. That is why the step activation was replaced by a smooth one (<a href="../b1-one-neuron/#activations">B1</a>).</p>
   <p><b>Cost in practice.</b> The backward pass needs the forward values, so a framework stores them. Memory grows with the number of nodes and with the batch size, and the backward pass costs a small multiple of the forward pass. Typical plain-SGD learning rates for networks like this one are 0.01 to 0.1 on standardised inputs. The Update button's \(\eta\) goes up to 2 so that you can watch a step overshoot.</p>
   <p class="task"><b>Try it.</b> Switch the activation to ReLU, press Forward, then Backward. One hidden unit has a negative sum and gives 0. What happens to the slopes of its weights and bias?</p>
-  <details class="task-a"><summary>Answer</summary><p>They are all 0. The ReLU slope is 0 for a negative score, so the product at that step is 0 and no slope flows back to \(w_{21}\), \(w_{22}\) or \(b_2\). A unit stuck like this learns no more until something else moves its score (<a href="../b8-debugging/">B8</a> shows how to spot dead units).</p></details>
+  <details class="task-a"><summary>Answer</summary><p>They are all 0. The ReLU slope is 0 for a negative score, so the product at that step is 0 and no slope flows back to \(w_{21}\), \(w_{22}\) or \(b_2\). A unit stuck like this learns no more until something else moves its score (<a href="../b8-debugging/#lab">B8</a> shows how to spot dead units).</p></details>
   <div class="eqn" role="img" aria-label="Upstream slope times local slope equals the slope of the node before"><span class="t c-coral"><b>&minus;0.658</b><i>upstream slope &part;L/&part;z<sub>o</sub></i></span><span class="op">&times;</span><span class="t c-navy"><b>0.900</b><i>local slope &part;z<sub>o</sub>/&part;h<sub>1</sub> = v<sub>1</sub></i></span><span class="op">=</span><span class="t c-coral"><b>&minus;0.592</b><i>slope of h<sub>1</sub></i></span></div>
   <p class="math">\[ \frac{\partial L}{\partial a} \;=\; \sum_{k}\frac{\partial L}{\partial b_k}\,\frac{\partial b_k}{\partial a} \qquad\qquad w \;\leftarrow\; w - \eta\,\frac{\partial L}{\partial w} \]</p>
   <ul class="math-notes">
@@ -164,9 +164,9 @@
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> If the loss goes up after an Update, the step size \(\eta\) is probably too large for the curvature (<a href="../t6-gradients/#curvature">0.6</a>). Halve it and try again. If the loss rises whatever \(\eta\) is, suspect a wrong sign or a wrong local slope in the backward code, and run the gradient check at the end of this chapter.</p>
-    <p>A common mistake in PyTorch is calling <code>loss.backward()</code> again without clearing the stored slopes first. The new slopes are added to the old ones, so the step is too big and points the wrong way (<a href="../b8-debugging/">B8</a> lists the other usual suspects).</p>
+    <p>A common mistake in PyTorch is calling <code>loss.backward()</code> again without clearing the stored slopes first. The new slopes are added to the old ones, so the step is too big and points the wrong way (<a href="../b8-debugging/#component">B8</a> lists the other usual suspects).</p>
   </div>
-  <p class="used"><b>Used in:</b> the optimisers of <a href="../b5-optimisers/#sgd">B5</a> take these slopes as input. The slope of the loss with respect to an <em>input</em> (the \(\partial L/\partial x_1\) box) is the raw material of the saliency maps in <a href="../b9-explaining/">B9</a>.</p>
+  <p class="used"><b>Used in:</b> the optimisers of <a href="../b5-optimisers/#sgd">B5</a> take these slopes as input. The slope of the loss with respect to an <em>input</em> (the \(\partial L/\partial x_1\) box) is the raw material of the saliency maps in <a href="../b9-explaining/#saliency">B9</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The slope arriving at the output score is −0.658. The weight \(v_1\) multiplies \(h_1 = 0.149\). What is the slope of \(v_1\)?</summary><p>\(-0.658 \times 0.149 = -0.098\). The product node sends the slope times the other factor, and the other factor of \(v_1\) is \(h_1\).</p></details>
@@ -336,8 +336,8 @@ b1.grad = [-0.579, 0.516]  W2.grad = [-0.098, 0.0922]  b2.grad = -0.6579</pre>
   <div class="eqn" role="img" aria-label="Factor 1.2 to the power 29 is about 198; factor 0.8 to the power 29 is about 0.0015"><span class="t c-navy"><b>f = 1.2</b><i>factor, ReLU on</i></span><span class="op">&rarr; 30 layers &rarr;</span><span class="t c-sand"><b>1.2<sup>29</sup> &asymp; 198</b><i>slope at layer 1 (explodes)</i></span><span class="op">|</span><span class="t c-navy"><b>f = 0.8</b><i>factor</i></span><span class="op">&rarr; 30 layers &rarr;</span><span class="t c-coral"><b>0.8<sup>29</sup> &asymp; 0.0015</b><i>slope at layer 1 (vanishes)</i></span></div>
   <p>This second example uses ReLU and 30 layers and shows how thin the balance is. A weight of 1.2 makes the slope 198 times larger at layer 1. A weight of 0.8 makes it about 0.0015 times as large. A change of 20% in either direction pushes the chain out of balance.</p>
   <p>A layer in the chain multiplies the arriving slope by its weight and by its activation's slope. The sigmoid's slope never exceeds 0.25 (<a href="../t6-gradients/#rules">0.6</a>), so a chain of sigmoids needs weights above 4 to keep the slope alive. Switch to ReLU. Its slope is 1 while the unit is on, so the factor is just the weight. A weight below 1 makes the slope vanish, and a weight above 1 makes it explode. Tanh lies between the two, and its slope also falls when the unit saturates.</p>
-  <p><b>Where this picture is too simple.</b> A layer in a working network has many units, and its factor is the size of a whole matrix times the activation slopes. What matters is how much that matrix stretches the slope vector on average. Some directions can shrink while others grow, so the pattern in a deep network is rougher than a clean power of one number. <b>In practice</b>, a deep sigmoid network trains badly with plain random weights, and the trouble grows with depth. Exploding slopes show up as a loss that jumps to a huge value or to NaN. The usual remedies are a better weight scale and normalisation (<a href="../b6-deep-networks/#xavier">B6</a>) and, for explosions, a clip on the size of the slope (<a href="../b8-debugging/">B8</a>). A common mistake is to swap sigmoid for ReLU and assume the problem is gone. ReLU gives a slope of 1 only while the unit is on, and a unit that is off passes no slope back.</p>
-  <p>This chapter only shows the arithmetic. <a href="../b6-deep-networks/#signal">B6</a> measures it layer by layer in a deep network and shows the three fixes: a good starting scale for the weights, normalisation layers and residual connections. <a href="../b8-debugging/">B8</a> shows how to detect the problem by printing gradient sizes per layer.</p>
+  <p><b>Where this picture is too simple.</b> A layer in a working network has many units, and its factor is the size of a whole matrix times the activation slopes. What matters is how much that matrix stretches the slope vector on average. Some directions can shrink while others grow, so the pattern in a deep network is rougher than a clean power of one number. <b>In practice</b>, a deep sigmoid network trains badly with plain random weights, and the trouble grows with depth. Exploding slopes show up as a loss that jumps to a huge value or to NaN. The usual remedies are a better weight scale and normalisation (<a href="../b6-deep-networks/#xavier">B6</a>) and, for explosions, a clip on the size of the slope (<a href="../b8-debugging/#clip">B8</a>). A common mistake is to swap sigmoid for ReLU and assume the problem is gone. ReLU gives a slope of 1 only while the unit is on, and a unit that is off passes no slope back.</p>
+  <p>This chapter only shows the arithmetic. <a href="../b6-deep-networks/#signal">B6</a> measures it layer by layer in a deep network and shows the three fixes: a good starting scale for the weights, normalisation layers and residual connections. <a href="../b8-debugging/#grad">B8</a> shows how to detect the problem by printing gradient sizes per layer.</p>
   <div class="break">
     <p><b>Analogy.</b> A message whispered down a line of people, where a person repeats it at 22% of the volume they heard.</p>
     <p><b>Where it breaks.</b> The people in a line only lose volume. A network layer also mixes many inputs, so some paths can stay strong while others fade. A weight above 1 turns the line into a chain of people who shout. The analogy has no way to show the shouting case.</p>
@@ -345,7 +345,7 @@ b1.grad = [-0.579, 0.516]  W2.grad = [-0.098, 0.0922]  b2.grad = -0.6579</pre>
   <div class="debug">
     <p><b>Debug tip.</b> If the weights of the first layers barely change while the last layers' weights move a lot, print the size of the slope per layer. A drop of a factor of 10 per layer is a vanishing gradient.</p>
   </div>
-  <p class="used"><b>Used in:</b> <a href="../b6-deep-networks/#signal">B6</a> (initialisation, normalisation, residual connections) and <a href="../b8-debugging/">B8</a> (gradient norms per layer, clipping).</p>
+  <p class="used"><b>Used in:</b> <a href="../b6-deep-networks/#signal">B6</a> (initialisation, normalisation, residual connections) and <a href="../b8-debugging/#grad">B8</a> (gradient norms per layer, clipping).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Weights are 1 and the activation is ReLU with the unit on. What is the factor per layer?</summary><p>\(1 \times 1 = 1\): the weight times the ReLU slope. The slope neither vanishes nor explodes, until a unit goes off and its slope becomes 0.</p></details>
@@ -430,7 +430,7 @@ h = 1e-05  relative error = 8.2e-12
 h = 1e-08  relative error = 9.0e-09
 h = 1e-12  relative error = 1.1e-04
 h = 1e-15  relative error = 1.1e-01</pre>
-  <p class="used"><b>Used in:</b> any new layer or loss you write by hand (this is the first test to run), and <a href="../b8-debugging/">B8</a>, where gradient checking joins the other debugging steps.</p>
+  <p class="used"><b>Used in:</b> any new layer or loss you write by hand (this is the first test to run), and <a href="../b8-debugging/#component">B8</a>, where unit tests check one component at a time.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The backprop slope is −0.1274 and the nudge estimate is −0.1273. Is the code probably right?</summary><p>The relative error is \(0.0001/0.2547 \approx 4\times10^{-4}\). That is in the grey zone between a good sign and a bug, so look closer: try a smaller \(h\) and the central difference first. A correct backward pass reaches \(10^{-7}\) or better at a good \(h\).</p></details>
@@ -461,7 +461,7 @@ h = 1e-15  relative error = 1.1e-01</pre>
     <ol>
       <li><p><span class="ex-tag">open</span> Your gradient check passes on a tiny network at random weights, but training the big network diverges. List three reasons the check can pass while training fails, and say how you would test it.</p></li>
       <li><p><span class="ex-tag">open</span> The backward pass needs the forward values, so a very deep network must keep all of them in memory. Suggest ways to trade memory for extra computation, and say when it would be worth it.</p></li>
-      <li><p><span class="ex-tag">open</span> At the starting weights, the slope of the loss with respect to the two inputs is about \(-0.67\) and \(+0.71\). A reader says "so a longer shark looks less adult to this network and a wider one more adult". What would you check before trusting that sentence? (<a href="../b9-explaining/">B9</a> returns to input slopes.)</p></li>
+      <li><p><span class="ex-tag">open</span> At the starting weights, the slope of the loss with respect to the two inputs is about \(-0.67\) and \(+0.71\). A reader says "so a longer shark looks less adult to this network and a wider one more adult". What would you check before trusting that sentence? (<a href="../b9-explaining/#saliency">B9</a> returns to input slopes.)</p></li>
     </ol>
   </div>
 </section>
@@ -496,7 +496,7 @@ h = 1e-15  relative error = 1.1e-01</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="b4-backpropagation.js?v=1" defer></script>
 </body>
 </html>

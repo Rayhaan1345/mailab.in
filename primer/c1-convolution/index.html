@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .card .bar { row-gap: 8px; }
@@ -73,7 +73,7 @@ pre.out.data::before { content: "the 5 by 5 image"; }
 </header>
 
 <div class="tldr">
-  <p>A picture is a grid of numbers. This chapter reads a handwritten tag number and a shark photo as arrays. Then it slides a filter of nine weights over the digit, one dot product at a time, and fills a feature map. You will change the filter, the stride and the padding, watch the output size follow a formula, and shrink the map with max pooling. <a href="../c2-cnns/">C2</a> stacks these pieces into a network that reads the digit.</p>
+  <p>A picture is a grid of numbers. This chapter reads a handwritten tag number and a shark photo as arrays. Then it slides a filter of nine weights over the digit, one dot product at a time, and fills a feature map. You will change the filter, the stride and the padding, watch the output size follow a formula, and shrink the map with max pooling. <a href="../c2-cnns/#stack">C2</a> stacks these pieces into a network that reads the digit.</p>
   <p>The digits are handwritten MNIST digits (LeCun et al., 1998). They play the part of the tag numbers that SharkCam researchers write in logbooks. The photos are openly licensed and credited under the figures, and the depth effect on them comes from a simple model, not from a measurement of Mumbai water.</p>
 </div>
 <p class="youneed"><b>You will need:</b> <a href="../t1-python/#arrays">NumPy arrays</a> (0.1), the <a href="../t5-vectors-matrices/#dot">dot product</a> (0.5) and the idea of a <a href="../b1-one-neuron/#neuron">neuron as a weighted sum</a> (B1).</p>
@@ -114,7 +114,7 @@ pre.out.data::before { content: "the 5 by 5 image"; }
   </div>
   <p class="cap"><b>A digit is 784 numbers, and most of them are 0, the empty paper. The pen path is a thin ridge of values near 255.</b> The framed 5 by 5 block on the left is written out as numbers on the right.</p>
   <p>Hover over, or tap, any square and read its number. Squares are counted by row from the top, then by column from the left, so the top-left square is row 0, column 0. A file stores a value in one byte, which allows 256 values, 0 to 255. Machine learning code usually divides by 255 so that values lie between 0 and 1. This chapter keeps 0 to 255 because those numbers are easier to read. The digits come from MNIST, a public set of 70,000 handwritten digits. Tag 4127 is four digits: 4, 1, 2 and 7. Switch to <b>Add ink</b> and draw on the grid. The count of zeros changes as you go.</p>
-  <p>Now tick <b>Shuffle the squares</b>. All squares move to new places, by one fixed random rule, and you can no longer read the digit. A plain network from <a href="../b1-one-neuron/#layer">B1</a> and <a href="../b2-non-linearity/">B2</a> is not bothered. It reads a digit as a list of 784 inputs and gives all of them separate weights. It has no idea which squares are neighbours. A network with 784 inputs, 128 ReLU units and 10 outputs was trained for 5 passes over the 60,000 training digits, once on normal digits and once on shuffled ones. On the 10,000 test digits it scored 96.9% and 97.0%. That is one run per case, and the 0.1 point gap is within the noise of a single run.</p>
+  <p>Now tick <b>Shuffle the squares</b>. All squares move to new places, by one fixed random rule, and you can no longer read the digit. A plain network from <a href="../b1-one-neuron/#layer">B1</a> and <a href="../b2-non-linearity/#play">B2</a> is not bothered. It reads a digit as a list of 784 inputs and gives all of them separate weights. It has no idea which squares are neighbours. A network with 784 inputs, 128 ReLU units and 10 outputs was trained for 5 passes over the 60,000 training digits, once on normal digits and once on shuffled ones. On the 10,000 test digits it scored 96.9% and 97.0%. That is one run per case, and the 0.1 point gap is within the noise of a single run.</p>
   <div class="break">
     <p><b>Common belief.</b> A network that reads pictures must know which squares are neighbours.</p>
     <p><b>Why it fails.</b> A plain network learns shuffled digits as well as normal ones. It gives a square its own weights, so the order of the squares never enters its arithmetic.</p>
@@ -169,7 +169,7 @@ label 7 | zeros: 668 of 784
   <div class="break">
     <p><b>Common belief.</b> Deeper water makes a photo darker and no other change.</p>
     <p><b>Why it fails.</b> The three grids change at different rates. Red falls to a few percent of its surface value within 10 m, blue stays, and haze lifts the dark parts of all three. The mean values in the boxes show it.</p>
-    <p><b>Better account.</b> Water changes the balance between the channels first, then the brightness. A model trained on surface photos meets inputs with a different range in the three channels. <a href="../c3-domain-shift/">C3</a> follows what that does to a classifier.</p>
+    <p><b>Better account.</b> Water changes the balance between the channels first, then the brightness. A model trained on surface photos meets inputs with a different range in the three channels. <a href="../c3-domain-shift/#water">C3</a> follows what that does to a classifier.</p>
   </div>
   <p>A filter that reads a colour photo has a weight for all channels in its window. A 3 by 3 filter on an RGB photo has 3 &times; 3 &times; 3 = 27 weights, plus one bias, a number added to the result. The count of numbers in a convolution layer follows one formula.</p>
   <p class="math">\[ \text{parameters} = \left(k \cdot k \cdot C_{\text{in}} + 1\right)\, C_{\text{out}} \]</p>
@@ -228,7 +228,7 @@ mean R, G, B: [ 50.5  78.  152.6]
   <p class="math">\[ O[i,j] \;=\; \sum_{u=0}^{k-1}\sum_{v=0}^{k-1} K[u,v]\; I[i+u,\; j+v] \;+\; b \]</p>
   <ul class="math-notes">
     <li><b>\(I[r,c]\)</b> is the input value at row \(r\), column \(c\), and <b>\(O[i,j]\)</b> is the feature-map value at row \(i\), column \(j\).</li>
-    <li><b>\(K[u,v]\)</b> is the filter weight at row \(u\), column \(v\) inside the window. Its side is \(k\) (3 in the figure).</li>
+    <li><b>\(K[u,v]\)</b> is the filter weight at row \(u\), column \(v\) inside the window. Its side is \(k\) (3 in the figure). Here \(K\) is short for kernel, the filter. It does not mean the keys of attention (<a href="../d4-self-attention/#qkv">D4</a>).</li>
     <li><b>\(b\)</b> is a bias added to all outputs of the filter. The figure uses \(b = 0\).</li>
     <li>The two sums run over the \(k \cdot k\) squares of the window: nine products, then one total.</li>
   </ul>
@@ -284,7 +284,7 @@ print("same as PyTorch:", np.allclose(mine, ref))</code></pre>
   <dl class="terms">
     <div><dt>stride \(s\)</dt><dd>how many squares the window moves between positions; 1 moves one square at a time</dd></div>
     <div><dt>padding \(p\)</dt><dd>rings of zeros added around the picture before sliding</dd></div>
-    <div><dt>output size \(m\)</dt><dd>the number of window positions along one side of the picture</dd></div>
+    <div><dt>output size \(m\)</dt><dd>the number of window positions along one side of the picture; here \(m\) is not the number of examples</dd></div>
   </dl>
   <p class="claim">The side of the feature map is \(\lfloor (n + 2p - k)/s \rfloor + 1\), so padding makes the map bigger and stride makes it smaller.</p>
   <div class="card" id="sz">
@@ -303,7 +303,7 @@ print("same as PyTorch:", np.allclose(mine, ref))</code></pre>
   <ul class="math-notes">
     <li><b>\(n\)</b> is the side of the input, in squares. <b>\(p\)</b> is the number of rings of zeros added on all four sides.</li>
     <li><b>\(k\)</b> is the side of the filter and <b>\(s\)</b> is the stride.</li>
-    <li><b>\(m\)</b> is the side of the output. The brackets \(\lfloor\ \rfloor\) round down to a whole number.</li>
+    <li><b>\(m\)</b> is the side of the output, not the number of examples. The brackets \(\lfloor\ \rfloor\) round down to a whole number.</li>
     <li>With a stride the sum reads from \(I[s\,i + u - p,\ s\,j + v - p]\), so a step of \(i\) moves the window by \(s\) squares and the \(-p\) puts the padding rings at negative positions.</li>
   </ul>
   <p>Worked examples, all with numbers from this primer. A 28 by 28 digit, \(k = 3\), \(s = 1\), \(p = 0\): \((28 - 3)/1 + 1 = 26\). With \(p = 1\): \((28 + 2 - 3)/1 + 1 = 28\), the same size as the input, usually called &ldquo;same&rdquo; padding (\(p = (k-1)/2\) when \(k\) is odd). With \(p = 1\) and \(s = 2\): \(\lfloor 27/2 \rfloor + 1 = 13 + 1 = 14\), where the floor drops the half step. The first layer of ResNet-18 reads a 224 by 224 photo with \(k = 7\), \(s = 2\), \(p = 3\): \(\lfloor 223/2 \rfloor + 1 = 111 + 1 = 112\).</p>
@@ -364,12 +364,13 @@ print(sum(p.numel() for p in nn.Conv2d(3, 16, 3).parameters()))</code></pre>
   <p class="math">\[ P[i,j] \;=\; \max_{0 \le u,\,v < q}\; F[\,s\,i + u,\; s\,j + v\,] \]</p>
   <ul class="math-notes">
     <li><b>\(F\)</b> is the feature map before pooling and <b>\(P\)</b> the pooled map; <b>\(q\)</b> is the block side and <b>\(s\)</b> the stride.</li>
+    <li>Here \(F\) is a feature map. The Fisher information of <a href="../b7-continual-learning/#fisher">B7</a> has the same letter and a different meaning.</li>
     <li>For average pooling replace the maximum by the mean of the \(q \cdot q\) values. Pooling has no weights to learn.</li>
   </ul>
   <div class="break">
     <p><b>Common belief.</b> Pooling makes a network recognise a digit wherever it is in the picture.</p>
     <p><b>Why it fails.</b> Set the slider to 3. The pooled map now changes by about 128% (averaged over the same 30 digits), against 139% for the unpooled map. A block is only two squares wide, so pooling tolerates shifts of about that size.</p>
-    <p><b>Better account.</b> Pooling gives tolerance to small shifts inside a block. Larger tolerance comes from stacking several conv and pool layers and from training on shifted examples. The chart in <a href="../c2-cnns/#rf">C2</a> measures this for a trained network.</p>
+    <p><b>Better account.</b> Pooling gives tolerance to small shifts inside a block. Larger tolerance comes from stacking several conv and pool layers and from training on shifted examples. The chart in <a href="../c2-cnns/#limits">C2</a> measures this for a trained network.</p>
   </div>
   <p><b>What pooling costs.</b> It throws away the position inside a block. That is fine when you want to know that a stroke exists. It hurts when the position is the answer, for example the distance between a shark's eye and its tail fin. Many modern networks use a stride-2 convolution instead of a pooling layer, so the network learns what to keep. ResNet-18 has one max pool near the start and averages over the whole map at the end.</p>
   <div class="debug">
@@ -439,7 +440,7 @@ shift  1: [[0, 9], [8, 0]] same as before: False</pre>
   <p>Try these after two days and again after a week. Say the answer aloud before you open it.</p>
   <div class="recall comeback">
     <details><summary>A neuron from <a href="../b1-one-neuron/#neuron">B1</a> computes \(z = \mathbf{w}\cdot\mathbf{x} + b\). What is a 3 by 3 filter at one position, and how does it differ from that neuron?</summary><p>It is the same sum: the nine pixels in the window play the part of \(\mathbf{x}\), the nine filter weights are \(\mathbf{w}\), and \(b\) is the bias. The difference is reuse. The filter applies the same weights at all positions, so nine numbers produce a whole map. A plain neuron would need separate weights for separate positions.</p></details>
-    <details><summary>The dive camera takes a photo at 10 m and the red grid is almost empty. In <a href="../b6-deep-networks/#norm">B6</a>, batch norm stores a mean and a variance per channel. Why might those stored numbers be wrong for this photo?</summary><p>They were measured on training photos taken near the surface, where red is bright. At 10 m the red values, and so the first layer's outputs for them, are much smaller. The stored mean and variance no longer describe the inputs, so the normalised values are off. <a href="../c3-domain-shift/">C3</a> follows this idea.</p></details>
+    <details><summary>The dive camera takes a photo at 10 m and the red grid is almost empty. In <a href="../b6-deep-networks/#norm">B6</a>, batch norm stores a mean and a variance per channel. Why might those stored numbers be wrong for this photo?</summary><p>They were measured on training photos taken near the surface, where red is bright. At 10 m the red values, and so the first layer's outputs for them, are much smaller. The stored mean and variance no longer describe the inputs, so the normalised values are off. <a href="../c3-domain-shift/#adapt">C3</a> follows this idea.</p></details>
     <details><summary>A 3 by 3 conv layer with padding 1 reads 12 maps of size 13 by 13 and writes 24 maps. What size are the outputs and how many numbers does the layer learn?</summary><p>Same size, 13 by 13, because \(p = (k-1)/2\). Parameters: \((3 \cdot 3 \cdot 12 + 1) \cdot 24 = 109 \cdot 24 = 2{,}616\).</p></details>
   </div>
 </section>
@@ -466,7 +467,7 @@ shift  1: [[0, 9], [8, 0]] same as before: False</pre>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="c1-convolution.js?v=1" defer></script>
 </body>
 </html>

@@ -481,8 +481,8 @@
           { type: "scatter3d", mode: "markers", x: [tag.length_cm], y: [tag.girth_cm], z: [tag.weight_kg], marker: { color: P.coral, size: 6, line: { color: P.bg, width: 2 } }, hoverinfo: "skip" }
         ];
       }, function () {
-        return { margin: { l: Kit.width(Kit.$("mx-3d")) < 420 ? 30 : 10, r: 34, t: 0, b: 0 }, uirevision: "a2-plane", scene: { xaxis: { title: { text: "length, cm", font: { size: 12 } }, range: [15, 62] }, yaxis: { title: { text: "girth, cm", font: { size: 12 } }, range: [5, 18] }, zaxis: { title: { text: "weight, kg", font: { size: 12 } }, range: [0, 0.8] },
-          aspectmode: "manual", aspectratio: Kit.width(Kit.$("mx-3d")) < 420 ? { x: 0.9, y: 0.6, z: 0.75 } : { x: 1.1, y: 0.7, z: 0.9 }, camera: { eye: Kit.width(Kit.$("mx-3d")) < 420 ? { x: 1.9, y: -1.8, z: 0.7 } : { x: 1.55, y: -1.5, z: 0.5 } } } };
+        return { margin: { l: Kit.width(Kit.$("mx-3d")) < 420 ? 30 : 10, r: 34, t: 0, b: 0 }, uirevision: "a2-plane", scene: { xaxis: { title: { text: "length, cm", font: { size: 12 } }, range: [15, 62], nticks: 5 }, yaxis: { title: { text: "girth, cm", font: { size: 12 } }, range: [5, 18], nticks: 4 }, zaxis: { title: { text: "weight, kg", font: { size: 12 } }, range: [0, 0.8], nticks: 5 },
+          aspectmode: "manual", aspectratio: Kit.width(Kit.$("mx-3d")) < 420 ? { x: 0.8, y: 0.55, z: 0.7 } : { x: 1.1, y: 0.7, z: 0.9 }, camera: { eye: Kit.width(Kit.$("mx-3d")) < 420 ? { x: 1.9, y: -1.8, z: 0.7 } : { x: 1.55, y: -1.5, z: 0.5 } } } };
       });
       Kit.plot("mx-prof", function (P) {
         return [{ x: grid.map(function (g) { return g.w2; }), y: grid.map(function (g) { return g.rmse; }), mode: "lines", line: { color: P.navy, width: 2.5 }, hoverinfo: "skip" },

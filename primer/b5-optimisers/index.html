@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .card .bar { row-gap: 8px; }
@@ -517,7 +517,7 @@ after one step, m = [0.1 0.1 0.1]  v = [0.001 0.001 0.001]</pre>
   <dl class="terms">
     <div><dt>mean squared slope</dt><dd>the average over examples of the squared slope of one weight's loss; also called the empirical Fisher diagonal</dd></div>
     <div><dt>curvature</dt><dd>the second derivative of the loss along a weight: how fast the slope changes (<a href="../t6-gradients/#curvature">0.6</a>)</dd></div>
-    <div><dt>Fisher information</dt><dd>how strongly the model's predictions depend on a weight; <a href="../b7-continual-learning/">B7</a> develops it</dd></div>
+    <div><dt>Fisher information</dt><dd>how strongly the model's predictions depend on a weight; <a href="../b7-continual-learning/#fisher">B7</a> develops it</dd></div>
   </dl>
   <p class="claim">Adam's \(v\) tracks the squared slope, and near a good solution the squared slope is close to the curvature, so \(v\) is a cheap per-weight estimate of how sharp the loss is.</p>
   <div class="card" id="fi">
@@ -535,7 +535,7 @@ after one step, m = [0.1 0.1 0.1]  v = [0.001 0.001 0.001]</pre>
     <li><b>\(F_{jj}\)</b> is the diagonal entry of the Fisher information for weight \(j\); the form on the left (the mean squared slope) is its empirical version. <b>\(\ell_i\)</b> is the loss of record \(i\) and <b>\(m\)</b> the number of records here (not Adam's \(m\)).</li>
     <li><b>\(v_j\)</b> is Adam's second moment for weight \(j\). With one record per step it averages the same squared slopes over the last \(1/(1-\beta_2)\) steps.</li>
   </ul>
-  <p><b>Where this breaks.</b> The relation is a loose one. Kunstner and others (2019) argue that the empirical Fisher does not capture second-order information in general, and dispute reading Adam as a curvature method. With larger mini-batches \(v\) also contains the square of the average slope, and the match is rougher. \(v\) is also diagonal, so it has no information about a tilt. <b>In practice</b>, treat \(\sqrt{\hat v}\) as the typical size of a weight's slope, which is its definition, and a hint about sharpness, not a measurement of it. Rayhaan's project tests by experiment whether a rebuilt \(v\) is good enough to serve as the stiffness of the springs in elastic weight consolidation; <a href="../b7-continual-learning/">B7</a> returns to the Fisher information and those springs.</p>
+  <p><b>Where this breaks.</b> The relation is a loose one. Kunstner and others (2019) argue that the empirical Fisher does not capture second-order information in general, and dispute reading Adam as a curvature method. With larger mini-batches \(v\) also contains the square of the average slope, and the match is rougher. \(v\) is also diagonal, so it has no information about a tilt. <b>In practice</b>, treat \(\sqrt{\hat v}\) as the typical size of a weight's slope, which is its definition, and a hint about sharpness, not a measurement of it. Rayhaan's project tests by experiment whether a rebuilt \(v\) is good enough to serve as the stiffness of the springs in elastic weight consolidation; <a href="../b7-continual-learning/#adam">B7</a> returns to the Fisher information and those springs.</p>
   <div class="break">
     <p><b>Common belief.</b> Adam's \(v\) is the curvature of the loss.</p>
     <p><b>Why it fails.</b> \(v\) is a running average of squared slopes. It matches the curvature only on average, near a good fit and for a calibrated model. For Tag 3305 the squared slope was 32 times smaller than the curvature.</p>
@@ -614,7 +614,7 @@ after one step, m = [0.1 0.1 0.1]  v = [0.001 0.001 0.001]</pre>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="b5-optimisers.js?v=1" defer></script>
 </body>
 </html>

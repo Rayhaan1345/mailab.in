@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 .card .eqn { margin: 8px 0 6px; }
 .card .bar .label { font-size: 14px; color: var(--muted); }
@@ -60,7 +60,7 @@ table.mat.pick td { cursor: pointer; }
   <p>A shark is a list of measurements, and a list of measurements is a vector. This chapter shows how to compare vectors with the dot product and cosine similarity. It shows how a matrix turns one vector into another, and how to read a matrix as a bending of the plane.</p>
   <p>These ideas are the working parts of AI. A neuron is a dot product and a layer is a matrix. Attention is a table of dot products, and a weight update is an outer product. The curvature of a loss is described by eigenvectors.</p>
 </div>
-<p class="youneed"><b>You will need:</b> the arrays and <code>@</code> from <a href="../t1-python/">chapter 0.1</a>, and composition from <a href="../t3-algebra-functions/#composition">chapter 0.3</a> for the matrix product.</p>
+<p class="youneed"><b>You will need:</b> the arrays and <code>@</code> from <a href="../t1-python/#broadcast">chapter 0.1</a>, and composition from <a href="../t3-algebra-functions/#composition">chapter 0.3</a> for the matrix product.</p>
 
 <nav class="toc" aria-label="Contents">
   <ol>
@@ -106,7 +106,7 @@ table.mat.pick td { cursor: pointer; }
   \|\mathbf{u}\| &= \sqrt{u_1^2+u_2^2}
   \end{aligned} \]</p>
   <ul class="math-notes">
-    <li><b>\(\mathbf{u},\mathbf{v}\)</b> are vectors with components \(u_1,u_2\) and \(v_1,v_2\). Bold letters mark vectors, as in <a href="../a1-what-is-a-model/">A1</a>.</li>
+    <li><b>\(\mathbf{u},\mathbf{v}\)</b> are vectors with components \(u_1,u_2\) and \(v_1,v_2\). Bold letters mark vectors, as in <a href="../a1-what-is-a-model/#model">A1</a>.</li>
     <li><b>\(c\)</b> is a scalar, an ordinary number.</li>
     <li><b>\(\|\mathbf{u}\|\)</b> is the length of \(\mathbf{u}\).</li>
   </ul>
@@ -115,7 +115,7 @@ table.mat.pick td { cursor: pointer; }
     <p><b>Where it breaks.</b> A plane has the same units along both directions. A shark's list mixes centimetres and kilograms, so a step along one component is not comparable with a step along another. Adding and scaling lists is valid arithmetic, but the result need not be a possible shark, as \(2\mathbf{a}\) above shows.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> Length treats all components alike, so a feature with big numbers dominates it. The length of the vector of Tag 4127 is 45.7, almost all from the 44.0 cm. If features use different units, scale them first (standardising, <a href="../t7-probability/">0.7</a>) before you compare vectors.</p>
+    <p><b>Debug tip.</b> Length treats all components alike, so a feature with big numbers dominates it. The length of the vector of Tag 4127 is 45.7, almost all from the 44.0 cm. If features use different units, scale them first (standardising, <a href="../t7-probability/#normal">0.7</a>) before you compare vectors.</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -127,7 +127,7 @@ print(round(np.linalg.norm(A), 2))</code></pre>
   <pre class="out">[38.     2.329 15.2  ]
 [88.    0.562 24.8  ]
 45.71</pre>
-  <p class="used"><b>Used in:</b> a model input is a vector (<a href="../a1-what-is-a-model/">A1</a>); a word becomes a vector (<a href="../d2-embeddings/">D2</a>); a gradient is a vector (<a href="../t6-gradients/">0.6</a>).</p>
+  <p class="used"><b>Used in:</b> a model input is a vector (<a href="../a1-what-is-a-model/#model">A1</a>); a word becomes a vector (<a href="../d2-embeddings/#onehot">D2</a>); a gradient is a vector (<a href="../t6-gradients/#gradient">0.6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the length of the vector (3, 4)?</summary><p>\(\sqrt{9+16} = 5\).</p></details>
@@ -157,7 +157,7 @@ print(round(np.linalg.norm(A), 2))</code></pre>
   </div>
   <p class="cap"><b>A feature's push on the score is its weight times its value, so a small weight on a big number can outweigh a big weight on a small one.</b></p>
   <p>The answer to the guess: length adds \(0.05\times 38.0 = 1.9\), girth adds \(0.1\times15.2=1.52\), and weight adds \(0.1\times 2.329 = 0.23\). Length wins by a small margin because its numbers are large, although its weight of 0.05 is the smallest of the three. Choose a shark with the chips, then change the weights. The table on the right scores all three sharks at once. That is a matrix times a vector, which you meet two sections from now.</p>
-  <p>This formula is what a neuron computes before it applies a bend (<a href="../b1-one-neuron/">B1</a>), and what linear regression predicts with (<a href="../a2-linear-regression/">A2</a>). The same sum, with the query as \(\mathbf{w}\) and a key as \(\mathbf{x}\), scores how well two words match in attention (<a href="../d4-self-attention/">D4</a>).</p>
+  <p>This formula is what a neuron computes before it applies a bend (<a href="../b1-one-neuron/#neuron">B1</a>), and what linear regression predicts with (<a href="../a2-linear-regression/#many">A2</a>). The same sum, with the query as \(\mathbf{w}\) and a key as \(\mathbf{x}\), scores how well two words match in attention (<a href="../d4-self-attention/#score">D4</a>).</p>
   <p class="math">\[ \begin{aligned}
   \mathbf{w}\cdot\mathbf{x} &= w_1x_1+\dots+w_dx_d = \sum_{j=1}^{d} w_j x_j \\
   z &= \mathbf{w}\cdot\mathbf{x} + b
@@ -183,7 +183,7 @@ print(round(X[0] @ w + b, 3))    # one shark
 print(np.round(X @ w + b, 3))    # all three at once</code></pre>
   <pre class="out">-2.532
 [-2.532 -2.777  1.121]</pre>
-  <p class="used"><b>Used in:</b> a neuron (<a href="../b1-one-neuron/">B1</a>); a linear model (<a href="../a2-linear-regression/">A2</a>); attention scores (<a href="../d4-self-attention/">D4</a>).</p>
+  <p class="used"><b>Used in:</b> a neuron (<a href="../b1-one-neuron/#neuron">B1</a>); a linear model (<a href="../a2-linear-regression/#many">A2</a>); attention scores (<a href="../d4-self-attention/#score">D4</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Compute \((1,2,3)\cdot(4,0,-1)\).</summary><p>\(1\cdot4 + 2\cdot0 + 3\cdot(-1) = 1\).</p></details>
@@ -210,7 +210,7 @@ print(np.round(X @ w + b, 3))    # all three at once</code></pre>
   </div>
   <p class="cap"><b>Dragging the tip of an arrow outward along its own line multiplies the dot product and leaves the cosine unchanged.</b></p>
   <p>The thick sand segment along \(\mathbf{v}\) is the projection of \(\mathbf{u}\): the part of \(\mathbf{u}\) that points along \(\mathbf{v}\). The dot product equals the length of that shadow times the length of \(\mathbf{v}\). So the dot product is large when the arrows are long and close in direction, zero when they are perpendicular, and negative when they point apart.</p>
-  <p>Cosine similarity divides the lengths out. It is 1 for the same direction, 0 for perpendicular arrows and \(-1\) for opposite ones. Two sharks of different sizes but the same proportions have a cosine close to 1. Systems that compare meanings, such as word embeddings (<a href="../d2-embeddings/">D2</a>) and image-text models (<a href="../e2-clip/">E2</a>), use cosine similarity for this reason.</p>
+  <p>Cosine similarity divides the lengths out. It is 1 for the same direction, 0 for perpendicular arrows and \(-1\) for opposite ones. Two sharks of different sizes but the same proportions have a cosine close to 1. Systems that compare meanings, such as word embeddings (<a href="../d2-embeddings/#map">D2</a>) and image-text models (<a href="../e2-clip/#matrix">E2</a>), use cosine similarity for this reason.</p>
   <p class="math">\[ \begin{aligned} \mathbf{u}\cdot\mathbf{v} &= \|\mathbf{u}\|\,\|\mathbf{v}\|\cos\theta \\ \cos\theta &= \frac{\mathbf{u}\cdot\mathbf{v}}{\|\mathbf{u}\|\,\|\mathbf{v}\|} \end{aligned} \]</p>
   <ul class="math-notes">
     <li><b>\(\theta\)</b> is the angle between \(\mathbf{u}\) and \(\mathbf{v}\), from 0 to 180 degrees.</li>
@@ -240,7 +240,7 @@ print(round(cosine(A, B), 4), round(cosine(A, 2 * A), 4))</code></pre>
 30.0 0.8944
 0.0
 0.9985 1.0</pre>
-  <p class="used"><b>Used in:</b> comparing embeddings (<a href="../d2-embeddings/">D2</a>); matching a photo to its caption (<a href="../e2-clip/">E2</a>); scaled dot products in attention (<a href="../d4-self-attention/">D4</a>).</p>
+  <p class="used"><b>Used in:</b> comparing embeddings (<a href="../d2-embeddings/#map">D2</a>); matching a photo to its caption (<a href="../e2-clip/#matrix">E2</a>); scaled dot products in attention (<a href="../d4-self-attention/#scale">D4</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the cosine similarity of \((1,0)\) and \((0,5)\)?</summary><p>The dot product is 0, so the cosine is 0. The arrows are perpendicular.</p></details>
@@ -259,7 +259,7 @@ print(round(cosine(A, B), 4), round(cosine(A, 2 * A), 4))</code></pre>
     <div><dt>column</dt><dd>a vertical list in the matrix; \(A\mathbf{x}\) mixes the columns</dd></div>
   </dl>
   <p class="claim">A matrix times a vector gives one dot product per row, and the same answer is a weighted mix of the matrix's columns.</p>
-  <p>The answer to the guess is 3: one score per shark. A table with one shark per row is a matrix \(X\), here \(3\times3\). A recipe vector \(\mathbf{w}\) gives \(X\mathbf{w}\), three scores at once. Reading the other way, a matrix \(W\) whose rows are the weights of several neurons turns one input \(\mathbf{x}\) into one number per neuron. That is a layer: \(W\mathbf{x}\), with a bias \(\mathbf{b}\) added (<a href="../b1-one-neuron/">B1</a>, <a href="../b2-non-linearity/">B2</a>).</p>
+  <p>The answer to the guess is 3: one score per shark. A table with one shark per row is a matrix \(X\), here \(3\times3\). A recipe vector \(\mathbf{w}\) gives \(X\mathbf{w}\), three scores at once. Reading the other way, a matrix \(W\) whose rows are the weights of several neurons turns one input \(\mathbf{x}\) into one number per neuron. That is a layer: \(W\mathbf{x}\), with a bias \(\mathbf{b}\) added (<a href="../b1-one-neuron/#layer">B1</a>, <a href="../b2-non-linearity/#bend">B2</a>).</p>
   <table class="shark-tbl" aria-label="Three made-up sharks as a matrix with one shark per row">
     <thead><tr><th>Made-up catch records</th><th>length, cm</th><th>weight, kg</th><th>girth, cm</th></tr></thead>
     <tbody><tr><td>Tag 4127</td><td>44.0</td><td>0.281</td><td>12.4</td></tr><tr><td>Tag 3305</td><td>41.0</td><td>0.228</td><td>11.5</td></tr><tr><td>Tag 5519</td><td>82.0</td><td>2.610</td><td>27.6</td></tr></tbody>
@@ -289,7 +289,7 @@ print(round(cosine(A, B), 4), round(cosine(A, 2 * A), 4))</code></pre>
     <p><b>Where it breaks.</b> A matrix alone is only the weighted sums. A neuron also adds a bias and then applies a bend such as a sigmoid (<a href="../t3-algebra-functions/#composition">0.3</a>). A matrix on its own can only stretch, turn and shear the plane, so it cannot make a curve.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> A matrix with \(n\) columns needs an input with \(n\) components. NumPy raises a "matmul: Input operand ... mismatch" error otherwise. Print the sizes of both and check that the number of columns of <code>A</code> equals the number of components of <code>x</code>. Remember that <code>*</code> multiplies entry by entry and <code>@</code> is the matrix product (<a href="../t1-python/">0.1</a>).</p>
+    <p><b>Debug tip.</b> A matrix with \(n\) columns needs an input with \(n\) components. NumPy raises a "matmul: Input operand ... mismatch" error otherwise. Print the sizes of both and check that the number of columns of <code>A</code> equals the number of components of <code>x</code>. Remember that <code>*</code> multiplies entry by entry and <code>@</code> is the matrix product (<a href="../t1-python/#broadcast">0.1</a>).</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -302,7 +302,7 @@ print(A.shape, x.shape)                       # sizes to check</code></pre>
   <pre class="out">[4. 6.]
 [4. 6.]
 (2, 2) (2,)</pre>
-  <p class="used"><b>Used in:</b> a layer \(W\mathbf{x}+\mathbf{b}\) (<a href="../b1-one-neuron/">B1</a>, <a href="../b2-non-linearity/">B2</a>); the data matrix \(X\) of examples (<a href="../a2-linear-regression/">A2</a>); looking up an embedding (<a href="../d2-embeddings/">D2</a>).</p>
+  <p class="used"><b>Used in:</b> a layer \(W\mathbf{x}+\mathbf{b}\) (<a href="../b1-one-neuron/#layer">B1</a>, <a href="../b2-non-linearity/#bend">B2</a>); the data matrix \(X\) of examples (<a href="../a2-linear-regression/#many">A2</a>); looking up an embedding (<a href="../d2-embeddings/#onehot">D2</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A layer has 4 neurons and reads 3 inputs. What are the size of its weight matrix and the size of its output?</summary><p>The matrix is \(4\times3\), one row per neuron. The output has 4 numbers.</p></details>
@@ -337,7 +337,7 @@ print(A.shape, x.shape)                       # sizes to check</code></pre>
   <div class="break">
     <p><b>Common belief.</b> A matrix can bend straight lines into curves.</p>
     <p><b>Why it fails.</b> A matrix keeps lines straight and parallel lines parallel, and the origin stays put. The grid in the figure never curves.</p>
-    <p><b>Better account.</b> Curving needs a non-linear function, such as the sigmoid of <a href="../t3-algebra-functions/#families">chapter 0.3</a>. Putting one between layers is the idea of <a href="../b2-non-linearity/">B2</a>.</p>
+    <p><b>Better account.</b> Curving needs a non-linear function, such as the sigmoid of <a href="../t3-algebra-functions/#families">chapter 0.3</a>. Putting one between layers is the idea of <a href="../b2-non-linearity/#bend">B2</a>.</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> The columns of a matrix, not its rows, are the images of the basis arrows. In NumPy the first column is <code>A[:, 0]</code>. Mixing rows and columns up gives the transpose, a different matrix.</p>
@@ -355,7 +355,7 @@ print(np.linalg.det(np.array([[1.0, 1.0], [1.0, 1.0]])))</code></pre>
 [[0.  2.  3.  1. ]
  [0.  0.5 2.  1.5]]
 0.0</pre>
-  <p class="used"><b>Used in:</b> a layer moves and bends the space of features (<a href="../b2-non-linearity/">B2</a>); a matrix with determinant 0 loses information, as the next sections show.</p>
+  <p class="used"><b>Used in:</b> a layer moves and bends the space of features (<a href="../b2-non-linearity/#bend">B2</a>); a matrix with determinant 0 loses information, as the next sections show.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the determinant of \(\begin{pmatrix}3&1\\2&4\end{pmatrix}\)?</summary><p>\(3\cdot4 - 1\cdot2 = 10\). The unit square's area grows tenfold.</p></details>
@@ -377,7 +377,7 @@ print(np.linalg.det(np.array([[1.0, 1.0], [1.0, 1.0]])))</code></pre>
   <p class="cap"><b>The size rule is (m by n) times (n by p) gives (m by p), and the product of two square matrices usually changes when you swap them.</b></p>
   <p>The answer to the guess: \(AB\) exists and is \(2\times4\), because the inner sizes 3 and 3 match. \(BA\) does not exist, because 4 and 2 differ. Use the sliders to set sizes. When the inner sizes differ the figure says so. Click an entry of the result to see which row and column make it, and the sum of products in the boxes.</p>
   <p>A product is also a chain of transformations. \(AB\mathbf{x}\) means "apply \(B\) to \(\mathbf{x}\), then apply \(A\)", which is composition (<a href="../t3-algebra-functions/#composition">0.3</a>). Order matters for the same reason it does there: rotating then stretching differs from stretching then rotating.</p>
-  <p>The transpose appears when you need all dot products between two lists of vectors. If the rows of \(Q\) and the rows of \(K\) are vectors, then \(QK^\top\) contains the dot product of any row of \(Q\) with any row of \(K\) (<a href="../d4-self-attention/">D4</a>).</p>
+  <p>The transpose appears when you need all dot products between two lists of vectors. If the rows of \(Q\) and the rows of \(K\) are vectors, then \(QK^\top\) contains the dot product of any row of \(Q\) with any row of \(K\) (<a href="../d4-self-attention/#mask">D4</a>).</p>
   <p class="math">\[ \begin{aligned} (AB)_{ij} &= \sum_{k=1}^{n} A_{ik}B_{kj} \\ (AB)^\top &= B^\top A^\top \end{aligned} \]</p>
   <ul class="math-notes">
     <li><b>\(A_{ik}\)</b> is the entry in row \(i\), column \(k\) of \(A\).</li>
@@ -406,7 +406,7 @@ print(Q @ P)</code></pre>
  [4 3]]
 [[3 4]
  [1 2]]</pre>
-  <p class="used"><b>Used in:</b> a batch of examples through a layer (<a href="../b1-one-neuron/">B1</a>); the attention table \(QK^\top\) (<a href="../d4-self-attention/">D4</a>); chaining layers in backpropagation (<a href="../b4-backpropagation/">B4</a>).</p>
+  <p class="used"><b>Used in:</b> a batch of examples through a layer (<a href="../b1-one-neuron/#layer">B1</a>); the attention table \(QK^\top\) (<a href="../d4-self-attention/#mask">D4</a>); chaining layers in backpropagation (<a href="../b4-backpropagation/#layers">B4</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A is \(5\times2\), B is \(2\times7\). What is the size of AB, and is BA defined?</summary><p>AB is \(5\times7\). BA is not defined, because B has 7 columns and A has 5 rows.</p></details>
@@ -427,7 +427,7 @@ print(Q @ P)</code></pre>
   <div class="card" id="op"></div>
   <p class="cap"><b>A table of 12 numbers is fixed by only 7: three in u and four in v, and a zero in u gives a row of zeros.</b></p>
   <p>The answer to the guess: 12 entries, and the rows are the row \(\mathbf{v}^\top\) multiplied by the numbers of \(\mathbf{u}\), one number per row. Move the sliders and watch the pattern. Rows scale together, and if one number in \(\mathbf{u}\) is 0 its whole row is 0. Teal cells are positive and coral cells are negative, and the numbers are printed in the cells.</p>
-  <p>Outer products matter because of how learning changes a weight matrix. For one example, the change that a layer's weights need is the outer product of the error at the layer's output and the input to the layer (<a href="../b4-backpropagation/">B4</a>). Choose "add it to a weight matrix" to see one such update spread over all twelve weights at once.</p>
+  <p>Outer products matter because of how learning changes a weight matrix. For one example, the change that a layer's weights need is the outer product of the error at the layer's output and the input to the layer (<a href="../b4-backpropagation/#layers">B4</a>). Choose "add it to a weight matrix" to see one such update spread over all twelve weights at once.</p>
   <p class="math">\[ \begin{aligned} (\mathbf{u}\mathbf{v}^\top)_{ij} &= u_i\,v_j \\ W &\leftarrow W + \mathbf{u}\mathbf{v}^\top \end{aligned} \]</p>
   <ul class="math-notes">
     <li><b>\(\mathbf{u}\)</b> is a column with \(m\) entries and <b>\(\mathbf{v}\)</b> a column with \(n\) entries. \(\mathbf{v}^\top\) is the same numbers as a row.</li>
@@ -438,7 +438,7 @@ print(Q @ P)</code></pre>
     <p><b>Where it breaks.</b> A general matrix is not a multiplication table. Most matrices are not rank one, and need a sum of several outer products to build them.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> <code>np.dot(u, v)</code> on two vectors gives one number. For the table use <code>np.outer(u, v)</code>, or broadcasting: <code>u[:, None] * v[None, :]</code> (<a href="../t1-python/">0.1</a>). Check the result has \(m\) rows and \(n\) columns.</p>
+    <p><b>Debug tip.</b> <code>np.dot(u, v)</code> on two vectors gives one number. For the table use <code>np.outer(u, v)</code>, or broadcasting: <code>u[:, None] * v[None, :]</code> (<a href="../t1-python/#broadcast">0.1</a>). Check the result has \(m\) rows and \(n\) columns.</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -451,7 +451,7 @@ print(np.linalg.matrix_rank(M))</code></pre>
  [ 6  2 -2  4]
  [ 0  0  0  0]]
 1</pre>
-  <p class="used"><b>Used in:</b> the weight gradient of a layer (<a href="../b4-backpropagation/">B4</a>); the update in In-Place test-time training. A chunk of text adds a step size times a sum of outer products, one per token, to a weight matrix (<a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/#fast">the In-Place TTT primer</a>).</p>
+  <p class="used"><b>Used in:</b> the weight gradient of a layer (<a href="../b4-backpropagation/#layers">B4</a>); the update in In-Place test-time training. A chunk of text adds a step size times a sum of outer products, one per token, to a weight matrix (<a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/#fast">the In-Place TTT primer</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the outer product of \((1,2)\) and \((3,4,5)\)?</summary><p>A \(2\times3\) table: first row \((3,4,5)\), second row \((6,8,10)\).</p></details>
@@ -508,7 +508,7 @@ print(np.linalg.det(S))</code></pre>
  [0. 1.]]
 [1. 3.]
 0.0</pre>
-  <p class="used"><b>Used in:</b> solving for weights directly, as in the closed-form fit of a line (<a href="../a2-linear-regression/">A2</a>); undoing a transformation of the data (<a href="../t7-probability/">0.7</a>).</p>
+  <p class="used"><b>Used in:</b> solving for weights directly, as in the closed-form fit of a line (<a href="../a2-linear-regression/#many">A2</a>); undoing a transformation of the data (<a href="../t7-probability/#normal">0.7</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the inverse of \(\begin{pmatrix}2&0\\0&4\end{pmatrix}\)?</summary><p>\(\begin{pmatrix}1/2&0\\0&1/4\end{pmatrix}\). It undoes the stretch in both directions.</p></details>
@@ -535,7 +535,7 @@ print(np.linalg.det(S))</code></pre>
     <li><b>\(\mathbf{v}\)</b> is an eigenvector and <b>\(\lambda\)</b> its eigenvalue.</li>
     <li><b>\(a+d\)</b> is the trace and <b>\(ad-bc\)</b> the determinant. The quadratic gives up to two eigenvalues that are ordinary numbers.</li>
   </ul>
-  <p>Why this matters in AI. The curvature of a loss near its lowest point is described by a symmetric matrix. Its eigenvectors are the sharpest and flattest directions, and its eigenvalues say how sharp (<a href="../t6-gradients/#curvature">0.6</a>, <a href="../b5-optimisers/">B5</a>). The Fisher information, which marks the weights that a trained model depends on most, is also a symmetric matrix of this kind (<a href="../b7-continual-learning/">B7</a>).</p>
+  <p>Why this matters in AI. The curvature of a loss near its lowest point is described by a symmetric matrix. Its eigenvectors are the sharpest and flattest directions, and its eigenvalues say how sharp (<a href="../t6-gradients/#curvature">0.6</a>, <a href="../b5-optimisers/#curvature">B5</a>). The Fisher information, which marks the weights that a trained model depends on most, is also a symmetric matrix of this kind (<a href="../b7-continual-learning/#fisher">B7</a>).</p>
   <div class="break">
     <p><b>Common belief.</b> All matrices have directions that they only stretch.</p>
     <p><b>Why it fails.</b> A rotation turns all directions, so no eigenvector exists in the plane. The eigenvalues of a turn are complex numbers.</p>
@@ -559,7 +559,7 @@ print(np.linalg.eigvals(R))</code></pre>
 True
 True
 [0.+1.j 0.-1.j]</pre>
-  <p class="used"><b>Used in:</b> curvature and the sharpest direction of a loss (<a href="../t6-gradients/#curvature">0.6</a>, <a href="../b5-optimisers/">B5</a>); the Fisher information (<a href="../b7-continual-learning/">B7</a>).</p>
+  <p class="used"><b>Used in:</b> curvature and the sharpest direction of a loss (<a href="../t6-gradients/#curvature">0.6</a>, <a href="../b5-optimisers/#curvature">B5</a>); the Fisher information (<a href="../b7-continual-learning/#fisher">B7</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>For \(A=\begin{pmatrix}3&0\\0&1\end{pmatrix}\), what are the eigenvectors and eigenvalues?</summary><p>The x direction with \(\lambda=3\) and the y direction with \(\lambda=1\). The matrix stretches x by 3 and leaves y alone.</p></details>
@@ -622,7 +622,7 @@ True
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="t5-vectors-matrices.js?v=1" defer></script>
 </body>
 </html>

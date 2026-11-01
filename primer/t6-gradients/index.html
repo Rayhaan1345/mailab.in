@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .rules { width: 100%; max-width: 46em; border-collapse: collapse; margin: 6px 0 16px; font-size: 15.5px; }
@@ -42,7 +42,7 @@
   <p>Training changes a model's weights so that its error falls. To know which way to change a weight, you need the slope of the error with respect to that weight. This chapter builds that slope from nudging. It extends the slope to many weights at once (the gradient), passes it through chained steps (the chain rule) and adds how fast the slope itself changes (curvature).</p>
   <p>You do not need limits or integrals. A slope here is what you measure by nudging an input a tiny amount and watching the output.</p>
 </div>
-<p class="youneed"><b>You will need:</b> <a href="../t3-algebra-functions/">functions, exponents and logarithms</a> (chapter 0.3), and for the gradient section <a href="../t5-vectors-matrices/">vectors and dot products</a> (chapter 0.5).</p>
+<p class="youneed"><b>You will need:</b> <a href="../t3-algebra-functions/">functions, exponents and logarithms</a> (chapter 0.3), and for the gradient section <a href="../t5-vectors-matrices/#dot">vectors and dot products</a> (chapter 0.5).</p>
 
 <nav class="toc" aria-label="Contents">
   <ol>
@@ -108,7 +108,7 @@ print(round(2 * by_formula, 4), "kg predicted by slope times 2 cm")</code></pre>
 0.0768 kg per cm, by formula
 0.1575 kg gained going from 80 to 82 cm
 0.1536 kg predicted by slope times 2 cm</pre>
-  <p class="used"><b>Used in:</b> the slope of an error is what gradient descent follows (<a href="../a2-linear-regression/">A2</a>), and the nudge test is the basis of gradient checking (<a href="../b4-backpropagation/">B4</a>).</p>
+  <p class="used"><b>Used in:</b> the slope of an error is what gradient descent follows (<a href="../a2-linear-regression/#descent">A2</a>), and the nudge test is the basis of gradient checking (<a href="../b4-backpropagation/#check">B4</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What does a derivative of 0.03 kg per cm mean for a shark of 50 cm?</summary><p>A small extra length adds about 0.03 kg per cm: growing 1 cm adds about 30 g. The statement is accurate for small nudges only.</p></details>
@@ -122,8 +122,8 @@ print(round(2 * by_formula, 4), "kg predicted by slope times 2 cm")</code></pre>
   <p class="ask"><b>Guess first.</b> The sigmoid curve climbs from 0 to 1 and is steepest in the middle. Is its steepest slope 1, 0.5 or 0.25?</p>
   <dl class="terms">
     <div><dt>rule</dt><dd>a formula that gives the slope without any nudging</dd></div>
-    <div><dt>sigmoid \(\sigma(z)\)</dt><dd>a smooth curve that climbs from 0 to 1 in an S, built from \(e^{-z}\) (<a href="../a3-logistic-regression/">A3</a>, <a href="../b1-one-neuron/">B1</a>)</dd></div>
-    <div><dt>ReLU</dt><dd>\(\max(0, z)\): zero for negative \(z\), equal to \(z\) for positive \(z\) (<a href="../b1-one-neuron/">B1</a>)</dd></div>
+    <div><dt>sigmoid \(\sigma(z)\)</dt><dd>a smooth curve that climbs from 0 to 1 in an S, built from \(e^{-z}\) (<a href="../a3-logistic-regression/#sigmoid">A3</a>, <a href="../b1-one-neuron/#activations">B1</a>)</dd></div>
+    <div><dt>ReLU</dt><dd>\(\max(0, z)\): zero for negative \(z\), equal to \(z\) for positive \(z\) (<a href="../b1-one-neuron/#activations">B1</a>)</dd></div>
     <div><dt>saturated</dt><dd>stuck in a flat tail of a curve, where the slope is close to zero</dd></div>
   </dl>
   <p class="claim">A handful of rules give the slope of all the functions in this primer. The sigmoid's slope is \(\sigma(z)(1-\sigma(z))\), never above 0.25, and ReLU's slope is 0 or 1.</p>
@@ -134,19 +134,19 @@ print(round(2 * by_formula, 4), "kg predicted by slope times 2 cm")</code></pre>
     <div class="eqn" id="ac-eqn"></div>
   </div>
   <p class="cap"><b>The sigmoid's slope peaks at 0.25 at z = 0 and drops to about 0.007 at z = 5, where the curve is almost flat.</b></p>
-  <p>Slide \(z\) to the right and watch the coral slope curve. In the tails the output hardly reacts to a nudge of \(z\), so anything feeding that neuron learns slowly. <a href="../b4-backpropagation/">B4</a> and <a href="../b6-deep-networks/">B6</a> return to this as vanishing gradients. The table lists the rules you will meet. All the rules here follow from the power rule, the exponential and the logarithm, combined with the chain rule in a later section.</p>
+  <p>Slide \(z\) to the right and watch the coral slope curve. In the tails the output hardly reacts to a nudge of \(z\), so anything feeding that neuron learns slowly. <a href="../b4-backpropagation/#vanish">B4</a> and <a href="../b6-deep-networks/#signal">B6</a> return to this as vanishing gradients. The table lists the rules you will meet. All the rules here follow from the power rule, the exponential and the logarithm, combined with the chain rule in a later section.</p>
   <table class="rules">
     <thead><tr><th>function</th><th>slope</th><th>used in</th></tr></thead>
     <tbody>
       <tr><td>a constant \(c\)</td><td>\(0\)</td><td>bias terms drop out of slopes</td></tr>
       <tr><td>\(c\,g(x)\)</td><td>\(c\,g'(x)\)</td><td>scaling a loss scales its slope</td></tr>
-      <tr><td>\(g(x) + k(x)\)</td><td>\(g'(x) + k'(x)\)</td><td>a total loss is a sum over examples (<a href="../a2-linear-regression/">A2</a>)</td></tr>
-      <tr><td>\(x^n\)</td><td>\(n\,x^{n-1}\)</td><td>the weight law and squared error (<a href="../a2-linear-regression/">A2</a>)</td></tr>
+      <tr><td>\(g(x) + k(x)\)</td><td>\(g'(x) + k'(x)\)</td><td>a total loss is a sum over examples (<a href="../a2-linear-regression/#line">A2</a>)</td></tr>
+      <tr><td>\(x^n\)</td><td>\(n\,x^{n-1}\)</td><td>the weight law (<a href="../a2-linear-regression/#loglog">A2</a>) and squared error (<a href="../a2-linear-regression/#line">A2</a>)</td></tr>
       <tr><td>\(e^{x}\)</td><td>\(e^{x}\)</td><td>softmax (<a href="../t7-probability/#softmax">0.7</a>)</td></tr>
       <tr><td>\(\ln x\)</td><td>\(1/x\)</td><td>cross-entropy (<a href="../t7-probability/#crossent">0.7</a>)</td></tr>
-      <tr><td>\(\sigma(z)\)</td><td>\(\sigma(z)\,(1-\sigma(z))\)</td><td>logistic regression and neurons (<a href="../a3-logistic-regression/">A3</a>, <a href="../b1-one-neuron/">B1</a>)</td></tr>
-      <tr><td>\(\tanh z\)</td><td>\(1-\tanh^2 z\)</td><td>neurons (<a href="../b1-one-neuron/">B1</a>)</td></tr>
-      <tr><td>\(\mathrm{ReLU}(z)\)</td><td>\(0\) if \(z<0\), \(1\) if \(z>0\)</td><td>neurons and backprop (<a href="../b1-one-neuron/">B1</a>, <a href="../b4-backpropagation/">B4</a>)</td></tr>
+      <tr><td>\(\sigma(z)\)</td><td>\(\sigma(z)\,(1-\sigma(z))\)</td><td>logistic regression and neurons (<a href="../a3-logistic-regression/#train">A3</a>, <a href="../b1-one-neuron/#activations">B1</a>)</td></tr>
+      <tr><td>\(\tanh z\)</td><td>\(1-\tanh^2 z\)</td><td>neurons (<a href="../b1-one-neuron/#activations">B1</a>)</td></tr>
+      <tr><td>\(\mathrm{ReLU}(z)\)</td><td>\(0\) if \(z<0\), \(1\) if \(z>0\)</td><td>neurons and backprop (<a href="../b1-one-neuron/#activations">B1</a>, <a href="../b4-backpropagation/#backward">B4</a>)</td></tr>
     </tbody>
   </table>
   <p>ReLU has a corner at \(z = 0\), where no single slope exists. Most libraries use 0 there. It rarely matters, because inputs seldom hit the corner.</p>
@@ -174,11 +174,11 @@ z = 2.0: nudged 0.1050, formula 0.1050
 z = 5.0: nudged 0.0066, formula 0.0066
 ReLU slope at -2.0: 0.0
 ReLU slope at 3.0: 1.0</pre>
-  <p class="used"><b>Used in:</b> the sigmoid and ReLU slopes feed neurons (<a href="../b1-one-neuron/">B1</a>) and backpropagation (<a href="../b4-backpropagation/">B4</a>); flat tails lead to vanishing gradients (<a href="../b6-deep-networks/">B6</a>).</p>
+  <p class="used"><b>Used in:</b> the sigmoid and ReLU slopes feed neurons (<a href="../b1-one-neuron/#neuron">B1</a>) and backpropagation (<a href="../b4-backpropagation/#backward">B4</a>); flat tails lead to vanishing gradients (<a href="../b6-deep-networks/#signal">B6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the sigmoid's slope at z = 0, and why is that its maximum?</summary><p>It is \(0.5 \times 0.5 = 0.25\). The product \(\sigma(1-\sigma)\) is largest when \(\sigma = 0.5\), and \(\sigma = 0.5\) at \(z = 0\).</p></details>
-    <details><summary>A ReLU unit receives \(z = -3\). What does a nudge of \(z\) do to its output?</summary><p>No change at all: the slope is 0 there. A unit stuck in that region passes no learning signal back (a "dead" ReLU, discussed in <a href="../b8-debugging/">B8</a>).</p></details>
+    <details><summary>A ReLU unit receives \(z = -3\). What does a nudge of \(z\) do to its output?</summary><p>No change at all: the slope is 0 there. A unit stuck in that region passes no learning signal back (a "dead" ReLU, discussed in <a href="../b8-debugging/#lab">B8</a>).</p></details>
   </div>
 </section>
 
@@ -187,7 +187,7 @@ ReLU slope at 3.0: 1.0</pre>
   <h2 id="partial-h">Partial derivatives</h2>
   <p class="ask"><b>Guess first.</b> A model has two dials, \(w_1\) and \(w_2\), and an error \(L\) that depends on both. You turn only \(w_1\) and leave \(w_2\) alone. Does the answer to "how fast does \(L\) change?" depend on where \(w_2\) is set?</p>
   <dl class="terms">
-    <div><dt>loss \(L\)</dt><dd>one number that scores the model's error: lower is better (<a href="../a2-linear-regression/">A2</a> gives it a formula)</dd></div>
+    <div><dt>loss \(L\)</dt><dd>one number that scores the model's error: lower is better (<a href="../a2-linear-regression/#line">A2</a> gives it a formula)</dd></div>
     <div><dt>partial derivative</dt><dd>the slope of \(L\) along one weight while the other weights are frozen, written \(\partial L/\partial w_1\)</dd></div>
     <div><dt>slice</dt><dd>the curve you get by freezing all weights but one</dd></div>
     <div><dt>contour line</dt><dd>a line joining all points that have the same loss</dd></div>
@@ -219,7 +219,7 @@ ReLU slope at 3.0: 1.0</pre>
   <div class="debug">
     <p><b>Debug tip.</b> If a hand-written derivative disagrees with a nudge test, check which variable you nudged. Swapping \(w_1\) and \(w_2\) in a formula gives a perfectly smooth, wrong answer.</p>
   </div>
-  <p class="used"><b>Used in:</b> a model has one partial derivative per weight, which together form the gradient in the next section (<a href="../a2-linear-regression/">A2</a>, <a href="../b3-loss-gradient-descent/">B3</a>).</p>
+  <p class="used"><b>Used in:</b> a model has one partial derivative per weight, which together form the gradient in the next section (<a href="../a2-linear-regression/#descent">A2</a>, <a href="../b3-loss-gradient-descent/#landscape">B3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What does the symbol \(\partial L/\partial w_2\) ask you to do?</summary><p>Nudge \(w_2\), keep \(w_1\) frozen, and measure how much \(L\) changes per unit nudge.</p></details>
@@ -234,7 +234,7 @@ ReLU slope at 3.0: 1.0</pre>
   <dl class="terms">
     <div><dt>gradient \(\nabla L\)</dt><dd>the vector of all partial derivatives; it points uphill</dd></div>
     <div><dt>steepest descent</dt><dd>the direction in which the loss falls fastest, which is minus the gradient</dd></div>
-    <div><dt>learning rate \(\eta\)</dt><dd>how far one downhill step goes (full story in <a href="../a2-linear-regression/">A2</a>)</dd></div>
+    <div><dt>learning rate \(\eta\)</dt><dd>how far one downhill step goes (full story in <a href="../a2-linear-regression/#rate">A2</a>)</dd></div>
   </dl>
   <p class="claim">The gradient is the vector of partial derivatives. It points straight uphill, crosses the contour lines at right angles, and its length is the steepness.</p>
   <div class="card" id="gr">
@@ -254,9 +254,9 @@ ReLU slope at 3.0: 1.0</pre>
   <ul class="math-notes">
     <li><b>\(\nabla L\)</b>, read "grad L" or "nabla L", lists one partial derivative per weight. With a million weights it has a million entries.</li>
     <li><b>\(\|\nabla L\|\)</b> is its length, the slope in the steepest direction. For a gradient \((2, 3)\) it is \(\sqrt{13} \approx 3.6\), the answer to the guess.</li>
-    <li><b>\(\mathbf{w} \leftarrow \mathbf{w} - \eta\,\nabla L\)</b> is the downhill step the button takes. <a href="../a2-linear-regression/">A2</a> turns it into training.</li>
+    <li><b>\(\mathbf{w} \leftarrow \mathbf{w} - \eta\,\nabla L\)</b> is the downhill step the button takes. <a href="../a2-linear-regression/#descent">A2</a> turns it into training.</li>
   </ul>
-  <p>Why does the gradient point to the steepest direction? The slope in a direction given by a unit vector \(\mathbf{u}\) is the dot product \(\nabla L \cdot \mathbf{u}\) (see <a href="../t5-vectors-matrices/">vectors</a>). A dot product is largest when the two vectors point the same way, and then it equals the length of the gradient.</p>
+  <p>Why does the gradient point to the steepest direction? The slope in a direction given by a unit vector \(\mathbf{u}\) is the dot product \(\nabla L \cdot \mathbf{u}\) (see <a href="../t5-vectors-matrices/#dot">vectors</a>). A dot product is largest when the two vectors point the same way, and then it equals the length of the gradient.</p>
   <p>The gradient is zero at the bottom of the bowl, and the loss is flat there. Choose the saddle or the two dips and find other points where the gradient is zero but you are not at a lowest point. The next sections give the tools to tell them apart.</p>
   <div class="break">
     <p><b>Common belief.</b> Minus the gradient points at the minimum.</p>
@@ -293,8 +293,8 @@ print("after one step of 0.3 downhill:", round(L(w - 0.3 * grad(w)), 4))</code><
 nudging : [2.4 3.9]
 loss now: 4.725
 after one step of 0.3 downhill: 0.5675</pre>
-  <p class="used"><b>Used in:</b> one gradient entry per weight is what training computes (<a href="../a2-linear-regression/">A2</a>, <a href="../b3-loss-gradient-descent/">B3</a>), and the loss surface idea returns in <a href="../b3-loss-gradient-descent/">B3</a>.</p>
-  <p>The nudge uses both sides of the point (\(L(w+h) - L(w-h)\), divided by \(2h\)). That is more accurate than nudging one side. <a href="../b4-backpropagation/">B4</a> uses this same check to test a backpropagation implementation.</p>
+  <p class="used"><b>Used in:</b> one gradient entry per weight is what training computes (<a href="../a2-linear-regression/#descent">A2</a>, <a href="../b3-loss-gradient-descent/#landscape">B3</a>), and the loss surface idea returns in <a href="../b3-loss-gradient-descent/#landscape">B3</a>.</p>
+  <p>The nudge uses both sides of the point (\(L(w+h) - L(w-h)\), divided by \(2h\)). That is more accurate than nudging one side. <a href="../b4-backpropagation/#check">B4</a> uses this same check to test a backpropagation implementation.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The gradient at a point is (3, 4). How steep is the steepest direction, and which way is downhill?</summary><p>The steepness is \(\sqrt{9+16} = 5\). Downhill is the opposite direction, \((-3, -4)\).</p></details>
@@ -307,7 +307,7 @@ after one step of 0.3 downhill: 0.5675</pre>
   <h2 id="chain-h">The chain rule</h2>
   <p class="ask"><b>Guess first.</b> A SharkCam neuron turns a length \(x\) into a score \(z = 0.1\,(x - 70)\), and then into a probability of "adult" \(a = \sigma(z)\). You nudge \(x\) by 1 cm. The score moves by 0.1. Near this point the sigmoid has a slope of about 0.21. By roughly how much does \(a\) move?</p>
   <dl class="terms">
-    <div><dt>composition</dt><dd>feeding the output of one function into the next (see <a href="../t3-algebra-functions/">0.3</a>)</dd></div>
+    <div><dt>composition</dt><dd>feeding the output of one function into the next (see <a href="../t3-algebra-functions/#composition">0.3</a>)</dd></div>
     <div><dt>local slope</dt><dd>the slope of one link in the chain, at the value that link receives now</dd></div>
     <div><dt>chain rule</dt><dd>the slope of the whole chain is the product of the local slopes</dd></div>
   </dl>
@@ -327,13 +327,13 @@ after one step of 0.3 downhill: 0.5675</pre>
     <li><b>\(\ell\)</b> is the loss for one example, here \((a - y)^2\) for a label \(y\).</li>
     <li>In training you nudge the weight \(w\), not the input. The chain is the same, with \(dz/dw = x\) as the first link.</li>
   </ul>
-  <p><a href="../b4-backpropagation/">B4</a> builds this into backpropagation: it walks the chain from the loss back to the weights and multiplies the local slopes on the way, once for all the weights.</p>
+  <p><a href="../b4-backpropagation/#backward">B4</a> builds this into backpropagation: it walks the chain from the loss back to the weights and multiplies the local slopes on the way, once for all the weights.</p>
   <div class="break">
     <p><b>Analogy.</b> A train of gears. A 10-to-1 gear driving a 4-to-1 gear turns the last shaft 40 times slower than the first: the ratios multiply.</p>
     <p><b>Where it breaks.</b> A gear ratio is fixed. A local slope depends on where the signal is now, so you must measure it at the current point, and the product only predicts small nudges.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> A product with one near-zero factor is near zero. If the gradient at a weight is tiny, list the local slopes along its chain. A saturated sigmoid (slope 0.001) or a ReLU receiving a negative score (slope 0) is often the culprit (<a href="../b8-debugging/">B8</a>).</p>
+    <p><b>Debug tip.</b> A product with one near-zero factor is near zero. If the gradient at a weight is tiny, list the local slopes along its chain. A saturated sigmoid (slope 0.001) or a ReLU receiving a negative score (slope 0) is often the culprit (<a href="../b8-debugging/#lab">B8</a>).</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -361,8 +361,8 @@ print("by nudging  :", round(nudge, 4))</code></pre>
   <pre class="out">local slopes: -0.6201 0.2139 78.0
 chain rule  : -10.3455
 by nudging  : -10.3451</pre>
-  <p class="used"><b>Used in:</b> backpropagation multiplies local slopes along a computation graph (<a href="../b4-backpropagation/">B4</a>).</p>
-  <p>The last local slope, \(dz/dw = 78\), is large because lengths are in centimetres. A weight attached to a big input moves the score a lot, which makes its gradient big. This is one reason <a href="../a2-linear-regression/">A2</a> rescales features before training.</p>
+  <p class="used"><b>Used in:</b> backpropagation multiplies local slopes along a computation graph (<a href="../b4-backpropagation/#backward">B4</a>).</p>
+  <p>The last local slope, \(dz/dw = 78\), is large because lengths are in centimetres. A weight attached to a big input moves the score a lot, which makes its gradient big. This is one reason <a href="../a2-linear-regression/#scaling">A2</a> rescales features before training.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The local slopes along a chain are 3, 0.5 and 0.1. What is the slope of the whole chain?</summary><p>\(3 \times 0.5 \times 0.1 = 0.15\).</p></details>
@@ -397,8 +397,8 @@ by nudging  : -10.3451</pre>
     <li><b>\(w^\ast\)</b> is the lowest point and \(\delta\) the distance from it. The middle formula says the loss rises like \(\tfrac12 k\delta^2\) with \(k = f''\).</li>
     <li><b>\(\eta < 2/k\)</b> is the largest step size that keeps a gradient step from growing the distance, for a perfect parabola of curvature \(k\).</li>
   </ul>
-  <p>With many weights, curvature is a table of second partial derivatives, the Hessian. Its eigenvectors (<a href="../t5-vectors-matrices/">0.5</a>) are the directions in which the valley is sharpest and flattest, and its eigenvalues are the curvatures along them. A saddle has positive curvature in one direction and negative in another: the gradient is zero there, yet it is no minimum. Positive curvature means a valley, negative means a hilltop.</p>
-  <p>Curvature appears again in the optimiser chapter (<a href="../b5-optimisers/">B5</a>), where Adam's running average of squared gradients is often read as a rough gauge of curvature. It also returns in <a href="../b7-continual-learning/">B7</a>: a weight whose loss is sharp (a large Fisher information) is one the model cannot afford to change.</p>
+  <p>With many weights, curvature is a table of second partial derivatives, the Hessian. Its eigenvectors (<a href="../t5-vectors-matrices/#eigen">0.5</a>) are the directions in which the valley is sharpest and flattest, and its eigenvalues are the curvatures along them. A saddle has positive curvature in one direction and negative in another: the gradient is zero there, yet it is no minimum. Positive curvature means a valley, negative means a hilltop.</p>
+  <p>Curvature appears again in the optimiser chapter (<a href="../b5-optimisers/#curvature">B5</a>), where Adam's running average of squared gradients is often read as a rough gauge of curvature. It also returns in <a href="../b7-continual-learning/#fisher">B7</a>: a weight whose loss is sharp (a large Fisher information) is one the model cannot afford to change.</p>
   <div class="break">
     <p><b>Common belief.</b> If the gradient is zero, training has found the lowest point.</p>
     <p><b>Why it fails.</b> A zero gradient also occurs at the top of a hill and at a saddle. Only the second derivative tells them apart: positive in all directions is a valley.</p>
@@ -423,7 +423,7 @@ for name, k in [("sharp", 6.0), ("flat", 0.5)]:
     print(f"{name}: curvature {curv:.2f}, loss rise at 0.5 = {rise:.3f}, w after 8 steps = {w:.3f}")</code></pre>
   <pre class="out">sharp: curvature 6.00, loss rise at 0.5 = 0.750, w after 8 steps = 0.006
 flat: curvature 0.50, loss rise at 0.5 = 0.062, w after 8 steps = 0.515</pre>
-  <p class="used"><b>Used in:</b> step size and curvature in optimisers (<a href="../b5-optimisers/">B5</a>), and the Fisher information in <a href="../b7-continual-learning/">B7</a>.</p>
+  <p class="used"><b>Used in:</b> step size and curvature in optimisers (<a href="../b5-optimisers/#curvature">B5</a>), and the Fisher information in <a href="../b7-continual-learning/#fisher">B7</a>.</p>
   <p>Both walkers started at 1.5. The sharp one bounced from side to side (the factor is \(1 - 0.25 \times 6 = -0.5\)) and ended near the bottom. The flat one shrank its distance by only 12.5% per step.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
@@ -465,8 +465,8 @@ flat: curvature 0.50, loss rise at 0.5 = 0.062, w after 8 steps = 0.515</pre>
   <h2 id="comeback-h">Come back later</h2>
   <p>Try these after two days and again after a week. Answer first, then open.</p>
   <div class="recall comeback">
-    <details><summary>The slope of \(\ln x\) is \(1/x\). A model gives probability 0.01 to the correct answer and its loss is \(-\ln p\). What is the slope of the loss with respect to \(p\), and what does it say about confident mistakes? (This question uses this chapter and chapter <a href="../t3-algebra-functions/">0.3</a>.)</summary><p>The loss \(-\ln p\) has slope \(-1/p = -100\) at \(p = 0.01\). The loss is very sensitive to \(p\) there, so a confidently wrong model gets a strong push to raise the probability of the right answer.</p></details>
-    <details><summary>A gradient is \((3, 4)\). What is the slope in the direction \((1, 0)\), and which operation from <a href="../t5-vectors-matrices/">0.5</a> gives the slope in any direction?</summary><p>The slope is 3. The dot product of the gradient with a unit vector gives the slope in that direction. The steepest slope, 5, is the length of the gradient.</p></details>
+    <details><summary>The slope of \(\ln x\) is \(1/x\). A model gives probability 0.01 to the correct answer and its loss is \(-\ln p\). What is the slope of the loss with respect to \(p\), and what does it say about confident mistakes? (This question uses this chapter and chapter <a href="../t3-algebra-functions/#logs">0.3</a>.)</summary><p>The loss \(-\ln p\) has slope \(-1/p = -100\) at \(p = 0.01\). The loss is very sensitive to \(p\) there, so a confidently wrong model gets a strong push to raise the probability of the right answer.</p></details>
+    <details><summary>A gradient is \((3, 4)\). What is the slope in the direction \((1, 0)\), and which operation from <a href="../t5-vectors-matrices/#dot">0.5</a> gives the slope in any direction?</summary><p>The slope is 3. The dot product of the gradient with a unit vector gives the slope in that direction. The steepest slope, 5, is the length of the gradient.</p></details>
     <details><summary>Why does a flat sigmoid tail make learning slow? Name the two ideas from this chapter that your answer uses.</summary><p>The sigmoid's slope is near zero in its tails. By the chain rule, the gradient at an earlier weight includes that slope as a factor, so the whole product is near zero and the weight barely moves.</p></details>
   </div>
 </section>
@@ -476,7 +476,7 @@ flat: curvature 0.50, loss rise at 0.5 = 0.062, w after 8 steps = 0.515</pre>
   <ol>
     <li>Sanderson, G. (2017). <i>Essence of calculus</i>, 3Blue1Brown. Chapter 5, "Visualizing the chain rule and product rule", uses tiny nudges and stacked number lines in the same spirit as the chain-rule figure here. <a href="https://3blue1brown.com/lessons/chain-rule-and-product-rule">lesson page</a></li>
     <li>Goodfellow, I., Bengio, Y. and Courville, A. (2016). <i>Deep Learning</i>, MIT Press. Chapter 4, "Numerical Computation", covers gradient-based optimisation and the Hessian. Free online at <a href="https://www.deeplearningbook.org/">deeplearningbook.org</a>.</li>
-    <li>Karpathy, A. <i>micrograd</i>, a small library that applies the chain rule automatically over a graph of scalar values. The model for the backpropagation figure in <a href="../b4-backpropagation/">B4</a>. <a href="https://github.com/karpathy/micrograd">github.com/karpathy/micrograd</a></li>
+    <li>Karpathy, A. <i>micrograd</i>, a small library that applies the chain rule automatically over a graph of scalar values. The model for the backpropagation figure in <a href="../b4-backpropagation/#backward">B4</a>. <a href="https://github.com/karpathy/micrograd">github.com/karpathy/micrograd</a></li>
     <li>Hochreiter, S. and Schmidhuber, J. (1997). Flat minima. <i>Neural Computation</i>, 9(1), 1&ndash;42. <a href="https://doi.org/10.1162/neco.1997.9.1.1">doi:10.1162/neco.1997.9.1.1</a>. An early argument that a wide, flat region of low loss tends to generalise better than a narrow one.</li>
     <li>Keskar, N. S., Mudigere, D., Nocedal, J., Smelyanskiy, M. and Tang, P. T. P. (2017). On large-batch training for deep learning: generalization gap and sharp minima. <i>ICLR 2017</i>. <a href="https://arxiv.org/abs/1609.04836">arXiv:1609.04836</a></li>
     <li>Dinh, L., Pascanu, R., Bengio, S. and Bengio, Y. (2017). Sharp minima can generalize for deep nets. <i>Proceedings of the 34th International Conference on Machine Learning (ICML 2017)</i>, PMLR 70, 1019&ndash;1028. <a href="https://arxiv.org/abs/1703.04933">arXiv:1703.04933</a>. Argues that the sharpness of a minimum depends on how the weights are parameterised.</li>
@@ -494,7 +494,7 @@ flat: curvature 0.50, loss rise at 0.5 = 0.062, w after 8 steps = 0.515</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="t6-gradients.js?v=1" defer></script>
 </body>
 </html>

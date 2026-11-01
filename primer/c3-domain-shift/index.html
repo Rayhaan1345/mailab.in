@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .card .bar { row-gap: 8px; }
@@ -87,7 +87,7 @@ canvas.fig.photo { image-rendering: auto; }
   <p class="ask"><b>Guess first.</b> SharkCam photographs a shark 10 m under water, where most of the red light is gone and the picture is hazy. A network trained on clear photos was confident at the surface that it saw a shark. At 10 m, will its confidence be lower, the same or higher?</p>
   <dl class="terms">
     <div><dt>domain shift</dt><dd>the data met in use differ from the data the model was trained on</dd></div>
-    <div><dt>attenuation coefficient \(K\)</dt><dd>how fast light of one colour fades with depth, per metre</dd></div>
+    <div><dt>attenuation coefficient \(K\)</dt><dd>how fast light of one colour fades with depth, per metre; this \(K\) is a different quantity from the keys of attention (<a href="../d4-self-attention/#qkv">D4</a>)</dd></div>
     <div><dt>haze</dt><dd>light scattered by particles into the camera, which lowers contrast</dd></div>
     <div><dt>shark-class confidence</dt><dd>here, the summed probability of three ImageNet classes: great white shark, tiger shark and hammerhead</dd></div>
   </dl>
@@ -104,7 +104,7 @@ canvas.fig.photo { image-rendering: auto; }
   </div>
   <p class="cap"><b>For the Jarvis Island hammerhead the network stays above 0.85 down to 30 m. For the Kuala Lumpur milk sharks it falls from 0.97 at 5 m to 0.49 at 15 m. The three photos without a shark rise from an average of 0.06 at 5 m to 0.46 at 30 m.</b> The coral dot is the slider position. Confidence is a number from 0 to 1. The curves were computed offline for 61 depths from 0 to 30 m.</p>
   <p>The classifier is ResNet-18 trained on ImageNet, a set of web photos in 1,000 classes (He et al., 2016, for the architecture). It was not trained for SharkCam. Its three shark classes are summed, so the curve says how strongly the network sees some ImageNet shark. It does not say which species. The eight photos are examples, not statistics.</p>
-  <p>Move through the photos in turn. The curves show four things. The hammerhead photos keep a high confidence for a long way down, although the colours are far from the surface. The milk sharks of Kuala Lumpur lose confidence early. The spadenose shark on a white board gets <i>more</i> shark-like with depth, from 0.70 at the surface to 0.998 at 10 m, although the animal is the same. And the photos with no shark, a sea turtle and a clownfish, climb to 0.61 and 0.44 at 30 m. One possible reading is that blue haze is part of what the network learned to call a shark, since sharks are photographed under water and the water looks blue-green. This was not tested directly. A cue of this kind is the spurious cue of <a href="../b9-explaining/">B9</a>.</p>
+  <p>Move through the photos in turn. The curves show four things. The hammerhead photos keep a high confidence for a long way down, although the colours are far from the surface. The milk sharks of Kuala Lumpur lose confidence early. The spadenose shark on a white board gets <i>more</i> shark-like with depth, from 0.70 at the surface to 0.998 at 10 m, although the animal is the same. And the photos with no shark, a sea turtle and a clownfish, climb to 0.61 and 0.44 at 30 m. One possible reading is that blue haze is part of what the network learned to call a shark, since sharks are photographed under water and the water looks blue-green. This was not tested directly. A cue of this kind is the spurious cue of <a href="../b9-explaining/#shortcut">B9</a>.</p>
   <p>The light itself follows a simple law. A colour is multiplied by a factor that falls exponentially with depth, and the factor falls fastest for red.</p>
   <p class="math">\[ I_c(z) = I_c(0)\; e^{-K_c\, z} \]</p>
   <ul class="math-notes">
@@ -157,7 +157,7 @@ for z in (0, 10, 20):
   <h2 id="augment-h">Training for water you can imagine</h2>
   <p class="ask"><b>Guess first.</b> You train a digit reader on pictures made at random depths between 0 and 15 m, with slightly different water in the pictures. Then you test it in a brown river water that it never saw. Will it do better than a reader trained on clear digits only, about the same, or worse?</p>
   <dl class="terms">
-    <div><dt>data augmentation</dt><dd>training on altered copies of the examples, such as shifted, flipped or murky ones (<a href="../b7-continual-learning/">B7</a>)</dd></div>
+    <div><dt>data augmentation</dt><dd>training on altered copies of the examples, such as shifted, flipped or murky ones (<a href="../b7-continual-learning/#reg">B7</a> first meets it as noise on the inputs)</dd></div>
     <div><dt>training range</dt><dd>the set of changes the augmentation can produce, here depths of 0 to 15 m in blue-green water</dd></div>
     <div><dt>water type</dt><dd>one setting of the attenuation coefficients, the haze and the veil colour</dd></div>
   </dl>
@@ -363,7 +363,7 @@ for z in (0, 10):
     <p><b>Better account.</b> Learning during use is a design choice with risks. Entropy minimisation rewards confidence, so a wrong but confident answer can be reinforced. A sensible loop keeps a frozen copy to compare against, updates few weights, and starts afresh for a new dive.</p>
   </div>
   <div class="bridge">
-    <p><b>Bridge to Rayhaan's project.</b> His work at MBZUAI, in Salman Khan's group, uses a loop of the same kind on a language model. In-Place TTT, from ByteDance Seed, treats the down projection of selected MLP blocks of a language model as fast weights. It updates them chunk by chunk as the model reads, with a target built from the input, and generation never pauses. Rayhaan is porting the method from text models to a Qwen vision-language model so that it can adapt to an input after deployment. His motivation is the question of this chapter: recognising a shark when the water, the light and the animals change between dives. The update differs from the entropy step above, and the weights that move are the down projections of selected MLP blocks. His <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">primer</a> explains the update step by step, and the <a href="https://rayhaan1345.github.io/projects/in-place-ttt/">project page</a> has the study. Test-time training for long text comes back in <a href="../d6-long-context/">D6</a>.</p>
+    <p><b>Bridge to Rayhaan's project.</b> His work at MBZUAI, in Salman Khan's group, uses a loop of the same kind on a language model. In-Place TTT, from ByteDance Seed, treats the down projection of selected MLP blocks of a language model as fast weights. It updates them chunk by chunk as the model reads, with a target built from the input, and generation never pauses. Rayhaan is porting the method from text models to a Qwen vision-language model so that it can adapt to an input after deployment. His motivation is the question of this chapter: recognising a shark when the water, the light and the animals change between dives. The update differs from the entropy step above, and the weights that move are the down projections of selected MLP blocks. His <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">primer</a> explains the update step by step, and the <a href="https://rayhaan1345.github.io/projects/in-place-ttt/">project page</a> has the study. Test-time training for long text comes back in <a href="../d6-long-context/#ttt">D6</a>.</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> Keep two predictions for all frames, one from a frozen copy and one from the updating model, and log how often they disagree and how the entropy moves. A sudden rise of disagreement or a fall of the entropy to nearly 0 means the loop is locking onto its own answers. Reset the model at the start of a dive.</p>
@@ -436,7 +436,7 @@ tent 0.01 0.973
   <div class="recall comeback">
     <details><summary>In <a href="../b6-deep-networks/#norm">B6</a>, which statistics does batch norm use in training mode and which in evaluation mode, and which line of <code>reestimate</code> changes the mode?</summary><p>In training mode it uses the mean and variance of the current batch and records them. In evaluation mode it uses the stored ones. <code>new.train()</code> switches to batch statistics for the pass over the new images. The final <code>.eval()</code> switches back, so that predictions use the new stored values.</p></details>
     <details><summary>A shark classifier scores 95% on its test set. Why can that number mislead about its performance 10 m down, and what test would you add? (<a href="../a4-grading-models/#splits">A4</a>)</summary><p>The test set was drawn from the same conditions as the training set, so it cannot show shift. Add a test set that applies the change you expect, such as the depth model, and report the score for sharks and non-sharks as the change grows.</p></details>
-    <details><summary>The loop used Adam with a step size of 0.01 and a new optimiser for a dive. Why do the first updates of a fresh Adam move a weight by about the step size? (<a href="../b5-optimisers/#adam">B5</a>)</summary><p>With empty \(m\) and \(v\), bias correction makes the first update \(\eta\,\hat{m}/(\sqrt{\hat{v}} + \epsilon) \approx \eta \cdot\) sign of the slope. So the 96 numbers move by about 0.01 in the first step, whatever their slopes.</p></details>
+    <details><summary>The loop used Adam with a step size of 0.01 and a new optimiser for a dive. Why do the first updates of a fresh Adam move a weight by about the step size? (<a href="../b5-optimisers/#adam">B5</a>)</summary><p>With Adam's \(m\) and \(v\) both empty, bias correction makes the first update \(\eta\,\hat{m}/(\sqrt{\hat{v}} + \epsilon) \approx \eta \cdot\) sign of the slope. So the 96 numbers move by about 0.01 in the first step, whatever their slopes.</p></details>
   </div>
 </section>
 
@@ -468,7 +468,7 @@ tent 0.01 0.973
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="c3-domain-shift.js?v=1" defer></script>
 </body>
 </html>

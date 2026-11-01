@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .used { max-width: 46em; margin: 4px 0 0; font-size: 14.5px; color: var(--muted); }
@@ -126,7 +126,7 @@ for length, label in [(41.0, 1), (44.0, 0)]:
   <pre class="out">41.0 cm: z = 3.48, p(adult) = 0.970, label 1, log loss = 0.030
 44.0 cm: z = 5.08, p(adult) = 0.994, label 0, log loss = 5.089</pre>
   <p>Tag 4127 is a bamboo shark, and bamboo sharks in the made-up table mature at about 53 cm. The spadenose model gives it a probability of 0.994 of being an adult, and it is wrong. <a href="#boundary">The next section</a> returns to this.</p>
-  <p class="used"><b>Used in:</b> a neuron with a sigmoid is logistic regression (<a href="../b1-one-neuron/">B1</a>), and the sigmoid's flat ends cause the slow learning of <a href="../b6-deep-networks/">B6</a>.</p>
+  <p class="used"><b>Used in:</b> a neuron with a sigmoid is logistic regression (<a href="../b1-one-neuron/#neuron">B1</a>), and the sigmoid's flat ends cause the slow learning of <a href="../b6-deep-networks/#signal">B6</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A model gives a score \(z = 0\). What probability does the sigmoid give, and what does the shark's call depend on?</summary><p>\(p = 0.5\). The shark lies on the decision boundary, and the model has no preference. A score above 0 gives adult and below 0 gives juvenile.</p></details>
@@ -165,11 +165,11 @@ for length, label in [(41.0, 1), (44.0, 0)]:
   <div class="break">
     <p><b>Common belief.</b> The model has learned what makes a shark an adult.</p>
     <p><b>Why it fails.</b> It learned where spadenose sharks mature, about 34.5 cm. Tag 4127 is a juvenile bamboo shark of 44 cm, and bamboo sharks in the table mature near 53 cm. The model gives it a 99% chance of being an adult. Tag 5519, a juvenile hammerhead of 82 cm, gets 100%.</p>
-    <p><b>Better account.</b> A model describes the data it was fitted on. Before you trust it on new animals, ask whether they resemble the training records (<a href="../f1-fairness/">F1</a>).</p>
+    <p><b>Better account.</b> A model describes the data it was fitted on. Before you trust it on new animals, ask whether they resemble the training records (<a href="../f1-fairness/#missing">F1</a>).</p>
   </div>
   <div class="break">
     <p><b>Analogy.</b> A decision boundary is a fence between two fields, with juveniles on one side and adults on the other.</p>
-    <p><b>Where it breaks.</b> This fence is always straight. If the true edge between the groups curves, a straight fence misclassifies sharks near the bend. Curved edges need more than one weighted sum: hidden layers (<a href="../b2-non-linearity/">B2</a>) or trees (<a href="../a5-decision-trees/#read">A5</a>).</p>
+    <p><b>Where it breaks.</b> This fence is always straight. If the true edge between the groups curves, a straight fence misclassifies sharks near the bend. Curved edges need more than one weighted sum: hidden layers (<a href="../b2-non-linearity/#bend">B2</a>) or trees (<a href="../a5-decision-trees/#read">A5</a>).</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> On a two-class problem with balanced classes, an accuracy well below 50% means the labels or the signs are flipped, since a coin does better. Compare with the lazy model of <a href="../a1-what-is-a-model/#lazy">A1</a> (67.5% here) before you trust a score, and plot the data with the boundary on it.</p>
@@ -191,7 +191,7 @@ for name, (length, girth) in sharks.items():
 Tag 4127     z =   5.08  p(adult) = 0.994  call: adult
 Tag 5519     z =  25.20  p(adult) = 1.000  call: adult
 a small one  z =  -2.39  p(adult) = 0.084  call: juvenile</pre>
-  <p class="used"><b>Used in:</b> the same boundary picture explains a neuron's decision (<a href="../b1-one-neuron/">B1</a>), and a boundary that bends is the reason for hidden layers (<a href="../b2-non-linearity/">B2</a>). Moving the threshold along the probability scale is the topic of <a href="../a4-grading-models/#threshold">A4</a>.</p>
+  <p class="used"><b>Used in:</b> the same boundary picture explains a neuron's decision (<a href="../b1-one-neuron/#neuron">B1</a>), and a boundary that bends is the reason for hidden layers (<a href="../b2-non-linearity/#bend">B2</a>). Moving the threshold along the probability scale is the topic of <a href="../a4-grading-models/#threshold">A4</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The scores of three sharks are +2, 0 and &minus;1. Which side of the boundary are they on, and which is closest to the boundary?</summary><p>The first is on the adult side, the third on the juvenile side, and the second lies on the boundary itself. A smaller \(|z|\) means closer to the boundary and a less certain call.</p></details>
@@ -250,7 +250,7 @@ for z in [-6.0, -2.0, 0.0, 2.0]:
 z =  -2.0  p = 0.1192  log loss  2.127 slope -0.8808 | squared loss 0.776 slope -0.18496
 z =   0.0  p = 0.5000  log loss  0.693 slope -0.5000 | squared loss 0.250 slope -0.25000
 z =   2.0  p = 0.8808  log loss  0.127 slope -0.1192 | squared loss 0.014 slope -0.02503</pre>
-  <p class="used"><b>Used in:</b> log loss is the cross-entropy that trains language models (<a href="../d3-next-token/">D3</a>) and image classifiers (<a href="../c2-cnns/">C2</a>). Its starting value for a model that guesses is a check in <a href="../b8-debugging/">B8</a>.</p>
+  <p class="used"><b>Used in:</b> log loss is the cross-entropy that trains language models (<a href="../d3-next-token/#loss">D3</a>) and image classifiers (<a href="../c2-cnns/#stack">C2</a>). Its starting value for a model that guesses is a check in <a href="../b8-debugging/#recipe">B8</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A model gives probability 0.9 to the true label. What is the log loss, and what would it be at 0.1?</summary><p>\(-\ln 0.9 = 0.105\), and \(-\ln 0.1 = 2.30\). The second is 22 times larger: a confident mistake costs far more than a small one.</p></details>
@@ -339,7 +339,7 @@ step  100: log loss = 0.1873, accuracy = 0.90
 step 2000: log loss = 0.1716, accuracy = 0.95
 weights: [0.52 4.94] bias: 0.91</pre>
   <p>The loss starts at \(\ln 2 = 0.693\), as the debug tip predicts. With only 20 sharks the large weight goes to girth, and on all 268 records it goes to length. A small sample cannot separate two inputs that move together. These 20 sharks also lie close to the boundary, so they are almost separable.</p>
-  <p class="used"><b>Used in:</b> the same loop, with a bend added, trains one neuron (<a href="../b1-one-neuron/">B1</a>), and backpropagation (<a href="../b4-backpropagation/">B4</a>) computes \(p - y\) at the output of any classifier network.</p>
+  <p class="used"><b>Used in:</b> the same loop, with a bend added, trains one neuron (<a href="../b1-one-neuron/#fit">B1</a>), and backpropagation (<a href="../b4-backpropagation/#backward">B4</a>) computes \(p - y\) at the output of any classifier network.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>For one adult shark the model says \(p = 0.2\). What is \(\partial \ell/\partial z\), and which way does the update move the score?</summary><p>\(p - y = 0.2 - 1 = -0.8\). The slope is negative, so subtracting \(\eta\) times it raises \(z\), which raises \(p\) towards 1.</p></details>
@@ -381,7 +381,7 @@ weights: [0.52 4.94] bias: 0.91</pre>
     <p><b>Better account.</b> Report the result for the five species, and grade on sharks the model has not seen (<a href="../a4-grading-models/#splits">A4</a>). Compare the cross-entropy with the lazy model's 1.23 and a uniform guess of \(\ln 5 = 1.61\). The model's value is 0.57.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> The scores need one entry per class, and the probabilities must add to 1. If they do not, softmax was applied along the wrong axis. For a model that has not started to learn, the loss should be near \(\ln K\) for \(K\) classes (\(\ln 5 = 1.61\)); a very different starting value points to a bug (<a href="../b8-debugging/">B8</a>).</p>
+    <p><b>Debug tip.</b> The scores need one entry per class, and the probabilities must add to 1. If they do not, softmax was applied along the wrong axis. For a model that has not started to learn, the loss should be near \(\ln K\) for \(K\) classes (\(\ln 5 = 1.61\)); a very different starting value points to a bug (<a href="../b8-debugging/#recipe">B8</a>).</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -402,7 +402,7 @@ bamboo      score   5.43  probability 0.220
 hammerhead  score  -0.62  probability 0.001
 ganges      score -14.42  probability 0.000
 model says: spadenose - loss if the true species is bamboo: 1.512</pre>
-  <p class="used"><b>Used in:</b> the last layer of an image classifier is a softmax classifier on top of learned features (<a href="../c2-cnns/">C2</a>). A language model uses one with tens of thousands of classes, the words (<a href="../d3-next-token/">D3</a>).</p>
+  <p class="used"><b>Used in:</b> the last layer of an image classifier is a softmax classifier on top of learned features (<a href="../c2-cnns/#read">C2</a>). A language model uses one with tens of thousands of classes, the words (<a href="../d3-next-token/#distribution">D3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A softmax classifier has 4 classes and 3 inputs. How many weights and biases does it have?</summary><p>\(4 \times 3 = 12\) weights and 4 biases, 16 numbers in all.</p></details>
@@ -471,7 +471,7 @@ model says: spadenose - loss if the true species is bamboo: 1.512</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="a3-logistic-regression.js?v=1" defer></script>
 </body>
 </html>

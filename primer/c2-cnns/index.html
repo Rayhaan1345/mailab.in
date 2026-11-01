@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .card .bar { row-gap: 8px; }
@@ -121,7 +121,7 @@ canvas.kern { width: 34px; height: 34px; margin: 0 auto 4px; }
   <p class="math">\[ \begin{aligned} \mathbf{h}^{[1]} &= \mathrm{pool}\big(\mathrm{ReLU}(K^{[1]} * \mathbf{x} + \mathbf{b}^{[1]})\big) \\ \mathbf{h}^{[2]} &= \mathrm{pool}\big(\mathrm{ReLU}(K^{[2]} * \mathbf{h}^{[1]} + \mathbf{b}^{[2]})\big) \\ \mathbf{p} &= \mathrm{softmax}\big(W\,\mathrm{flat}(\mathbf{h}^{[2]}) + \mathbf{b}\big) \end{aligned} \]</p>
   <ul class="math-notes">
     <li><b>\(\mathbf{x}\)</b> is the 28 by 28 picture and <b>\(\mathbf{h}^{[l]}\)</b> is the stack of maps after layer \(l\) (6 maps of 13 by 13, then 12 maps of 5 by 5).</li>
-    <li><b>\(K^{[l]}\)</b> contains the filters of layer \(l\). The star means slide and sum, as in C1. A filter in layer 2 spans all 6 maps of layer 1, so it has \(3 \cdot 3 \cdot 6\) weights.</li>
+    <li><b>\(K^{[l]}\)</b> contains the filters of layer \(l\). Here \(K\) is short for kernel, the filter of <a href="../c1-convolution/#filter">C1</a>, and not the keys of attention. The star means slide and sum, as in C1. A filter in layer 2 spans all 6 maps of layer 1, so it has \(3 \cdot 3 \cdot 6\) weights.</li>
     <li><b>\(\mathbf{b}^{[l]}\)</b> is one bias per filter. <b>\(W\)</b> and <b>\(\mathbf{b}\)</b> are the weights (10 by 300) and biases of the dense layer.</li>
     <li><b>\(\mathbf{p}\)</b> is the vector of ten probabilities. Softmax is the function of <a href="../a3-logistic-regression/#softmax">A3</a>.</li>
   </ul>
@@ -215,7 +215,7 @@ pass 2: last loss 0.045, test accuracy 0.974</pre>
   <div class="break">
     <p><b>Common belief.</b> A network that is right on 98.9% of test digits knows what a digit is.</p>
     <p><b>Why it fails.</b> The 98.9% was measured on digits only. The network was also given 2,000 images of random noise (pixel values drawn at random between 0 and 1). It answered 8 for all of them, with a probability above 0.9 for 94% of them. Draw a scribble or a letter, and you will probably see a confident answer too. The ten probabilities must add up to 1, so there is no way to say &ldquo;none of these&rdquo;.</p>
-    <p><b>Better account.</b> A softmax probability is a share among the ten classes it was trained on. It does not measure whether the picture is a digit at all. Fixes include an extra class for &ldquo;not a digit&rdquo; and checks on the scores before softmax. <a href="../b9-explaining/">B9</a> shows what a network looks at when it makes a call like this.</p>
+    <p><b>Better account.</b> A softmax probability is a share among the ten classes it was trained on. It does not measure whether the picture is a digit at all. Fixes include an extra class for &ldquo;not a digit&rdquo; and checks on the scores before softmax. <a href="../b9-explaining/#cam">B9</a> shows what a network looks at when it makes a call like this.</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> When a model works on test digits and fails on your own pictures, look at what it receives. Compare your 28 by 28 array with a test digit. Is the ink high and the paper 0 (white on black)? Is the digit about 20 squares tall and centred? Is the scale 0 to 1? Most failures of a first deployed model are a mismatch in one of these, not a wrong network. The panel &ldquo;What the network sees&rdquo; is that check.</p>
@@ -314,7 +314,7 @@ pool2: receptive field 10 x 10, jump 4</pre>
     <div class="eqn eqs" id="pm-eqn2"></div>
   </div>
   <p class="cap"><b>For the 28 by 28 digit a dense layer needs 3,183,960 numbers, a locally connected layer 40,560 and a convolution 60. For a 224 by 224 photo with 64 maps the dense layer needs about 483 billion.</b> The vertical axis is logarithmic, so equal steps are factors of 10.</p>
-  <p>The three rows of equation boxes follow from counting weights. A dense layer connects all \(n \cdot n \cdot C_{\text{in}}\) inputs to all \(m \cdot m \cdot F\) outputs, plus one bias per output. A locally connected layer connects an output to only \(k \cdot k \cdot C_{\text{in}}\) inputs, but keeps separate weights for separate output squares, so it needs \((k^2 C_{\text{in}} + 1) \cdot m^2 F\). A convolution uses one set of weights per filter for all positions.</p>
+  <p>The three rows of equation boxes follow from counting weights. A dense layer connects all \(n \cdot n \cdot C_{\text{in}}\) inputs to all \(m \cdot m \cdot F\) outputs, plus one bias per output. Here \(m\) is the side of an output map and \(F\) the number of maps. They are not the number of examples or the Fisher information. A locally connected layer connects an output to only \(k \cdot k \cdot C_{\text{in}}\) inputs, but keeps separate weights for separate output squares, so it needs \((k^2 C_{\text{in}} + 1) \cdot m^2 F\). A convolution uses one set of weights per filter for all positions.</p>
   <p class="math">\[ \begin{aligned} N_{\text{dense}} &= (n^2 C_{\text{in}} + 1)\, m^2 F \\ N_{\text{local}} &= (k^2 C_{\text{in}} + 1)\, m^2 F \\ N_{\text{conv}} &= (k^2 C_{\text{in}} + 1)\, F \end{aligned} \]</p>
   <ul class="math-notes">
     <li><b>\(n\)</b> is the side of the input and <b>\(C_{\text{in}}\)</b> its number of channels; <b>\(m\)</b> is the side of an output map and <b>\(F\)</b> the number of maps (filters).</li>
@@ -373,7 +373,7 @@ print(counts(224, 3, 64, 3, same=True))</code></pre>
   <div class="break">
     <p><b>Common belief.</b> A CNN is invariant to where the object is, because it uses the same filter at all positions.</p>
     <p><b>Why it fails.</b> The measured curve of the network trained on centred digits falls to 44% at 5 squares. Equivariance is a property of the convolution layers. Invariance of the final answer is not, and the dense layer is where it can be lost.</p>
-    <p><b>Better account.</b> Convolution gives equivariance, pooling a little tolerance, and examples with shifts teach the rest. The shifted training examples lifted the accuracy at 3 squares from 87.9% to 95.7%. Turning is different: the training here only included turns up to 10 degrees, so the network is only about 2 points better at 40 degrees. It learns the changes it was shown. <a href="../c3-domain-shift/">C3</a> uses the same idea to prepare a network for murky water.</p>
+    <p><b>Better account.</b> Convolution gives equivariance, pooling a little tolerance, and examples with shifts teach the rest. The shifted training examples lifted the accuracy at 3 squares from 87.9% to 95.7%. Turning is different: the training here only included turns up to 10 degrees, so the network is only about 2 points better at 40 degrees. It learns the changes it was shown. <a href="../c3-domain-shift/#augment">C3</a> uses the same idea to prepare a network for murky water.</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> When a model does well on the test set and badly in the field, the first suspect is a difference in position, size, lighting or colour between the two. Make a test set that applies one of those changes at a time, as this figure does, and measure which one hurts. That tells you which augmentation to add.</p>
@@ -453,7 +453,7 @@ moved right by 4 squares: test accuracy 0.594</pre>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="c2-cnns.js?v=1" defer></script>
 </body>
 </html>

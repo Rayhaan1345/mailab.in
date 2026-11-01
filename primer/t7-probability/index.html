@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .card .bar .label { margin-right: 4px; }
@@ -44,7 +44,7 @@ code { overflow-wrap: anywhere; }
   <p>A model's output is a list of probabilities, its training signal is a loss built from them, and its test score is a number that changes with the test set. This chapter covers the tools for reading all three. They are mean and spread, the normal curve, base rates and Bayes' rule, softmax, cross-entropy and moving averages. The last tools say how far a score can be trusted: resampling, confidence intervals and tests.</p>
   <p>It ends with the warning that any data scientist needs early: two columns that move together do not show that one drives the other.</p>
 </div>
-<p class="youneed"><b>You will need:</b> <a href="../t3-algebra-functions/">exponents and logarithms</a> for softmax and cross-entropy, and the idea of a slope from <a href="../t6-gradients/">0.6</a>. Vectors (<a href="../t5-vectors-matrices/">0.5</a>) appear once, in the correlation section.</p>
+<p class="youneed"><b>You will need:</b> <a href="../t3-algebra-functions/#logs">exponents and logarithms</a> for softmax and cross-entropy, and the idea of a slope from <a href="../t6-gradients/#slope">0.6</a>. Vectors (<a href="../t5-vectors-matrices/#dot">0.5</a>) appear once, in the correlation section.</p>
 
 <nav class="toc" aria-label="Contents">
   <ol>
@@ -111,7 +111,7 @@ median : 35.4
 SD     : 5.12 (divides by n)
 SD     : 5.43 (divides by n - 1)
 after the slip: 42.42 18.88 35.4</pre>
-  <p class="used"><b>Used in:</b> checking data before training (<a href="../a1-what-is-a-model/">A1</a>, <a href="../b8-debugging/">B8</a>), and the spread of a test score (sections below).</p>
+  <p class="used"><b>Used in:</b> checking data before training (<a href="../b8-debugging/#recipe">B8</a>), and the spread of a test score (sections below).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why does the SD react more to one outlier than the mean does?</summary><p>The SD squares the deviations, so a deviation twice as large counts four times as much. The mean only adds the values.</p></details>
@@ -140,7 +140,7 @@ after the slip: 42.42 18.88 35.4</pre>
   </div>
   <p class="cap"><b>For lengths, 66% of the sharks fall within one SD, close to the normal curve's 68%. Switch to weight and the curve spills below 0 kg: a bell curve fits weight poorly.</b></p>
   <p>The bars are the share of the 268 spadenose sharks in the made-up catch records that fall in a bin. The coral curve is the normal curve for the \(\mu\) and \(\sigma\) you choose, with the darker band for one SD and the lighter for two. "Fit to the data" sets \(\mu\) and \(\sigma\) to the column's own mean and SD. Now switch to the standardised view. A value \(x\) becomes \(z = (x-\mu)/\sigma\), and with the fitted numbers the histogram lines up with the same standard curve whether the column is in centimetres or kilograms. Drag the sliders away from the fit and the histogram slides off the curve.</p>
-  <p>Standardising matters for training. Length runs from 20 to 60 and weight from 0.02 to 0.8, so a model that adds them up mixes very different scales. <a href="../a2-linear-regression/">A2</a> uses z-scores for feature scaling, and batch norm in <a href="../b6-deep-networks/">B6</a> standardises numbers inside a network.</p>
+  <p>Standardising matters for training. Length runs from 20 to 60 and weight from 0.02 to 0.8, so a model that adds them up mixes very different scales. <a href="../a2-linear-regression/#scaling">A2</a> uses z-scores for feature scaling, and batch norm in <a href="../b6-deep-networks/#norm">B6</a> standardises numbers inside a network.</p>
   <p class="math">\[ z = \frac{x-\mu}{\sigma} \qquad f(x) = \frac{1}{\sigma\sqrt{2\pi}}\;e^{-(x-\mu)^2/(2\sigma^2)} \]</p>
   <ul class="math-notes">
     <li><b>\(\mu\)</b> is the mean and <b>\(\sigma\)</b> the SD of the column (for a sample, the sample mean and SD).</li>
@@ -152,7 +152,7 @@ after the slip: 42.42 18.88 35.4</pre>
     <p><b>Better account.</b> Look at the histogram first. Standardising works for any column, but the 68-95-99.7 rule applies only to columns that are close to a bell curve.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> Compute the mean and SD on the training data only, then reuse those same two numbers on validation and test data. Standardising the validation and test sets with their own numbers lets test information leak into the model and hides shifts in the data (<a href="../a4-grading-models/">A4</a>).</p>
+    <p><b>Debug tip.</b> Compute the mean and SD on the training data only, then reuse those same two numbers on validation and test data. Standardising the validation and test sets with their own numbers lets test information leak into the model and hides shifts in the data (<a href="../a4-grading-models/#leak">A4</a>).</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -176,7 +176,7 @@ print("z of a 52 cm shark:", standardise(new_shark, length.mean(), length.std())
 weight z: [-0.89 -0.56 -0.68 -0.63 -0.36 -0.21 -0.35  1.93  1.74]
 means about 0: True  SDs: 1.0 1.0
 z of a 52 cm shark: [2.88]</pre>
-  <p class="used"><b>Used in:</b> feature scaling (<a href="../a2-linear-regression/">A2</a>), batch norm and layer norm (<a href="../b6-deep-networks/">B6</a>), and the normal-curve intervals later in this chapter.</p>
+  <p class="used"><b>Used in:</b> feature scaling (<a href="../a2-linear-regression/#scaling">A2</a>), batch norm and layer norm (<a href="../b6-deep-networks/#norm">B6</a>), and the normal-curve intervals later in this chapter.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A shark is 52 cm long. Lengths have mean 39.1 and SD 8.6. What is its z-score, and is it unusual?</summary><p>\(z = (52 - 39.1)/8.6 = 1.5\). That is 1.5 SDs above the mean, large but not rare: about 7% of a bell curve lies above it.</p></details>
@@ -205,7 +205,7 @@ z of a 52 cm shark: [2.88]</pre>
     <p class="status" id="by-status" aria-live="polite"></p>
   </div>
   <p class="cap"><b>With 8 in 100 patients sick and a test that is 90% sensitive and 90% specific, the test flags 164 of 1,000 patients. Only 72 of the 164 (44%) have diabetes.</b> Step through the four views, then move the sliders.</p>
-  <p>A circle is a patient, a thousand in all. Coral circles have diabetes and navy circles do not. A filled circle means the test flagged the patient and a ring means it cleared the patient. <i>Sensitivity</i> is the share of sick patients the test flags, and <i>specificity</i> is the share of healthy patients it clears (<a href="../a4-grading-models/">A4</a> grades models with both). Choose "Only the flagged". A flagged patient asks one question: of all the filled circles, how many are coral? With 8% prevalence the answer is 44%, because 92 of the 920 healthy patients are flagged by mistake, which is more than the 72 sick patients the test catches.</p>
+  <p>A circle is a patient, a thousand in all. Coral circles have diabetes and navy circles do not. A filled circle means the test flagged the patient and a ring means it cleared the patient. <i>Sensitivity</i> is the share of sick patients the test flags, and <i>specificity</i> is the share of healthy patients it clears (<a href="../a4-grading-models/#matrix">A4</a> grades models with both). Choose "Only the flagged". A flagged patient asks one question: of all the filled circles, how many are coral? With 8% prevalence the answer is 44%, because 92 of the 920 healthy patients are flagged by mistake, which is more than the 72 sick patients the test catches.</p>
   <p>Try the second example. It uses a one-line rule on the Pima data: flag any woman whose glucose is 140 mg/dL or higher. The Pima data is a published dataset of 768 women of Pima heritage, measured in the United States and not in Mumbai. Among the 763 women with a glucose reading, the rule flags 51% of those with diabetes and clears 88% of those without. The Pima sample has a high base rate (268 of 768 women, 34.9%), so 69% of flagged women have diabetes. The same rule in a population where few have diabetes would be much less reliable. The third example shows a test that is 99% sensitive and 95% specific, with 1% prevalence. A flagged patient has only a 17% chance of having the condition.</p>
   <p class="math">\[ P(D \mid +) = \frac{P(+ \mid D)\,P(D)}{P(+ \mid D)\,P(D) + P(+ \mid \text{not } D)\,P(\text{not } D)} \]</p>
   <ul class="math-notes">
@@ -236,7 +236,7 @@ print("Bayes' rule:", round(p, 3))</code></pre>
   <pre class="out">flagged: 164.0  of which sick: 72.0
 chance a flagged patient is sick: 0.439
 Bayes' rule: 0.439</pre>
-  <p class="used"><b>Used in:</b> precision, recall and screening in <a href="../a4-grading-models/">A4</a>, the clinic case in <a href="../f1-fairness/">F1</a>, and the diabetes screening project (<a href="https://rayhaan1345.github.io/projects/diabetes-screening/">project page</a>). There the base rate of diabetes in one population need not match another.</p>
+  <p class="used"><b>Used in:</b> precision, recall and screening in <a href="../a4-grading-models/#screening">A4</a>, the clinic case in <a href="../f1-fairness/#missing">F1</a>, and the diabetes screening project (<a href="https://rayhaan1345.github.io/projects/diabetes-screening/">project page</a>). There the base rate of diabetes in one population need not match another.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The same 90%/90% test is used where 35% of patients are sick. Does a flagged patient's chance of being sick rise or fall, and to what?</summary><p>It rises, to about 83%: \(0.9 \times 0.35 = 0.315\) flagged and sick, against \(0.1 \times 0.65 = 0.065\) flagged and healthy, so \(0.315/0.380 = 0.83\).</p></details>
@@ -251,7 +251,7 @@ Bayes' rule: 0.439</pre>
   <dl class="terms">
     <div><dt>score (logit) \(z_k\)</dt><dd>the raw number a model gives to class \(k\) before any probabilities</dd></div>
     <div><dt>softmax</dt><dd>raises \(e\) to the power of the scores and divides by the total, so the results add up to 1</dd></div>
-    <div><dt>temperature \(T\)</dt><dd>a number that divides the scores first: low makes the top class dominate, high flattens the result</dd></div>
+    <div><dt>temperature \(T\)</dt><dd>a number that divides the scores first: low makes the top class dominate, high flattens the result (<a href="../d3-next-token/#sampling">D3</a> uses it to sample)</dd></div>
     <div><dt>probability distribution</dt><dd>non-negative numbers, one per class, that add up to 1</dd></div>
   </dl>
   <p class="claim">Softmax turns any list of scores into a probability distribution, and the temperature sets how sharply the top score wins.</p>
@@ -263,7 +263,7 @@ Bayes' rule: 0.439</pre>
     <p class="status" id="sm-status" aria-live="polite"></p>
   </div>
   <p class="cap"><b>At T = 1 the top species gets 66%. At T = 0.3 it gets 98%. At T = 5 all five species get between 12% and 29%.</b> The scores are made up, for one photo.</p>
-  <p>The scores never change in this figure. Only \(T\) does. Click a species to see the working for its probability. Press "Draw 100" to pick species at random from the probabilities: the outline shows how often the species came up, and it settles towards the bar as you draw more. At a low temperature, nearly all draws are the top species. At a high temperature, even Ganges sharks, the least likely choice, appear regularly. Language models use this dial when they pick the next word (<a href="../d3-next-token/">D3</a>).</p>
+  <p>The scores never change in this figure. Only \(T\) does. Click a species to see the working for its probability. Press "Draw 100" to pick species at random from the probabilities: the outline shows how often the species came up, and it settles towards the bar as you draw more. At a low temperature, nearly all draws are the top species. At a high temperature, even Ganges sharks, the least likely choice, appear regularly. Language models use this dial when they pick the next word (<a href="../d3-next-token/#sampling">D3</a>).</p>
   <p class="math">\[ \mathrm{softmax}(\mathbf{z})_k = \frac{e^{z_k/T}}{\sum_{j} e^{z_j/T}} \]</p>
   <ul class="math-notes">
     <li><b>\(z_k\)</b> is the score of class \(k\), and \(\sum_j\) adds over all classes.</li>
@@ -273,7 +273,7 @@ Bayes' rule: 0.439</pre>
   <div class="break">
     <p><b>Common belief.</b> A softmax probability of 0.98 means the model is 98% sure it is right.</p>
     <p><b>Why it fails.</b> Softmax always produces numbers that add up to 1, even for a photo of a boat, and a model trained to be confident can give 0.98 to a wrong answer.</p>
-    <p><b>Better account.</b> Treat the outputs as relative preferences. Whether 0.98 matches how often the model is right is tested on held-out data (<a href="../a4-grading-models/">A4</a>).</p>
+    <p><b>Better account.</b> Treat the outputs as relative preferences. Whether 0.98 matches how often the model is right is tested on held-out data (<a href="../a4-grading-models/#threshold">A4</a>).</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> Computing \(e^{z}\) for a large score overflows and returns <code>nan</code>. Subtract the largest score first: the probabilities are identical and no number gets large. Serious libraries do this.</p>
@@ -298,7 +298,7 @@ T = 1.0: [0.655 0.197 0.098 0.04  0.01 ]
 T = 5.0: [0.288 0.226 0.197 0.164 0.124]
 naive : [nan nan]
 stable: [0.731 0.269]</code></pre>
-  <p class="used"><b>Used in:</b> the softmax classifier (<a href="../a3-logistic-regression/">A3</a>), next-word probabilities and temperature (<a href="../d3-next-token/">D3</a>), and attention weights (<a href="../d4-self-attention/">D4</a>).</p>
+  <p class="used"><b>Used in:</b> the softmax classifier (<a href="../a3-logistic-regression/#softmax">A3</a>), next-word probabilities and temperature (<a href="../d3-next-token/#sampling">D3</a>), and attention weights (<a href="../d4-self-attention/#score">D4</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Scores of 3, 3 and 3 go into softmax. What probabilities come out?</summary><p>One third for all three. Only the differences between scores matter, and here they are all zero.</p></details>
@@ -332,7 +332,7 @@ stable: [0.731 0.269]</code></pre>
   <p class="math">\[ \ell = -\ln p_{\text{true}} \qquad L = -\frac{1}{m}\sum_{i=1}^{m} \ln p^{(i)}_{\text{true}} \qquad \text{perplexity} = e^{L} \]</p>
   <ul class="math-notes">
     <li><b>\(p_{\text{true}}\)</b> is the probability the model gave the correct class, usually from a softmax. <b>\(\ell\)</b> is the loss on one example and <b>\(L\)</b> the average over a batch or data set.</li>
-    <li>If all \(K\) classes get equal probability, \(p = 1/K\) and \(\ell = \ln K\). With five species that is 1.609, a useful number to expect at the start of training (<a href="../b8-debugging/">B8</a>).</li>
+    <li>If all \(K\) classes get equal probability, \(p = 1/K\) and \(\ell = \ln K\). With five species that is 1.609, a useful number to expect at the start of training (<a href="../b8-debugging/#recipe">B8</a>).</li>
     <li>The slope of \(-\ln p\) is \(-1/p\) (<a href="../t6-gradients/#rules">0.6</a>), so a confident mistake receives a very strong push to change.</li>
   </ul>
   <div class="break">
@@ -356,7 +356,7 @@ print("five equal scores:", round(-np.log(1 / 5), 3), "= ln 5 =", round(np.log(5
   <pre class="out">C accuracy 0.75  cross-entropy 1.19
 D accuracy 0.75  cross-entropy 0.684
 five equal scores: 1.609 = ln 5 = 1.609</pre>
-  <p class="used"><b>Used in:</b> logistic regression and the softmax classifier (<a href="../a3-logistic-regression/">A3</a>), the loss for networks (<a href="../b3-loss-gradient-descent/">B3</a>), and next-word prediction and perplexity (<a href="../d3-next-token/">D3</a>).</p>
+  <p class="used"><b>Used in:</b> logistic regression and the softmax classifier (<a href="../a3-logistic-regression/#softmax">A3</a>), the loss for networks (<a href="../b3-loss-gradient-descent/#cost">B3</a>), and next-word prediction and perplexity (<a href="../d3-next-token/#perplexity">D3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the loss when a model gives the true class probability 0.25?</summary><p>\(-\ln 0.25 = \ln 4 = 1.386\). It is the loss of a model that spreads its belief evenly over four classes.</p></details>
@@ -388,14 +388,14 @@ five equal scores: 1.609 = ln 5 = 1.609</pre>
   <ul class="math-notes">
     <li><b>\(x_t\)</b> is the reading on day \(t\) and <b>\(\bar{x}_t\)</b> the moving average after day \(t\). <b>\(\beta\)</b> is the decay.</li>
     <li>The second form shows that the EMA is a weighted mean of all past readings, with weights \((1-\beta)\beta^k\) for a reading \(k\) days old.</li>
-    <li>Momentum and Adam (<a href="../b5-optimisers/">B5</a>) use this update on gradients, with \(\beta_1\) and \(\beta_2\).</li>
+    <li>Momentum and Adam (<a href="../b5-optimisers/#momentum">B5</a>) use this update on gradients, with \(\beta_1\) and \(\beta_2\).</li>
   </ul>
   <div class="break">
     <p><b>Analogy.</b> A leaky bucket. Day by day you pour in a small share of today's water, and a share of the old water leaks out.</p>
     <p><b>Where it breaks.</b> A bucket eventually forgets old water completely. An EMA never does: its weights shrink but never reach zero. A moving average of the last \(N\) readings, by contrast, drops a reading entirely on day \(N+1\).</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> If you start an EMA at 0, its first values are biased towards 0. Choose the "Start at 0" option in the figure. Adam divides by \(1-\beta^t\) to fix this, which is why that factor appears in <a href="../b5-optimisers/">B5</a>.</p>
+    <p><b>Debug tip.</b> If you start an EMA at 0, its first values are biased towards 0. Choose the "Start at 0" option in the figure. Adam divides by \(1-\beta^t\) to fix this, which is why that factor appears in <a href="../b5-optimisers/#adam">B5</a>.</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -414,7 +414,7 @@ print("plain mean    :", round(x.mean(), 2))</code></pre>
   <pre class="out">start at 0   : [ 2.84  5.45  7.68  9.77 11.71 13.36 14.87 16.25]
 bias-corrected: [28.4  28.66 28.34 28.42 28.59 28.5  28.5  28.54]
 plain mean    : 28.52</pre>
-  <p class="used"><b>Used in:</b> momentum and Adam (<a href="../b5-optimisers/">B5</a>), smoothing a noisy training-loss curve (<a href="../b8-debugging/">B8</a>), and the running averages inside batch norm (<a href="../b6-deep-networks/">B6</a>).</p>
+  <p class="used"><b>Used in:</b> momentum and Adam (<a href="../b5-optimisers/#momentum">B5</a>), smoothing a noisy training-loss curve (<a href="../b8-debugging/#lrtest">B8</a>), and the running averages inside batch norm (<a href="../b6-deep-networks/#norm">B6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>With \(\beta = 0.99\), about how many recent readings does the EMA effectively average?</summary><p>About \(1/(1-0.99) = 100\).</p></details>
@@ -470,7 +470,7 @@ average after  100 dives: 0.91
 average after 1000 dives: 0.787
 standard error at n = 100: 0.089</pre>
   <p>In this run, the first 10 dives gave 1.0, a gap of 0.25. That is within the typical wobble of 0.28. With another seed, the average could fall anywhere in the funnel.</p>
-  <p class="used"><b>Used in:</b> how much to trust a score on a held-out set (<a href="../a4-grading-models/">A4</a>), batch size and gradient noise (<a href="../b3-loss-gradient-descent/">B3</a>), and the next two sections.</p>
+  <p class="used"><b>Used in:</b> how much to trust a score on a held-out set (<a href="../a4-grading-models/#splits">A4</a>), batch size and gradient noise (<a href="../b3-loss-gradient-descent/#noise">B3</a>), and the next two sections.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A test set has 100 frames and the score wobbles by about 4 points. How many frames would you need to bring the wobble to about 2 points?</summary><p>You would need 400. The wobble goes with \(1/\sqrt{n}\), so halving it needs four times the frames.</p></details>
@@ -510,7 +510,7 @@ standard error at n = 100: 0.089</pre>
     <p><b>Better account.</b> The method catches the truth in about 95 of 100 repeated studies, and the figure shows it. Treat the interval as the range of values the data does not rule out.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> The bootstrap only describes noise from a finite test set. Suppose the test women come from a different population than the people the model will meet, such as Pima women versus Mumbai patients. Then the interval is narrow and still misleading (<a href="../c3-domain-shift/">C3</a>, <a href="../f1-fairness/">F1</a>).</p>
+    <p><b>Debug tip.</b> The bootstrap only describes noise from a finite test set. Suppose the test women come from a different population than the people the model will meet, such as Pima women versus Mumbai patients. Then the interval is narrow and still misleading (<a href="../c3-domain-shift/#water">C3</a>, <a href="../f1-fairness/#missing">F1</a>).</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -527,7 +527,7 @@ print("formula     :", round(p - 1.96 * np.sqrt(p * (1 - p) / 154), 3), "to", ro
   <pre class="out">score: 0.786
 95% interval: 0.721 to 0.851
 formula     : 0.721 to 0.851</pre>
-  <p class="used"><b>Used in:</b> reporting a test score (<a href="../a4-grading-models/">A4</a>), comparing a model with its baseline (<a href="../a1-what-is-a-model/">A1</a>), and the test in the next section.</p>
+  <p class="used"><b>Used in:</b> reporting a test score (<a href="../a4-grading-models/#splits">A4</a>), comparing a model with its baseline (<a href="../a1-what-is-a-model/#lazy">A1</a>), and the test in the next section.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why does a resample contain 154 women when only 154 women exist?</summary><p>Women are drawn with replacement, so the same woman can be drawn several times and others not at all. A resample has the same size as the test set, which keeps the noise level right.</p></details>
@@ -558,7 +558,7 @@ formula     : 0.721 to 0.851</pre>
   <p class="math">\[ p\text{-value} = 2\sum_{k=b}^{d}\binom{d}{k}\frac{1}{2^{d}} \qquad \text{(for } b \ge d/2\text{)} \]</p>
   <ul class="math-notes">
     <li><b>\(d\)</b> is the number of frames where only one model is right and <b>\(b\)</b> the number B wins (the larger of the two counts).</li>
-    <li><b>\(\binom{d}{k}\)</b> counts the ways \(k\) of \(d\) coin flips can come up heads (<a href="../t4-discrete-maths/">0.4</a>). Dividing by \(2^d\) turns the count into a probability, and the 2 adds the equally lopsided split in the other direction. This is the sign test, a simple form of McNemar's test.</li>
+    <li><b>\(\binom{d}{k}\)</b> counts the ways \(k\) of \(d\) coin flips can come up heads (<a href="../t4-discrete-maths/#counting">0.4</a>). Dividing by \(2^d\) turns the count into a probability, and the 2 adds the equally lopsided split in the other direction. This is the sign test, a simple form of McNemar's test.</li>
   </ul>
   <div class="break">
     <p><b>Common belief.</b> A p-value of 0.12 means a 12% chance that the models are equal, so B is 88% likely to be better.</p>
@@ -566,7 +566,7 @@ formula     : 0.721 to 0.851</pre>
     <p><b>Better account.</b> A p-value of 0.12 says that luck alone would produce a split this lopsided about 1 time in 8. The American Statistical Association's 2016 statement adds that a p-value does not measure the size or importance of an effect. It also says that a decision should not rest only on whether a p-value passes a threshold such as 0.05.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> Try 20 models and pick the best, and one of them will look better than A by luck. Decide on the test and the test set before looking, and confirm the winner on a fresh set (<a href="../a4-grading-models/">A4</a>).</p>
+    <p><b>Debug tip.</b> Try 20 models and pick the best, and one of them will look better than A by luck. Decide on the test and the test set before looking, and confirm the winner on a fresh set (<a href="../a4-grading-models/#splits">A4</a>).</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 from math import comb
@@ -582,7 +582,7 @@ print("simulated:", np.mean(np.abs(wins - d / 2) >= abs(b - d / 2)))</code></pre
   <pre class="out">one side : 0.0592
 two sides: 0.1185
 simulated: 0.11945</pre>
-  <p class="used"><b>Used in:</b> comparing models and settings fairly (<a href="../a4-grading-models/">A4</a>, <a href="../a6-boosting/">A6</a>), and judging whether an adaptation method helps (<a href="../c3-domain-shift/">C3</a>).</p>
+  <p class="used"><b>Used in:</b> comparing models and settings fairly (<a href="../a4-grading-models/#cv">A4</a>, <a href="../a6-boosting/#forest">A6</a>), and judging whether an adaptation method helps (<a href="../c3-domain-shift/#adapt">C3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why do the 160 frames that both models get right play no part in the test?</summary><p>They do not separate the models. Only a frame where one model is right and the other wrong can favour either one.</p></details>
@@ -622,12 +622,12 @@ simulated: 0.11945</pre>
   <p class="math">\[ r = \frac{1}{n}\sum_{i=1}^{n} z_x^{(i)}\, z_y^{(i)} \]</p>
   <ul class="math-notes">
     <li><b>\(z_x^{(i)}\)</b> and <b>\(z_y^{(i)}\)</b> are the z-scores of day \(i\) for the two columns, and <b>\(n\)</b> the number of days.</li>
-    <li>Written as vectors of z-scores, \(r = \mathbf{z}_x\cdot\mathbf{z}_y / n\): a dot product (<a href="../t5-vectors-matrices/">0.5</a>) that equals the cosine of the angle between them.</li>
+    <li>Written as vectors of z-scores, \(r = \mathbf{z}_x\cdot\mathbf{z}_y / n\): a dot product (<a href="../t5-vectors-matrices/#cosine">0.5</a>) that equals the cosine of the angle between them.</li>
   </ul>
   <div class="break">
     <p><b>Common belief.</b> If two things move together, one causes the other.</p>
     <p><b>Why it fails.</b> A third quantity may drive both (a confounder, as here), the arrow may run the other way, or a small sample may produce a pattern by chance.</p>
-    <p><b>Better account.</b> Ask what happens when you set one of them by hand, which is an experiment, or compare cases that match on the likely confounder, as the narrow window does. Models learn correlations, so a shark detector may pick up "blue water" instead of sharks (<a href="../b9-explaining/">B9</a>).</p>
+    <p><b>Better account.</b> Ask what happens when you set one of them by hand, which is an experiment, or compare cases that match on the likely confounder, as the narrow window does. Models learn correlations, so a shark detector may pick up "blue water" instead of sharks (<a href="../b9-explaining/#shortcut">B9</a>).</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> One \(r\) for a pooled data set can mislead. Mixing two groups can create a correlation that neither group has, or hide one that both have. Colour the points by group before trusting a single number.</p>
@@ -647,7 +647,7 @@ print("r inside band  :", round(np.corrcoef(ice[band], seen[band])[0, 1], 2))</c
 days in band   : 31
 r inside band  : 0.1</pre>
   <p>The code draws its own made-up days, so its numbers differ a little from the figure's.</p>
-  <p class="used"><b>Used in:</b> feature importance and its limits (<a href="../a6-boosting/">A6</a>), spurious cues in images (<a href="../b9-explaining/">B9</a>), and subgroup checks in health data (<a href="../f1-fairness/">F1</a>).</p>
+  <p class="used"><b>Used in:</b> feature importance and its limits (<a href="../a6-boosting/#importance">A6</a>), spurious cues in images (<a href="../b9-explaining/#shortcut">B9</a>), and subgroup checks in health data (<a href="../f1-fairness/#groups">F1</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Hospitals with more doctors have more deaths. Name a confounder.</summary><p>Hospital size, or how ill the patients are. Large hospitals treat more and sicker patients, which raises both the number of doctors and the number of deaths.</p></details>
@@ -688,8 +688,8 @@ r inside band  : 0.1</pre>
   <h2 id="comeback-h">Come back later</h2>
   <p>Try these after two days and again after a week. Answer first, then open.</p>
   <div class="recall comeback">
-    <details><summary>The loss is \(-\ln p\) and its slope is \(-1/p\) (<a href="../t6-gradients/">0.6</a>). Use the slope to estimate how much the loss falls when \(p\) rises from 0.50 to 0.51, then compare with the true change.</summary><p>The slope at 0.5 is \(-2\), so a rise of 0.01 lowers the loss by about 0.02. The true change is \(\ln 0.51 - \ln 0.50 = 0.0198\) lower. The slope gives a close estimate for a small nudge.</p></details>
-    <details><summary>The correlation is \(r = \mathbf{z}_x\cdot\mathbf{z}_y/n\). What is the length of a z-score vector, and what does \(r\) equal in terms of vectors from <a href="../t5-vectors-matrices/">0.5</a>?</summary><p>The squares of the z-scores average to 1 (the SD is 1), so the vector's length is \(\sqrt{n}\). Then \(\mathbf{z}_x\cdot\mathbf{z}_y/n\) is the dot product of two vectors of length \(\sqrt{n}\) divided by \(n\), which is the cosine of the angle between them. So \(r\) is the cosine similarity of the two standardised columns.</p></details>
+    <details><summary>The loss is \(-\ln p\) and its slope is \(-1/p\) (<a href="../t6-gradients/#rules">0.6</a>). Use the slope to estimate how much the loss falls when \(p\) rises from 0.50 to 0.51, then compare with the true change.</summary><p>The slope at 0.5 is \(-2\), so a rise of 0.01 lowers the loss by about 0.02. The true change is \(\ln 0.51 - \ln 0.50 = 0.0198\) lower. The slope gives a close estimate for a small nudge.</p></details>
+    <details><summary>The correlation is \(r = \mathbf{z}_x\cdot\mathbf{z}_y/n\). What is the length of a z-score vector, and what does \(r\) equal in terms of vectors from <a href="../t5-vectors-matrices/#cosine">0.5</a>?</summary><p>The squares of the z-scores average to 1 (the SD is 1), so the vector's length is \(\sqrt{n}\). Then \(\mathbf{z}_x\cdot\mathbf{z}_y/n\) is the dot product of two vectors of length \(\sqrt{n}\) divided by \(n\), which is the cosine of the angle between them. So \(r\) is the cosine similarity of the two standardised columns.</p></details>
     <details><summary>A friend says that a p-value of 0.04 means there is a 96% chance model B is better. What is wrong, and what would you say instead?</summary><p>The p-value assumes the models are equal and gives how often luck would produce a result this lopsided: about 4% of the time. The p-value does not give the probability that either model is better. Say: if the models were equal, a gap this large would be unusual, and then give the size of the gap with an interval.</p></details>
   </div>
 </section>
@@ -721,7 +721,7 @@ r inside band  : 0.1</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="t7-probability.js?v=1" defer></script>
 </body>
 </html>

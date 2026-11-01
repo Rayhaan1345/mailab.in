@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Chapter 0.8 figures. Colours come from the site tokens. */
 .tscroll { overflow-x: auto; margin: 10px 0 0; }
@@ -133,7 +133,7 @@ for width in (40, 20, 10):
   </div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
-    <details><summary>The median length is 50.4 cm and the mean is 54.0 cm. What does the gap tell you about the lengths?</summary><p>A few very long sharks, such as the Ganges sharks, pull the mean up more than the median. The median is the middle record and does not move when the largest value grows. The mean adds the values up (<a href="../t7-probability/">0.7</a>).</p></details>
+    <details><summary>The median length is 50.4 cm and the mean is 54.0 cm. What does the gap tell you about the lengths?</summary><p>A few very long sharks, such as the Ganges sharks, pull the mean up more than the median. The median is the middle record and does not move when the largest value grows. The mean adds the values up (<a href="../t7-probability/#spread">0.7</a>).</p></details>
     <details><summary>You want to compare the typical length of five species. Which chart do you use?</summary><p>A box plot with one box per species. It shows the median and the spread side by side. A histogram of all sharks would blend the species.</p></details>
   </div>
 </section>
@@ -155,7 +155,7 @@ for width in (40, 20, 10):
     <div class="eqn" id="sc-eqn" role="img" aria-label="The exponent fitted on the log-log plot and its quality"></div>
   </div>
   <p class="cap"><b>The curve on linear axes becomes a straight line on log-log axes, and its slope is a little above 3.</b> The slope is fitted to the 600 made-up records of all species together.</p>
-  <p>Weight grows like length cubed because a shark that is twice as long is also taller and wider. On linear axes the small sharks are crushed into one corner, and the few large ones decide the picture. On a log-log plot a shark ten times heavier is the same distance to the right wherever it starts. The slope of the line is the exponent, about 3.2 here, because the species differ in size and in build. The next chapters use this to fit weight from length (<a href="../a2-linear-regression/">A2</a>).</p>
+  <p>Weight grows like length cubed because a shark that is twice as long is also taller and wider. On linear axes the small sharks are crushed into one corner, and the few large ones decide the picture. On a log-log plot a shark ten times heavier is the same distance to the right wherever it starts. The slope of the line is the exponent, about 3.2 here, because the species differ in size and in build. The next chapters use this to fit weight from length (<a href="../a2-linear-regression/#loglog">A2</a>).</p>
   <p class="math">\[ W = aL^{b} \quad\Longrightarrow\quad \log W = \log a + b\,\log L \]</p>
   <ul class="math-notes">
     <li><b>\(W\)</b> is the weight in kg and <b>\(L\)</b> the length in cm. <b>\(a\)</b> and <b>\(b\)</b> are constants of the species.</li>
@@ -255,10 +255,10 @@ print(round(lie_factor(female - 0, male - 0, female, male), 1))</code></pre>
   <h2 id="matrix-h">Reading a confusion matrix</h2>
   <p class="ask"><b>Guess first.</b> A model sorts 600 records into five species. A confusion matrix shows 261 in its top-left cell. Is 261 the number the model got right, the number it got wrong, or the number of spadenose sharks?</p>
   <dl class="terms">
-    <div><dt>confusion matrix</dt><dd>a table of counts: true class in the rows, predicted class in the columns (A4 grades models with it)</dd></div>
+    <div><dt>confusion matrix</dt><dd>a table of counts: true class in the rows, predicted class in the columns (<a href="../a4-grading-models/#matrix">A4</a> grades models with it)</dd></div>
     <div><dt>diagonal</dt><dd>the cells where the true and the predicted class agree</dd></div>
-    <div><dt>recall</dt><dd>of the animals of one true class, the share the model found (A4)</dd></div>
-    <div><dt>precision</dt><dd>of the animals the model gave one label, the share that is labelled correctly (A4)</dd></div>
+    <div><dt>recall</dt><dd>of the animals of one true class, the share the model found (<a href="../a4-grading-models/#matrix">A4</a>)</dd></div>
+    <div><dt>precision</dt><dd>of the animals the model gave one label, the share that is labelled correctly (<a href="../a4-grading-models/#matrix">A4</a>)</dd></div>
   </dl>
   <p class="claim">Read a row to see what happened to one true class, read a column to see what the model's label contained, and read the diagonal for what went right.</p>
   <div class="card" id="cm">
@@ -294,7 +294,7 @@ print(np.round(cm.diagonal() / cm.sum(axis=0), 3))  # precision: diagonal over c
   <div class="break">
     <p><b>Common belief.</b> High accuracy means the model is good at all the classes.</p>
     <p><b>Why it fails.</b> Accuracy adds up the diagonal, so large classes dominate it. A model that never finds the rarest class loses very little.</p>
-    <p><b>Better account.</b> Look at the row of the classes that matter to you. For a rare class the row, and not the overall accuracy, tells you whether the model is useful. <a href="../a4-grading-models/">A4</a> develops the scores.</p>
+    <p><b>Better account.</b> Look at the row of the classes that matter to you. For a rare class the row, and not the overall accuracy, tells you whether the model is useful. <a href="../a4-grading-models/#matrix">A4</a> develops the scores.</p>
   </div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
@@ -308,10 +308,10 @@ print(np.round(cm.diagonal() / cm.sum(axis=0), 3))  # precision: diagonal over c
   <h2 id="tables-h">Reading a results table</h2>
   <p class="ask"><b>Guess first.</b> Two models score 79.8% and 80.2% in a table. Is the second one better?</p>
   <dl class="terms">
-    <div><dt>baseline</dt><dd>a simple model used as a reference, such as always guessing the most common class (see <a href="../a1-what-is-a-model/">A1</a>)</dd></div>
-    <div><dt>train and test score</dt><dd>accuracy on the data the model learned from and on data it has not seen (see <a href="../a4-grading-models/">A4</a>)</dd></div>
+    <div><dt>baseline</dt><dd>a simple model used as a reference, such as always guessing the most common class (see <a href="../a1-what-is-a-model/#lazy">A1</a>)</dd></div>
+    <div><dt>train and test score</dt><dd>accuracy on the data the model learned from and on data it has not seen (see <a href="../a4-grading-models/#splits">A4</a>)</dd></div>
     <div><dt>run</dt><dd>one complete training and scoring with one random seed (<a href="../t1-python/#random">0.1</a>)</dd></div>
-    <div><dt>spread</dt><dd>how far the scores of different runs lie from their mean (<a href="../t7-probability/">0.7</a>)</dd></div>
+    <div><dt>spread</dt><dd>how far the scores of different runs lie from their mean (<a href="../t7-probability/#spread">0.7</a>)</dd></div>
   </dl>
   <p class="claim">A results table is a claim with its evidence in the columns. Read the baseline row, the split behind a score, the number of runs and the spread before you read the best number.</p>
   <div class="card" id="rt">
@@ -327,7 +327,7 @@ print(np.round(cm.diagonal() / cm.sum(axis=0), 3))  # precision: diagonal over c
   <p class="math">\[ \bar{x} = \frac{1}{m}\sum_{i=1}^{m} x_i, \qquad s = \sqrt{\frac{1}{m-1}\sum_{i=1}^{m}(x_i - \bar{x})^2} \]</p>
   <ul class="math-notes">
     <li><b>\(x_i\)</b> is the score of run \(i\), and <b>\(m\)</b> is the number of runs, here 5.</li>
-    <li><b>\(\bar{x}\)</b> is the mean score and <b>\(s\)</b> the sample standard deviation: a typical distance of a run from the mean. The chapter on probability (<a href="../t7-probability/">0.7</a>) explains both.</li>
+    <li><b>\(\bar{x}\)</b> is the mean score and <b>\(s\)</b> the sample standard deviation: a typical distance of a run from the mean. The chapter on probability (<a href="../t7-probability/#spread">0.7</a>) explains both.</li>
   </ul>
   <pre class="code" data-run><code>import numpy as np
 
@@ -414,7 +414,7 @@ boost 0.793 0.0111 0.7767 0.8033
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="t8-charts.js?v=1" defer></script>
 </body>
 </html>

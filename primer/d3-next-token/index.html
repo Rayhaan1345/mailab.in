@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .row-chips { display: inline-block; margin: 0 10px 6px 0; }
@@ -123,7 +123,7 @@
     <p><b>Why it fails.</b> The model has no stored list of sentences. It computes 50,257 scores from its weights. Its answer for &ldquo;put it&rdquo; was &ldquo;in&rdquo; more often than the true &ldquo;back&rdquo;, and for &ldquo;Two milk&rdquo; it never saw our sharks at all.</p>
     <p><b>Better account.</b> The model is a function from a context to a probability distribution. It was fitted to a large body of text, so it reflects that text.</p>
   </div>
-  <p class="used"><b>Used in:</b> all assistants (<a href="../d7-assistants/">D7</a>). The next section shows how a token is chosen from these probabilities.</p>
+  <p class="used"><b>Used in:</b> all assistants (<a href="../d7-assistants/#stages">D7</a>). The next section shows how a token is chosen from these probabilities.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Scores of 0 and &minus;0.45 for two tokens. If all other tokens are ignored, what are their probabilities?</summary><p>\(e^0 = 1\) and \(e^{-0.45} = 0.638\), which sum to 1.638. So \(0.61\) and \(0.39\). Only differences between scores matter.</p></details>
@@ -199,7 +199,7 @@ greedy:  in</pre>
   <div class="debug">
     <p><b>Debug tip.</b> Temperature 0 divides by zero. Libraries treat it as greedy decoding, which is the limit as \(T\) falls to 0. If two runs with the same settings differ, you drew random numbers without fixing the seed. If top-p keeps too few tokens, remember that it works on the probabilities after temperature has been applied.</p>
   </div>
-  <p class="used"><b>Used in:</b> any chat assistant, whose settings page usually has these dials (<a href="../d7-assistants/">D7</a>), and in the loop of the next section.</p>
+  <p class="used"><b>Used in:</b> the temperature slider of the hallucination figure in <a href="../d7-assistants/#halluc">D7</a>, the settings page of a chat assistant, and the loop of the next section.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Probabilities are 0.5, 0.3 and 0.2. What does top-p = 0.7 keep, and what are the new probabilities?</summary><p>It keeps the first two tokens, since 0.5 alone is below 0.7 and 0.5 + 0.3 = 0.8 reaches it. They are divided by 0.8: 0.625 and 0.375.</p></details>
@@ -233,7 +233,7 @@ greedy:  in</pre>
   </div>
   <p class="cap"><b>The loop is the same for GPT-2 and for this tiny model: only the model changes.</b> Here the model is a table of word-triple counts from 500 made-up reports, with a context of two words. It is a counting model with no neural network in it. The counts are in <a href="data/tiny.json">tiny.json</a>.</p>
   <p>Press Next token a few times. A press does one turn of the loop. It looks up the last two words, turns the counts into a distribution, applies the temperature and cuts, draws a word and appends it. Press Run to watch a whole report. Change the temperature and run again, or press &ldquo;New random seed&rdquo; to get a different report from the same settings. In 300 runs with this model, T = 0.2 gave about 175 different reports and T = 1.6 gave about 265. The counts change a little with the random seed. The small gap has a reason. Two words of context and 500 reports leave few choices at most steps, so even a high temperature stays fluent. A model with 50,257 possible tokens behaves very differently, as the previous section showed.</p>
-  <p>The probability of a whole text is the product of the probabilities of its tokens, and a token's probability is conditioned on the tokens before it. Taking the natural logarithm turns the product into a sum, which the small numbers under the chips show (<a href="../t7-probability/#crossent">0.7</a>). Their average, with the sign flipped, is the loss of the text, and its exponential is the perplexity (section 5). One unlikely draw changes all later steps, because the model reads its own earlier words as if a person had written them. GPT-2's loop is the one described by Alammar (2019). The output token joins the input and the model runs again. This goes on until it draws the end token or fills its 1,024 tokens.</p>
+  <p>The probability of a whole text is the product of the probabilities of its tokens, and a token's probability is conditioned on the tokens before it. Taking the natural logarithm turns the product into a sum, which the small numbers under the chips show (<a href="../t7-probability/#crossent">0.7</a>). Their average, with the sign flipped, is the loss of the text, and its exponential is the perplexity (section 6). One unlikely draw changes all later steps, because the model reads its own earlier words as if a person had written them. GPT-2's loop is the one described by Alammar (2019). The output token joins the input and the model runs again. This goes on until it draws the end token or fills its 1,024 tokens.</p>
   <div class="break">
     <p><b>Analogy.</b> Writing with a phone keyboard that offers three suggestions, tapping a suggestion again and again.</p>
     <p><b>Where it breaks.</b> The keyboard sees a few words, and you choose. A language model reads up to 1,024 tokens in GPT-2's case, scores all 50,257 tokens, and a random draw chooses. The loop also feeds its own choices back, so an early odd token changes all that follows it.</p>
@@ -241,7 +241,7 @@ greedy:  in</pre>
   <div class="debug">
     <p><b>Debug tip.</b> If generated text repeats the same few words, look at the settings first. A temperature near 0 or a top-k of 1 makes the model follow its single favourite again and again.</p>
   </div>
-  <p class="used"><b>Used in:</b> the transformer's generation step and the KV cache (<a href="../d5-transformer/">D5</a>), where the loop is made fast.</p>
+  <p class="used"><b>Used in:</b> the transformer's generation step and the KV cache (<a href="../d5-transformer/#generate">D5</a>), where the loop is made fast.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>At step 2 of the loop, what is the model's input?</summary><p>The original prompt plus the token drawn at step 1, which is a text one token longer.</p></details>
@@ -256,7 +256,7 @@ greedy:  in</pre>
   <dl class="terms">
     <div><dt>context window</dt><dd>the largest number of tokens a model reads at once; GPT-2's is 1,024</dd></div>
     <div><dt>truncation</dt><dd>cutting off the oldest tokens when a text is longer than the window</dd></div>
-    <div><dt>prompt</dt><dd>the text given to the model before it starts to generate</dd></div>
+    <div><dt>prompt</dt><dd>the text given to the model before it starts to generate (<a href="../d7-assistants/#prompt">D7</a> covers prompts)</dd></div>
   </dl>
   <p class="claim">A model can use only the tokens inside its context window. What came before that is gone, and the model cannot tell it was ever there.</p>
   <div class="card" id="win">
@@ -269,7 +269,7 @@ greedy:  in</pre>
   </div>
   <p class="cap"><b>With all 46 tokens GPT-2 gives 42% to &#9601;4, the start of 4127. With 41 tokens, which cut off the word &ldquo;Tag&rdquo;, it gives 0.01%.</b> GPT-2 small, computed offline: the same prompt, shown to the model one window at a time.</p>
   <p>Slide the window down from 46 tokens. The probability of the first token of the tag stays high down to 42 tokens and collapses at 41, where the word &ldquo;Tag&rdquo; drops out. Below that the model does not know a tag exists. Its top guess is &ldquo;ged&rdquo;, which would make &ldquo;tagged&rdquo;. The cliff is sharp because the tag appears once. A window in use is longer than this toy one, but the rule is the same.</p>
-  <p>GPT-2's window is 1,024 tokens long (Radford et al., 2019). The window is counted in tokens, so the cost of languages returns (<a href="../d1-tokenisation/#languages">D1</a>). The Hindi report m05 takes 117 tokens under GPT-2 and its English meaning takes 23, so a window fits 8 reports of the first kind and 44 of the second. A longer window costs more, because attention compares all pairs of tokens (<a href="../d4-self-attention/">D4</a> and <a href="../d6-long-context/">D6</a>).</p>
+  <p>GPT-2's window is 1,024 tokens long (Radford et al., 2019). The window is counted in tokens, so the cost of languages returns (<a href="../d1-tokenisation/#languages">D1</a>). The Hindi report m05 takes 117 tokens under GPT-2 and its English meaning takes 23, so a window fits 8 reports of the first kind and 44 of the second. A longer window costs more, because attention compares all pairs of tokens (<a href="../d4-self-attention/#mask">D4</a> and <a href="../d6-long-context/#cost">D6</a>).</p>
   <div class="eqn" role="img" aria-label="A 1,024-token window fits 8 Hindi reports of 117 tokens or 44 English reports of 23 tokens"><span class="t c-navy"><b>1,024 &divide; 117</b><i>window &divide; Hindi report m05</i></span><span class="op">=</span><span class="t c-coral"><b>8</b><i>reports fit</i></span><span class="op">|</span><span class="t c-navy"><b>1,024 &divide; 23</b><i>window &divide; its English meaning</i></span><span class="op">=</span><span class="t c-teal"><b>44</b><i>reports fit</i></span></div>
   <div class="break">
     <p><b>Common belief.</b> A chat model remembers the whole conversation.</p>
@@ -279,7 +279,7 @@ greedy:  in</pre>
   <div class="debug">
     <p><b>Debug tip.</b> If a model seems to ignore the start of a long prompt, count its tokens before anything else. Check whether your library cut the text from the left or from the right. Cutting from the wrong end removes the instructions or the question.</p>
   </div>
-  <p class="used"><b>Used in:</b> sparse and linear attention, which stretch the window (<a href="../d6-long-context/">D6</a>), and test-time training, which tries another way to remember (<a href="../d6-long-context/">D6</a>).</p>
+  <p class="used"><b>Used in:</b> sparse and linear attention, which stretch the window (<a href="../d6-long-context/#sparse">D6</a>), and test-time training, which tries another way to remember (<a href="../d6-long-context/#ttt">D6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why did the probability drop at 41 tokens and not slowly?</summary><p>The window lost the word &ldquo;Tag&rdquo;, the only place where the number appears. Without it the model has no source for 4127.</p></details>
@@ -317,7 +317,7 @@ greedy:  in</pre>
     <li><b>\(p_k\)</b> is the probability of token \(k\) and <b>\(y_k\)</b> is 1 for the true token and 0 for all others (the one-hot label of <a href="../a3-logistic-regression/#softmax">A3</a>). The slope is \(p_k - 1\) for the true token and \(p_k\) for the rest.</li>
   </ul>
   <div class="eqn" role="img" aria-label="Worked examples of the loss: probability 17 percent gives 1.77 nats, 0.0001 gives 9.21 nats, and the uniform guess over 50,257 tokens gives 10.82 nats"><span class="t c-sand"><b>p = 0.171</b><i>&#9601;back after &ldquo;put it&rdquo;</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>1.77</b><i>&minus;ln p, nats</i></span><span class="op">|</span><span class="t c-sand"><b>p = 0.0001</b><i>&#9601;sharks after &ldquo;Two milk&rdquo;</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>9.21</b><i>&minus;ln p, nats</i></span><span class="op">|</span><span class="t c-sand"><b>p = 1/50,257</b><i>a uniform guess</i></span><span class="op">&rarr;</span><span class="t c-navy"><b>10.82</b><i>ln V, the starting loss</i></span></div>
-  <p>A model that starts with all scores equal gives all tokens \(1/V\), so its starting loss is \(\ln V = 10.82\) for GPT-2's vocabulary. Training brings the average well below that. If the first loss of a new run is far from \(\ln V\), something is broken (<a href="../b8-debugging/">B8</a>).</p>
+  <p>A model that starts with all scores equal gives all tokens \(1/V\), so its starting loss is \(\ln V = 10.82\) for GPT-2's vocabulary. Training brings the average well below that. If the first loss of a new run is far from \(\ln V\), something is broken (<a href="../b8-debugging/#recipe">B8</a>).</p>
   <div class="break">
     <p><b>Common belief.</b> A language model is trained to give the right answer, so accuracy is the thing to measure.</p>
     <p><b>Why it fails.</b> There is usually no single right next token. After &ldquo;put it&rdquo; both &ldquo;in&rdquo; and &ldquo;back&rdquo; are fine, and the model gave &ldquo;back&rdquo; 17%. Counting only hits would give no credit for that 17%, and no slope to improve it.</p>
@@ -326,7 +326,7 @@ greedy:  in</pre>
   <div class="debug">
     <p><b>Debug tip.</b> A loss of <code>inf</code> or <code>nan</code> means \(-\ln 0\) was computed. Compute the loss from the scores with a function such as <code>log_softmax</code> or <code>cross_entropy</code>, which does not form a zero probability. Also check the first loss against \(\ln V\).</p>
   </div>
-  <p class="used"><b>Used in:</b> pretraining of all models in this part, and fine-tuning (<a href="../d7-assistants/">D7</a>).</p>
+  <p class="used"><b>Used in:</b> pretraining of all models in this part, and fine-tuning (<a href="../d7-assistants/#sft">D7</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The true token has p = 0.9 before a step. What is the slope of the loss at its score?</summary><p>\(p - 1 = -0.1\). It is small because the model is nearly right. A model with p = 0.01 would have a slope of \(-0.99\).</p></details>
@@ -368,7 +368,7 @@ greedy:  in</pre>
   <div class="debug">
     <p><b>Debug tip.</b> Before you compare two perplexities, check that both come from the same tokenizer and the same text. If they do not, compare total loss or bits per character.</p>
   </div>
-  <p class="used"><b>Used in:</b> checking pretraining runs (<a href="../b8-debugging/">B8</a>) and comparing models in <a href="../d7-assistants/">D7</a>.</p>
+  <p class="used"><b>Used in:</b> checking pretraining runs (<a href="../b8-debugging/#recipe">B8</a>) and the perplexity of a reply in <a href="../d7-assistants/#sft">D7</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A model gives the true tokens of a 4-token text the probabilities 0.5, 0.25, 0.1 and 0.8. What is the perplexity?</summary><p>The losses are 0.693, 1.386, 2.303 and 0.223, which sum to 4.605. The mean is 1.151, and \(e^{1.151} = 3.16\). The model is torn between about three tokens.</p></details>
@@ -399,7 +399,7 @@ greedy:  in</pre>
     <ol>
       <li><p><span class="ex-tag">open</span> SharkCam may use a language model for three jobs. One fills a catch report from a template, one suggests a follow-up question to a fisher, and one reads a tag number out of a message. Which decoding settings would you pick for these jobs, and why? What would you measure to check your choice?</p></li>
       <li><p><span class="ex-tag">open</span> After &ldquo;Two milk&rdquo; GPT-2 gave &ldquo;sharks&rdquo; 0.01%. How could you make a language model useful for SharkCam's own messages? Name two approaches, say what these need, and say what could go wrong.</p>
-        <details class="hint"><summary>Hint</summary><p>One option changes the prompt, and another changes the weights (see <a href="../b7-continual-learning/">B7</a> and <a href="../d7-assistants/">D7</a>).</p></details></li>
+        <details class="hint"><summary>Hint</summary><p>One option changes the prompt, and another changes the weights (see <a href="../b7-continual-learning/#transfer">B7</a> and <a href="../d7-assistants/#icl">D7</a>).</p></details></li>
       <li><p><span class="ex-tag">open</span> Design a fair way to say how well a model reads Hindi compared with English. What would you use in place of per-token perplexity? Could your measure still be unfair to one language?</p></li>
     </ol>
   </div>
@@ -437,7 +437,7 @@ greedy:  in</pre>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="d3-next-token.js?v=1" defer></script>
 </body>
 </html>

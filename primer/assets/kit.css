@@ -93,3 +93,14 @@ p.used b { color: var(--ink); }
 /* Links to chapters that are not published yet. */
 a.soon-link { color: var(--muted); text-decoration: underline dotted; cursor: default; }
 a.soon-link::after { content: " (coming soon)"; font-size: 0.85em; }
+
+/* KaTeX draws square roots and wide accents as svg; project.css gives .card svg height auto, which flattens them inside figure cards. */
+.card .katex svg { height: inherit; overflow: hidden; }
+
+/* Fixes that reviewers made page by page, now shared by all chapters (final pass). */
+.math { position: relative; }
+.refs li { overflow-wrap: anywhere; }
+code { overflow-wrap: anywhere; }
+pre code { overflow-wrap: normal; }
+.card .bar { row-gap: 8px; }
+.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }

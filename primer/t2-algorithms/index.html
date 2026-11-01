@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Chapter 0.2 figures. Colours come from the site tokens. */
 /* Chapter 0.1 figures: code viewers, variable boxes, cell rows, grids. Colours come from the site tokens. */
@@ -184,7 +184,7 @@ print(queue.popleft(), queue.popleft())  # dequeue twice</code></pre>
   <div class="debug">
     <p><b>Debug tip.</b> Popping from an empty stack raises an <code>IndexError</code>. Test with <code>if stack:</code> before you pop.</p>
   </div>
-  <p class="used"><b>Used in:</b> recursion (below) works because Python keeps a stack of calls that are waiting for an answer. Backpropagation (<a href="../b4-backpropagation/">B4</a>) replays the steps of a forward pass newest first, as a stack hands items back. A data loader that feeds a model one batch after another behaves like a queue.</p>
+  <p class="used"><b>Used in:</b> recursion (below) works because Python keeps a stack of calls that are waiting for an answer. Backpropagation (<a href="../b4-backpropagation/#backward">B4</a>) replays the steps of a forward pass newest first, as a stack hands items back. A data loader that feeds a model one batch after another behaves like a queue.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Add A, B, C, then remove one, add D, then remove two. What comes out of a stack, and of a queue?</summary><p>Stack: C, then D, then B. Queue: A, then B, then C. For the stack, after C leaves the pile is A, B, then D goes on top, and two pops give D and B.</p></details>
@@ -244,7 +244,7 @@ True True</pre>
     <p><b>Why it fails.</b> It matters when a lookup happens millions of times on a large table. At a million entries a list scan makes about half a million comparisons, a dictionary about one. A single lookup is quick either way. A tokenizer that looks up a million words is not.</p>
     <p><b>Better account.</b> Judge a structure by how its cost grows with n, not by how fast one operation feels at the size you tried.</p>
   </div>
-  <p class="used"><b>Used in:</b> a tokenizer's vocabulary is a dictionary from token text to an integer ID, so turning a word into its ID does not scan fifty thousand entries (<a href="../d1-tokenisation/">D1</a>). The column names of a pandas table are keys in the same way.</p>
+  <p class="used"><b>Used in:</b> a tokenizer's vocabulary is a dictionary from token text to an integer ID, so turning a word into its ID does not scan fifty thousand entries (<a href="../d1-tokenisation/#vocab">D1</a>). The column names of a pandas table are keys in the same way.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>You need to test whether 5,000 tags appear in a log of 10 million tags. Do you loop over the log once per tag, or turn the log into a set first?</summary><p>Build a set once, which costs about 10 million steps, then test the 5,000 tags at about one step apiece. Looping over the log once per tag costs up to 5,000 times 10 million steps.</p></details>
@@ -334,7 +334,7 @@ print(binary_search([5, 1, 9, 3, 7], 3))          # 3 is in the list
 print(binary_search(sorted([5, 1, 9, 3, 7]), 3))  # sort first</code></pre>
   <pre class="out">None
 1</pre>
-  <p class="used"><b>Used in:</b> a decision tree picks a split threshold by trying values between neighbouring items of a sorted column (<a href="../a5-decision-trees/">A5</a>). Searching sorted values by halving is also how libraries find where a number falls among a list of cut points.</p>
+  <p class="used"><b>Used in:</b> a decision tree picks a split threshold by trying values between neighbouring items of a sorted column (<a href="../a5-decision-trees/#grow">A5</a>). Searching sorted values by halving is also how libraries find where a number falls among a list of cut points.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the largest number of steps binary search needs on 1,000,000 items?</summary><p>At most 20 steps. Since \(\log_2 1{,}000{,}000 \approx 19.93\), the bound \(\lfloor 19.93 \rfloor + 1\) is 20.</p></details>
@@ -496,7 +496,7 @@ print(top_k(lengths, 3))</code></pre>
   <div class="debug">
     <p><b>Debug tip.</b> Check the cases at the edges: k larger than the list, and ties. With <code>k = 20</code> and 16 items, <code>sorted(...)[:20]</code> quietly returns all 16, while code that assumes k items may fail.</p>
   </div>
-  <p class="used"><b>Used in:</b> a language model scores all the words in its vocabulary for the next position. Top-k sampling keeps the k highest scores and draws the next word from those only (<a href="../d3-next-token/">D3</a>).</p>
+  <p class="used"><b>Used in:</b> a language model scores all the words in its vocabulary for the next position. Top-k sampling keeps the k highest scores and draws the next word from those only (<a href="../d3-next-token/#sampling">D3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why does the scan with a board cost about n comparisons and not n times k?</summary><p>Most items are smaller than the weakest board member, so one comparison rejects them. Only a few items enter the board, and only those pay for placing themselves among the k members.</p></details>
@@ -595,7 +595,7 @@ print(fib_memo(20), calls2)</code></pre>
 
 total(5)</code></pre>
   <pre class="out">RecursionError: maximum recursion depth exceeded</pre>
-  <p class="used"><b>Used in:</b> a decision tree is a recursive object, and growing one is a recursive procedure: split the data, then grow a smaller tree on both sides (<a href="../a5-decision-trees/">A5</a>). Visiting the nodes of a tree with a stack goes deep first, and with a queue goes level by level.</p>
+  <p class="used"><b>Used in:</b> a decision tree is a recursive object, and growing one is a recursive procedure: split the data, then grow a smaller tree on both sides (<a href="../a5-decision-trees/#grow">A5</a>). Visiting the nodes of a tree with a stack goes deep first, and with a queue goes level by level.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What are the two parts a recursive function needs?</summary><p>A base case that returns an answer without another call, and a recursive case that calls the function on a smaller input, so the calls move toward the base case.</p></details>
@@ -690,7 +690,7 @@ for n in (100, 200, 400, 800):
     <div class="eqn" id="at-eqn" role="img" aria-label="Prompt length and the number of token pairs it creates"></div>
   </div>
   <p class="cap"><b>A prompt ten times longer makes a hundred times as many pairs.</b> Slide n and compare the pair count with that of a 1,000-token prompt, which has a million pairs.</p>
-  <p class="used"><b>Used in:</b> the \(n^2\) growth of attention is why long prompts are expensive, and why <a href="../d6-long-context/">D6</a> studies variants that look at a window or a summary instead of all pairs. The same step-counting habit appears in <a href="../b8-debugging/">B8</a>, where a training run that is too slow is diagnosed by asking how its cost grows with batch size.</p>
+  <p class="used"><b>Used in:</b> the \(n^2\) growth of attention is why long prompts are expensive, and why <a href="../d6-long-context/#sparse">D6</a> studies variants that look at a window or a summary instead of all pairs. The same step-counting habit appears in <a href="../b8-debugging/#grad">B8</a>, where the update-to-weight ratio shows how many steps a layer needs to change by its own size.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>An algorithm takes 3 seconds for n = 1,000 and is \(O(n^2)\). About how long for n = 4,000?</summary><p>About 48 seconds. Quadrupling n multiplies the steps by 16, and 3 times 16 is 48. The constants cancel in the ratio, which is why Big-O is useful for predictions.</p></details>
@@ -793,7 +793,7 @@ for n in (100, 200, 400, 800):
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="t2-algorithms.js?v=1" defer></script>
 </body>
 </html>

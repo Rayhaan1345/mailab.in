@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .pl-sub { margin: 10px 0 2px; font-size: 14px; color: var(--ink-2); }
@@ -105,7 +105,7 @@ ol.steps li { margin: 6px 0; }
     <p><b>Better account.</b> Use squared error for numbers and cross-entropy for probabilities. The next section shows the same difference as a walk across a landscape.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> Check the loss at step 0. With \(K\) classes and a network that starts near a guess, cross-entropy should begin near \(\ln K\): 0.69 for two classes, 1.61 for five. A very different number points to a bug in the labels or the loss (<a href="../b8-debugging/">B8</a>, after Karpathy's recipe). In PyTorch, <code>nn.CrossEntropyLoss</code> expects raw scores and applies the softmax itself, so applying softmax first gives a wrong, flatter loss.</p>
+    <p><b>Debug tip.</b> Check the loss at step 0. With \(K\) classes and a network that starts near a guess, cross-entropy should begin near \(\ln K\): 0.69 for two classes, 1.61 for five. A very different number points to a bug in the labels or the loss (<a href="../b8-debugging/#recipe">B8</a>, after Karpathy's recipe). In PyTorch, <code>nn.CrossEntropyLoss</code> expects raw scores and applies the softmax itself, so applying softmax first gives a wrong, flatter loss.</p>
   </div>
   <p class="used"><b>In practice:</b> use the library's combined function for softmax and cross-entropy. It works from the scores and avoids \(\ln 0\). Scale a target that is a number, as the weights in this chapter are scaled, so that its loss is easy to read. Averaging the loss over the batch, and not summing it, keeps the size of the gradient about the same when the batch size changes, so a good learning rate stays good.</p>
   <pre class="code" data-run><code>import numpy as np
@@ -133,7 +133,7 @@ push, cross-entropy: 0.993  push, squared error: 0.013
 probabilities: [0.655 0.197 0.098 0.04  0.01 ]
 cross-entropy: 3.223
 push p - y:    [ 0.655  0.197  0.098 -0.96   0.01 ] sum: 0.0</pre>
-  <p class="used"><b>Used in:</b> the push \(p - y\) is the number that backpropagation starts from (<a href="../b4-backpropagation/#backward">B4</a>). Cross-entropy over a vocabulary is the loss that trains language models (<a href="../d3-next-token/">D3</a>).</p>
+  <p class="used"><b>Used in:</b> the push \(p - y\) is the number that backpropagation starts from (<a href="../b4-backpropagation/#backward">B4</a>). Cross-entropy over a vocabulary is the loss that trains language models (<a href="../d3-next-token/#loss">D3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A network gives probability 0.25 to the true species out of five. What is the cross-entropy, and what would a model that guesses with equal probabilities score?</summary><p>\(-\ln 0.25 = 1.386\). A uniform guess gives 0.2 to the true species, so \(-\ln 0.2 = \ln 5 = 1.609\). The network is a little better than a guess.</p></details>
@@ -352,7 +352,7 @@ epoch  8: 136 steps, loss 0.267, w = 2.56, b = 1.64
 epoch  9: 153 steps, loss 0.262, w = 2.69, b = 1.71
 epoch 10: 170 steps, loss 0.259, w = 2.81, b = 1.74</pre>
   <p>This is the whole loop of a network trainer: shuffle, cut into batches, compute the average gradient, step. Here the gradient is the one of <a href="../a3-logistic-regression/#train">A3</a>. For a deeper network, backpropagation (<a href="../b4-backpropagation/#backward">B4</a>) supplies the gradient and the loop stays the same. The labels here are made up from a formula, and the run starts at the same confident wrong place as the figure.</p>
-  <p class="used"><b>Used in:</b> the optimisers of <a href="../b5-optimisers/#momentum">B5</a> change what is done with the batch gradient, for example by averaging it over steps. The debugging recipe of <a href="../b8-debugging/">B8</a> starts with the loss at step 0 and an overfit of one small batch.</p>
+  <p class="used"><b>Used in:</b> the optimisers of <a href="../b5-optimisers/#momentum">B5</a> change what is done with the batch gradient, for example by averaging it over steps. The debugging recipe of <a href="../b8-debugging/#recipe">B8</a> starts with the loss at step 0 and an overfit of one small batch.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The noise of a batch gradient is 0.15 at \(B = 1\). Roughly what is it at \(B = 25\), and at \(B = 100\)?</summary><p>\(0.15/\sqrt{25} = 0.03\) and \(0.15/\sqrt{100} = 0.015\). To halve the noise again, the batch has to grow by a factor of 4.</p></details>
@@ -419,7 +419,7 @@ epoch 10: 170 steps, loss 0.259, w = 2.81, b = 1.74</pre>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="b3-loss-gradient-descent.js?v=1" defer></script>
 </body>
 </html>

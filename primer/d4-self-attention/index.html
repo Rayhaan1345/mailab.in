@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .row-chips { display: inline-block; margin: 0 10px 6px 0; }
@@ -109,7 +109,7 @@ pre code { overflow-wrap: normal; }
   <div class="break">
     <p><b>Common belief.</b> Attention weights show what the model is thinking about, so a large weight means that token explains the answer.</p>
     <p><b>Why it fails.</b> A weight says how much one head reads from a token at one step. Many large weights fall on the first token, which says little about the sentence. Later layers also change what a head read before the answer appears. Jain and Wallace (2019) found that attention weights often do not match other measures of which inputs matter. Wiegreffe and Pinter (2019) replied that the answer depends on what you mean by explanation.</p>
-    <p><b>Better account.</b> The weights describe one step of the computation. To say what a model used, change the input or the head and watch the output (<a href="../b9-explaining/">B9</a>).</p>
+    <p><b>Better account.</b> The weights describe one step of the computation. To say what a model used, change the input or the head and watch the output (<a href="../b9-explaining/#attention">B9</a>).</p>
   </div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
@@ -286,7 +286,7 @@ output  [0.316 0.03 ]</pre>
     <li><b>\(Q, K, V\)</b> have one row per token: the queries, keys and values. <b>\(M\)</b> is the mask: 0 where a token may read, \(-\infty\) where it may not.</li>
     <li>Softmax runs along the rows. The result has one output row per token, so all tokens are handled in one pass.</li>
   </ul>
-  <p>The mask keeps \(n(n+1)/2\) of the \(n^2\) entries. For the sentence above, 210 of 400. For GPT-2's full window of 1,024 tokens, it is 524,800 per head, and 75,571,200 over the 144 heads. Doubling the length of a text makes the table four times as large. That is the \(n^2\) growth of <a href="../t2-algorithms/#bigo">0.2</a>, and <a href="../d6-long-context/">D6</a> returns to it.</p>
+  <p>The mask keeps \(n(n+1)/2\) of the \(n^2\) entries. For the sentence above, 210 of 400. For GPT-2's full window of 1,024 tokens, it is 524,800 per head, and 75,571,200 over the 144 heads. Doubling the length of a text makes the table four times as large. That is the \(n^2\) growth of <a href="../t2-algorithms/#bigo">0.2</a>, and <a href="../d6-long-context/#cost">D6</a> returns to it.</p>
   <p>Now the question at the top. We trained two copies of a tiny model, with one attention head, on 400 made-up reports. One copy used the mask. The other did not.</p>
   <div class="card" id="lk">
     <div class="bar" id="lk-bar"></div>
@@ -381,9 +381,9 @@ no mask largest change in the earlier rows: 0.5637</pre>
   <div class="break">
     <p><b>Common belief.</b> All heads have a clear job, such as &ldquo;subject&rdquo;, &ldquo;noun&rdquo; or &ldquo;previous word&rdquo;.</p>
     <p><b>Why it fails.</b> The grid shows many heads that spend most of their weight on the first token. The sharp heads of this chapter are the easy cases, picked because they are clear. A name only says where the weight fell on a few sentences.</p>
-    <p><b>Better account.</b> Heads are learned ways to blend. Some can be described, many cannot, and to say what a head does you must test it by changing it (<a href="../b9-explaining/">B9</a>).</p>
+    <p><b>Better account.</b> Heads are learned ways to blend. Some can be described, many cannot, and to say what a head does you must test it by changing it (<a href="../b9-explaining/#attention">B9</a>).</p>
   </div>
-  <p>Cost matters for the next chapters. Attention takes about \(n^2 d\) steps per layer (Vaswani and others, 2017, Table 1), so a longer text gets expensive quickly. <a href="../d5-transformer/">D5</a> puts attention inside a transformer block, and <a href="../d6-long-context/">D6</a> deals with long texts.</p>
+  <p>Cost matters for the next chapters. Attention takes about \(n^2 d\) steps per layer (Vaswani and others, 2017, Table 1), so a longer text gets expensive quickly. <a href="../d5-transformer/#block">D5</a> puts attention inside a transformer block, and <a href="../d6-long-context/">D6</a> deals with long texts.</p>
   <pre class="code" data-run><code>def multi_head(X, Wq, Wk, Wv, Wo, H):
     n, d = X.shape
     dk = d // H
@@ -431,7 +431,7 @@ weights in the four matrices: 256</pre>
     <ol>
       <li><p><span class="ex-tag">open</span> SharkCam messages repeat tag numbers, for example Tag 4127 in a report and again in a follow-up. Describe how attention could help a model repeat the number the second time. What would you test to check that a given head does this, and what result would count against it?</p></li>
       <li><p><span class="ex-tag">open</span> A friend says: &ldquo;The model gave &lsquo;hammerhead&rsquo; a weight of 0.42, so that word explains the output.&rdquo; Design two tests that would show whether the claim is true. What results would make you withdraw it?</p>
-        <details class="hint"><summary>Hint</summary><p>Think of changing the input and of switching off a head. See <a href="../b9-explaining/">B9</a>.</p></details></li>
+        <details class="hint"><summary>Hint</summary><p>Think of changing the input and of switching off a head. See <a href="../b9-explaining/#attention">B9</a>.</p></details></li>
       <li><p><span class="ex-tag">open</span> A dive log has 2,400 frames at 1 frame per second (the made-up dive log of the SharkCam data). If all frames were tokens, how many entries would one head's causal table contain? Name two ways to cut the cost and say what the two would give up.</p></li>
     </ol>
   </div>
@@ -471,7 +471,7 @@ weights in the four matrices: 256</pre>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="d4-self-attention.js?v=1" defer></script>
 </body>
 </html>

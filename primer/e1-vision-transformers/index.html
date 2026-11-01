@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; }
@@ -438,7 +438,7 @@ print(round(float(D.mean()), 2))                        # even attention, averag
   <p>What the data does. The ViT paper trained models on ImageNet alone, on ImageNet-21k and on JFT-300M. With ImageNet alone, ViT-Large did worse than ViT-Base. With the largest set, the large model won. Its authors conclude that large-scale training outweighs the lack of an image bias (Dosovitskiy and others, 2021). Where a CNN's locality helps, a small training set is enough. Where the data is large, the ViT can learn what a CNN assumes and more. For SharkCam, with a few thousand photos, a pretrained network of either kind is the starting point, and the fine-tuning of <a href="../b7-continual-learning/#transfer">B7</a> does the rest.</p>
   <div class="break">
     <p><b>Common belief.</b> Transformers replaced CNNs because they are better.</p>
-    <p><b>Why it fails.</b> With ImageNet alone, the larger ViT did worse than the smaller one. On the torchvision list, ViT-B/16 needs far more numbers and work than ResNet-18 to gain 11 points of accuracy, and it was trained with a different recipe. On a small robot (<a href="../f2-robots/">F2</a>) work counts.</p>
+    <p><b>Why it fails.</b> With ImageNet alone, the larger ViT did worse than the smaller one. On the torchvision list, ViT-B/16 needs far more numbers and work than ResNet-18 to gain 11 points of accuracy, and it was trained with a different recipe. On a small robot (<a href="../f2-robots/#budget">F2</a>) work counts.</p>
     <p><b>Better account.</b> The two designs make different assumptions. Which works better depends on the amount of data, the compute available and the task. Many models combine them, with convolutions for the first layers and attention above.</p>
   </div>
   <pre class="code" data-run><code>d = 768
@@ -581,7 +581,7 @@ print(np.log2(len(book)))                      # bits per token</code></pre>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="e1-vision-transformers.js?v=1" defer></script>
 </body>
 </html>

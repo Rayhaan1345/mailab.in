@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .card .bar .label { margin-right: 4px; }
@@ -131,7 +131,7 @@ code { overflow-wrap: anywhere; }
     <p><b>Better account.</b> Judge a model on records it did not train on. Keep the model with the lowest error there.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> Compare the two errors before you compare models. A low training error with a test error several times larger means overfitting: use more data, fewer weights or a simpler model. Both errors high and close together means underfitting: add a feature or allow more flexibility. <a href="../b8-debugging/">B8</a> turns this into a full diagnosis with learning curves.</p>
+    <p><b>Debug tip.</b> Compare the two errors before you compare models. A low training error with a test error several times larger means overfitting: use more data, fewer weights or a simpler model. Both errors high and close together means underfitting: add a feature or allow more flexibility. <a href="../b8-debugging/#curves">B8</a> turns this into a full diagnosis with learning curves.</p>
   </div>
   <pre class="code"><code>import numpy as np, pandas as pd
 
@@ -738,7 +738,7 @@ prevalence  2.0%: precision 8.6%</pre>
     <p><b>Better account.</b> Compute the same scores inside the groups, show the counts and the intervals, and compare them at the threshold you will use.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> When a group looks worse, check its size before you tell a story about it. Then check its base rate and whether the model sees the column that defines the group. A gap in sensitivity with a different base rate is not the same finding as a gap in AUC. The fairness chapter (<a href="../f1-fairness/">F1</a>) returns to what a fair model means.</p>
+    <p><b>Debug tip.</b> When a group looks worse, check its size before you tell a story about it. Then check its base rate and whether the model sees the column that defines the group. A gap in sensitivity with a different base rate is not the same finding as a gap in AUC. The fairness chapter (<a href="../f1-fairness/#groups">F1</a>) returns to what a fair model means.</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -830,7 +830,7 @@ for name, lo, hi in [("under 40", 0, 39), ("40 and over", 40, 200)]:
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="a4-grading-models.js?v=1" defer></script>
 </body>
 </html>

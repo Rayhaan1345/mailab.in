@@ -207,6 +207,7 @@ var Kit = (function () {
   // (live: true) are linked; links in the text to chapters not yet published are marked "coming soon".
   function mountNav() {
     var id = document.body.getAttribute("data-chapter"), box = $("chap-nav");
+    if (!id) return; // the primer index has no chapter id and no ../ links
     data("../chapters.json").then(function (C) {
       var live = {}, list = C.chapters.filter(function (c) { if (c.live) live[c.slug] = true; return c.live || c.id === id; });
       document.querySelectorAll('main a[href^="../"]').forEach(function (a) {

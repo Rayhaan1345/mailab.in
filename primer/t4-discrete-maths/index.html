@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 .card .eqn { margin: 8px 0 6px; }
 .card .bar .label { font-size: 14px; color: var(--muted); }
@@ -62,7 +62,7 @@ table.tt-small th, table.tt-small td { padding: 3px 16px; border-bottom: 1px sol
 
 <div class="tldr">
   <p>This chapter covers four tools for things you can count one by one. Counting tells you how many orders and groups a set of items allows. Sets show how overlapping groups share members. Logic shows how true and false combine. Graphs are dots joined by lines.</p>
-  <p>They come back across the primer. The orders of features behind SHAP (<a href="../a6-boosting/">A6</a>) start here. So do the circles of a confusion matrix (<a href="../a4-grading-models/">A4</a>), the XOR problem that a single neuron cannot solve (<a href="../b1-one-neuron/">B1</a>, <a href="../b2-non-linearity/">B2</a>) and the computation graph of backpropagation (<a href="../b4-backpropagation/">B4</a>).</p>
+  <p>They come back across the primer. The orders of features behind SHAP (<a href="../a6-boosting/#shap">A6</a>) start here. So do the circles of a confusion matrix (<a href="../a4-grading-models/#matrix">A4</a>), the XOR problem that a single neuron cannot solve (<a href="../b1-one-neuron/#fit">B1</a>, <a href="../b2-non-linearity/#one">B2</a>) and the computation graph of backpropagation (<a href="../b4-backpropagation/#graph">B4</a>).</p>
 </div>
 <p class="youneed"><b>You will need:</b> the Python in <a href="../t1-python/">chapter 0.1</a>, and the powers in <a href="../t3-algebra-functions/#exponents">chapter 0.3</a> for the counting section.</p>
 
@@ -118,7 +118,7 @@ table.tt-small th, table.tt-small td { padding: 3px 16px; border-bottom: 1px sol
   <dl class="terms">
     <div><dt>ordered pair</dt><dd>(i, j): item i first, then item j, so (2, 5) and (5, 2) differ</dd></div>
     <div><dt>pair once</dt><dd>the group {i, j}, counted one time</dd></div>
-    <div><dt>token</dt><dd>one piece of text, such as a word piece (<a href="../d1-tokenisation/">D1</a>)</dd></div>
+    <div><dt>token</dt><dd>one piece of text, such as a word piece (<a href="../d1-tokenisation/#units">D1</a>)</dd></div>
   </dl>
   <div class="card" id="pr">
     <div class="bar" id="pr-bar"></div>
@@ -127,8 +127,8 @@ table.tt-small th, table.tt-small td { padding: 3px 16px; border-bottom: 1px sol
     <div class="eqn" id="pr-eq"></div>
   </div>
   <p class="cap"><b>Doubling the number of items multiplies the number of pairs by about 4, whichever way you count them.</b></p>
-  <p>The grid has one row and one column per item. A cell is one ordered pair. The diagonal pairs an item with itself. Counting pairs once keeps only the cells below the diagonal, which is about half of the grid. Counting "looking back only" adds the diagonal and keeps the lower triangle. A language model uses this pattern when a token may see only the tokens before it (<a href="../d4-self-attention/">D4</a>).</p>
-  <p>In all three counts the number of cells grows like \(n^2\). This is why the cost of comparing all items with all other items explodes for long inputs (<a href="../d6-long-context/">D6</a>).</p>
+  <p>The grid has one row and one column per item. A cell is one ordered pair. The diagonal pairs an item with itself. Counting pairs once keeps only the cells below the diagonal, which is about half of the grid. Counting "looking back only" adds the diagonal and keeps the lower triangle. A language model uses this pattern when a token may see only the tokens before it (<a href="../d4-self-attention/#mask">D4</a>).</p>
+  <p>In all three counts the number of cells grows like \(n^2\). This is why the cost of comparing all items with all other items explodes for long inputs (<a href="../d6-long-context/#cost">D6</a>).</p>
   <div class="break">
     <p><b>Common belief.</b> Picking 2 items out of 5 and arranging 2 items out of 5 give the same count.</p>
     <p><b>Why it fails.</b> Picking A then B and picking B then A are two arrangements but one group. Arrangements give 20 and groups give 10.</p>
@@ -151,7 +151,7 @@ print(2 ** 6)</code></pre>
 720 120 20
 20.0
 64</pre>
-  <p class="used"><b>Used in:</b> SHAP averages over orders of features (<a href="../a6-boosting/">A6</a>); the number of pairs sets the cost of attention (<a href="../d6-long-context/">D6</a>); picking a mini-batch is a combination count (<a href="../b3-loss-gradient-descent/">B3</a>).</p>
+  <p class="used"><b>Used in:</b> SHAP averages over orders of features (<a href="../a6-boosting/#shap">A6</a>); the number of pairs sets the cost of attention (<a href="../d6-long-context/#cost">D6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>How many ways can 4 sharks be lined up for a photo?</summary><p>\(4! = 24\).</p></details>
@@ -183,7 +183,7 @@ print(2 ** 6)</code></pre>
   <p class="cap"><b>Adding the two circle sizes counts the overlap twice, so the union is the sum of the sizes minus the overlap.</b></p>
   <p>Drag the circles over the dots. A dot belongs to a set when it is inside that circle. A dot is coloured by its region: navy for A only, coral for B only, teal for both, grey for neither. Pick a region chip to ring the dots in it and read its size.</p>
   <p>The answer to the guess: the union is largest when the sets do not overlap, 12 + 10 = 22. It is smallest when the smaller set lies inside the larger one, 12. Anything from 12 to 22 can happen, and the overlap decides.</p>
-  <p>Switch the names to "classifier words" for a preview of <a href="../a4-grading-models/">A4</a>. Let A be the sharks that SharkCam flags as Ganges sharks and B the sharks that are Ganges sharks. The four regions then become the four cells of a confusion matrix.</p>
+  <p>Switch the names to "classifier words" for a preview of <a href="../a4-grading-models/#matrix">A4</a>. Let A be the sharks that SharkCam flags as Ganges sharks and B the sharks that are Ganges sharks. The four regions then become the four cells of a confusion matrix.</p>
   <p class="math">\[ \begin{aligned} |A\cup B| &= |A| + |B| - |A\cap B| \\ |A^{c}| &= |U| - |A| \end{aligned} \]</p>
   <ul class="math-notes">
     <li><b>\(|A|\)</b> is the number of items in A, and <b>\(U\)</b> is the universe, here all 30 sharks.</li>
@@ -206,7 +206,7 @@ print(len(adult | juhu), len(adult) + len(juhu) - len(adult &amp; juhu))</code><
 ['C', 'D']
 ['A', 'B', 'E']
 7 7</pre>
-  <p class="used"><b>Used in:</b> confusion matrix regions and leaks between training and test sets (<a href="../a4-grading-models/">A4</a>); "A or B" in probability (<a href="../t7-probability/">0.7</a>); set lookup (<a href="../t2-algorithms/">0.2</a>).</p>
+  <p class="used"><b>Used in:</b> confusion matrix regions (<a href="../a4-grading-models/#matrix">A4</a>), train-test overlap (<a href="../a4-grading-models/#leak">A4</a>), counts of flagged patients in Bayes' rule (<a href="../t7-probability/#bayes">0.7</a>) and set lookup (<a href="../t2-algorithms/#lookup">0.2</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Of 40 sharks, 18 are adult, 15 are from Juhu and 8 are both. How many are adult or from Juhu?</summary><p>\(18 + 15 - 8 = 25\).</p></details>
@@ -259,7 +259,7 @@ print(len(adult | juhu), len(adult) + len(juhu) - len(adult &amp; juhu))</code><
   <div class="break">
     <p><b>Common belief.</b> With a clever enough line, you can separate any pattern of 0s and 1s.</p>
     <p><b>Why it fails.</b> XOR puts the midpoint of both diagonals at the same spot, and that spot needs two answers. No line does that.</p>
-    <p><b>Better account.</b> Use two lines in two steps. "A OR B" and "NOT (A AND B)" are both separable, and XOR is "both of them at once". Stacking steps like this is the idea of <a href="../b2-non-linearity/">B2</a>.</p>
+    <p><b>Better account.</b> Use two lines in two steps. "A OR B" and "NOT (A AND B)" are both separable, and XOR is "both of them at once". Stacking steps like this is the idea of <a href="../b2-non-linearity/#bend">B2</a>.</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> In NumPy, use <code>&amp;</code>, <code>|</code> and <code>^</code> for AND, OR and XOR on arrays, and put brackets round comparisons: <code>(a &gt; 0) &amp; (b &gt; 0)</code>. Writing <code>a and b</code> on arrays raises an error about an ambiguous truth value. Also, the English word "or" often means XOR ("tea or coffee"), while logic's OR allows both.</p>
@@ -274,7 +274,7 @@ print(A + B - 2 * A * B)    # XOR written as arithmetic</code></pre>
   <pre class="out">[0 0 0 1] [0 1 1 1] [0 1 1 0]
 [1 1 0 0]
 [0 1 1 0]</pre>
-  <p class="used"><b>Used in:</b> a single neuron learns AND and OR but not XOR (<a href="../b1-one-neuron/">B1</a>); the XOR problem (<a href="../b2-non-linearity/">B2</a>); boolean masks (<a href="../d4-self-attention/">D4</a>); the rules along a tree path are ANDs (<a href="../a5-decision-trees/">A5</a>).</p>
+  <p class="used"><b>Used in:</b> XOR, which a single neuron cannot learn (<a href="../b1-one-neuron/#fit">B1</a>, <a href="../b2-non-linearity/#one">B2</a>); boolean masks (<a href="../d4-self-attention/#mask">D4</a>); the rules along a tree path are ANDs (<a href="../a5-decision-trees/#read">A5</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>For which input pairs is A XOR B equal to 1?</summary><p>(0,1) and (1,0): the pairs where the inputs differ.</p></details>
@@ -342,7 +342,7 @@ print(order)
 print(len(order) == len(nodes))    # False would mean a cycle</code></pre>
   <pre class="out">['b', 'w', 'x', 'm', 'z']
 True</pre>
-  <p class="used"><b>Used in:</b> decision trees (<a href="../a5-decision-trees/">A5</a>); the computation graph of backpropagation (<a href="../b4-backpropagation/">B4</a>); a network as a graph (<a href="../b1-one-neuron/">B1</a>, <a href="../b2-non-linearity/">B2</a>); tokens that see only earlier tokens (<a href="../d4-self-attention/">D4</a>).</p>
+  <p class="used"><b>Used in:</b> decision trees (<a href="../a5-decision-trees/#read">A5</a>); the computation graph of backpropagation (<a href="../b4-backpropagation/#graph">B4</a>); tokens that see only earlier tokens (<a href="../d4-self-attention/#mask">D4</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A graph has 6 nodes and 5 edges and is connected. Is it a tree?</summary><p>Yes. A connected graph with \(n-1\) edges has no cycle, so it is a tree.</p></details>
@@ -381,7 +381,7 @@ True</pre>
   <h2 id="comeback-h">Come back later</h2>
   <div class="recall comeback">
     <details><summary>A model has 10 features. How many groups of features can you form, and which idea from chapter 0.3 gives the answer quickly?</summary><p>\(2^{10} = 1024\). A feature is either in or out, and the choices multiply, which is exponent growth (<a href="../t3-algebra-functions/#exponents">0.3</a>).</p></details>
-    <details><summary>You have a list of 100,000 training tags and must check thousands of test tags for overlap. Which structure is faster for the check, a list or a set, and why?</summary><p>A set. Looking up an item in a set takes about the same time however large the set is, while a list is searched item by item (<a href="../t2-algorithms/">0.2</a>).</p></details>
+    <details><summary>You have a list of 100,000 training tags and must check thousands of test tags for overlap. Which structure is faster for the check, a list or a set, and why?</summary><p>A set. Looking up an item in a set takes about the same time however large the set is, while a list is searched item by item (<a href="../t2-algorithms/#lookup">0.2</a>).</p></details>
     <details><summary>Why does a single straight line fail on XOR, and what kind of function from chapter 0.3 would you put between two lines to fix it?</summary><p>The midpoint argument: both diagonals share the point (0.5, 0.5). A bend such as a sigmoid between two lines lets the chain make a curve (<a href="../t3-algebra-functions/#composition">0.3</a>).</p></details>
   </div>
 </section>
@@ -404,7 +404,7 @@ True</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="t4-discrete-maths.js?v=1" defer></script>
 </body>
 </html>

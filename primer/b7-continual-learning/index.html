@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .card .bar { row-gap: 8px; }
@@ -109,7 +109,7 @@
     <div><dt>regularisation</dt><dd>anything that stops the model from fitting the training set as closely as it could; here a penalty on large weights</dd></div>
     <div><dt>early stopping</dt><dd>stopping training when the validation loss stops improving, and keeping the best weights</dd></div>
     <div><dt>patience</dt><dd>how many checks without a new best the run waits before it stops</dd></div>
-    <div><dt>data augmentation</dt><dd>training on altered copies of the examples, here with random noise on the inputs (<a href="../c3-domain-shift/#augment">C3</a> uses it for images)</dd></div>
+    <div><dt>data augmentation</dt><dd>training on altered copies of the examples; here, random noise on the inputs (<a href="../c3-domain-shift/#augment">C3</a> gives the full treatment, for images)</dd></div>
   </dl>
   <p class="claim">A network that can fit 30 sharks perfectly will fit their noise too, and the three brakes limit that in different ways.</p>
   <div class="card" id="rg">
@@ -120,7 +120,7 @@
   </div>
   <p class="cap"><b>With no brake the validation loss is lowest, 0.36, at epoch 12 and then climbs to 2.03 by epoch 400, while the training loss reaches 0.00. A weight penalty of 0.05 ends the run at 0.35.</b> The curves are means of 6 runs on the made-up spadenose records (30 training sharks, 108 validation sharks, six inputs including depth and month, which have no information about maturity).</p>
   <p>The answer to the guess is "turn around and rise". After about 12 epochs the network has learned what is common to all sharks and starts to memorise the 30 it sees. Try the brakes in turn. A <b>weight penalty</b> adds a term to the loss that grows with the size of the weights: \(L_{\text{total}} = L + \omega \sum w^2\). Large weights are what a network needs to bend a curve through noisy points, so the penalty keeps the curve smooth. At a step the penalty also shrinks all weights by a factor of \(1 - 2\eta\omega\). This is why people call it weight decay. <a href="../b5-optimisers/#adamw">B5</a> explains why Adam treats it differently from a plain penalty. <b>Early stopping</b> needs no change to the loss. Check the validation loss at regular intervals, remember the best weights, and stop when there has been no new best for the patience you set. With patience 3 the run above stops at epoch 24 and gives back the weights of epoch 12.</p>
-  <p><b>Noise in the inputs</b> is a simple augmentation. At the start of an epoch, all inputs are changed by random amounts of the size you choose (in standardised units, so 0.3 is 30% of a standard deviation). The network never sees the same 30 numbers twice, so it cannot memorise them. For a single linear model, noise of size \(s\) on an input acts like a penalty \(s^2 w^2\) on its weight (exercise 2). This links the first and third brake.</p>
+  <p><b>Noise in the inputs</b> is a simple case of data augmentation (<a href="../c3-domain-shift/#augment">C3</a> develops it for images). At the start of an epoch, all inputs are changed by random amounts of the size you choose (in standardised units, so 0.3 is 30% of a standard deviation). The network never sees the same 30 numbers twice, so it cannot memorise them. For a single linear model, noise of size \(s\) on an input acts like a penalty \(s^2 w^2\) on its weight (exercise 2). This links the first and third brake.</p>
   <div class="eqn" role="img" aria-label="Worked example: weight 3, penalty 0.05 times 9 equals 0.45, shrink factor 1 minus 2 times 0.1 times 0.05 equals 0.99"><span class="t c-navy"><b>&omega; = 0.05</b><i>penalty strength</i></span><span class="op">&times;</span><span class="t c-coral"><b>3&sup2; = 9</b><i>a weight of 3, squared</i></span><span class="op">=</span><span class="t c-teal"><b>0.45</b><i>added to the loss</i></span><span class="op">|</span><span class="t c-navy"><b>1 &minus; 2 &times; 0.1 &times; 0.05</b><i>&eta; = 0.1</i></span><span class="op">=</span><span class="t c-teal"><b>0.99</b><i>weights shrink 1% per step</i></span></div>
   <p class="math">\[ L_{\text{total}}(\theta) \;=\; L(\theta) \;+\; \omega \sum_j \theta_j^{2} \qquad\quad \theta_j \;\leftarrow\; (1 - 2\eta\omega)\,\theta_j \;-\; \eta\,\frac{\partial L}{\partial \theta_j} \]</p>
   <ul class="math-notes">
@@ -134,7 +134,7 @@
     <p><b>Better account.</b> Compare the training and validation curves. A gap that widens is overfitting, and any brake that shrinks the gap without raising the validation loss is worth keeping.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> If the validation loss is lowest at epoch 1 or 2, the learning rate is probably too high, so the run overfits within a few steps. Lower the rate before adding brakes (<a href="../b8-debugging/#lab">B8</a>).</p>
+    <p><b>Debug tip.</b> If the validation loss is lowest at epoch 1 or 2, the learning rate is probably too high, so the run overfits within a few steps. Lower the rate before adding brakes (<a href="../b8-debugging/#lrtest">B8</a>).</p>
   </div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
@@ -440,7 +440,7 @@ sum of v / sum of F: 0.077  (1/16 = 0.062)</pre>
     <li><b>Test-time training.</b> During deployment, with a self-supervised target, one input or one chunk at a time. It needs no labels, and it costs computation for all inputs.</li>
   </ul>
   <div class="bridge">
-    <p><b>Bridge to Rayhaan's project.</b> His work at MBZUAI ports In-Place Test-Time Training, a method from ByteDance Seed, from text models to a Qwen vision-language model. In-Place TTT treats the down projection of selected MLP blocks as fast weights. It updates them chunk by chunk as the model reads, with a target built from the input, so generation never pauses. His motivation is the question of this chapter: recognising a shark when the water, the light and the animals change between dives. See the <a href="https://rayhaan1345.github.io/projects/in-place-ttt/">project page</a> and its <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">primer</a>, and <a href="../d6-long-context/">D6</a> for the long-context side.</p>
+    <p><b>Bridge to Rayhaan's project.</b> His work at MBZUAI ports In-Place Test-Time Training, a method from ByteDance Seed, from text models to a Qwen vision-language model. In-Place TTT treats the down projection of selected MLP blocks as fast weights. It updates them chunk by chunk as the model reads, with a target built from the input, so generation never pauses. His motivation is the question of this chapter: recognising a shark when the water, the light and the animals change between dives. See the <a href="https://rayhaan1345.github.io/projects/in-place-ttt/">project page</a> and its <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">primer</a>, and <a href="../d6-long-context/#ttt">D6</a> for the long-context side.</p>
   </div>
   <p><b>Where this fits with forgetting.</b> A model that updates itself during use can drift. If all dives write into the same weights, the clear-water skill erodes in the way of the earlier figures. Test-time methods therefore limit what they change (a few fast weights, or only the statistics, as above), or reset after an input. <b>In practice</b>, ask three questions of any such method: what changes, what resets, and how you would notice damage. For SharkCam, the third is the small held-out set from the first water, scored after a dive.</p>
   <div class="recall">
@@ -548,7 +548,7 @@ for i in tr:                                              # F_jj: average square
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="b7-continual-learning.js?v=1" defer></script>
 </body>
 </html>

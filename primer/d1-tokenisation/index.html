@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only: token chips, the trainer layout and the language rows. */
 .row-chips { display: inline-block; margin: 0 10px 6px 0; }
@@ -131,7 +131,7 @@ table.bt td.ch { font-size: 20px; }
     <p><b>Why it fails.</b> Tokens are pieces of any size. The number 4128 became &ldquo;&#9601;4&rdquo; and &ldquo;128&rdquo;. The word &ldquo;sharkcamera&rdquo; became &ldquo;&#9601;shark&rdquo; and &ldquo;camera&rdquo;. A Devanagari letter can be cut into bytes.</p>
     <p><b>Better account.</b> A token is whatever piece the vocabulary contains. One word may be one token or several, and counting words predicts the token count badly.</p>
   </div>
-  <p class="used"><b>Used in:</b> the sequence length <i>n</i> that attention works on (<a href="../d4-self-attention/">D4</a>), and the cost of long inputs (<a href="../d6-long-context/">D6</a>).</p>
+  <p class="used"><b>Used in:</b> the sequence length <i>n</i> that attention works on (<a href="../d4-self-attention/#mask">D4</a>), and the cost of long inputs (<a href="../d6-long-context/#cost">D6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A word-level model reads the report &ldquo;Tag 4128&rdquo;. What does it do with 4128?</summary><p>If 4128 is not in its list, it replaces the number with the unknown token, so the model never learns which tag was meant. A piece-level tokenizer writes it as known pieces.</p></details>
@@ -347,7 +347,7 @@ print(vocab.get("▁hammerhead", vocab["&lt;unk&gt;"]))</code></pre>
     <p class="status" id="sp-status" aria-live="polite"></p>
   </div>
   <p class="cap"><b>Padding the young-hammerhead reports to the longest one wastes 42% of the slots under GPT-2, because the English report is 27 tokens and the Marathi report is 193.</b> The reports are the invented messages m03, m07, m11 and m15, counted with the two tokenizers.</p>
-  <p>Switch the tokenizer to Qwen2.5 and the padding share falls, because its tokens for Hindi and Marathi are fewer. A model reads a batch as a rectangle, so all rows must have the same length. The short rows get <i>&lt;pad&gt;</i> tokens. A mask tells attention to skip them (<a href="../d4-self-attention/">D4</a>). Compute spent on padding is wasted, so training code often groups reports of similar length into the same batch.</p>
+  <p>Switch the tokenizer to Qwen2.5 and the padding share falls, because its tokens for Hindi and Marathi are fewer. A model reads a batch as a rectangle, so all rows must have the same length. The short rows get <i>&lt;pad&gt;</i> tokens. A mask tells attention to skip them (<a href="../d4-self-attention/#mask">D4</a>). Compute spent on padding is wasted, so training code often groups reports of similar length into the same batch.</p>
   <p>Other special tokens give the text edges. GPT-2 has just one, <code>&lt;|endoftext|&gt;</code> with ID 50256. It marks both the start and the end of a document. Qwen2.5's tokenizer has this token (151643). It also has <code>&lt;|im_start|&gt;</code> (151644) and <code>&lt;|im_end|&gt;</code> (151645), which mark the beginning and end of a turn in a chat, together with a role such as &ldquo;user&rdquo;. A model learns to emit the end token when a reply is finished, and generation stops there (<a href="../d3-next-token/#loop">D3</a>).</p>
   <div class="break">
     <p><b>Common belief.</b> Padding is harmless, because it is only filler.</p>
@@ -357,7 +357,7 @@ print(vocab.get("▁hammerhead", vocab["&lt;unk&gt;"]))</code></pre>
   <div class="debug">
     <p><b>Debug tip.</b> If a model never stops talking, check that the end token is added to the training text and that generation stops on it. If results change when you batch, check the padding mask first.</p>
   </div>
-  <p class="used"><b>Used in:</b> attention masks (<a href="../d4-self-attention/">D4</a>), the generation loop (<a href="../d3-next-token/#loop">D3</a>) and chat assistants (<a href="../d7-assistants/">D7</a>).</p>
+  <p class="used"><b>Used in:</b> attention masks (<a href="../d4-self-attention/#mask">D4</a>), the generation loop (<a href="../d3-next-token/#loop">D3</a>) and chat assistants (<a href="../d7-assistants/#prompt">D7</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Four rows have 10, 20, 30 and 40 tokens. How many slots are padding if the batch is padded to 40?</summary><p>Slots total 4 &times; 40 = 160. Message tokens total 100. Padding is 60 slots, or 37.5%.</p></details>
@@ -514,7 +514,7 @@ print(vocab.get("▁hammerhead", vocab["&lt;unk&gt;"]))</code></pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="d1-tokenisation.js?v=1" defer></script>
 </body>
 </html>

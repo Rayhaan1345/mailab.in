@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 code { overflow-wrap: anywhere; }
@@ -397,7 +397,7 @@ rows alone in their group: 3</pre>
   <dl class="terms">
     <div><dt>calibrated</dt><dd>a printed chance matches the share who have the condition among women with that printed chance (<a href="../a4-grading-models/#threshold">A4</a>)</dd></div>
     <div><dt>automation bias</dt><dd>the tendency to over-rely on advice from an automated system</dd></div>
-    <div><dt>hallucination</dt><dd>a fluent output of a language model that is not supported by facts or by its source (<a href="../d7-assistants/">D7</a>)</dd></div>
+    <div><dt>hallucination</dt><dd>a fluent output of a language model that is not supported by facts or by its source (<a href="../d7-assistants/#halluc">D7</a>)</dd></div>
     <div><dt>reweighting</dt><dd>counting records with weights so that a group has the share it would have in another place</dd></div>
   </dl>
   <p class="claim">A probability with two digits looks reliable. It describes one population, and it changes when the base rate changes.</p>
@@ -411,7 +411,7 @@ rows alone in their group: 3</pre>
   <p class="cap"><b>Among Pima women, a printed chance of 70% to 80% matched the share with diabetes (75%). Where 11.4% of the women have diabetes (India's national figure, used here in place of a clinic's rate), the same printed 70% corresponds to about 36%.</b> Dot size shows how many women lie behind a point. The coral curve is a reweighting of the Pima women, and it assumes that only the base rate differs.</p>
   <p>The navy curve is the model's calibration on the Pima women: it follows the diagonal, so a printed chance means what it says there. Slide the share of women with diabetes down. The coral curve sinks below the diagonal. The women are the same, and so are the printed chances. The meaning changed, because fewer of the flagged women are sick (<a href="../a4-grading-models/#screening">A4</a>). The teal line is the printed chance you choose, and the equation shows the log-odds shift that moves it to the new rate. The sentence under the figure gives the same change from the reweighted women, as a check on the formula. It uses the whole bin from 70% to 80%, whose women average a printed chance of 75%, so it reads 42% where the equation for a printed 70% reads 36%.</p>
   <p>A person who receives a probability needs to know what population it describes. A doctor who sees "70%" may take it at face value. Goddard, Roudsari and Wyatt (2012) reviewed 74 studies of automation bias in clinical decision support. People tended to over-rely on the system, more so when workload, task complexity and time pressure rose. Training, accountability and design choices reduced it. The design choices included where the advice appears on screen and how confidence levels are shown.</p>
-  <p>Language models add a second risk. A model can write a dose, a study or a diagnosis in the same calm tone as a correct answer. Ji and colleagues survey this hallucination: generated text that is unintended or unsupported. <a href="../d7-assistants/">D7</a> says why it happens. For health the rule is plain. Treat the answer as a lead and check it against a source you can open. A reference that the model supplies is itself a claim to check, because a model can produce a plausible citation that does not exist.</p>
+  <p>Language models add a second risk. A model can write a dose, a study or a diagnosis in the same calm tone as a correct answer. Ji and colleagues survey this hallucination: generated text that is unintended or unsupported. <a href="../d7-assistants/#halluc">D7</a> says why it happens. For health the rule is plain. Treat the answer as a lead and check it against a source you can open. A reference that the model supplies is itself a claim to check, because a model can produce a plausible citation that does not exist.</p>
   <div class="break">
     <p><b>Common belief.</b> A model that is right 88% of the time on healthy women is 88% right about the woman in front of me.</p>
     <p><b>Why it fails.</b> The 88% is a rate over healthy women in the test data. For one flagged woman the question is different: how likely is she to be sick, given the flag and the local base rate. That is precision, and it can be far lower.</p>
@@ -508,7 +508,7 @@ print("share with diabetes at the new base rate:", round((w * y).sum() / w.sum()
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="f1-fairness.js?v=1" defer></script>
 </body>
 </html>

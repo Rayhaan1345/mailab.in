@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .row-chips { display: inline-block; margin: 0 10px 6px 0; }
@@ -147,7 +147,7 @@ pre code { overflow-wrap: normal; }
     <p><b>Better account.</b> All the parts read the shared vector and write a correction onto it. The vector is a running sum of what the parts wrote.</p>
   </div>
   <div class="bridge">
-    <p><b>Bridge to Rayhaan's project.</b> The matrix \(W_2\) is the down projection: it maps the 3,072 hidden numbers of the MLP back to the stream. In-Place Test-Time Training, a method from ByteDance Seed, treats the down projection of selected MLP blocks as fast weights. It updates them chunk by chunk while the model reads, with a target built from the input. Rayhaan is porting the method from text models to a Qwen vision-language model, so that it can adapt to an input after deployment. His primer builds the idea from attention to the update: see <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/#block">the block and its MLP</a> and <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">the whole primer</a>. <a href="../d6-long-context/">D6</a> returns to test-time training.</p>
+    <p><b>Bridge to Rayhaan's project.</b> The matrix \(W_2\) is the down projection: it maps the 3,072 hidden numbers of the MLP back to the stream. In-Place Test-Time Training, a method from ByteDance Seed, treats the down projection of selected MLP blocks as fast weights. It updates them chunk by chunk while the model reads, with a target built from the input. Rayhaan is porting the method from text models to a Qwen vision-language model, so that it can adapt to an input after deployment. His primer builds the idea from attention to the update: see <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/#block">the block and its MLP</a> and <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">the whole primer</a>. <a href="../d6-long-context/#ttt">D6</a> returns to test-time training.</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 rng = np.random.default_rng(4127)
@@ -355,7 +355,7 @@ with positions: False</pre>
   <div class="break">
     <p><b>Common belief.</b> BERT is a better GPT, since it sees the whole sentence.</p>
     <p><b>Why it fails.</b> A model that can see the next word cannot be asked for it, as the leak of <a href="../d4-self-attention/#mask">D4</a> shows. BERT gives a good vector for all its tokens, which is useful for sorting a message by topic or for search, and it has no way to continue a text. GPT-2 writes text, and its vector for a token has seen only the left side.</p>
-    <p><b>Better account.</b> The two designs differ in the mask and the task, and the two suit different jobs. GPT-2 is decoder-only. <a href="../d7-assistants/">D7</a> covers assistants built on such models, and <a href="../e2-clip/">E2</a> uses encoders for images and text.</p>
+    <p><b>Better account.</b> The two designs differ in the mask and the task, and the two suit different jobs. GPT-2 is decoder-only. <a href="../d7-assistants/#stages">D7</a> covers assistants built on such models, and <a href="../e2-clip/#encoder">E2</a> uses encoders for images and text.</p>
   </div>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
@@ -395,7 +395,7 @@ with positions: False</pre>
   <ul class="math-notes">
     <li><b>2</b> is for keys and values. <b>\(N_{\text{layer}}\)</b> is the number of layers: 12 in GPT-2 small and 48 in GPT-2 XL. <b>\(n\)</b> is the number of tokens in the context.</li>
     <li><b>\(d\)</b> is the width of the model: 768, or 1,600 in GPT-2 XL. <b>\(b\)</b> is the bytes per number: 4 for 32-bit and 2 for 16-bit.</li>
-    <li>The formula applies to models in which all heads have their own keys and values, as in GPT-2. Models that share keys and values between heads store less. <a href="../d6-long-context/">D6</a> returns to this.</li>
+    <li>The formula applies to models in which all heads have their own keys and values, as in GPT-2. Models that share keys and values between heads store less. <a href="../d6-long-context/#cache">D6</a> returns to this.</li>
   </ul>
   <p>Worked example 1: GPT-2 small with 1,024 tokens in 16-bit numbers. \(2 \times 12 \times 1{,}024 \times 768 = 18{,}874{,}368\) numbers, times 2 bytes is 37,748,736 bytes. Worked example 2: GPT-2 XL, \(2 \times 48 \times 1{,}024 \times 1{,}600 = 157{,}286{,}400\) numbers, 314,572,800 bytes. An invented Hindi report of 117 tokens (<a href="../d1-tokenisation/#languages">D1</a>) needs \(117 \times 36{,}864 = 4.3\) MB of cache in GPT-2 small, so the window fits about 8 such reports.</p>
   <div class="break">
@@ -448,7 +448,7 @@ token-passes for 16 tokens: with cache 16 , without 108</pre>
     <h3>Think deeper</h3>
     <ol>
       <li><p><span class="ex-tag">open</span> Design an experiment on the tiny block that tells you what the shortcut and the layer norm do. What would you change, what would you measure, and what result would show that one of them is not needed?</p></li>
-      <li><p><span class="ex-tag">open</span> A SharkCam model reads a photo as patches (<a href="../e1-vision-transformers/">E1</a>) followed by the text of a question and then writes an answer. Which mask would you use for the patch tokens, which for the question and which for the answer? What could go wrong if the answer tokens could read one another's future?</p></li>
+      <li><p><span class="ex-tag">open</span> A SharkCam model reads a photo as patches (<a href="../e1-vision-transformers/#cut">E1</a>) followed by the text of a question and then writes an answer. Which mask would you use for the patch tokens, which for the question and which for the answer? What could go wrong if the answer tokens could read one another's future?</p></li>
       <li><p><span class="ex-tag">open</span> The KV cache stores keys and values computed with the weights that were in place when the token was read. Suppose some weights change while a model reads (as in test-time training). Which cached entries could be out of date, and how could you find out whether it matters? Do not assume any particular method.</p>
         <details class="hint"><summary>Hint</summary><p>Think about which layers use the changed weights, and about the keys and values of the later layers for tokens that were already read.</p></details></li>
     </ol>
@@ -491,7 +491,7 @@ token-passes for 16 tokens: with cache 16 , without 108</pre>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="d5-transformer.js?v=1" defer></script>
 </body>
 </html>

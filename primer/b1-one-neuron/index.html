@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .eqstrip { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; margin: 14px 0 0; }
@@ -182,7 +182,7 @@ print(f"z = {z:.2f}, output a = {a:.3f}")       # 3. the neuron's output</code><
   </div>
   <p class="cap"><b>The sigmoid's slope is at most 0.25 and falls below 0.01 when \(|z|\) passes 4.6. At \(z = 8\) it is 0.0003, while ReLU's slope is still 1.</b></p>
   <p>Drag \(z\) from the left end to the right end with the sigmoid chosen. The navy curve is the output, and the dashed sand curve is its slope. The slope peaks at \(z = 0\) and drops close to 0 in both tails. A neuron in a tail is saturated: a large change in the weights moves \(z\), but the output hardly responds, so learning is slow. At \(z = 8\) the sigmoid's slope is 0.0003, about 750 times smaller than the 0.25 it has at \(z = 0\). An update that would take one step at \(z = 0\) takes hundreds there. The tanh has the same problem in its tails, though its slope peaks at 1 instead of 0.25. In fact \(\tanh z = 2\sigma(2z) - 1\): it is the sigmoid stretched to run from \(-1\) to 1 and sharpened by a factor of 2 (<a href="../t3-algebra-functions/#families">0.3</a>).</p>
-  <p>ReLU has a slope of 1 for all positive \(z\), so it never saturates on that side. Its price is the other side: for negative \(z\) the slope is 0, and a neuron that sees only negative sums gets no signal at all. GELU is the smooth cousin. It multiplies \(z\) by \(\Phi(z)\), the chance that a standard normal value falls below \(z\) (<a href="../t7-probability/#normal">0.7</a>). Large positive \(z\) passes almost unchanged. Large negative \(z\) is squashed to almost 0. The corner at 0 is rounded. Hendrycks and Gimpel proposed it in 2016, and the original GPT and BERT language models use it (<a href="../d5-transformer/">D5</a>). The step has slope 0 wherever it is defined, so gradient descent has no slope to follow, and the perceptron of the next section uses its own rule.</p>
+  <p>ReLU has a slope of 1 for all positive \(z\), so it never saturates on that side. Its price is the other side: for negative \(z\) the slope is 0, and a neuron that sees only negative sums gets no signal at all. GELU is the smooth cousin. It multiplies \(z\) by \(\Phi(z)\), the chance that a standard normal value falls below \(z\) (<a href="../t7-probability/#normal">0.7</a>). Large positive \(z\) passes almost unchanged. Large negative \(z\) is squashed to almost 0. The corner at 0 is rounded. Hendrycks and Gimpel proposed it in 2016, and the original GPT and BERT language models use it (<a href="../d5-transformer/#block">D5</a>). The step has slope 0 wherever it is defined, so gradient descent has no slope to follow, and the perceptron of the next section uses its own rule.</p>
   <div class="act-wrap"><table class="act-table" aria-label="The six activations with their slopes">
     <thead><tr><th>activation</th><th>output \(g(z)\)</th><th>slope \(g'(z)\)</th><th>output at \(z = 1\)</th><th>slope at \(z = 1\)</th></tr></thead>
     <tbody>
@@ -215,7 +215,7 @@ print(f"z = {z:.2f}, output a = {a:.3f}")       # 3. the neuron's output</code><
     <p><b>Better account.</b> The choice of activation matters less for one neuron than for a network. It sets which slopes stay large when many layers multiply them (<a href="../b4-backpropagation/#vanish">B4</a>, <a href="../b6-deep-networks/#signal">B6</a>).</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> If a ReLU network does not learn at all, count how many neurons have a negative \(z\) for the whole batch. A neuron that is dead for all inputs has a slope of 0, so no update reaches it. A smaller learning rate and a sensible start often stop units dying (<a href="../b8-debugging/">B8</a>).</p>
+    <p><b>Debug tip.</b> If a ReLU network does not learn at all, count how many neurons have a negative \(z\) for the whole batch. A neuron that is dead for all inputs has a slope of 0, so no update reaches it. A smaller learning rate and a sensible start often stop units dying (<a href="../b8-debugging/#lab">B8</a>).</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 from math import erf, sqrt
@@ -450,7 +450,7 @@ numbers in the layer: 9</pre>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="b1-one-neuron.js?v=1" defer></script>
 </body>
 </html>

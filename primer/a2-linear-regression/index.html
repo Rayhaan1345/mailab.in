@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .used { max-width: 46em; margin: 4px 0 0; font-size: 14.5px; color: var(--muted); }
@@ -137,7 +137,7 @@ print("the best line     :", round(mse(w, b), 5), "with w =", round(w, 4), "and 
   <pre class="out">always the average: 0.01947
 a line by eye     : 0.00256
 the best line     : 0.00219 with w = 0.0149 and b = -0.3562</pre>
-  <p class="used"><b>Used in:</b> the loss \(L\) is the quantity gradient descent lowers (next sections), and the same two dials return as the weight and bias of a neuron (<a href="../b1-one-neuron/">B1</a>).</p>
+  <p class="used"><b>Used in:</b> the loss \(L\) is the quantity gradient descent lowers (next sections), and the same two dials return as the weight and bias of a neuron (<a href="../b1-one-neuron/#neuron">B1</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A shark is 0.1 kg heavier than the line predicts. What is its residual, and what is the area of its square?</summary><p>The residual is +0.1 kg (truth minus prediction). The square has area \(0.1^2 = 0.01\) kg<sup>2</sup>.</p></details>
@@ -175,7 +175,7 @@ the best line     : 0.00219 with w = 0.0149 and b = -0.3562</pre>
   <p>These two formulas come from asking where the loss stops falling, that is where its slopes are zero. The next section finds those slopes.</p>
   <div class="break">
     <p><b>Common belief.</b> If a formula gives the best line, gradient descent is pointless.</p>
-    <p><b>Why it fails.</b> The formula exists for this model. For a logistic model (<a href="../a3-logistic-regression/#train">A3</a>) or a network (<a href="../b3-loss-gradient-descent/">B3</a>) no such formula exists. Even for a line with many inputs, the formula needs a matrix inverse, whose cost grows fast with the number of inputs (<a href="../t2-algorithms/#bigo">0.2</a>).</p>
+    <p><b>Why it fails.</b> The formula exists for this model. For a logistic model (<a href="../a3-logistic-regression/#train">A3</a>) or a network (<a href="../b3-loss-gradient-descent/#landscape">B3</a>) no such formula exists. Even for a line with many inputs, the formula needs a matrix inverse, whose cost grows fast with the number of inputs (<a href="../t2-algorithms/#bigo">0.2</a>).</p>
     <p><b>Better account.</b> The formula is the answer key. Gradient descent is the method that transfers to other models, and it must reproduce this answer here.</p>
   </div>
   <div class="debug">
@@ -195,7 +195,7 @@ print("mean residual:", abs(round((y - (w * x + b)).mean(), 10)))</code></pre>
   <pre class="out">by formula : 0.01488 -0.3562
 np.polyfit : [ 0.01488 -0.35616]
 mean residual: 0.0</pre>
-  <p class="used"><b>Used in:</b> the matrix version of this formula appears at the end of the chapter, and its limits explain why <a href="../b3-loss-gradient-descent/">B3</a> trains networks by gradient descent.</p>
+  <p class="used"><b>Used in:</b> the matrix version of this formula appears at the end of the chapter, and its limits explain why <a href="../b3-loss-gradient-descent/#landscape">B3</a> trains networks by gradient descent.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The average length is 40 cm and the average weight 0.25 kg. The slope is 0.015 kg per cm. What is the bias?</summary><p>\(b = \bar{y} - w\bar{x} = 0.25 - 0.015 \times 40 = -0.35\) kg.</p></details>
@@ -272,7 +272,7 @@ mean residual: 0.0</pre>
   <p>Setting \(\partial L/\partial b = 0\) gives \(\sum_i r_i = 0\): the residuals average to zero. That is the line through the average shark from the last section.</p>
   <div class="break">
     <p><b>Analogy.</b> Gradient descent is a ball rolling down a bowl, or a walker feeling the slope in fog.</p>
-    <p><b>Where it breaks.</b> A ball has momentum, and a walker can look around. Gradient descent sees only the slope under its feet. The bowl of a line has one bottom, so it cannot get stuck. The loss of a neural network can have many dips and flat patches (<a href="../t6-gradients/#gradient">0.6</a>, <a href="../b3-loss-gradient-descent/">B3</a>), and there the walk can end somewhere other than the lowest point.</p>
+    <p><b>Where it breaks.</b> A ball has momentum, and a walker can look around. Gradient descent sees only the slope under its feet. The bowl of a line has one bottom, so it cannot get stuck. The loss of a neural network can have many dips and flat patches (<a href="../t6-gradients/#gradient">0.6</a>, <a href="../b3-loss-gradient-descent/#landscape">B3</a>), and there the walk can end somewhere other than the lowest point.</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> Print the loss as you train. It should fall from one step to the next. If it rises, the learning rate is too big or a slope has the wrong sign. Compare the formula's slopes with the nudge test of step 6: they disagree when the formula has a bug.</p>
@@ -303,7 +303,7 @@ step  10: w = 0.1173, b = 0.2588, loss = 0.00361
 step  20: w = 0.1299, b = 0.2275, loss = 0.00220
 step 100: w = 0.1315, b = 0.2238, loss = 0.00219
 closed form : [0.1315 0.2237]</pre>
-  <p class="used"><b>Used in:</b> the same loop trains the models of this primer. A network replaces the two slopes with one per weight, found by backpropagation (<a href="../b4-backpropagation/">B4</a>), and better step rules replace the plain update (<a href="../b5-optimisers/">B5</a>).</p>
+  <p class="used"><b>Used in:</b> the same loop trains the models of this primer. A network replaces the two slopes with one per weight, found by backpropagation (<a href="../b4-backpropagation/#backward">B4</a>), and better step rules replace the plain update (<a href="../b5-optimisers/#race">B5</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The slope of the loss along \(w\) is +2 and \(\eta = 0.1\). How does \(w\) change in one step?</summary><p>\(w\) falls by \(0.1 \times 2 = 0.2\). A positive slope means the loss rises as \(w\) rises, so the step goes the other way.</p></details>
@@ -347,7 +347,7 @@ closed form : [0.1315 0.2237]</pre>
     <p><b>Better account.</b> There is a usable range. Too small wastes time. Too large fails. The best value lies well inside the range and depends on the bowl.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> If the loss rises or turns into <code>nan</code>, cut the learning rate by a factor of 10 and run again. If the loss falls smoothly but slowly, raise it by a factor of 3. Try values spaced by factors of 3 or 10, never by 10%. <a href="../b8-debugging/">B8</a> adds a learning-rate range test.</p>
+    <p><b>Debug tip.</b> If the loss rises or turns into <code>nan</code>, cut the learning rate by a factor of 10 and run again. If the loss falls smoothly but slowly, raise it by a factor of 3. Try values spaced by factors of 3 or 10, never by 10%. <a href="../b8-debugging/#lrtest">B8</a> adds a learning-rate range test.</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -367,7 +367,7 @@ for eta in [0.02, 0.3, 0.9, 1.05]:
 eta = 0.30: loss after 20 steps = 0.00219
 eta = 0.90: loss after 20 steps = 0.00220
 eta = 1.05: loss after 20 steps = 5.60176</pre>
-  <p class="used"><b>Used in:</b> the learning rate is the first setting to tune in any network (<a href="../b3-loss-gradient-descent/">B3</a>). Its schedules and warm-up are in <a href="../b5-optimisers/">B5</a>, and finding a good value is part of the recipe in <a href="../b8-debugging/">B8</a>.</p>
+  <p class="used"><b>Used in:</b> the learning rate is the first setting to tune in any network (<a href="../b3-loss-gradient-descent/#landscape">B3</a>). Its schedules and warm-up are in <a href="../b5-optimisers/#schedule">B5</a>, and finding a good value is part of the recipe in <a href="../b8-debugging/#lrtest">B8</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>With \(\eta = 0.25\) on this bowl, by what factor does the distance to the bottom change per step?</summary><p>\(1 - 2 \times 0.25 = 0.5\). The distance halves in one step.</p></details>
@@ -431,7 +431,7 @@ run(x)                                   # raw length in cm
 run((x - x.mean()) / x.std())            # standardised length</code></pre>
   <pre class="out">curvatures [9.800000e-02 3.196137e+03], eta 0.00031, loss after 1000 steps 0.03993
 curvatures [2. 2.], eta 0.50000, loss after 1000 steps 0.00219</pre>
-  <p class="used"><b>Used in:</b> standardising inputs is the first step of nearly all models (<a href="../a3-logistic-regression/#boundary">A3</a>, <a href="../b1-one-neuron/">B1</a>). Normalisation layers do the same job inside a network (<a href="../b6-deep-networks/">B6</a>).</p>
+  <p class="used"><b>Used in:</b> standardising inputs is the first step of nearly all models (<a href="../a3-logistic-regression/#boundary">A3</a>, <a href="../b1-one-neuron/#neuron">B1</a>). Normalisation layers do the same job inside a network (<a href="../b6-deep-networks/#norm">B6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A column of depths runs from 0 to 5,000 m and another of temperatures from 20 to 30 C. Which needs scaling?</summary><p>Both, and the depth most. Without scaling, the depth direction is far steeper than the temperature direction, so the bowl is a canyon again.</p></details>
@@ -490,7 +490,7 @@ print("R squared:", round(1 - (r ** 2).mean() / y.var(), 3))</code></pre>
 signs: ++----+----+
 R squared: 0.888</pre>
   <p>With only twelve sharks the U is rough: the residuals are positive at both ends and mostly negative between, with one exception at 39.9 cm. The full 268 records show it clearly.</p>
-  <p class="used"><b>Used in:</b> the same plots diagnose any model (<a href="../a4-grading-models/#subgroups">A4</a>, <a href="../b8-debugging/">B8</a>). Boosting fits the residuals of one tree with the next (<a href="../a6-boosting/#boosting">A6</a>).</p>
+  <p class="used"><b>Used in:</b> error analysis of a model's mistakes (<a href="../b8-debugging/#recipe">B8</a>). Boosting fits the residuals of one tree with the next (<a href="../a6-boosting/#boosting">A6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A residual plot shows points scattered evenly above and below zero, but the spread doubles from short sharks to long ones. What does that say?</summary><p>The model is right on average at all lengths, and its errors grow with the size of the shark. That fan suggests that errors are proportional to size, which is the case for weights. Fitting in logs fixes it (next section).</p></details>
@@ -504,7 +504,7 @@ R squared: 0.888</pre>
   <p class="ask"><b>Guess first.</b> A shark twice as long weighs about eight times as much (<a href="../a1-what-is-a-model/#model">A1</a>). Draw both axes so that equal steps mean doubling. What will the curve \(W = aL^3\) look like on those axes, and what will its slope be?</p>
   <dl class="terms">
     <div><dt>power law</dt><dd>\(y = a\,x^{w}\): \(y\) grows like a power of \(x\)</dd></div>
-    <div><dt>exponent \(w\)</dt><dd>the power. On log axes it is the slope of the line</dd></div>
+    <div><dt>exponent \(w\)</dt><dd>the power (<a href="../t3-algebra-functions/#exponents">0.3</a>). On log axes it is the slope of the line</dd></div>
     <div><dt>log-log plot</dt><dd>both axes use log scales (<a href="../t3-algebra-functions/#logs">0.3</a>)</dd></div>
     <div><dt>log-bias \(b\)</dt><dd>\(\ln a\), the height of the line on the log axes at \(\ln L = 0\)</dd></div>
   </dl>
@@ -550,7 +550,7 @@ typical miss in kg: 0.0348
 weight of a 41.0 cm shark: 0.226 kg
 doubling the length multiplies the weight by 7.14</pre>
   <p>These are the twelve sharks of the first figure, so the exponent differs a little from the 2.915 of all 268 records.</p>
-  <p class="used"><b>Used in:</b> log-log plots reappear for the cost of attention (<a href="../d6-long-context/">D6</a>) and wherever sizes span orders of magnitude (<a href="../t8-charts/#scales">0.8</a>). The idea of transforming inputs so that a simple model fits returns as hidden layers in <a href="../b2-non-linearity/">B2</a>.</p>
+  <p class="used"><b>Used in:</b> log-log plots reappear for the cost of attention (<a href="../d6-long-context/#cost">D6</a>) and wherever sizes span orders of magnitude (<a href="../t8-charts/#scales">0.8</a>). The idea of transforming inputs so that a simple model fits returns as hidden layers in <a href="../b2-non-linearity/#lift">B2</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>On log axes a power law has slope 3. A shark becomes 3 times as long. By what factor does its weight grow?</summary><p>\(3^3 = 27\). A slope of 3 on log axes means that multiplying the length by any factor multiplies the weight by that factor cubed.</p></details>
@@ -616,7 +616,7 @@ A = np.c_[X, np.ones(len(y))]
 print("least squares   :", np.linalg.lstsq(A, y, rcond=None)[0].round(3))</code></pre>
   <pre class="out">gradient descent: [0.026 0.11 ] 0.224
 least squares   : [0.026 0.11  0.224]</pre>
-  <p class="used"><b>Used in:</b> a neuron computes \(\mathbf{w}\cdot\mathbf{x} + b\) and then bends the result (<a href="../b1-one-neuron/">B1</a>). A layer does it for many neurons at once with a matrix (<a href="../b2-non-linearity/">B2</a>). Logistic regression adds a squash to the same sum (<a href="../a3-logistic-regression/#sigmoid">A3</a>).</p>
+  <p class="used"><b>Used in:</b> a neuron computes \(\mathbf{w}\cdot\mathbf{x} + b\) and then bends the result (<a href="../b1-one-neuron/#neuron">B1</a>). A layer does it for many neurons at once with a matrix (<a href="../b2-non-linearity/#bend">B2</a>). Logistic regression adds a squash to the same sum (<a href="../a3-logistic-regression/#sigmoid">A3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A model has 5 inputs. How many dials does it have, and how many partial derivatives does one step of gradient descent need?</summary><p>Six dials: five weights and one bias. One step needs six partial derivatives.</p></details>
@@ -685,7 +685,7 @@ least squares   : [0.026 0.11  0.224]</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
-<script src="a2-linear-regression.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
+<script src="a2-linear-regression.js?v=2" defer></script>
 </body>
 </html>

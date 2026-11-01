@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .card .bar { row-gap: 8px; }
@@ -333,9 +333,9 @@ Grad-CAM map (7, 12) weights: 512 channels, 209 positive
   <h2 id="attention-h">Attention maps and their limits</h2>
   <p class="ask"><b>Guess first.</b> A vision transformer looks at a photo through 12 attention heads. In its last layer, you replace the attention weights by equal weights for all 196 patches, so that no patch is preferred. Does the hammerhead score collapse, drop a little, or stay?</p>
   <dl class="terms">
-    <div><dt>attention weights</dt><dd>numbers that say how much one token reads from the others (<a href="../d4-self-attention/">D4</a>)</dd></div>
+    <div><dt>attention weights</dt><dd>numbers that say how much one token reads from the others (<a href="../d4-self-attention/#score">D4</a>)</dd></div>
     <div><dt>head</dt><dd>one of the parallel attention computations in a layer, with its own weights</dd></div>
-    <div><dt>class token</dt><dd>a special token whose final value is used for the prediction (<a href="../e1-vision-transformers/">E1</a>); its attention to the 196 image patches is the usual map</dd></div>
+    <div><dt>class token</dt><dd>a special token whose final value is used for the prediction (<a href="../e1-vision-transformers/#cls">E1</a>); its attention to the 196 image patches is the usual map</dd></div>
   </dl>
   <p class="claim">An attention map is easy to draw and shows where a token read from, which need not be where the evidence for the answer lies.</p>
   <div class="card" id="at">
@@ -424,7 +424,7 @@ Grad-CAM map (7, 12) weights: 512 channels, 209 positive
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="b9-explaining.js?v=1" defer></script>
 </body>
 </html>

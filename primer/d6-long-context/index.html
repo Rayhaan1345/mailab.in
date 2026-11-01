@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .row-chips { display: inline-block; margin: 0 10px 6px 0; }
@@ -98,7 +98,7 @@ pre code { overflow-wrap: normal; }
     <p class="status" id="cs-status" aria-live="polite"></p>
   </div>
   <p class="cap"><b>With the sizes of GPT-2 small, attention is 10% of a layer's work at 1,024 tokens, 78% at 32,768 and 93% at 131,072.</b> The lines cross at about 9,200 tokens here and at about 24,600 tokens for the sizes of Qwen3-4B.</p>
-  <p>Move the length slider, or press the SharkCam buttons. A report is about 33 tokens in GPT-2's tokenizer. A logbook of 500 reports comes to about 16,400 tokens. The made-up dive log has 2,400 frames, one per second for 40 minutes. Written out as one sentence per frame ("At 313 s the camera was at 12.39 m, light 0.02473, ...") it is 211,412 characters. That is 78,163 GPT-2 tokens, or 109,699 tokens in the Qwen2.5 tokenizer, which cuts numbers into single digits (<a href="../d1-tokenisation/#bytes">D1</a>). As photos it is larger still. If a frame is a 224 by 224 photo cut into 16 by 16 patches (<a href="../e1-vision-transformers/">E1</a>), a frame is 196 tokens and the dive is 470,400.</p>
+  <p>Move the length slider, or press the SharkCam buttons. A report is about 33 tokens in GPT-2's tokenizer. A logbook of 500 reports comes to about 16,400 tokens. The made-up dive log has 2,400 frames, one per second for 40 minutes. Written out as one sentence per frame ("At 313 s the camera was at 12.39 m, light 0.02473, ...") it is 211,412 characters. That is 78,163 GPT-2 tokens, or 109,699 tokens in the Qwen2.5 tokenizer, which cuts numbers into single digits (<a href="../d1-tokenisation/#bytes">D1</a>). As photos it is larger still. If a frame is a 224 by 224 photo cut into 16 by 16 patches (<a href="../e1-vision-transformers/#cut">E1</a>), a frame is 196 tokens and the dive is 470,400.</p>
   <p>The two lines count different things. The coral line counts attention pairs. For one pair the model computes a score, a dot product of two vectors of \(d_{\text{head}}\) numbers, and later a weighted sum that costs the same again. Over all heads, \(H\, d_{\text{head}} = d_a\), so one pair costs \(2 d_a\) multiply-adds. With the causal mask the pairs are \(1 + 2 + \dots + n = n(n+1)/2\). The navy line counts the rest of the layer: the matrices that make queries, keys, values and outputs, and the MLP. They work on one token at a time, so their cost is the number of tokens times the number of weights, \(P_{\text{block}}\).</p>
   <p class="math">\[ T_{\text{attention}} = 2\,d_a\cdot\frac{n(n+1)}{2} = n(n+1)\,d_a, \qquad T_{\text{rest}} = n\,P_{\text{block}}, \qquad n^{*} = \frac{P_{\text{block}}}{d_a} - 1 \]</p>
   <ul class="math-notes">
@@ -642,7 +642,7 @@ n = 24: oldest item error  sum 0.79  delta 0.67;  newest item  sum 0.88  delta 0
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="d6-long-context.js?v=1" defer></script>
 </body>
 </html>

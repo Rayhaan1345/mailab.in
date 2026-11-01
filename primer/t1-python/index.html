@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Chapter 0.1 figures: code viewers, variable boxes, cell rows, grids. Colours come from the site tokens. */
 .mono, .codeview, .qcode, .vb b, .cdetail pre, .cdetail code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
@@ -339,7 +339,7 @@ print(lengths[8])</code></pre>
     <p class="status" id="ff-status" aria-live="polite"></p>
   </div>
   <p class="cap"><b>The names <code>length_cm</code>, <code>a</code>, <code>b</code> and <code>grams</code> exist only during the call.</b> After it returns, the program sees the value and no other names.</p>
-  <p>The length-weight law <code>W = a L^b</code> turns a length into a weight, with two numbers <code>a</code> and <code>b</code> that depend on the species. The defaults here are the grey bamboo shark's values, so <code>weight_kg(44.0)</code> gives the weight of Tag 4127, the juvenile bamboo shark from the Juhu rock pool. A caller can pass the numbers for another species by position or by name. The ideas behind functions as maps from inputs to outputs are in <a href="../t3-algebra-functions/">0.3</a>.</p>
+  <p>The length-weight law <code>W = a L^b</code> turns a length into a weight, with two numbers <code>a</code> and <code>b</code> that depend on the species. The defaults here are the grey bamboo shark's values, so <code>weight_kg(44.0)</code> gives the weight of Tag 4127, the juvenile bamboo shark from the Juhu rock pool. A caller can pass the numbers for another species by position or by name. The ideas behind functions as maps from inputs to outputs are in <a href="../t3-algebra-functions/#machines">0.3</a>.</p>
   <pre class="code" data-run><code>def weight_kg(length_cm, a=0.00398, b=2.95):
     grams = a * length_cm ** b
     return grams / 1000
@@ -410,7 +410,7 @@ print(species, length)
 print(record[0], len(record))</code></pre>
   <pre class="out">bamboo 44.0
 4127 3</pre>
-  <p>A set answers "is this in here?" and removes duplicates. Python's set operators match the Venn diagrams of <a href="../t4-discrete-maths/">0.4</a>. The two sets below list the species that appear in the dive records and in the landing records of the made-up catch table. Pick an operator and see which species it returns.</p>
+  <p>A set answers "is this in here?" and removes duplicates. Python's set operators match the Venn diagrams of <a href="../t4-discrete-maths/#sets">0.4</a>. The two sets below list the species that appear in the dive records and in the landing records of the made-up catch table. Pick an operator and see which species it returns.</p>
   <div class="card" id="vn">
     <div class="bar" id="vn-bar"></div>
     <svg id="vn-svg" role="img" aria-label="Two overlapping circles of species in the dive records and in the landing records; the chosen operator highlights part of them"></svg>
@@ -509,7 +509,7 @@ Shark(3305, 'spadenose', 41.0 cm)</pre>
 
 Shark().grow(5)</code></pre>
   <pre class="out">TypeError: Shark.grow() takes 1 positional argument but 2 were given</pre>
-  <p class="used"><b>Used in:</b> a pandas table is a <code>DataFrame</code> object, and <code>df.head()</code> is a method call. A PyTorch model is a class: you create its layers in <code>__init__</code> and write its computation in a method called <code>forward</code>. Part B builds such models.</p>
+  <p class="used"><b>Used in:</b> a pandas table is a <code>DataFrame</code> object, and <code>df.head()</code> is a method call. A PyTorch model is a class: you create its layers in <code>__init__</code> and write its computation in a method called <code>forward</code>. <a href="../c2-cnns/#stack">C2</a> builds one for the digit reader.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>In <code>self.length_cm = length_cm</code>, which side is the attribute?</summary><p>The left side. <code>self.length_cm</code> is stored on the object. The right side is the parameter that was passed in.</p></details>
@@ -677,7 +677,7 @@ print(a[a[:, 0] &gt; 44])            # rows whose first column is over 44</code>
  [74.5    2.128]]
 [[45.1    0.242 10.3  ]
  [74.5    2.128 10.7  ]]</pre>
-  <p>Arithmetic on an array applies to all its cells. The mean of a column is the sum divided by the count; <a href="../t7-probability/">0.7</a> takes statistics further.</p>
+  <p>Arithmetic on an array applies to all its cells. The mean of a column is the sum divided by the count; <a href="../t7-probability/#spread">0.7</a> takes statistics further.</p>
   <pre class="code" data-run><code>import numpy as np
 
 lengths = np.array([42.4, 45.1, 74.5, 41.0])
@@ -736,7 +736,7 @@ print(y)</code></pre>
   <dl class="terms">
     <div><dt>broadcasting</dt><dd>the rule that stretches a size-1 (or missing) dimension to match the other array</dd></div>
     <div><dt>compatible</dt><dd>two sizes are compatible when they are equal or when one of them is 1</dd></div>
-    <div><dt>matrix product</dt><dd>written <code>A @ B</code>; its meaning is in <a href="../t5-vectors-matrices/">0.5</a>, and here you learn only which sizes it accepts</dd></div>
+    <div><dt>matrix product</dt><dd>written <code>A @ B</code>; its meaning is in <a href="../t5-vectors-matrices/#products">0.5</a>, and here you learn only which sizes it accepts</dd></div>
   </dl>
   <p class="claim">NumPy lines up the dimensions of two arrays from the last one backwards. A pair works when the sizes are equal or one is 1. Otherwise the operation fails.</p>
   <div class="card" id="bf">
@@ -806,7 +806,7 @@ print(X.T.shape)           # transpose swaps the two axes</code></pre>
   <pre class="out">(4, 2)
 (4, 2)
 (3, 4)</pre>
-  <p class="used"><b>Used in:</b> standardising a column is broadcasting: subtract the column means and divide by the column spreads (<a href="../a2-linear-regression/">A2</a>). A layer computes <code>X @ W + b</code>, a matrix product followed by broadcasting of the bias (<a href="../b1-one-neuron/">B1</a>). Attention scores are a matrix product of queries and keys (<a href="../d4-self-attention/">D4</a>). Most size-mismatch errors in deep learning are one of the two failures in the explorer above.</p>
+  <p class="used"><b>Used in:</b> standardising a column is broadcasting: subtract the column means and divide by the column spreads (<a href="../a2-linear-regression/#scaling">A2</a>). A layer computes <code>X @ W + b</code>, a matrix product followed by broadcasting of the bias (<a href="../b1-one-neuron/#layer">B1</a>). Attention scores are a matrix product of queries and keys (<a href="../d4-self-attention/#mask">D4</a>). Most size-mismatch errors in deep learning are one of the two failures in the explorer above.</p>
   <div class="break">
     <p><b>Common belief.</b> A table with 4 rows can be added to an array of 4 values, because the 4s match.</p>
     <p><b>Why it fails.</b> NumPy lines the dimensions up from the right, not the left. A table of dimensions (4, 3) meets an array of dimensions (4,) at the 3 and the 4, and they differ.</p>
@@ -865,7 +865,7 @@ print(rng.choice(["milk", "bamboo", "spadenose"], size=4))</code></pre>
   <div class="break">
     <p><b>Common belief.</b> Some seeds are good seeds. Seed 42 is the right one, and a result that needs it is the true result.</p>
     <p><b>Why it fails.</b> A seed only picks one of many equally valid random sequences. A different seed gives a different split of the data and a different score.</p>
-    <p><b>Better account.</b> Fix a seed so you can repeat and debug a run, then change it a few times to see how much the result depends on luck. Report the spread. <a href="../a4-grading-models/">A4</a> returns to this.</p>
+    <p><b>Better account.</b> Fix a seed so you can repeat and debug a run, then change it a few times to see how much the result depends on luck. Report the spread. <a href="../b8-debugging/#repro">B8</a> runs 20 seeds side by side.</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> Python's <code>random</code> module, NumPy and PyTorch have separate generators. Setting one seed does not set the others: use <code>random.seed(s)</code>, <code>np.random.default_rng(s)</code> and <code>torch.manual_seed(s)</code>.</p>
@@ -895,10 +895,10 @@ print(rng.choice(["milk", "bamboo", "spadenose"], size=4))</code></pre>
     <div class="eqn" id="gf-eqn" role="img" aria-label="Live values of w, b, the loss and the two gradients"></div>
   </div>
   <p class="cap"><b>The sign of <code>w.grad</code> says which way to move <code>w</code>: positive means lower it, negative means raise it.</b> Press the step button repeatedly and the loss shrinks while the line approaches the points.</p>
-  <p>The model is a line, \(\hat y = w x + b\), through the three recurring sharks: Tag 3305, Tag 4127 and Tag 5519. The loss is the mean of the squared vertical gaps. PyTorch finds \(\partial L/\partial w\) and \(\partial L/\partial b\) by applying the chain rule to the recorded operations. The chapter on slopes (<a href="../t6-gradients/">0.6</a>) shows why those rules apply, and <a href="../b4-backpropagation/">B4</a> builds the same machine by hand. The numbers in the figure are computed with the formulas below and match PyTorch to all printed digits.</p>
+  <p>The model is a line, \(\hat y = w x + b\), through the three recurring sharks: Tag 3305, Tag 4127 and Tag 5519. The loss is the mean of the squared vertical gaps. PyTorch finds \(\partial L/\partial w\) and \(\partial L/\partial b\) by applying the chain rule to the recorded operations. The chapter on slopes (<a href="../t6-gradients/#chain">0.6</a>) shows why those rules apply, and <a href="../b4-backpropagation/#graph">B4</a> builds the same machine by hand. The numbers in the figure are computed with the formulas below and match PyTorch to all printed digits.</p>
   <p class="math">\[ \begin{aligned} L &= \frac{1}{m}\sum_{i=1}^{m} (w x_i + b - y_i)^2 \\ \frac{\partial L}{\partial w} &= \frac{2}{m}\sum_{i=1}^{m} (\hat y_i - y_i)\, x_i \\ \frac{\partial L}{\partial b} &= \frac{2}{m}\sum_{i=1}^{m} (\hat y_i - y_i) \end{aligned} \]</p>
   <ul class="math-notes">
-    <li><b>\(x_i\)</b> is the length of shark \(i\) in metres, <b>\(y_i\)</b> its weight in kg, and <b>\(\hat y_i = w x_i + b\)</b> the line's prediction. The lengths and weights are the three recurring records of the made-up catch table. A straight line fits weight against length poorly, because weight grows faster than length; <a href="../a2-linear-regression/">A2</a> shows the fix.</li>
+    <li><b>\(x_i\)</b> is the length of shark \(i\) in metres, <b>\(y_i\)</b> its weight in kg, and <b>\(\hat y_i = w x_i + b\)</b> the line's prediction. The lengths and weights are the three recurring records of the made-up catch table. A straight line fits weight against length poorly, because weight grows faster than length; <a href="../a2-linear-regression/#loglog">A2</a> shows the fix.</li>
     <li><b>\(m\)</b> is the number of sharks, here 3. <b>\(w\)</b> and <b>\(b\)</b> are the slope and the intercept.</li>
   </ul>
   <p>Here is the same computation in PyTorch. There is no Run button because the in-browser Python has no PyTorch; the output below came from PyTorch 2.6.0.</p>
@@ -917,7 +917,7 @@ loss.backward()
 print(round(w.grad.item(), 4), round(b.grad.item(), 4))</code></pre>
   <pre class="out">1.0875
 -0.8821 -0.966</pre>
-  <p>One step of gradient descent moves the numbers a small distance against its gradient. The step is made with <code>torch.no_grad()</code> so that the update itself is not recorded. Gradient descent is the topic of <a href="../a2-linear-regression/">A2</a>.</p>
+  <p>One step of gradient descent moves the numbers a small distance against its gradient. The step is made with <code>torch.no_grad()</code> so that the update itself is not recorded. Gradient descent is the topic of <a href="../a2-linear-regression/#descent">A2</a>.</p>
   <pre class="code"><code>import torch
 
 x = torch.tensor([0.41, 0.44, 0.82])
@@ -970,7 +970,7 @@ torch.float32</pre>
     <p><b>Why it fails.</b> It differentiates the numbers that actually flowed through your code, one operation at a time, and it multiplies the local slopes together. It never builds a formula.</p>
     <p><b>Better account.</b> Autograd is a recording of one run plus the chain rule. That is why <code>if</code> statements and loops work, and why a step like rounding, which has a slope of 0 at nearly all points, gives useless gradients.</p>
   </div>
-  <p class="used"><b>Used in:</b> <a href="../b3-loss-gradient-descent/">B3</a> trains a network with this same loop, <a href="../b4-backpropagation/">B4</a> opens the recording and shows the local slopes, and <a href="../b8-debugging/">B8</a> uses the debugging habits above.</p>
+  <p class="used"><b>Used in:</b> <a href="../b3-loss-gradient-descent/#batches">B3</a> trains a network with this same loop, <a href="../b4-backpropagation/#backward">B4</a> opens the recording and shows the local slopes, and <a href="../b8-debugging/#recipe">B8</a> turns the debug tips above into a routine.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Which tensors get a <code>.grad</code> after <code>loss.backward()</code>?</summary><p>The ones created with <code>requires_grad=True</code> that took part in computing the loss, here <code>w</code> and <code>b</code>. The data tensors <code>x</code> and <code>y</code> do not.</p></details>
@@ -1038,7 +1038,7 @@ torch.float32</pre>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="t1-python.js?v=1" defer></script>
 </body>
 </html>

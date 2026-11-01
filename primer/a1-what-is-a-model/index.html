@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .used { max-width: 46em; margin: 4px 0 0; font-size: 14.5px; color: var(--muted); }
@@ -133,7 +133,7 @@ print(f"lazy model says {lazy:.3f} kg: average miss = {np.abs(lazy - weight).mea
   <pre class="out">a = 7.0e-06: average miss = 0.236 kg
 a = 3.3e-06: average miss = 0.020 kg
 lazy model says 0.193 kg: average miss = 0.104 kg</pre>
-  <p class="used"><b>Used in:</b> the line \(\hat y = w x + b\) has two dials and is the model of <a href="../a2-linear-regression/#line">A2</a>. A neuron in <a href="../b1-one-neuron/">B1</a> is the same idea with a bend added.</p>
+  <p class="used"><b>Used in:</b> the line \(\hat y = w x + b\) has two dials and is the model of <a href="../a2-linear-regression/#line">A2</a>. A neuron in <a href="../b1-one-neuron/#neuron">B1</a> is the same idea with a bend added.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The dial is set to a = 0. What does the rule predict for a 50 cm shark, and why?</summary><p>It predicts 0 kg. The prediction is \(a\) times the length cubed, and anything times zero is zero. A lazy model that says 0.226 kg would do better.</p></details>
@@ -195,7 +195,7 @@ example 1: x = [44.  12.4]  y = 0.281</pre>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>You want to predict whether a shark is an adult from its length and girth. What is the label, and is this regression or classification?</summary><p>The label is "adult or juvenile". It has two possible values, so this is classification.</p></details>
-    <details><summary>A model keeps learning from the sharks it sees at the dock, after training is finished. True or false?</summary><p>False for the models of this primer. After training, the parameters stay fixed. The model reads them and does not change them. Learning happens again only when someone runs training on new labelled examples. <a href="../c3-domain-shift/">C3</a> covers methods that adapt during use as a special case.</p></details>
+    <details><summary>A model keeps learning from the sharks it sees at the dock, after training is finished. True or false?</summary><p>False for the models of this primer. After training, the parameters stay fixed. The model reads them and does not change them. Learning happens again only when someone runs training on new labelled examples. <a href="../c3-domain-shift/#adapt">C3</a> covers methods that adapt during use as a special case.</p></details>
   </div>
 </section>
 
@@ -206,7 +206,7 @@ example 1: x = [44.  12.4]  y = 0.281</pre>
   <dl class="terms">
     <div><dt>baseline</dt><dd>a simple model you must beat before you trust a complicated one</dd></div>
     <div><dt>lazy model</dt><dd>the baseline that ignores the inputs: the commonest label for a category, the average for a number</dd></div>
-    <div><dt>base rate</dt><dd>the share of examples that have a given label</dd></div>
+    <div><dt>base rate</dt><dd>the share of examples that have a given label (<a href="../t7-probability/#bayes">0.7</a>)</dd></div>
     <div><dt>accuracy</dt><dd>the share of predictions that are right</dd></div>
     <div><dt>cut-off</dt><dd>a value of one input that splits the sharks into two parts</dd></div>
   </dl>
@@ -251,7 +251,7 @@ print("lazy model:", round(lazy, 3), "- always says", species[(below + above).ar
 print("one-cut rule:", round(rule, 3), "- says", species[below.argmax()], "below and", species[above.argmax()], "above")</code></pre>
   <pre class="out">lazy model: 0.447 - always says spadenose
 one-cut rule: 0.737 - says spadenose below and milk above</pre>
-  <p class="used"><b>Used in:</b> a baseline is the first row of any results table (<a href="../t8-charts/#tables">0.8</a>). It is the starting point for grading in <a href="../a4-grading-models/#splits">A4</a> and the first step of Karpathy's recipe for debugging networks (<a href="../b8-debugging/">B8</a>).</p>
+  <p class="used"><b>Used in:</b> a baseline is the first row of any results table (<a href="../t8-charts/#tables">0.8</a>). It is the starting point for grading in <a href="../a4-grading-models/#splits">A4</a> and the first step of Karpathy's recipe for debugging networks (<a href="../b8-debugging/#recipe">B8</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A table has 1,000 sharks and 620 of them are adults. What does the lazy model score when it predicts adult or juvenile?</summary><p>It always says "adult" and scores 62%. A model with 65% accuracy has barely improved on the lazy model.</p></details>
@@ -288,7 +288,7 @@ one-cut rule: 0.737 - says spadenose below and milk above</pre>
   <div class="break">
     <p><b>Common belief.</b> A deployed model keeps learning from the sharks it sees.</p>
     <p><b>Why it fails.</b> Using a model reads its parameters and leaves them alone. Training changes them, and training is a separate step with labelled examples.</p>
-    <p><b>Better account.</b> Training and use are two phases. A model that changes during use needs a method built for it (<a href="../c3-domain-shift/">C3</a>).</p>
+    <p><b>Better account.</b> Training and use are two phases. A model that changes during use needs a method built for it (<a href="../c3-domain-shift/#adapt">C3</a>).</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> When you search, look at where the best value falls. If it falls at the edge of the range you tried, the true best may lie outside it, so widen the range.</p>
@@ -305,7 +305,7 @@ print(f"best of 801 settings: a = {best:.2e}, average miss = {min(miss):.3f} kg"
 print("settings to try with 20 dials at 10 settings each:", 10 ** 20)</code></pre>
   <pre class="out">best of 801 settings: a = 3.06e-06, average miss = 0.015 kg
 settings to try with 20 dials at 10 settings each: 100000000000000000000</pre>
-  <p class="used"><b>Used in:</b> gradient descent (<a href="../a2-linear-regression/#descent">A2</a>), the loss of a network (<a href="../b3-loss-gradient-descent/">B3</a>) and the many-dial searches of <a href="../b5-optimisers/">B5</a>.</p>
+  <p class="used"><b>Used in:</b> gradient descent (<a href="../a2-linear-regression/#descent">A2</a>), the loss of a network (<a href="../b3-loss-gradient-descent/#cost">B3</a>) and the many-dial searches of <a href="../b5-optimisers/#sgd">B5</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>You try 100 settings for 5 dials. How many combinations is that?</summary><p>\(100^5 = 10^{10}\), ten billion. At a million per second that is about 3 hours.</p></details>
@@ -372,7 +372,7 @@ settings to try with 20 dials at 10 settings each: 100000000000000000000</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="a1-what-is-a-model.js?v=1" defer></script>
 </body>
 </html>

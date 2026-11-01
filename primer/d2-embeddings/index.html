@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../assets/site.css?v=1">
 <link rel="stylesheet" href="../assets/project.css?v=1">
 <link rel="stylesheet" href="../assets/components.css?v=1">
-<link rel="stylesheet" href="../assets/kit.css?v=1">
+<link rel="stylesheet" href="../assets/kit.css?v=2">
 <style>
 /* Local additions for this chapter only. */
 .row-chips { display: inline-block; margin: 0 10px 6px 0; }
@@ -160,7 +160,7 @@ True
   <div class="debug">
     <p><b>Debug tip.</b> If a lookup fails with an index error such as &ldquo;index out of range in self&rdquo; in PyTorch, an ID is at least as large as the number of rows. The text was tokenised with a different tokenizer than the model's. If the sizes happen to fit, there is no error at all, only wrong output.</p>
   </div>
-  <p class="used"><b>Used in:</b> the first layer of all language models (<a href="../d5-transformer/">D5</a>), and the next section, which asks where the numbers come from.</p>
+  <p class="used"><b>Used in:</b> the first layer of all language models (<a href="../d5-transformer/#stream">D5</a>), and the next section, which asks where the numbers come from.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A batch has three tokens, two of them the same. How many rows of the table get a slope?</summary><p>Two. The repeated token's row gets the slopes of both positions added together, and all other rows get none.</p></details>
@@ -241,7 +241,7 @@ True
   <div class="break">
     <p><b>Common belief.</b> A word has one vector, so a word has one meaning for the model.</p>
     <p><b>Why it fails.</b> Look at &ldquo;net&rdquo; and &ldquo;tag&rdquo;. Their single rows blend the senses, and the finance and wrestling senses dominate.</p>
-    <p><b>Better account.</b> Inside a transformer, the row from the table is only the starting point. Attention mixes in the other words of the sentence, so the same token gets different vectors in different contexts (<a href="../d4-self-attention/">D4</a>).</p>
+    <p><b>Better account.</b> Inside a transformer, the row from the table is only the starting point. Attention mixes in the other words of the sentence, so the same token gets different vectors in different contexts (<a href="../d4-self-attention/#question">D4</a>).</p>
   </div>
   <div class="break">
     <p><b>Analogy.</b> A flat map of the Earth. It shows which places are close, though it stretches the far north.</p>
@@ -280,7 +280,7 @@ top = np.argsort(-sims)[1:7]
 print([(tok.decode(int(i)), round(float(sims[i]), 2)) for i in top])</code></pre>
   <pre class="out">(50257, 768)
 [(' sharks', 0.84), (' Shark', 0.76), (' Sharks', 0.61), (' whale', 0.61), (' tiger', 0.56), (' dolphin', 0.55)]</pre>
-  <p class="used"><b>Used in:</b> choosing what to embed in a retrieval system, and checking a model's table before trusting it. The same idea joins images and text in <a href="../e2-clip/">E2</a>.</p>
+  <p class="used"><b>Used in:</b> choosing what to embed in a retrieval system, and checking a model's table before trusting it. The same idea joins images and text in <a href="../e2-clip/#space">E2</a>.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The map shows &ldquo;boat&rdquo; right next to &ldquo;net&rdquo;. Can you conclude their rows are very similar?</summary><p>No. Check the cosine of the 50 numbers. The map may have pulled two words together that are far apart in 50 numbers.</p></details>
@@ -309,7 +309,7 @@ print([(tok.decode(int(i)), round(float(sims[i]), 2)) for i in top])</code></pre
   <p class="cap"><b>King &minus; man + woman gives queen at 0.86. Over all 400,000 words, fish &minus; scale + feather gives trout at 0.75, though the expected answer is bird.</b> The figure searches 104 words. The notes below a preset give the result over all 400,000 words.</p>
   <p>Press the preset buttons one by one. The first four work or half work. In the fifth, Mumbai &minus; India + Japan gives Tokyo, with a caveat: Mumbai is India's largest city and not its capital, and Tokyo is both for Japan.</p>
   <p>The sixth fails. A fish has scales as a bird has feathers, so the answer should be &ldquo;bird&rdquo;. The nearest words are trout, herring and salmon, and &ldquo;bird&rdquo; comes 248th of 400,000. The result stays close to &ldquo;fish&rdquo;. The arithmetic finds the neighbourhood of an input and misses the relation. One reason is that &ldquo;scale&rdquo; mostly appears in text about size, as in &ldquo;the scale of the damage&rdquo;. Its row blends two senses, like &ldquo;net&rdquo; and &ldquo;tag&rdquo; on the map.</p>
-  <p>The last preset is a warning. &ldquo;Doctor&rdquo; &minus; &ldquo;man&rdquo; + &ldquo;woman&rdquo; gives &ldquo;nurse&rdquo;. This looks like a success and is a learned bias. Word vectors are learned from text that people wrote, so they copy the patterns in that text, including stereotypes. Bolukbasi and colleagues (2016) tested word2vec vectors learned from Google News articles. The vectors completed &ldquo;father is to doctor as mother is to&rdquo; with &ldquo;nurse&rdquo;, and &ldquo;man is to computer programmer as woman is to&rdquo; with &ldquo;homemaker&rdquo;. The GloVe vectors here come from Wikipedia and news text, and give the same &ldquo;nurse&rdquo; answer. The vectors record how people wrote. They do not show who can be a doctor or a nurse. A system that ranks people or messages with such vectors can repeat the bias, and checking for it is part of <a href="../f1-fairness/">F1</a>.</p>
+  <p>The last preset is a warning. &ldquo;Doctor&rdquo; &minus; &ldquo;man&rdquo; + &ldquo;woman&rdquo; gives &ldquo;nurse&rdquo;. This looks like a success and is a learned bias. Word vectors are learned from text that people wrote, so they copy the patterns in that text, including stereotypes. Bolukbasi and colleagues (2016) tested word2vec vectors learned from Google News articles. The vectors completed &ldquo;father is to doctor as mother is to&rdquo; with &ldquo;nurse&rdquo;, and &ldquo;man is to computer programmer as woman is to&rdquo; with &ldquo;homemaker&rdquo;. The GloVe vectors here come from Wikipedia and news text, and give the same &ldquo;nurse&rdquo; answer. The vectors record how people wrote. They do not show who can be a doctor or a nurse. A system that ranks people or messages with such vectors can repeat the bias, and checking for it is part of <a href="../f1-fairness/#text">F1</a>.</p>
   <p>Tick off &ldquo;leave out the three input words&rdquo; to see a problem of the method: with the inputs allowed, the nearest word is often the input itself. Standard tests leave them out. Linzen (2016) shows that the method's use of cosine similarity mixes the offset with the neighbourhood of the inputs.</p>
   <div class="eqn" role="img" aria-label="Worked example: king minus man plus woman gives a vector whose nearest word is queen"><span class="t c-navy"><b>v(king)</b><i>start</i></span><span class="op">&minus;</span><span class="t c-coral"><b>v(man)</b><i>take away</i></span><span class="op">+</span><span class="t c-teal"><b>v(woman)</b><i>add</i></span><span class="op">=</span><span class="t c-sand"><b>q</b><i>a vector, not yet a word</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>queen 0.86</b><i>the word with the highest cosine to q</i></span></div>
   <p class="math">\[ \mathbf{q} \;=\; \mathbf{v}_A - \mathbf{v}_B + \mathbf{v}_C \qquad\qquad \text{answer} \;=\; \operatorname*{arg\,max}_{w \,\notin\, \{A,B,C\}} \; \cos(\mathbf{v}_w, \mathbf{q}) \]</p>
@@ -359,7 +359,7 @@ print([(tok.decode(int(i)), round(float(sims[i]), 2)) for i in top])</code></pre
     <p><b>Why it fails.</b> A high cosine says that two vectors point the same way. Shared topic words and shared numbers (44, 4127, 80) can cause that. For m11 the nearest message has a cosine of only 0.63.</p>
     <p><b>Better account.</b> A multilingual encoder finds likely matches. A person or a second test must check them.</p>
   </div>
-  <p>This is the idea behind searching messages by meaning, grouping reports by topic, and, in <a href="../e2-clip/">E2</a>, placing a photo and its caption in one space.</p>
+  <p>This is the idea behind searching messages by meaning, grouping reports by topic, and, in <a href="../e2-clip/#space">E2</a>, placing a photo and its caption in one space.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Does a cosine of 0.92 between a Hindi and a Marathi message mean they say the same thing?</summary><p>No. It says that their vectors point in nearly the same direction. They share a topic and several numbers. Check the texts before concluding that they match.</p></details>
@@ -387,7 +387,7 @@ print([(tok.decode(int(i)), round(float(sims[i]), 2)) for i in top])</code></pre
     <h3>Think deeper</h3>
     <ol>
       <li><p><span class="ex-tag">open</span> &ldquo;Doctor&rdquo; &minus; &ldquo;man&rdquo; + &ldquo;woman&rdquo; gives &ldquo;nurse&rdquo;. SharkCam's message reader will use an embedding table. What would you measure to check it for bias, and what would you do if you found some? What could go wrong with these fixes?</p>
-        <details class="hint"><summary>Hint</summary><p>Think about which downstream decision the embeddings feed. A bias that does not reach any decision matters less than one that does. Bolukbasi et al. (2016) and <a href="../f1-fairness/">F1</a> are good places to look next.</p></details></li>
+        <details class="hint"><summary>Hint</summary><p>Think about which downstream decision the embeddings feed. A bias that does not reach any decision matters less than one that does. Bolukbasi et al. (2016) and <a href="../f1-fairness/#text">F1</a> are good places to look next.</p></details></li>
       <li><p><span class="ex-tag">open</span> A fisher's message says &ldquo;the net was torn&rdquo;. GloVe's row for &ldquo;net&rdquo; leans towards money. How could a system tell the senses apart? What would it need beyond one row per word?</p></li>
       <li><p><span class="ex-tag">open</span> The sentence map put Hindi and Marathi messages near their English meanings. Design a test on SharkCam's own messages to find out whether this is so for fishers' own writing. What could mislead you, and how many messages would you need before you trusted it?</p></li>
     </ol>
@@ -431,7 +431,7 @@ print([(tok.decode(int(i)), round(float(sims[i]), 2)) for i in top])</code></pre
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-cartesian-dist-min@2.35.2/plotly-cartesian.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
-<script src="../assets/kit.js?v=1" defer></script>
+<script src="../assets/kit.js?v=2" defer></script>
 <script src="d2-embeddings.js?v=1" defer></script>
 </body>
 </html>
