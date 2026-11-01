@@ -231,6 +231,22 @@ print(f"{length} cm -&gt; {stage}")
 print(length == 62.5, length != 62.5, 45 &lt;= length &lt; 70)</code></pre>
   <pre class="out">62.5 cm -&gt; sub-adult
 True False True</pre>
+  <p>Trace two records. Tag 4127 is 44.0 cm. Python tests <code>44.0 &lt; 45</code>, finds True, sets <code>stage</code> to "juvenile" and skips the other tests. Tag 2194, a milk shark of 74.5 cm, fails both tests, so <code>else</code> runs and the stage is "adult". Python stops at the first True condition, so the order of the tests matters.</p>
+  <pre class="code" data-run><code>length = 44.0
+if length &lt; 70:            # the wide test comes first
+    stage = "sub-adult"
+elif length &lt; 45:          # never reached for 44.0
+    stage = "juvenile"
+print(length, "-&gt;", stage)</code></pre>
+  <pre class="out">44.0 -&gt; sub-adult</pre>
+  <p>These cut-offs use length alone, so they call Tag 3305, a mature spadenose shark of 41.0 cm, a juvenile. Half of the female spadenose sharks are mature at 35.8 cm, and half of the female milk sharks at 61.3 cm. One set of cut-offs fits no species well, which is why later classifiers also take the species as an input.</p>
+  <p class="used"><b>In practice:</b> compare decimals with <code>&lt;</code> and <code>&gt;</code>, and avoid <code>==</code> on them. Decimals are stored in binary with a tiny error, so a sum that should be 0.3 can differ from it far down the decimal places. <code>math.isclose</code> allows for that.</p>
+  <pre class="code" data-run><code>import math
+print(0.1 + 0.2 == 0.3, 0.1 + 0.2)
+print(math.isclose(0.1 + 0.2, 0.3))</code></pre>
+  <pre class="out">False 0.30000000000000004
+True</pre>
+
   <div class="break">
     <p><b>Analogy.</b> A variable is a labelled box that contains a value.</p>
     <p><b>Where it breaks.</b> A box contains one copy. Two names can point to the same list, and then a change through one name shows through the other (next section). The name-tag picture describes that correctly: tags are cheap, and one value can wear several.</p>
@@ -242,6 +258,7 @@ True False True</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>What are the types of <code>7</code>, <code>7.0</code> and <code>"7"</code>?</summary><p>An int, a float and a string. They print alike but behave differently: <code>"7" * 2</code> is <code>"77"</code>, while <code>7 * 2</code> is 14.</p></details>
     <details><summary>With cut-offs 45 and 70, which branch runs for a length of 45?</summary><p>The second one. The test <code>45 &lt; 45</code> is False, so Python moves on to <code>elif length &lt; 70</code>, which is True. The answer is "sub-adult".</p></details>
+    <details><summary>A student writes two separate tests, <code>if length &gt; 70: stage = "adult"</code> and then <code>if length &gt; 45: stage = "sub-adult"</code>. What stage does a length of 80 get?</summary><p>Sub-adult. Both tests are True and the second assignment overwrites the first. With <code>elif</code> Python would stop after the first True test.</p></details>
   </div>
 </section>
 
@@ -290,6 +307,39 @@ print(round(sum(lengths) / len(lengths), 2))</code></pre>
 [74.5, 64.3]
 49.76</pre>
   <p>The comprehension <code>[x for x in lengths if x &gt; 60]</code> is the loop from the figure written on one line. It reads: "make a list of x, for x in lengths, if x is over 60".</p>
+  <p>The "Total" task keeps a running total. The loop below adds one length at a time and prints the total as it grows. The final total is 393.4, so the mean is 393.4 / 8 = 49.175 cm.</p>
+  <pre class="code" data-run><code># cm, made-up records
+lengths = [42.4, 45.1, 74.5, 41.0, 36.1, 44.0, 64.3, 46.0]
+total = 0
+for x in lengths:
+    total = total + x
+    print(x, round(total, 1))
+print(round(total / len(lengths), 3))</code></pre>
+  <pre class="out">42.4 42.4
+45.1 87.5
+74.5 162.0
+41.0 203.0
+36.1 239.1
+44.0 283.1
+64.3 347.4
+46.0 393.4
+49.175</pre>
+  <p>Slices take a third number, the step. <code>lengths[-3:]</code> gives the last three items, <code>lengths[::2]</code> takes positions 0, 2, 4 and 6, and <code>lengths[::-1]</code> is a reversed copy. <code>enumerate</code> gives a position with the item, and <code>zip</code> walks two lists together.</p>
+  <pre class="code" data-run><code>lengths = [42.4, 45.1, 74.5, 41.0, 36.1, 44.0, 64.3, 46.0]
+tags = [1134, 1683, 2194, 3305, 3395, 4127, 4595, 5330]
+print(lengths[-3:], lengths[::2])
+print(lengths[::-1])
+for i, x in enumerate(lengths[:2]):
+    print(i, x)
+for tag, x in list(zip(tags, lengths))[:2]:
+    print(tag, x)</code></pre>
+  <pre class="out">[44.0, 64.3, 46.0] [42.4, 74.5, 36.1, 64.3]
+[46.0, 64.3, 44.0, 36.1, 41.0, 74.5, 45.1, 42.4]
+0 42.4
+1 45.1
+1134 42.4
+1683 45.1</pre>
+
   <div class="break">
     <p><b>Common belief.</b> <code>b = a</code> makes a copy of the list.</p>
     <p><b>Why it fails.</b> The assignment attaches a second name to the same list. There is still one list.</p>
@@ -310,10 +360,26 @@ print(a, c)</code></pre>
   <pre class="code" data-error><code>lengths = [42.4, 45.1, 74.5, 41.0, 36.1, 44.0, 64.3, 46.0]
 print(lengths[8])</code></pre>
   <pre class="out">IndexError: list index out of range</pre>
+  <div class="debug">
+    <p><b>Debug tip.</b> Do not remove items from a list while you loop over it. The next item moves into the freed place and the loop steps past it. With <code>[42.4, 41.0, 45.1]</code> and the rule "remove lengths under 45", the loop removes 42.4 and skips 41.0. Build a new list instead.</p>
+  </div>
+  <pre class="code" data-run><code>xs = [42.4, 41.0, 45.1]
+for x in xs:
+    if x &lt; 45:
+        xs.remove(x)
+print(xs)                          # 41.0 was skipped
+
+xs = [42.4, 41.0, 45.1]
+print([x for x in xs if x &gt;= 45])  # a new list: no skipping</code></pre>
+  <pre class="out">[41.0, 45.1]
+[45.1]</pre>
+  <p class="used"><b>In practice:</b> use a comprehension to filter or convert a list. For arithmetic on millions of numbers use a NumPy array (below), since lists are slow at that.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What does <code>lengths[1:3]</code> return for the list in the figure?</summary><p><code>[45.1, 74.5]</code>. Indices 1 and 2. The stop index 3 is not included.</p></details>
     <details><summary>Why does the loop for "Longest" start with <code>longest = lengths[0]</code> and not <code>longest = 0</code>?</summary><p>Starting at 0 works for positive lengths, but it fails for a list of negative numbers, where it would report 0, which is not in the list. Starting from an item of the list is safe for any data.</p></details>
+    <details><summary>What does <code>lengths[::-1]</code> return, and does it change <code>lengths</code>?</summary><p>A new list with the items in reverse order. The original list is unchanged, because a slice of a list is a copy.</p></details>
+    <details><summary>In the running-total loop, what is the total after the third item?</summary><p>It is 162.0, since 42.4 + 45.1 + 74.5 = 162.0.</p></details>
   </div>
 </section>
 
@@ -350,6 +416,25 @@ print(round(weight_kg(length_cm=44.0, a=0.0033, b=3.051), 3))  # arguments by na
   <pre class="out">0.281
 0.28
 0.341</pre>
+  <p>Follow the first call. With <code>length_cm = 44.0</code> and the bamboo defaults, Python computes <code>44.0 ** 2.95</code>, about 70,499, and multiplies by 0.00398 to get 280.6 grams. Dividing by 1000 gives 0.281 kg, the weight of Tag 4127. The caller never sees <code>grams</code>, only the returned number.</p>
+  <p>A function can return several values as a tuple, which the caller unpacks. The one-line form <code>a if test else b</code> picks <code>a</code> when the test is True and <code>b</code> otherwise. An <code>assert</code> line is a test: it has no effect when its statement is True and stops the program with an AssertionError when it is False.</p>
+  <pre class="code" data-run><code>def weight_kg(length_cm, a=0.00398, b=2.95):
+    return a * length_cm ** b / 1000
+
+def stage(length_cm, cut=45):
+    return "juvenile" if length_cm &lt; cut else "older"
+
+def summary(length_cm):
+    return stage(length_cm), round(weight_kg(length_cm), 3)   # a tuple
+
+print(summary(44.0))
+s, kg = summary(44.0)
+print(s, kg)
+assert weight_kg(0) == 0
+print("test passed")</code></pre>
+  <pre class="out">('juvenile', 0.281)
+juvenile 0.281
+test passed</pre>
   <div class="break">
     <p><b>Common belief.</b> A function works on its own copy of whatever you pass in.</p>
     <p><b>Why it fails.</b> Python passes the name tag, not a copy. If a function appends to a list it received, the caller's list changes too. A number or a string cannot be changed in place, so reassigning it inside the function leaves the caller's value alone.</p>
@@ -363,10 +448,35 @@ print(round(weight_kg(length_cm=44.0, a=0.0033, b=3.051), 3))  # arguments by na
 
 print(grow(40))</code></pre>
   <pre class="out">None</pre>
+  <div class="debug">
+    <p><b>Debug tip.</b> A default value is made once, when the function is defined. A list used as a default is therefore shared by all calls. Use <code>None</code> as the default and make the list inside the function.</p>
+  </div>
+  <pre class="code" data-run><code>def log_length(x, seen=[]):          # one shared list
+    seen.append(x)
+    return seen
+
+print(log_length(44.0))
+print(log_length(41.0))
+
+def log_length2(x, seen=None):       # the fix
+    if seen is None:
+        seen = []
+    seen.append(x)
+    return seen
+
+print(log_length2(44.0))
+print(log_length2(41.0))</code></pre>
+  <pre class="out">[44.0]
+[44.0, 41.0]
+[44.0]
+[41.0]</pre>
+  <p class="used"><b>In practice:</b> give a function one job and a name that says it. Short functions are easy to test with an <code>assert</code>. Put numbers that may change, such as <code>a</code> and <code>b</code>, in parameters with defaults.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What does <code>weight_kg(40)</code> use for <code>a</code> and <code>b</code>?</summary><p>The defaults, 0.00398 and 2.95. The call gives only <code>length_cm</code>.</p></details>
     <details><summary>The function defines <code>grams</code>. Why does <code>print(grams)</code> after the call fail?</summary><p>The name belongs to the scope of the call. When the function returns, its local names are gone, so Python reports a NameError.</p></details>
+    <details><summary>What does <code>summary(44.0)</code> return, and how does the caller get both parts?</summary><p>A tuple, <code>('juvenile', 0.281)</code>. The caller unpacks it with <code>stage, kg = summary(44.0)</code>.</p></details>
+    <details><summary>A function has the parameter <code>seen=[]</code> and appends to it. After two calls without a second argument, how long is the list?</summary><p>Two items. The default list was made once, and both calls use it.</p></details>
   </div>
 </section>
 
@@ -403,6 +513,24 @@ milk 200
 bamboo 72
 hammerhead 57
 True 4</pre>
+  <p>The most common use is counting. The loop counts the species of the first six sample records, Tags 1134, 1683, 2194, 3305, 3395 and 4127. For a new species <code>get</code> returns 0 and the line stores 1. For a known species it adds 1. <code>collections.Counter</code> does the loop in one call.</p>
+  <pre class="code" data-run><code>from collections import Counter
+
+species = ["spadenose", "spadenose", "milk", "spadenose", "spadenose", "bamboo"]
+counts = {}
+for sp in species:
+    counts[sp] = counts.get(sp, 0) + 1
+    print(sp, counts)
+print(Counter(species))
+print(Counter(species).most_common(1))</code></pre>
+  <pre class="out">spadenose {'spadenose': 1}
+spadenose {'spadenose': 2}
+milk {'spadenose': 2, 'milk': 1}
+spadenose {'spadenose': 3, 'milk': 1}
+spadenose {'spadenose': 4, 'milk': 1}
+bamboo {'spadenose': 4, 'milk': 1, 'bamboo': 1}
+Counter({'spadenose': 4, 'milk': 1, 'bamboo': 1})
+[('spadenose', 4)]</pre>
   <p>A tuple suits a record that should not change, such as the tag, species and length of the Juhu bamboo shark. Unpacking pulls the parts out into names. NumPy reports an array's dimensions as a tuple, which you will see in the arrays section.</p>
   <pre class="code" data-run><code>record = (4127, "bamboo", 44.0)
 tag, species, length = record
@@ -429,6 +557,20 @@ print(len(set(["milk", "milk", "milk", "bamboo"])))</code></pre>
 ['ganges'] []
 2</pre>
   <p>Sets have no order, so the code sorts them before printing. Without <code>sorted</code>, the order of text items can change from one run to the next.</p>
+  <p>A dictionary must find an entry again, so its keys cannot change. A tuple of text and numbers works as a key. A list can change, so Python refuses it, and <code>try</code> with <code>except</code> catches that error so the program goes on. Sets hide repeats: a length that appears twice counts once.</p>
+  <pre class="code" data-run><code># mean length in cm, from the made-up table
+means = {("spadenose", "F"): 39.6, ("bamboo", "F"): 47.3}
+print(means[("bamboo", "F")])
+try:
+    bad = {["bamboo", "F"]: 47.3}
+except TypeError as e:
+    print("TypeError:", e)
+lengths = [42.4, 45.1, 42.4]
+print(len(lengths), len(set(lengths)))</code></pre>
+  <pre class="out">47.3
+TypeError: unhashable type: 'list'
+3 2</pre>
+  <p class="used"><b>In practice:</b> dictionaries keep the order in which keys were added, and sets do not. JSON files are dictionaries and lists written as text. A tuple key such as (species, sex) saves you a dictionary of dictionaries.</p>
   <div class="break">
     <p><b>Analogy.</b> A dictionary is a table with two columns: names on the left, values on the right.</p>
     <p><b>Where it breaks.</b> A table can repeat a name. A dictionary cannot: assigning to a key that exists replaces its value. A dictionary also finds an entry without reading the rows one by one, which the next chapter explains (<a href="../t2-algorithms/#lookup">0.2</a>).</p>
@@ -437,6 +579,8 @@ print(len(set(["milk", "milk", "milk", "bamboo"])))</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>You need to store a tag, a species and a length that must never change by accident. Which container?</summary><p>A tuple. Assignment to an item raises an error, so a slip in later code is caught at once.</p></details>
     <details><summary>What is the difference between <code>counts["hammerhead"]</code> and <code>counts.get("hammerhead", 0)</code> when the key is missing?</summary><p>The first raises a KeyError. The second returns 0. Use <code>get</code> when a missing key is normal, and the bracket form when it would be a bug.</p></details>
+    <details><summary>Run the counting loop on <code>['milk', 'milk', 'bamboo']</code>. What is the dictionary after the second item?</summary><p><code>{'milk': 2}</code>. The first item creates the key with count 1, and the second adds 1 to it.</p></details>
+    <details><summary>The sixteen sample lengths contain 42.4 twice. What is the length of the set made from them?</summary><p>It has 15 items. A set keeps one copy of a repeated value.</p></details>
   </div>
 </section>
 
@@ -496,6 +640,35 @@ Shark(3305, 'spadenose', 41.0 cm) 0.228
 Shark(4127, 'bamboo', 49.0 cm) 0.385
 Shark(3305, 'spadenose', 41.0 cm)</pre>
   <p>The dictionary <code>LAW</code> lives outside the class and stores the two numbers of a species. The method <code>__repr__</code> tells Python how to show the object as text. Names with double underscores are hooks that Python calls for you. The first two weights, 0.281 and 0.228 kg, are the weights of the two records in the table.</p>
+  <p>Follow Tag 4127 through <code>grow(5)</code>. The method receives the object as <code>self</code>, so <code>self.length_cm</code> is 44.0. It stores 49.0 on that object only. The next <code>weight_kg()</code> call returns 0.385 kg. The shark is 11% longer (49.0 / 44.0) and about 37% heavier (0.385 / 0.281), because weight follows length to a power near 3 (<a href="../t3-algebra-functions/#exponents">0.3</a>).</p>
+  <p>Objects are shared the way lists are. After <code>twin = a</code> there is one shark with two names, so growing <code>twin</code> grows <code>a</code>. The block uses <code>@dataclass</code>, which writes <code>__init__</code> and <code>__repr__</code> for you, and sorts objects by a method. The sort key <code>lambda s: s.weight_kg()</code> is a one-line function that returns the weight of a shark.</p>
+  <pre class="code" data-run><code>from dataclasses import dataclass
+
+LAW = {"spadenose": (0.0044, 2.923), "bamboo": (0.00398, 2.95)}
+
+@dataclass
+class Shark:
+    tag: int
+    species: str
+    length_cm: float
+
+    def weight_kg(self):
+        a, b = LAW[self.species]
+        return a * self.length_cm ** b / 1000
+
+sharks = [Shark(4127, "bamboo", 44.0), Shark(3305, "spadenose", 41.0)]
+print(sharks[0])
+for s in sorted(sharks, key=lambda s: s.weight_kg()):
+    print(s.tag, round(s.weight_kg(), 3))
+
+twin = sharks[0]               # a second name, not a second shark
+twin.length_cm = 49.0
+print(sharks[0].length_cm)</code></pre>
+  <pre class="out">Shark(tag=4127, species='bamboo', length_cm=44.0)
+3305 0.228
+4127 0.281
+49.0</pre>
+  <p class="used"><b>In practice:</b> write a class when data and the functions that use it belong together. A table of thousands of records is better as a DataFrame than as a list of objects. Keep classes small.</p>
   <div class="break">
     <p><b>Analogy.</b> A class is a blueprint and an object is a house built from it. Changing one house leaves the others as they were.</p>
     <p><b>Where it breaks.</b> A paper blueprint only describes. A Python class also exists in the running program, and a value stored on the class instead of on <code>self</code> is shared by all objects made from it. This chapter stores values on <code>self</code> only, which is why the objects stay separate.</p>
@@ -514,6 +687,7 @@ Shark().grow(5)</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>In <code>self.length_cm = length_cm</code>, which side is the attribute?</summary><p>The left side. <code>self.length_cm</code> is stored on the object. The right side is the parameter that was passed in.</p></details>
     <details><summary>Two sharks are made from one class. One is grown by 5. What is the other's length?</summary><p>Unchanged. Objects keep their own <code>length_cm</code>.</p></details>
+    <details><summary>After <code>b = a</code> and <code>b.grow(5)</code>, has <code>a</code> grown?</summary><p>Yes. The assignment makes a second name for the same object, as it does for lists. To get a separate shark, call <code>Shark(...)</code> again.</p></details>
   </div>
 </section>
 
@@ -614,6 +788,37 @@ mature
 1    345
 0    255
 Name: count, dtype: int64</pre>
+  <p>Printing the middle step shows what pandas does. <code>mask</code> is a column of 600 True and False values, <code>.sum()</code> counts the True ones, and <code>df[mask]</code> keeps those rows. The mean of <code>mature</code> is the share of mature sharks. It gives 29.2% for bamboo, 69.5% for milk and 67.5% for spadenose sharks.</p>
+  <pre class="code"><code>import pandas as pd
+df = pd.read_csv("../data/sharks/catch.csv")   # made-up records
+
+mask = df["length_cm"] &gt; 60
+print(mask.sum(), len(mask))                   # True values, rows in all
+print(df[mask]["length_cm"].mean().round(1))   # mean length of those rows
+print(df.groupby("species")["mature"].mean().round(3))</code></pre>
+  <pre class="out">213 600
+75.3
+species
+bamboo        0.292
+ganges        0.333
+hammerhead    0.053
+milk          0.695
+spadenose     0.675
+Name: mature, dtype: float64</pre>
+  <p>Look at a table before you trust it. The clinic data used later is a published dataset of 768 women of Pima heritage, measured in the United States. In its insulin column 374 values are 0, and zero means "not measured". Averaging them in gives 79.8. Setting them aside gives 155.5.</p>
+  <pre class="code"><code>import json
+import numpy as np
+import pandas as pd
+
+p = json.load(open("../data/clinic/pima.json"))      # published data, 768 women
+pima = pd.DataFrame(p["X"], columns=p["features"])
+print((pima["Insulin"] == 0).sum())                  # zeros mean "not measured"
+print(pima["Insulin"].mean().round(1))
+print(pima["Insulin"].replace(0, np.nan).mean().round(1))   # NaN values are skipped</code></pre>
+  <pre class="out">374
+79.8
+155.5</pre>
+  <p class="used"><b>In practice:</b> start a new table with <code>df.head()</code>, <code>len(df)</code>, <code>df.dtypes</code> and <code>df.isna().sum()</code>. Keep the raw file unchanged. Write cleaned tables to new files with <code>to_csv(name, index=False)</code>, or pandas adds the row numbers as an extra column.</p>
   <div class="break">
     <p><b>Common belief.</b> A DataFrame is the file, so changing the table changes the CSV on disk.</p>
     <p><b>Why it fails.</b> <code>read_csv</code> copies the text into memory and builds a new table. The file on disk stays as it was until you write it with <code>to_csv</code>.</p>
@@ -630,6 +835,7 @@ df[df["length_cm"] &gt; 60 and df["mature"] == 1]</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>What does <code>df["length_cm"] &gt; 60</code> evaluate to?</summary><p>A Series of True and False, one per row. It is the mask. Putting it inside <code>df[...]</code> keeps the True rows.</p></details>
     <details><summary>You read a CSV and <code>df["length_cm"].mean()</code> raises an error. What do you check first?</summary><p>The column's type. If one cell contains text such as "n/a", the whole column is read as text. Print <code>df.dtypes</code> and look at the odd cells.</p></details>
+    <details><summary>In the Pima insulin column 374 of 768 values are 0 and mean "not measured". Why is the plain mean of 79.8 misleading?</summary><p>It averages in 374 entries that are not measurements. Without them the mean is 155.5, almost twice as large.</p></details>
   </div>
 </section>
 
@@ -693,6 +899,31 @@ print(np.linspace(0, 1, 5))</code></pre>
 [[0 1 2]
  [3 4 5]]
 [0.   0.25 0.5  0.75 1.  ]</pre>
+  <p>Three more operations answer common questions. <code>a.sum(axis=0)</code> adds down the rows: 203.0 cm, 2.865 kg and 72.3 m. A row sum would mix cm, kg and m, so only column totals mean something. <code>a[:, 0].argmax()</code> is the position of the largest length, 2, the milk shark of Tag 2194. <code>a[:, 0].argsort()</code> gives the row numbers in order of length, and <code>a[order]</code> sorts whole rows, so a shark keeps its own numbers.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+a = np.array([[42.4, 0.267, 33.3],      # length, weight, depth of four made-up records
+              [45.1, 0.242, 10.3],
+              [74.5, 2.128, 10.7],
+              [41.0, 0.228, 18.0]])
+print(a.sum(axis=0))
+print(a[:, 0].argmax())
+order = a[:, 0].argsort()
+print(order)
+print(a[order])
+print((a[:, 0] &gt; 44).sum())           # how many lengths are over 44
+print(a.nbytes, a.astype(np.float32).nbytes)</code></pre>
+  <pre class="out">[203.      2.865  72.3  ]
+2
+[3 0 1 2]
+[[41.     0.228 18.   ]
+ [42.4    0.267 33.3  ]
+ [45.1    0.242 10.3  ]
+ [74.5    2.128 10.7  ]]
+2
+96 48</pre>
+  <p>An array stores one number type, so its cells all take the same space: 8 bytes for a float64. The 12 numbers above use 96 bytes. A million sharks with 10 measurements use 80 million bytes, and float32 halves that.</p>
+  <p class="used"><b>In practice:</b> avoid Python loops over array cells. <code>a[:, 0] / 100</code> runs in compiled code and is usually far faster than a loop. Think in columns, and use a mask or a sort instead of an <code>if</code> inside a loop.</p>
   <div class="break">
     <p><b>Common belief.</b> A slice of an array is a new array, as it is for a list.</p>
     <p><b>Why it fails.</b> A NumPy slice is a view of the same numbers. Changing the view changes the original.</p>
@@ -726,6 +957,7 @@ print(y)</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>For the table in the figure, what is the result of <code>a.sum(axis=1)</code>?</summary><p>One total per row, so six numbers. The columns are added up across, and axis 1 is the one that disappears.</p></details>
     <details><summary>What are the dimensions of <code>a[1:4, :2]</code> for a table with 6 rows and 4 columns?</summary><p>(3, 2). Rows 1, 2 and 3, and columns 0 and 1.</p></details>
+    <details><summary>What does <code>a[order]</code> do when <code>order = a[:, 0].argsort()</code>?</summary><p>It reorders the rows of <code>a</code> so that the lengths increase. A row moves as a unit, so a length stays with its weight and depth.</p></details>
   </div>
 </section>
 
@@ -795,6 +1027,29 @@ print(col + row)               # (4, 1) with (3,) gives (4, 3)</code></pre>
  [12 22 32]
  [13 23 33]
  [14 24 34]]</pre>
+  <p>Two more examples. The first changes units in one line: <code>[1, 1000, 1]</code> has dimensions (3,), stretches down the four rows and multiplies only the weight column, kg to g. The second builds all pairs. <code>L[:, None]</code> has dimensions (4, 1) and <code>L[None, :]</code> has (1, 4), so their difference is a (4, 4) table. Entry (i, j) is length i minus length j, the diagonal is 0, and swapping i and j flips the sign. Attention scores (<a href="../d4-self-attention/#mask">D4</a>) have this layout.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+table = np.array([[42.4, 0.267, 33.3],    # made-up records: length cm, weight kg, depth m
+                  [45.1, 0.242, 10.3],
+                  [74.5, 2.128, 10.7],
+                  [41.0, 0.228, 18.0]])
+units = np.array([1, 1000, 1])            # kg to g, the others unchanged
+print(table * units)
+
+L = table[:, 0]
+diff = L[:, None] - L[None, :]            # (4, 1) minus (1, 4) gives (4, 4)
+print(diff.shape)
+print(diff.round(1))</code></pre>
+  <pre class="out">[[  42.4  267.    33.3]
+ [  45.1  242.    10.3]
+ [  74.5 2128.    10.7]
+ [  41.   228.    18. ]]
+(4, 4)
+[[  0.   -2.7 -32.1   1.4]
+ [  2.7   0.  -29.4   4.1]
+ [ 32.1  29.4   0.   33.5]
+ [ -1.4  -4.1 -33.5   0. ]]</pre>
   <pre class="code" data-run><code>import numpy as np
 
 X = np.ones((4, 3))        # 4 sharks, 3 measurements
@@ -815,10 +1070,24 @@ print(X.T.shape)           # transpose swaps the two axes</code></pre>
   <div class="debug">
     <p><b>Debug tip.</b> When an operation fails, print the dimensions of both arrays before you change anything. Most fixes are one of three. Add a size-1 dimension with <code>b[:, None]</code> or <code>reshape</code>. Transpose with <code>.T</code>. Or accept that two arrays you thought had the same size do not.</p>
   </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> The worst broadcasting bug raises no error. Four predictions with dimensions (4, 1) meet four labels with dimensions (4,). NumPy stretches both into a (4, 4) table of 16 differences. The predictions equal the labels, so the true error is 0, yet the mean squared error comes out as 2.5. Print the dimensions before you compute a loss. PyTorch's <code>mse_loss</code> warns about this mistake.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+
+pred = np.array([[1.0], [2.0], [3.0], [4.0]])   # (4, 1)
+y = np.array([1.0, 2.0, 3.0, 4.0])              # (4,)
+err = pred - y
+print(err.shape, (err ** 2).mean())             # 16 differences, not 4
+print(((pred.ravel() - y) ** 2).mean())         # 4 differences</code></pre>
+  <pre class="out">(4, 4) 2.5
+0.0</pre>
+  <p class="used"><b>In practice:</b> pass <code>keepdims=True</code> to <code>sum</code> or <code>mean</code> when you plan to broadcast the result back. Then <code>table / table.sum(axis=0, keepdims=True)</code> divides the columns by their own totals.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Do (5, 1, 3) and (4, 1) broadcast? What are the result's dimensions?</summary><p>Yes. From the right: 3 and 1 give 3; 1 and 4 give 4; 5 and a missing dimension give 5. The result is (5, 4, 3).</p></details>
     <details><summary>Which sizes does <code>@</code> accept for (4, 3) @ (?, ?)?</summary><p>Any (3, n). The shared size 3 must match. The result is (4, n).</p></details>
+    <details><summary><code>pred</code> has dimensions (8, 1) and <code>y</code> has dimensions (8,). What are the dimensions of <code>pred - y</code>, and why is that a bug?</summary><p>(8, 8). NumPy stretches both arrays and subtracts all 64 pairs, where you wanted 8 differences. Flatten one first, for example with <code>pred.ravel()</code>.</p></details>
   </div>
 </section>
 
@@ -862,6 +1131,28 @@ print(rng.choice(["milk", "bamboo", "spadenose"], size=4))</code></pre>
   <pre class="out">[61.3 58.7 66.4 61.  54.6]
 [0 2 4 3 1] [61.3 66.4 54.6 61.  58.7]
 ['spadenose' 'bamboo' 'bamboo' 'bamboo']</pre>
+  <p>A seed makes a split repeatable. The block shuffles the row numbers 0 to 9 and sets the last two aside as a test set. Seed 0 puts rows 1 and 8 in the test set, and seed 1 puts rows 3 and 6 there. A split is one random choice among many, so a score from one split contains some luck (<a href="../a4-grading-models/#splits">A4</a>).</p>
+  <pre class="code" data-run><code>import numpy as np
+
+for seed in (0, 1):
+    rng = np.random.default_rng(seed)
+    order = rng.permutation(10)
+    train, test = order[:8], order[8:]
+    print(seed, "test rows:", sorted(test.tolist()), "train rows:", sorted(train.tolist()))</code></pre>
+  <pre class="out">0 test rows: [1, 8] train rows: [0, 2, 3, 4, 5, 6, 7, 9]
+1 test rows: [3, 6] train rows: [0, 1, 2, 4, 5, 7, 8, 9]</pre>
+  <p>A generator can also draw labels with given probabilities. With the table's shares (44.7%, 33.3%, 12.0%, 9.5% and 0.5%), 600 draws give counts near 268, 200, 72, 57 and 3, and the counts change with the seed. The Ganges count is 4, 2 and 3 for seeds 0, 1 and 2. A rare class is a small number, and a small number moves a lot.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+p = [0.447, 0.333, 0.120, 0.095, 0.005]    # spadenose, milk, bamboo, hammerhead, ganges
+for seed in (0, 1, 2):
+    rng = np.random.default_rng(seed)
+    draws = rng.choice(5, size=600, p=p)
+    print(seed, np.bincount(draws, minlength=5))</code></pre>
+  <pre class="out">0 [244 210  81  61   4]
+1 [280 190  71  57   2]
+2 [269 198  74  56   3]</pre>
+  <p class="used"><b>In practice:</b> make one generator at the top of a script, <code>rng = np.random.default_rng(seed)</code>, and pass it to the code that needs random numbers. The older <code>np.random.seed</code> sets a global state that other code can disturb.</p>
   <div class="break">
     <p><b>Common belief.</b> Some seeds are good seeds. Seed 42 is the right one, and a result that needs it is the true result.</p>
     <p><b>Why it fails.</b> A seed only picks one of many equally valid random sequences. A different seed gives a different split of the data and a different score.</p>
@@ -873,6 +1164,8 @@ print(rng.choice(["milk", "bamboo", "spadenose"], size=4))</code></pre>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>You rerun a script with no seed and the score moves from 0.81 to 0.78. Is the model worse?</summary><p>Not necessarily. Without a seed, a different random split or start can move the score by a few points. Fix the seed to compare two changes fairly, and repeat with several seeds to see the spread.</p></details>
+    <details><summary>A split with seed 0 scores 78.5% and a split with seed 1 scores 80.2%. Which number do you report?</summary><p>Neither alone. Run several seeds and report the average and the spread. The gap between two seeds measures luck.</p></details>
+    <details><summary>What is the difference between <code>rng.permutation(10)</code> and <code>rng.choice(10, size=10)</code>?</summary><p><code>permutation</code> lists the numbers 0 to 9 once, in a random order. <code>choice</code> draws with replacement by default, so a number can appear several times and another not at all.</p></details>
   </div>
 </section>
 
@@ -917,6 +1210,17 @@ loss.backward()
 print(round(w.grad.item(), 4), round(b.grad.item(), 4))</code></pre>
   <pre class="out">1.0875
 -0.8821 -0.966</pre>
+  <p>Check the numbers by hand. At \(w = 1\) and \(b = 0\) the predictions equal the lengths. The errors \(\hat y - y\) are 0.182, 0.159 and \(-1.790\), with squares 0.0331, 0.0253 and 3.2041. Their mean, 3.2625 / 3, is the printed loss, 1.0875. For \(\partial L/\partial w\), multiply the errors by the lengths, add, and multiply by 2/3: \(\tfrac{2}{3}(0.0746 + 0.0700 - 1.4678) = -0.8821\). For \(\partial L/\partial b\) the lengths drop out: \(\tfrac{2}{3}(0.182 + 0.159 - 1.790) = -0.966\). Both are negative, so raising \(w\) or \(b\) lowers the loss. The heaviest shark causes the large third error.</p>
+  <div class="eqn" role="img" aria-label="Hand check of the loss and the two gradients at w equal to 1 and b equal to 0"><span class="t c-navy"><b>L = 1.0875</b><i>loss</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>&minus;0.8821</b><i>&part;L/&part;w</i></span><span class="op">&amp;</span><span class="t c-teal"><b>&minus;0.966</b><i>&part;L/&part;b</i></span></div>
+  <p>Autograd multiplies local slopes, which is the chain rule (<a href="../t6-gradients/#chain">0.6</a>). Take \(u = 3w + 1\) and \(L = u^2\) at \(w = 2\). Then \(u = 7\) and \(L = 49\). The slope of \(u\) with respect to \(w\) is 3, and the slope of \(L\) with respect to \(u\) is \(2u = 14\). The product, 42, is <code>w.grad</code>.</p>
+  <pre class="code"><code>import torch
+
+w = torch.tensor(2.0, requires_grad=True)
+u = 3 * w + 1          # 7
+L = u ** 2             # 49
+L.backward()
+print(u.item(), L.item(), w.grad.item())</code></pre>
+  <pre class="out">7.0 49.0 42.0</pre>
   <p>One step of gradient descent moves the numbers a small distance against its gradient. The step is made with <code>torch.no_grad()</code> so that the update itself is not recorded. Gradient descent is the topic of <a href="../a2-linear-regression/#descent">A2</a>.</p>
   <pre class="code"><code>import torch
 
@@ -934,6 +1238,23 @@ for step in range(50):
         b -= lr * b.grad
     w.grad.zero_()
     b.grad.zero_()
+
+print(round(w.item(), 3), round(b.item(), 3), round(loss.item(), 4))</code></pre>
+  <pre class="out">4.711 -1.564 0.0589</pre>
+  <p>Working code hands the loop to an optimiser: <code>opt.zero_grad()</code> clears the gradients, <code>loss.backward()</code> fills them and <code>opt.step()</code> applies the update. The result is the same. A training loop always has these parts: forward pass, loss, clear, backward, step.</p>
+  <pre class="code"><code>import torch
+
+x = torch.tensor([0.41, 0.44, 0.82])
+y = torch.tensor([0.228, 0.281, 2.610])
+w = torch.tensor(1.0, requires_grad=True)
+b = torch.tensor(0.0, requires_grad=True)
+opt = torch.optim.SGD([w, b], lr=0.5)
+
+for step in range(50):
+    opt.zero_grad()                       # clear the old gradients
+    loss = ((w * x + b - y) ** 2).mean()
+    loss.backward()
+    opt.step()                            # w -= lr * w.grad, b -= lr * b.grad
 
 print(round(w.item(), 3), round(b.item(), 3), round(loss.item(), 4))</code></pre>
   <pre class="out">4.711 -1.564 0.0589</pre>
@@ -975,6 +1296,7 @@ torch.float32</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>Which tensors get a <code>.grad</code> after <code>loss.backward()</code>?</summary><p>The ones created with <code>requires_grad=True</code> that took part in computing the loss, here <code>w</code> and <code>b</code>. The data tensors <code>x</code> and <code>y</code> do not.</p></details>
     <details><summary>What happens to <code>w.grad</code> if you call <code>backward()</code> in a loop and never zero it?</summary><p>It keeps adding up. The next step then uses a sum of old and new gradients, which is usually wrong.</p></details>
+    <details><summary>With \(u = 3w + 1\) and \(L = u^2\), what is <code>w.grad</code> at \(w = 2\)?</summary><p>It is 42. The slope of \(u\) is 3 and the slope of \(L\) at \(u = 7\) is 14, and autograd multiplies them.</p></details>
   </div>
 </section>
 

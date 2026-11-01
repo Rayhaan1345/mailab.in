@@ -84,6 +84,21 @@
     <li><b>\(y\)</b> is the output, such as a weight in kg.</li>
   </ul>
 
+  <p>Evaluate the weight machine for Tag 3305, a spadenose shark of 41.0 cm. Raising 41.0 to the power 2.923 gives about 51,781. Multiplying by 0.0044 gives 227.8 grams, and dividing by 1000 gives 0.228 kg, the weight in the table. The rule fixes an output for any length in its domain, and it can mislead outside that domain. A rule fitted to sharks of 18 to 60 cm says little about a shark of 150 cm. Without a check, Python raises a negative length to the power 2.923 and returns a complex number, and NumPy returns <code>nan</code>. Neither is a weight.</p>
+  <pre class="code" data-run><code>def weight_kg(length_cm):
+    if length_cm &lt;= 0:
+        raise ValueError("length must be positive")
+    return 0.0044 * length_cm ** 2.923 / 1000
+
+print(round(weight_kg(41.0), 3))
+try:
+    weight_kg(-5)
+except ValueError as e:
+    print("ValueError:", e)</code></pre>
+  <pre class="out">0.228
+ValueError: length must be positive</pre>
+  <p class="used"><b>In practice:</b> state the domain of a function in its code, with a check that raises an error. A function that accepts anything returns a wrong number without any warning when the input is wrong.</p>
+
   <h3>The vertical line test</h3>
   <p class="task">Pick a curve and slide the vertical line. Count the points where the line crosses the curve.</p>
   <div class="card" id="vl">
@@ -115,6 +130,7 @@ print(np.round(weight_kg(np.array([20, 30, 41, 50, 60])), 3))</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>Does the circle x&sup2; + y&sup2; = 4 define y as a function of x?</summary><p>No. At x = 0 the circle has two points, y = 2 and y = &minus;2, so one input gives two outputs.</p></details>
     <details><summary>What is the domain of the weight machine if spadenose sharks in the table run from 18 to 60 cm?</summary><p>The lengths from 18 to 60 cm. The formula would accept other numbers, but the sensible domain is where it describes sharks.</p></details>
+    <details><summary>The weight rule was fitted on spadenose sharks of 18 to 60 cm. Should you trust its output at 150 cm?</summary><p>No. The rule was never tested at 150 cm. The formula still returns a number, which makes the mistake easy to miss.</p></details>
   </div>
 </section>
 
@@ -150,7 +166,33 @@ print(np.round(weight_kg(np.array([20, 30, 41, 50, 60])), 3))</code></pre>
     <li><b>\(B\)</b> is the base of the logarithm and \(c\) shifts it up or down.</li>
     <li><b>\(e\)</b> is a constant, about 2.718, that appears whenever growth is smooth (you meet it again in the logarithm section).</li>
   </ul>
-    <div class="break">
+      <p>Compare a line and a curve on the made-up spadenose sharks. The best straight line has slope 0.01545 kg per cm and intercept &minus;0.379 kg. At 41 cm it gives 0.254 kg, against the power law's 0.228. At 60 cm it gives 0.548 against 0.693. At 20 cm it gives &minus;0.070, a negative weight, because the line crosses zero at 0.379 / 0.01545 = 24.5 cm and the table has sharks shorter than that.</p>
+  <p>Squared error is a quadratic in the weight \(w\). For one shark with length \(x\) and weight \(y\), the error is \((wx - y)^2 = x^2 w^2 - 2xy\,w + y^2\). Now average over the three recurring sharks, with lengths 0.41, 0.44 and 0.82 m, weights 0.228, 0.281 and 2.610 kg, and no intercept. This gives \(a = 0.3447\), \(b = -1.5715\) and \(c = 2.3143\). At \(w = 1\) the loss is 0.3447 &minus; 1.5715 + 2.3143 = 1.0875, the loss printed in <a href="../t1-python/#torch">0.1</a>. The lowest point of a quadratic is at \(-b/2a\), here \(w = 2.28\), where the loss is 0.523.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+L = np.array([20, 30, 41, 50, 60])
+law = 0.0044 * L ** 2.923 / 1000          # the power law of the made-up table
+line = 0.01545 * L - 0.379                # the best straight line
+for l, p, q in zip(L, law, line):
+    print(l, round(p, 3), round(q, 3))
+
+x = np.array([0.41, 0.44, 0.82])           # lengths in m: Tags 3305, 4127, 5519
+y = np.array([0.228, 0.281, 2.610])        # weights in kg
+a, b, c = (x ** 2).mean(), -2 * (x * y).mean(), (y ** 2).mean()
+print(round(a, 4), round(b, 4), round(c, 4))
+print(round(a + b + c, 4))                 # the loss at w = 1
+w = -b / (2 * a)
+print(round(w, 2), round(a * w ** 2 + b * w + c, 3))</code></pre>
+  <pre class="out">20 0.028 -0.07
+30 0.091 0.085
+41 0.228 0.254
+50 0.407 0.393
+60 0.693 0.548
+0.3447 -1.5715 2.3143
+1.0875
+2.28 0.523</pre>
+  <p class="used"><b>In practice:</b> choose a family from the plot and from what you know of the process, fit it, then look at the leftovers. Extrapolating a line, a quadratic or an exponential beyond the data is the usual mistake.</p>
+<div class="break">
     <p><b>Common belief.</b> A curve that rises faster and faster is an exponential.</p>
     <p><b>Why it fails.</b> A quadratic also rises faster and faster, and so does the early part of a sigmoid. With only the early part of the data you cannot tell these families apart.</p>
     <p><b>Better account.</b> Look at more of the range, or test the rule. An exponential multiplies by the same factor whenever x grows by 1, while a quadratic adds a growing amount.</p>
@@ -163,6 +205,7 @@ print(np.round(weight_kg(np.array([20, 30, 41, 50, 60])), 3))</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>Which family could model a quantity that doubles whenever x grows by 1?</summary><p>The exponential, with r = 2. The line adds a fixed amount per step, and the quadratic adds a growing amount.</p></details>
     <details><summary>A sigmoid has w = 0. What does its graph look like?</summary><p>A flat horizontal line at the height \(\sigma(b)\). With no weight the input has no effect.</p></details>
+    <details><summary>At what length does the fitted line predict a weight of zero, and what does it predict below that?</summary><p>At 0.379 / 0.01545 = 24.5 cm. Shorter sharks get a negative weight, which cannot happen, so the line is a poor model at the small end.</p></details>
   </div>
 </section>
 
@@ -193,6 +236,27 @@ print(np.round(weight_kg(np.array([20, 30, 41, 50, 60])), 3))</code></pre>
   </ul>
   <p>The weight rule of the first section uses a power function. If \(W\) grows like \(L^3\), a shark 2 times as long is \(2^3 = 8\) times as heavy. The spadenose law has exponent 2.923, so a shark twice as long is \(2^{2.923} = 7.58\) times as heavy. This near-cube law is behind the log-log fit of <a href="../a2-linear-regression/#loglog">A2</a>.</p>
 
+  <p>A ratio of weights depends only on a ratio of lengths. If \(W = aL^b\), a shark \(c\) times as long has weight \(a(cL)^b = c^b\,aL^b\), so the weights are in the ratio \(c^b\). The step uses \((cL)^b = c^b L^b\), and it is valid for any exponent. For \(b = 3\) it says that \((cL)(cL)(cL)\) has three factors \(c\) and three factors \(L\). For \(b = 2.923\), a shark 10% longer is \(1.1^{2.923} = 1.32\) times as heavy, and one 50% longer is \(1.5^{2.923} = 3.27\) times as heavy. Tag 4127 grew from 44 to 49 cm in <a href="../t1-python/#classes">0.1</a>, and \((49/44)^{2.95} = 1.37\) is the 37% gain in weight.</p>
+  <p>Exponentials describe fading as well as growth. In the made-up dive log, light falls with depth \(z\) as \(e^{-Kz}\). The mean \(K\) is 0.34 per metre. It is an assumption in the range of turbid coastal water, and no Mumbai measurement was found. With \(K = 0.34\), written as \(r^z\), the factor is \(r = e^{-0.34} = 0.712\) per metre. Light is 18% of the surface value at 5 m, 3.3% at 10 m and 0.11% at 20 m. It halves after 2.04 m of depth.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+Kd = 0.34                       # per metre: an assumed value in the made-up dive log
+r = np.exp(-Kd)
+print(round(r, 3))
+for z in (5, 10, 20):
+    print(z, round(r ** z, 4))
+print(round(np.log(2) / Kd, 2))  # metres for the light to halve
+
+with np.errstate(over="ignore", under="ignore"):
+    print(np.exp(709.0), np.exp(710.0), np.exp(-746.0))</code></pre>
+  <pre class="out">0.712
+5 0.1827
+10 0.0334
+20 0.0011
+2.04
+8.218407461554972e+307 inf 0.0</pre>
+  <p class="used"><b>In practice:</b> floats overflow too. <code>np.exp(710)</code> is <code>inf</code> and <code>np.exp(-746)</code> is 0.0. That is why softmax subtracts the largest score before it takes exponentials (<a href="../t7-probability/#softmax">0.7</a>).</p>
+
   <h3>Power or exponential?</h3>
   <p class="ask"><b>Guess first.</b> The curve \(x^3\) climbs fast. Will it stay above \(2^x\) for ever?</p>
   <div class="card" id="rc">
@@ -202,7 +266,8 @@ print(np.round(weight_kg(np.array([20, 30, 41, 50, 60])), 3))</code></pre>
     <div class="readout" id="rc-read"></div>
   </div>
   <p class="cap"><b>The exponential 2<sup>x</sup> overtakes any power of x, and it takes longer for higher powers.</b></p>
-  <div class="break">
+    <p>Check the race with numbers. At \(x = 8\), \(2^x\) is 256 and \(x^3\) is 512, so the power is ahead. At \(x = 10\) the exponential leads, 1,024 against 1,000. At \(x = 16\), \(2^x = 65{,}536\) equals \(x^4\), and it passes \(x^4\) from there. Doubling \(x\) from 8 to 16 multiplies \(x^3\) by 8 and \(2^x\) by 256.</p>
+<div class="break">
     <p><b>Common belief.</b> A power such as \(x^3\) and an exponential such as \(2^x\) are the same kind of fast growth.</p>
     <p><b>Why it fails.</b> In \(x^3\) the variable is the base, so the growth slows in relative terms. In \(2^x\) the variable is the exponent, so a step of 1 in x multiplies by 2. The exponential passes \(x^3\) near \(x=10\) and \(x^4\) at \(x=16\).</p>
     <p><b>Better account.</b> Ask whether the variable is in the base or in the exponent. A variable in the base gives a power function. A variable in the exponent gives exponential growth.</p>
@@ -233,6 +298,7 @@ print(round(W[1] / W[0], 2), 2**3)   # twice as long</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>Simplify \((2^5 \cdot 2^{-3}) / 2^4\).</summary><p>Add and subtract the exponents: \(5 - 3 - 4 = -2\). The answer is \(2^{-2} = 1/4\).</p></details>
     <details><summary>A shark is 3 times as long as another. If weight goes as length cubed, how many times as heavy is it?</summary><p>\(3^3 = 27\) times.</p></details>
+    <details><summary>Light multiplies by 0.712 per metre. What fraction is left after 2 m?</summary><p>The answer is 0.712 &times; 0.712 = 0.507, about half. This is the half-distance of about 2 m.</p></details>
   </div>
 </section>
 
@@ -272,6 +338,20 @@ print(round(W[1] / W[0], 2), 2**3)   # twice as long</code></pre>
   </ul>
   <p>The product rule matters in AI because probabilities of many independent events multiply, and long products of small numbers become too small for a computer to store. Taking logs turns the product into a sum that stays a normal size. This is the idea behind log loss (<a href="../a3-logistic-regression/#logloss">A3</a>) and cross-entropy (<a href="../t7-probability/#crossent">0.7</a>).</p>
 
+  <p>Here is the problem with products, in numbers. Suppose a detector gives the correct species a probability of 0.3 in 1,000 frames. The product is about \(10^{-523}\), far below the smallest number a 64-bit float can store, so the computer returns 0.0. The sum of logs is \(1000 \times \ln 0.3 = -1204\), an ordinary number that still compares correctly with other runs.</p>
+  <p>Logs also turn ratios into differences. A small percentage change moves the log by about the same amount. Here \(\ln 1.05 = 0.049\) and \(\ln 1.10 = 0.095\), while a drop of 10% is \(\ln 0.9 = -0.105\). To undo an exponent, take a log of both sides. When does light fall to 1% of the surface value, with light \(= e^{-0.34z}\)? Set \(e^{-0.34z} = 0.01\), so \(-0.34z = \ln 0.01 = -4.605\) and \(z = 13.5\) m. Counting bits is a log too: 600 records need \(\lceil\log_2 600\rceil = 10\) bits, since \(2^9 = 512 < 600 \le 1024\).</p>
+  <pre class="code" data-run><code>import numpy as np
+
+p = np.full(1000, 0.3)                       # probability of the right species in 1,000 frames
+print(np.prod(p), np.sum(np.log(p)).round(1))
+print(np.log(1.05).round(3), np.log(1.10).round(3), np.log(0.9).round(3))
+print((np.log(0.01) / -0.34).round(1))      # depth for 1% light
+print(np.ceil(np.log2(600)))</code></pre>
+  <pre class="out">0.0 -1204.0
+0.049 0.095 -0.105
+13.5
+10.0</pre>
+
   <h3>Straight lines from curves</h3>
   <p class="ask"><b>Guess first.</b> Weight depends on length raised to a power near 3. If you plot the logarithm of weight against the logarithm of length, what kind of curve do you expect?</p>
   <div class="card" id="ll">
@@ -283,7 +363,8 @@ print(round(W[1] / W[0], 2), 2**3)   # twice as long</code></pre>
   </div>
   <p class="cap"><b>On log axes the cube law becomes a straight line, and its slope is the exponent.</b></p>
   <p>If \(W = a L^b\), then \(\ln W = \ln a + b \ln L\). That is a line with slope \(b\) and intercept \(\ln a\). Fitting a line to the logs gives the exponent: 2.92 for the 268 spadenose records, 3.06 for the 200 milk shark records, 2.95 for the 72 bamboo shark records. The same trick reads exponents off any chart with log axes (<a href="../t8-charts/#scales">0.8</a>).</p>
-  <div class="break">
+    <p>The scatter of the records also looks different on log axes. Tags 6894 and 8994 are spadenose sharks of 49.6 cm that weigh 0.437 and 0.297 kg, a ratio of 1.47 and a log difference of \(\ln(0.437/0.297) = 0.386\). The made-up weights scatter by about 14% around the law at all lengths. On raw axes that scatter grows with the size of the shark. On log axes it has the same height at all lengths, which is why the straight-line fit is done on logs.</p>
+<div class="break">
     <p><b>Common belief.</b> Taking logs changes the data, so a fit on the logs is a different problem.</p>
     <p><b>Why it fails.</b> The log relabels the axes, and the same records are still there. A power law stays a power law, and only the picture straightens. The fit does measure its errors as ratios instead of kilograms, which suits data that spans a wide range.</p>
     <p><b>Better account.</b> Logs change the scale you read, which is why they help with data that spans a wide range.</p>
@@ -306,11 +387,13 @@ print(round(b, 2), round(np.exp(ln_a), 7))</code></pre>
 8.0 8.0
 9.0 9.0
 3.06 2.4e-06</pre>
+  <p class="used"><b>In practice:</b> add a tiny constant such as 1e-12, or clip probabilities, before taking a log. <code>np.log1p(x)</code> computes \(\ln(1+x)\) accurately when \(x\) is tiny. Training losses use natural logs, so a loss of 0.69 is \(\ln 2\), the score of a coin flip between two classes.</p>
   <p class="used"><b>Used in:</b> the cube-law fit (<a href="../a2-linear-regression/#loglog">A2</a>); log loss (<a href="../a3-logistic-regression/#logloss">A3</a>); log probabilities and perplexity (<a href="../t7-probability/#crossent">0.7</a>, <a href="../d3-next-token/#perplexity">D3</a>); Big-O (<a href="../t2-algorithms/#bigo">0.2</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Compute \(\log_2 8 + \log_2 32\) without a calculator.</summary><p>It is 3 + 5 = 8. By the product rule this is also \(\log_2 256\), and \(2^8 = 256\).</p></details>
     <details><summary>Why does a log-log plot of a cube law have slope 3?</summary><p>Because \(\ln W = \ln a + 3 \ln L\), a straight line in \(\ln L\) whose slope is the exponent.</p></details>
+    <details><summary>A detector gives the right class a probability of 0.5 in 20 independent frames. What is the natural log of the product?</summary><p>\(20 \ln 0.5 = -13.86\). The product itself is \(2^{-20} \approx 9.5 \times 10^{-7}\), and the log is easier to handle.</p></details>
   </div>
 </section>
 
@@ -339,7 +422,25 @@ print(round(b, 2), round(np.exp(ln_a), 7))</code></pre>
     <li><b>\(f^{-1}\)</b> is the inverse of \(f\). The small \(-1\) is a name, not an exponent.</li>
     <li><b>\(y\)</b> is a value in the output of \(f\), so the second equation starts from an output.</li>
   </ul>
-    <div class="break">
+      <p>The inverse of the weight law estimates a length from a weight. Start with \(W = 0.0044\,L^{2.923}\) in grams. Divide by 0.0044: \(L^{2.923} = W/0.0044\). Raise both sides to the power \(1/2.923 = 0.3421\), which undoes the power by the rule \((B^m)^n = B^{mn}\): \(L = (W/0.0044)^{0.3421}\). For 228 g, \(W/0.0044 = 51{,}818\) and \(51{,}818^{0.3421} = 41.0\) cm, the length of Tag 3305.</p>
+  <p>The inverse is a guess when the data scatter. Tags 6894 and 8994 are both 49.6 cm, and their weights of 437 and 297 g send the inverse back to 51.2 and 44.9 cm. The law gives the typical weight at a length, and individual sharks scatter around it. Fitting length on weight directly gives a slightly different curve from inverting the weight law. A function that is flat over a stretch has no inverse either. ReLU (<a href="../b1-one-neuron/#activations">B1</a>) sends all negative inputs to 0, so its output cannot say which one went in.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+a, b = 0.0044, 2.923
+def length_cm(W):                              # the inverse of W = a * L**b
+    return (W / a) ** (1 / b)
+
+print(round(length_cm(228.0), 1))
+print(round(length_cm(437.0), 1), round(length_cm(297.0), 1))   # Tags 6894 and 8994, 49.6 cm
+
+p = np.array([0.1, 0.5, 0.9])
+z = np.log(p / (1 - p))                        # the logit: it undoes the sigmoid
+print(z.round(3), (1 / (1 + np.exp(-z))).round(3))</code></pre>
+  <pre class="out">41.0
+51.2 44.9
+[-2.197  0.     2.197] [0.1 0.5 0.9]</pre>
+
+<div class="break">
     <p><b>Common belief.</b> Any function can be run backwards.</p>
     <p><b>Why it fails.</b> If two inputs give the same output, the output does not say which input it came from. The machine \(x^2\) sends both 2 and &minus;2 to 4.</p>
     <p><b>Better account.</b> A function has an inverse when different inputs give different outputs. Restricting the domain, such as \(x \ge 0\) for \(x^2\), repairs a function that fails this test.</p>
@@ -365,6 +466,7 @@ print((f - 32) / 1.8)     # back to Celsius</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the inverse of \(f(x) = 3x - 6\)?</summary><p>Solve \(y = 3x - 6\) for \(x\): \(x = (y+6)/3\). So \(f^{-1}(y) = (y+6)/3\).</p></details>
     <details><summary>Why has \(x^2\) no inverse on all inputs?</summary><p>Two different inputs, such as 2 and &minus;2, give the same output, so the output cannot tell you which input went in.</p></details>
+    <details><summary>Two sharks of 49.6 cm weigh 437 g and 297 g. Why does the inverse of the weight law return different lengths for them?</summary><p>The law gives a typical weight for a length. The two sharks scatter above and below it, and inverting one weight passes that scatter into the length.</p></details>
   </div>
 </section>
 
@@ -392,7 +494,23 @@ print((f - 32) / 1.8)     # back to Celsius</code></pre>
     <li><b>\(w_1, b_1\)</b> belong to the first line, and <b>\(w_2, b_2\)</b> to the second.</li>
     <li>The right-hand side is one line with slope \(w_2 w_1\) and bias \(w_2 b_1 + b_2\).</li>
   </ul>
-  <div class="break">
+    <p>Trace the neuron of the figure at \(x = 2\) with \(w = 1.5\) and \(b = -1\). The line stage gives \(z = 1.5 \times 2 - 1 = 2.0\). The sigmoid stage gives \(1/(1 + e^{-2}) = 0.881\). Add a third stage, a line with weight 2 and bias 0.5, and the output is \(2 \times 0.881 + 0.5 = 2.262\). The sigmoid in the middle is the bend. Without it the two lines would collapse into one.</p>
+  <p>Slopes multiply along a chain. With \(f(x) = 2x + 1\) and \(g(u) = u^2\), the slope of \(f\) is 2 and the slope of \(g\) at \(u = 7\) is \(2u = 14\). The slope of \(g(f(x))\) at \(x = 3\) is therefore \(2 \times 14 = 28\). A check: moving \(x\) from 3 to 3.01 moves the output from 49 to 49.2804, a change of 0.2804 over 0.01, which is 28.04.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+f = lambda x: 2 * x + 1
+g = lambda u: u ** 2
+h = 0.01
+print(round(g(f(3 + h)) - g(f(3)), 4), round((g(f(3 + h)) - g(f(3))) / h, 2))
+
+x = 2.0
+z = 1.5 * x - 1                       # line
+s = 1 / (1 + np.exp(-z))              # sigmoid
+print(z, round(s, 3), round(2 * s + 0.5, 3))   # a third stage: a line</code></pre>
+  <pre class="out">0.2804 28.04
+2.0 0.881 2.262</pre>
+  <p class="used"><b>In practice:</b> a pipeline is a composition: standardise, predict, then turn a probability into a label. The order matters, as \(g(f(x)) \ne f(g(x))\) in general. <code>nn.Sequential</code> in PyTorch composes layers in the order you list them (<a href="../b1-one-neuron/#layer">B1</a>).</p>
+<div class="break">
     <p><b>Common belief.</b> Stacking more lines gives a more flexible model.</p>
     <p><b>Why it fails.</b> Two lines in a row collapse into one line, as the equation shows. Ten lines in a row also collapse into one.</p>
     <p><b>Better account.</b> Put a bend between the lines, such as a sigmoid. Then the chain can make curves a single line cannot. <a href="../b2-non-linearity/#bend">B2</a> builds on this.</p>
@@ -422,6 +540,7 @@ print((w2 * w1) * 4 + (w2 * b1 + b2))  # one line</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>With \(f(x)=x+1\) and \(g(u)=u^2\), what is \(g(f(3))\) and what is \(f(g(3))\)?</summary><p>\(g(f(3)) = 4^2 = 16\) and \(f(g(3)) = 9 + 1 = 10\). The order matters.</p></details>
     <details><summary>Two lines have slopes 3 and &minus;2 and are fed into one another. What is the slope of the composite?</summary><p>The slopes multiply: \(3 \times (-2) = -6\).</p></details>
+    <details><summary>With \(f(x) = 3x\) and \(g(u) = u^2\), what is the slope of \(g(f(x))\) at \(x = 2\)?</summary><p>At \(x = 2\), \(f = 6\) and the slope of \(g\) is \(2 \times 6 = 12\). Multiply by the slope of \(f\), 3, to get 36. Check: \(g(f(x)) = 9x^2\) has slope \(18x = 36\).</p></details>
   </div>
 </section>
 

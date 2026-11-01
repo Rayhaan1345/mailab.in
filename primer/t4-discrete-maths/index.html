@@ -113,6 +113,20 @@ table.tt-small th, table.tt-small td { padding: 3px 16px; border-bottom: 1px sol
     <li><b>\(C(n,2)\)</b> is the number of pairs, the case you meet most in AI.</li>
   </ul>
 
+  <p>Count three more cases. A tag has four digits from 1000 to 9999. There are 9 choices for the first digit and 10 for the other three, so \(9 \times 10 \times 10 \times 10 = 9{,}000\) tags. Choosing a test set is a group count: 120 of the 600 records can be picked in \(C(600,120)\) ways, a number with 130 digits. No computer can list them, which is why splits are drawn at random and not enumerated.</p>
+  <p>The formulas assume distinct items. The labels (spadenose, spadenose, milk) have \(3! = 6\) orders, but swapping the two spadenose labels leaves the sequence of species unchanged. Divide by the \(2!\) orders of the equal labels: \(6/2 = 3\) distinct orders.</p>
+  <pre class="code" data-run><code>import math
+from itertools import permutations
+
+print(9 * 10 * 10 * 10, len(range(1000, 10000)))
+print(len(str(math.comb(600, 120))))               # digits in the number of test sets
+labels = ["spadenose", "spadenose", "milk"]
+print(len(set(permutations(labels))), math.factorial(3) // math.factorial(2))</code></pre>
+  <pre class="out">9000 9000
+130
+3 3</pre>
+  <p class="used"><b>In practice:</b> <code>math.comb</code> and <code>math.perm</code> return whole numbers of any size with no rounding, while a float loses digits above about \(10^{15}\). When a count is too large to list, as with the orders behind SHAP, people estimate the average from a random sample of them (<a href="../a6-boosting/#shap">A6</a>).</p>
+
   <h3>Counting pairs</h3>
   <p class="ask"><b>Guess first.</b> You compare all pairs of items in a sequence. The sequence doubles from 1,000 to 2,000 items. Does the number of pairs double, triple or quadruple?</p>
   <dl class="terms">
@@ -129,7 +143,9 @@ table.tt-small th, table.tt-small td { padding: 3px 16px; border-bottom: 1px sol
   <p class="cap"><b>Doubling the number of items multiplies the number of pairs by about 4, whichever way you count them.</b></p>
   <p>The grid has one row and one column per item. A cell is one ordered pair. The diagonal pairs an item with itself. Counting pairs once keeps only the cells below the diagonal, which is about half of the grid. Counting "looking back only" adds the diagonal and keeps the lower triangle. A language model uses this pattern when a token may see only the tokens before it (<a href="../d4-self-attention/#mask">D4</a>).</p>
   <p>In all three counts the number of cells grows like \(n^2\). This is why the cost of comparing all items with all other items explodes for long inputs (<a href="../d6-long-context/#cost">D6</a>).</p>
-  <div class="break">
+    <p>Take \(n = 5\). The grid has \(5 \times 5 = 25\) cells, one per ordered pair, and 5 of them are on the diagonal. Pairs of different items number \(25 - 5 = 20\) as ordered pairs and 10 as unordered pairs. "Looking back only" counts the lower triangle with its diagonal: \(10 + 5 = 15 = 5 \times 6/2\). For a 5-token prompt, the attention scores form a grid of 25 cells, and the mask that hides later tokens leaves 15 of them in use.</p>
+  <p>Why is the number of pairs \(n(n-1)/2\)? Item 1 pairs with the \(n-1\) items after it, item 2 with \(n-2\), and so on down to 1. Write \(1 + 2 + \dots + (n-1)\) twice, the second time in reverse order, and add the two rows column by column. All \(n-1\) columns add to \(n\), so twice the sum is \(n(n-1)\), and the sum is half of that.</p>
+<div class="break">
     <p><b>Common belief.</b> Picking 2 items out of 5 and arranging 2 items out of 5 give the same count.</p>
     <p><b>Why it fails.</b> Picking A then B and picking B then A are two arrangements but one group. Arrangements give 20 and groups give 10.</p>
     <p><b>Better account.</b> Ask whether order matters. If it does, count arrangements. If it does not, divide by \(k!\).</p>
@@ -189,7 +205,27 @@ print(2 ** 6)</code></pre>
     <li><b>\(|A|\)</b> is the number of items in A, and <b>\(U\)</b> is the universe, here all 30 sharks.</li>
     <li><b>\(A^{c}\)</b> is the complement of A: the sharks outside circle A.</li>
   </ul>
-  <div class="break">
+    <p>Check the starting position of the figure. Circle A has 14 dots (5 in both and 9 in A only) and circle B has 12 (5 in both and 7 in B only). The union is \(14 + 12 - 5 = 21\), so the other \(30 - 21 = 9\) dots are in neither circle.</p>
+  <p>Now use the classifier words with numbers. Suppose a made-up detector flags 4 of the 600 records as Ganges sharks, and the table has 3 Ganges records. If 2 of the flagged records are Ganges sharks, the overlap is 2, so TP = 2. The flagged records outside B give FP = \(4 - 2 = 2\). The Ganges records outside A give FN = \(3 - 2 = 1\). The records in neither circle are TN = \(600 - (4 + 3 - 2) = 595\). A model that never flags a record is right on 597 records, and this detector is right on \(2 + 595 = 597\) too. Both score 99.5%, and <a href="../a4-grading-models/#rare">A4</a> shows why that number hides the difference.</p>
+  <p>Set operations are logic on membership. Union is OR, intersection is AND and complement is NOT. So "not (A or B)" and "(not A) and (not B)" pick the same dots, as the last line of the code checks (<a href="#logic">logic</a> below).</p>
+  <pre class="code" data-run><code>n_total = 600
+flagged = {1, 2, 3, 4}     # four records that a made-up detector calls Ganges
+ganges = {3, 4, 5}         # the three Ganges records
+tp = len(flagged &amp; ganges)
+fp = len(flagged - ganges)
+fn = len(ganges - flagged)
+tn = n_total - len(flagged | ganges)
+print(tp, fp, fn, tn, (tp + tn) / n_total)
+print((n_total - len(ganges)) / n_total)           # a model that never flags anything
+
+U = set(range(10))
+A, B = {0, 1, 2, 3}, {3, 4, 5}
+print((U - (A | B)) == ((U - A) &amp; (U - B)))</code></pre>
+  <pre class="out">2 2 1 595 0.995
+0.995
+True</pre>
+  <p class="used"><b>In practice:</b> before training, check that the training and test tags have no tag in common: <code>assert not (set(train) &amp; set(test))</code>. The check cannot catch a leak that hides behind different names, such as one shark photographed twice under two tags (<a href="../a4-grading-models/#leak">A4</a>).</p>
+<div class="break">
     <p><b>Analogy.</b> A set is a bag of items, and a Venn diagram draws two bags that may share items.</p>
     <p><b>Where it breaks.</b> The area of a circle has no meaning. Only the count of dots does. A set also has no order and no repeats: {A, B} and {B, A, B} are the same set. A Python list keeps order and repeats, a set does not.</p>
   </div>
@@ -211,6 +247,7 @@ print(len(adult | juhu), len(adult) + len(juhu) - len(adult &amp; juhu))</code><
     <p class="recall-h">Quick quiz</p>
     <details><summary>Of 40 sharks, 18 are adult, 15 are from Juhu and 8 are both. How many are adult or from Juhu?</summary><p>\(18 + 15 - 8 = 25\).</p></details>
     <details><summary>How many of those 40 sharks are neither adult nor from Juhu?</summary><p>\(40 - 25 = 15\).</p></details>
+    <details><summary>A detector flags 10 of 600 records, and 3 of them are Ganges sharks. There are 3 Ganges records in all. What are FP and FN?</summary><p>FP = 10 &minus; 3 = 7, the flagged records outside B. FN = 3 &minus; 3 = 0, because the detector found all three.</p></details>
   </div>
 </section>
 
@@ -256,7 +293,28 @@ print(len(adult | juhu), len(adult) + len(juhu) - len(adult &amp; juhu))</code><
     <li><b>\(A, B\)</b> are the inputs, either 0 or 1.</li>
     <li>The formulas give 0 or 1 for any input pair. Try the four rows of the table to check them.</li>
   </ul>
-  <div class="break">
+    <p>A line is a weighted sum compared with a threshold. Take \(z = A + B - 1.5\) and answer 1 when \(z\) is above 0. For the four inputs \(z\) is \(-1.5\), \(-0.5\), \(-0.5\) and \(0.5\), so only (1,1) fires, which is AND. Change the constant to \(-0.5\) and \(z\) becomes \(-0.5\), \(0.5\), \(0.5\) and \(1.5\), so three inputs fire, which is OR. The weights are the same and the threshold moves. No choice of two weights and a threshold gives (0, 1, 1, 0).</p>
+  <pre class="code" data-run><code>import numpy as np
+
+A = np.array([0, 0, 1, 1])
+B = np.array([0, 1, 0, 1])
+for name, b in (("AND", -1.5), ("OR", -0.5)):
+    z = A + B + b                       # weights 1 and 1; b sets the threshold
+    print(name, z, (z &gt; 0).astype(int))</code></pre>
+  <pre class="out">AND [-1.5 -0.5 -0.5  0.5] [0 0 0 1]
+OR [-0.5  0.5  0.5  1.5] [0 1 1 1]</pre>
+  <p>Logic with missing values breaks the usual pairs. A missing length stored as <code>nan</code> is neither over 60 nor at most 60: both comparisons give False. So "not over 60" selects the row, and "at most 60" drops it. A mask can lose rows without any warning. In the Pima data a zero often means "not measured" (<a href="../t1-python/#files">0.1</a>), and a mask such as <code>glucose &gt; 0</code> removes those rows.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+x = np.array([42.4, np.nan, 74.5])      # the middle length is missing
+print(x &gt; 60)
+print(x &lt;= 60)
+print(~(x &gt; 60))</code></pre>
+  <pre class="out">[False False  True]
+[ True False False]
+[ True  True False]</pre>
+  <p class="used"><b>In practice:</b> name the parts of a complex condition, such as <code>is_long = length &gt; 60</code> and <code>is_deep = depth &gt; 30</code>, and then write <code>is_long &amp; is_deep</code>. Check the corner cases against a four-row truth table.</p>
+<div class="break">
     <p><b>Common belief.</b> With a clever enough line, you can separate any pattern of 0s and 1s.</p>
     <p><b>Why it fails.</b> XOR puts the midpoint of both diagonals at the same spot, and that spot needs two answers. No line does that.</p>
     <p><b>Better account.</b> Use two lines in two steps. "A OR B" and "NOT (A AND B)" are both separable, and XOR is "both of them at once". Stacking steps like this is the idea of <a href="../b2-non-linearity/#bend">B2</a>.</p>
@@ -279,6 +337,7 @@ print(A + B - 2 * A * B)    # XOR written as arithmetic</code></pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>For which input pairs is A XOR B equal to 1?</summary><p>(0,1) and (1,0): the pairs where the inputs differ.</p></details>
     <details><summary>Why can no single line separate the XOR outputs?</summary><p>The midpoint of the two "1" points and the midpoint of the two "0" points are the same spot, (0.5, 0.5). A line cannot put one point on both sides.</p></details>
+    <details><summary>With \(z = A + B - 1.5\) and the rule "answer 1 when \(z\) is above 0", which inputs fire?</summary><p>Only (1,1), where \(z = 0.5\). The other three inputs give \(-1.5\) or \(-0.5\). This is AND.</p></details>
   </div>
 </section>
 
@@ -315,7 +374,39 @@ print(A + B - 2 * A * B)    # XOR written as arithmetic</code></pre>
     <li><b>\(\deg(v)\)</b> is the degree of node \(v\), the number of edges touching it.</li>
     <li><b>\(\binom{n}{2}\)</b> is another way to write \(C(n,2)\).</li>
   </ul>
-  <div class="break">
+    <p>Take the DAG preset, with edges \(x\to m\), \(w\to m\), \(m\to z\) and \(b\to z\). Ignoring the arrows, the degrees are 1 for \(x\), \(w\) and \(b\), 2 for \(z\) and 3 for \(m\). They add to 8, which is \(2\times 4\) edges. With 5 nodes, 4 edges and one connected piece, the graph is also a tree. A forward order is \(b, w, x, m, z\).</p>
+  <p>A DAG need not be a tree. The diamond \(a\to b\), \(a\to c\), \(b\to d\), \(c\to d\) has 4 nodes and 4 edges, so it has a loop when you ignore the arrows. It has no loop that follows the arrows. It has two forward orders, \(a, b, c, d\) and \(a, c, b, d\). Networks with a skip connection have this diamond: the input reaches the output by two routes (<a href="../b6-deep-networks/#residual">B6</a>). The code walks the graph with a queue to test the tree rule.</p>
+  <pre class="code" data-run><code>from collections import deque
+from itertools import permutations
+
+def is_tree(nodes, edges):
+    nbrs = {n: [] for n in nodes}
+    for a, b in edges:                  # treat an edge as a line without an arrow
+        nbrs[a].append(b)
+        nbrs[b].append(a)
+    seen, queue = {nodes[0]}, deque([nodes[0]])
+    while queue:                        # walk the graph, nearest nodes first
+        n = queue.popleft()
+        for m in nbrs[n]:
+            if m not in seen:
+                seen.add(m)
+                queue.append(m)
+    return len(seen) == len(nodes) and len(edges) == len(nodes) - 1
+
+nodes = ["a", "b", "c", "d"]
+path = [("a", "b"), ("b", "c"), ("c", "d")]
+loop = [("a", "b"), ("b", "c"), ("c", "d"), ("d", "a")]
+pieces = [("a", "b"), ("c", "d")]
+print(is_tree(nodes, path), is_tree(nodes, loop), is_tree(nodes, pieces))
+
+diamond = [("a", "b"), ("a", "c"), ("b", "d"), ("c", "d")]
+print(is_tree(nodes, diamond))
+print([p for p in permutations(nodes) if all(p.index(u) &lt; p.index(v) for u, v in diamond)])</code></pre>
+  <pre class="out">True False False
+False
+[('a', 'b', 'c', 'd'), ('a', 'c', 'b', 'd')]</pre>
+  <p class="used"><b>In practice:</b> store a graph as a dictionary from a node to its neighbours, or as a list of edges. Walking a graph uses a queue to go nearest first or a stack to go deepest first, the two structures of <a href="../t2-algorithms/#stacks">0.2</a>. The computation graph of a large network has millions of nodes, and the same checks apply.</p>
+<div class="break">
     <p><b>Common belief.</b> A graph with no loop is a tree.</p>
     <p><b>Why it fails.</b> Two separate pieces have no loop, but they are not connected. That graph is a forest, and it has fewer than \(n-1\) edges.</p>
     <p><b>Better account.</b> A tree is connected and has no cycle. Check both, or check that \(e = n-1\) and the graph is connected.</p>
@@ -347,6 +438,7 @@ True</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>A graph has 6 nodes and 5 edges and is connected. Is it a tree?</summary><p>Yes. A connected graph with \(n-1\) edges has no cycle, so it is a tree.</p></details>
     <details><summary>Why can the four-step pipeline in the guess not run if resizing needs the printed label?</summary><p>Resizing would need the label, the label would need the model, and the model would need the resized photo. The arrows form a cycle, so no step can go first.</p></details>
+    <details><summary>A graph has 4 nodes and 3 edges. Is it always a tree?</summary><p>No. Three edges can close a loop among three nodes and leave the fourth node alone, so the graph is not connected. A tree needs 3 edges and one connected piece.</p></details>
   </div>
 </section>
 
