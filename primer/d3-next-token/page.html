@@ -1,0 +1,356 @@
+---
+description: A language model gives a probability to all tokens. Temperature, top-k and top-p sampling, the generation loop, the context window, training with cross-entropy and perplexity, with GPT-2 on SharkCam messages.
+subtitle: A probability for all tokens, three ways to pick one, and the loss that trains the model
+kicker: Part D &middot; Chapter 3
+libs: plotly-cartesian, katex
+---
+<div class="tldr">
+  <p>A language model does one job: given the tokens so far, give a probability to all tokens that could come next. Writing a report is that job repeated. This chapter uses GPT-2 on SharkCam messages to show the probabilities. Then it covers the dials that choose a token (temperature, top-k, top-p), the generation loop, the context window and the cross-entropy loss that trains the model. It ends with perplexity, and with a warning about comparing it across languages.</p>
+  <p>The messages are invented. The Hindi, Marathi and Hinglish texts {{snippet:native-speaker-unchecked}}. The probabilities come from GPT-2 small (MIT licence), computed offline.</p>
+</div>
+<p class="youneed"><b>You will need:</b> <a href="../t7-probability/#softmax">softmax and temperature</a> and <a href="../t7-probability/#crossent">cross-entropy</a> (0.7), <a href="../d1-tokenisation/#units">tokens</a> (D1), <a href="../d2-embeddings/#onehot">embeddings</a> (D2) and the slope <a href="../a3-logistic-regression/#softmax">p &minus; y</a> (A3).</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#distribution">A score per token</a></li>
+    <li><a href="#sampling">Temperature, top-k and top-p</a></li>
+    <li><a href="#loop">The generation loop</a></li>
+    <li><a href="#context">The context window</a></li>
+    <li><a href="#loss">Training with cross-entropy</a></li>
+    <li><a href="#perplexity">Perplexity, and its trap</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. distribution ============================ -->
+<section id="distribution" aria-labelledby="distribution-h">
+  <h2 id="distribution-h">A score per token</h2>
+  <p class="ask"><b>Guess first.</b> GPT-2 has read &ldquo;Found a young grey bamboo shark in a rock pool at Juhu at low tide. Length 44 cm, dark bands across its back. We photographed it and put it&rdquo;. The true next word is &ldquo;back&rdquo;. How much probability do you think the model gave to &ldquo;back&rdquo;, and was it the model's first choice?</p>
+  <dl class="terms">
+    <div><dt>language model</dt><dd>a model that gives a probability to all possible next tokens, given the tokens before it</dd></div>
+    <div><dt>score (logit) \(z_k\)</dt><dd>the raw number the model gives to token \(k\), before softmax (<a href="../t7-probability/#softmax">0.7</a>)</dd></div>
+    <div><dt>next-token prediction</dt><dd>the task of guessing the token that follows a text</dd></div>
+    <div><dt>entropy</dt><dd>a number for how spread out a distribution is: small when one token dominates</dd></div>
+  </dl>
+  <p class="claim">A language model reads the tokens so far and gives one score to its 50,257 tokens, one per token. Softmax turns the scores into probabilities that add up to 1.</p>
+  <div class="card" id="nx">
+    <div class="bar" id="nx-bar"></div>
+    <div class="prompt" id="nx-prompt"></div>
+    <div class="nx-head"><span>token</span><span>score z</span><span>probability (bar)</span><span></span></div>
+    <div id="nx-rows" role="img" aria-label="The fourteen most likely next tokens with their scores and probabilities, and one bar for all other tokens"></div>
+    <div class="readout" id="nx-read"></div>
+    <div class="eqs"><div class="eqn" id="nx-eqn" aria-live="polite"></div></div>
+    <p class="status" id="nx-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>For &ldquo;put it&rdquo;, GPT-2 gives &#9601;in 27%, &#9601;back 17% and &#9601;on 13%. The true next token came second, and the 14 tokens shown cover 92% of the probability.</b> The mark &#9601; means a leading space (<a href="../d1-tokenisation/#units">D1</a>). Scores and probabilities are from GPT-2 small, computed offline.</p>
+  <p>Look at the first context. Scores are relative to the top token, so the top one reads 0.0 and the others are negative. Softmax turns scores into probabilities, \(p = e^{z}/\sum_j e^{z_j}\). The working for a clicked row is in the boxes. For &ldquo;&#9601;back&rdquo;, \(z = -0.45\), \(e^{-0.45} = 0.638\), and the sum over all 50,257 tokens is 3.73, so \(p = 0.638/3.73 = 0.171\). The entropy readout says how undecided the model is. Its exponential, the effective number of choices, is 13.8 for this context: the model is about as unsure as a die with 14 equal faces. Now change the context. For &ldquo;Mumbai is the capital of the Indian state of&rdquo; the answer &ldquo;&#9601;Maharashtra&rdquo; gets 67% and the effective number of choices drops to 4.3. For the open sentence &ldquo;The shark was swimming in the&rdquo; it is 89.</p>
+  <p>Two contexts are worth a closer look. In &ldquo;Two milk&rdquo; the true next token is &ldquo;&#9601;sharks&rdquo;, and GPT-2 gives it 0.01%, rank 635. It expects milk crates, bottles and cows. The model has no idea that this text is about milk sharks, because its training text never told it so. The Hinglish line (m13) has an effective number of choices of 1,238: GPT-2 has seen little of this spelling, so it has almost no preference. The probabilities record the text the model learned from. They do not record what is true.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A language model looks up the sentence it has stored and returns the next word.</p>
+    <p><b>Why it fails.</b> The model has no stored list of sentences. It computes 50,257 scores from its weights. Its answer for &ldquo;put it&rdquo; was &ldquo;in&rdquo; more often than the true &ldquo;back&rdquo;, and for &ldquo;Two milk&rdquo; it never saw our sharks at all.</p>
+    <p><b>Better account.</b> The model is a function from a context to a probability distribution. It was fitted to a large body of text, so it reflects that text.</p>
+  </div>
+  <p class="used"><b>Used in:</b> all assistants (<a href="../d7-assistants/#stages">D7</a>). The next section shows how a token is chosen from these probabilities.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Scores of 0 and &minus;0.45 for two tokens. If all other tokens are ignored, what are their probabilities?</summary><p>\(e^0 = 1\) and \(e^{-0.45} = 0.638\), which sum to 1.638. So \(0.61\) and \(0.39\). Only differences between scores matter.</p></details>
+    <details><summary>The effective number of choices is 4.3 for one context and 1,238 for another. Which one is the model more sure about?</summary><p>The first. A small number means the probability rests on a few tokens.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. sampling ============================ -->
+<section id="sampling" aria-labelledby="sampling-h">
+  <h2 id="sampling-h">Temperature, top-k and top-p</h2>
+  <p class="ask"><b>Guess first.</b> You must pick the next token from a distribution. If you always take the most likely one, what happens to a report that should read &ldquo;about fifty&rdquo; one day and &ldquo;about twenty&rdquo; the next? And what might a slider named temperature do to the probabilities?</p>
+  <dl class="terms">
+    <div><dt>greedy decoding</dt><dd>always take the token with the highest probability</dd></div>
+    <div><dt>sampling</dt><dd>draw a token at random, with chances equal to its probability</dd></div>
+    <div><dt>temperature \(T\)</dt><dd>a number that divides the scores before softmax: below 1 sharpens the distribution, above 1 flattens it</dd></div>
+    <div><dt>top-k and top-p</dt><dd>cut-offs applied before the draw: keep the \(k\) likeliest tokens, or the fewest tokens whose probabilities add up to \(p\)</dd></div>
+  </dl>
+  <p class="claim">Temperature reweights the probabilities, and top-k and top-p cut off the unlikely tail. The draw then comes from what is left.</p>
+  <div class="card" id="sm">
+    <div class="bar" id="sm-bar"></div>
+    <div class="controls" id="sm-controls"></div>
+    <div class="bar" id="sm-act"></div>
+    <div class="prompt" id="sm-prompt"></div>
+    <div class="nx-head"><span>token</span><span>score z</span><span>pale: at T. solid: after the cuts. outline: draws</span><span></span></div>
+    <div id="sm-rows" role="img" aria-label="Probabilities of the next tokens at the chosen temperature, with top-k and top-p cuts, and the outline of 200 draws"></div>
+    <div class="hist" id="sm-hist"></div>
+    <div class="readout" id="sm-read"></div>
+    <div class="eqs"><div class="eqn" id="sm-eqn" aria-live="polite"></div></div>
+    <div class="plot short" id="sm-cum" role="img" aria-label="Cumulative probability of the most likely tokens, with the top-k and top-p cut-offs marked"></div>
+    <p class="status" id="sm-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>For &ldquo;The biggest was about&rdquo;, T = 0.5 lifts &#9601;50 from 3.8% to 8.7%. At T = 2 the top token has 0.9%, and the 50,243 tokens not shown have 90% of the probability.</b> The cumulative curve shows how many tokens the cut-offs keep.</p>
+  <p>Start with the context &ldquo;The biggest was about&rdquo;, the one before the 50. Press Sample one token a few times at T = 1, then press &ldquo;Draw 200&rdquo;. The numbers jump around, because the model has no strong favourite (the top token has 3.8%). Now move T down to 0.3 and draw again. The model repeats its favourites. Move T up to 2 and the draws turn into strange words, because the tail has most of the probability. Temperature never changes the order of the tokens, only how steeply probability falls with rank. Pick the context &ldquo;Message m02: put it&rdquo; to see a sharper case. There T = 0.5 lifts &#9601;in from 27% to 53%. At T = 2 the top token has 4%, and the tokens not shown have 77%.</p>
+  <p>Top-k keeps a fixed number of tokens. Top-p keeps as many as needed to reach \(p\), so it adapts. With \(p = 0.9\), the clear question about Maharashtra keeps 5 tokens, &ldquo;put it&rdquo; keeps 12, &ldquo;The biggest was about&rdquo; keeps 86, and the Hinglish line keeps 3,336. A fixed top-k of 40 would keep 40 tokens in all four cases. Holtzman and colleagues (2020) proposed top-p, which they call nucleus sampling, to cut off the unreliable tail while keeping variety. Fan and colleagues (2018) used top-k sampling. Libraries apply temperature first, then top-k, then top-p, and renormalise.</p>
+  <div class="eqn" role="img" aria-label="Worked example: for the token back, the score minus 0.45 divided by 0.5 is minus 0.9, e to that is 0.407, the sum over all tokens is 1.905 at this temperature, so the probability is 0.213"><span class="t c-sand"><b>&#9601;back</b><i>score z = &minus;0.45</i></span><span class="op">&divide; 0.5 =</span><span class="t c-navy"><b>&minus;0.90</b><i>z / T at T = 0.5</i></span><span class="op">&rarr; e<sup>&minus;0.9</sup> =</span><span class="t c-navy"><b>0.407</b><i>numerator</i></span><span class="op">&divide;</span><span class="t c-sand"><b>1.905</b><i>sum over all 50,257 tokens</i></span><span class="op">=</span><span class="t c-teal"><b>21.3%</b><i>probability at T = 0.5</i></span></div>
+  <p class="math">\[ p_k \;=\; \frac{e^{z_k/T}}{\sum_{j=1}^{V} e^{z_j/T}} \qquad\qquad S_p \;=\; \text{the fewest tokens, likeliest first, with } \sum_{k \in S_p} p_k \;\ge\; p \]</p>
+  <ul class="math-notes">
+    <li><b>\(z_k\)</b> is the score of token \(k\), <b>\(V\)</b> is the vocabulary size (50,257), <b>\(T\)</b> is the temperature and <b>\(p_k\)</b> is the probability of token \(k\) (<a href="../t7-probability/#softmax">0.7</a>). As \(T\) grows towards infinity all tokens become equally likely. As \(T\) falls towards 0 the top token takes all the probability.</li>
+    <li><b>\(S_p\)</b> is the set that top-p keeps, and the \(p\) in it is the threshold you choose, such as 0.9. The threshold is a different number from the probability of one token. After the cut, the kept probabilities are divided by their sum, so they add up to 1 again. Top-k keeps the \(k\) tokens with the largest \(p_k\) and renormalises the same way.</li>
+  </ul>
+  <p>The code below does the same with eight of GPT-2's scores for &ldquo;put it&rdquo;. It ignores the other 50,249 tokens, so its probabilities (32% for &#9601;in) differ from the figure's (27%).</p>
+  <pre class="code" data-run><code>import numpy as np
+
+tokens = [" in", " back", " on", " to", " into", " up", " down", " out"]
+z = np.array([0.0, -0.45, -0.70, -1.17, -1.32, -1.75, -1.92, -2.21])   # GPT-2 scores for "...and put it"
+
+def probs(z, T=1.0, k=None):
+    z = z / T
+    if k is not None:                          # top-k: keep the k largest scores, drop the rest
+        cut = np.sort(z)[-k]
+        z = np.where(z &gt;= cut, z, -np.inf)
+    e = np.exp(z - z.max())                    # subtract the max so it cannot overflow
+    return e / e.sum()
+
+for T, k in [(1.0, None), (0.5, None), (2.0, None), (1.0, 3)]:
+    print(f"T={T}, k={k}:", probs(z, T, k).round(3))
+
+rng = np.random.default_rng(4127)
+draws = rng.choice(len(tokens), size=1000, p=probs(z, 1.0, 3))
+print({tokens[i]: int((draws == i).sum()) for i in range(3)})
+print("greedy:", tokens[int(np.argmax(z))])</code></pre>
+  <pre class="out">T=1.0, k=None: [0.318 0.203 0.158 0.099 0.085 0.055 0.047 0.035]
+T=0.5, k=None: [0.531 0.216 0.131 0.051 0.038 0.016 0.011 0.006]
+T=2.0, k=None: [0.212 0.17  0.15  0.118 0.11  0.089 0.081 0.07 ]
+T=1.0, k=3: [0.469 0.299 0.233 0.    0.    0.    0.    0.   ]
+{' in': 442, ' back': 295, ' on': 263}
+greedy:  in</pre>
+  <div class="break">
+    <p><b>Common belief.</b> A higher temperature makes the model more creative, and a lower one makes it more accurate.</p>
+    <p><b>Why it fails.</b> Temperature has no knowledge of facts. It only flattens or sharpens the model's own probabilities. At T = 2 the model picks tokens it itself rated unlikely, so errors rise. At T near 0 it always repeats its single favourite, which can be wrong too.</p>
+    <p><b>Better account.</b> Temperature trades variety against reliability for the same model. A better answer needs a better model.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Temperature 0 divides by zero. Libraries treat it as greedy decoding, which is the limit as \(T\) falls to 0. If two runs with the same settings differ, you drew random numbers without fixing the seed. If top-p keeps too few tokens, remember that it works on the probabilities after temperature has been applied.</p>
+  </div>
+  <p class="used"><b>Used in:</b> the temperature slider of the hallucination figure in <a href="../d7-assistants/#halluc">D7</a>, the settings page of a chat assistant, and the loop of the next section.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Probabilities are 0.5, 0.3 and 0.2. What does top-p = 0.7 keep, and what are the new probabilities?</summary><p>It keeps the first two tokens, since 0.5 alone is below 0.7 and 0.5 + 0.3 = 0.8 reaches it. They are divided by 0.8: 0.625 and 0.375.</p></details>
+    <details><summary>Why can a high temperature produce odd words even when the model is good?</summary><p>The tail has 77% of the probability at T = 2 for &ldquo;put it&rdquo;, and its tokens are mostly poor choices. Flattening lets them be drawn.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. loop ============================ -->
+<section id="loop" aria-labelledby="loop-h">
+  <h2 id="loop-h">The generation loop</h2>
+  <p class="ask"><b>Guess first.</b> A model only ever predicts one token. How would you use it to write a whole report of 30 tokens? What goes into the model at step 2?</p>
+  <dl class="terms">
+    <div><dt>generation loop</dt><dd>predict a token, draw one, append it to the text, predict again</dd></div>
+    <div><dt>autoregressive</dt><dd>reading its own earlier output as input</dd></div>
+    <div><dt>end token</dt><dd>a special token (<a href="../d1-tokenisation/#special">D1</a>) that stops the loop</dd></div>
+  </dl>
+  <p class="claim">A model writes a text by predicting a token, adding the token it draws to the text, and predicting again from the longer text.</p>
+  <div class="card" id="lp">
+    <div class="bar" id="lp-bar"></div>
+    <div class="controls" id="lp-controls"></div>
+    <div class="bar" id="lp-act"></div>
+    <p class="side-h">The text so far (the underlined words are the model's whole context)</p>
+    <div class="prompt" id="lp-text"></div>
+    <p class="side-h">Next-word probabilities, given <b id="lp-ctx"></b></p>
+    <div class="nx-head"><span>word</span><span>count</span><span>pale: at T. solid: after cuts</span><span></span></div>
+    <div id="lp-rows" role="img" aria-label="The next-word probabilities used for the last draw, with the drawn word highlighted"></div>
+    <p class="side-h">Natural log of the model's probability for the drawn words (the small numbers)</p>
+    <div class="toks" id="lp-log"></div>
+    <div class="readout" id="lp-read"></div>
+    <p class="status" id="lp-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>The loop is the same for GPT-2 and for this tiny model: only the model changes.</b> Here the model is a table of word-triple counts from 500 made-up reports, with a context of two words. It is a counting model with no neural network in it. The counts are in <a href="data/tiny.json">tiny.json</a>.</p>
+  <p>Press Next token a few times. A press does one turn of the loop. It looks up the last two words, turns the counts into a distribution, applies the temperature and cuts, draws a word and appends it. Press Run to watch a whole report. Change the temperature and run again, or press &ldquo;New random seed&rdquo; to get a different report from the same settings. In 300 runs with this model, T = 0.2 gave about 175 different reports and T = 1.6 gave about 265. The counts change a little with the random seed. The small gap has a reason. Two words of context and 500 reports leave few choices at most steps, so even a high temperature stays fluent. A model with 50,257 possible tokens behaves very differently, as the previous section showed.</p>
+  <p>The probability of a whole text is the product of the probabilities of its tokens, and a token's probability is conditioned on the tokens before it. Taking the natural logarithm turns the product into a sum, which the small numbers under the chips show (<a href="../t7-probability/#crossent">0.7</a>). Their average, with the sign flipped, is the loss of the text, and its exponential is the perplexity (section 6). One unlikely draw changes all later steps, because the model reads its own earlier words as if a person had written them. GPT-2's loop is the one described by Alammar (2019). The output token joins the input and the model runs again. This goes on until it draws the end token or fills its 1,024 tokens.</p>
+  <div class="break">
+    <p><b>Analogy.</b> Writing with a phone keyboard that offers three suggestions, tapping a suggestion again and again.</p>
+    <p><b>Where it breaks.</b> The keyboard sees a few words, and you choose. A language model reads up to 1,024 tokens in GPT-2's case, scores all 50,257 tokens, and a random draw chooses. The loop also feeds its own choices back, so an early odd token changes all that follows it.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If generated text repeats the same few words, look at the settings first. A temperature near 0 or a top-k of 1 makes the model follow its single favourite again and again.</p>
+  </div>
+  <p class="used"><b>Used in:</b> the transformer's generation step and the KV cache (<a href="../d5-transformer/#generate">D5</a>), where the loop is made fast.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>At step 2 of the loop, what is the model's input?</summary><p>The original prompt plus the token drawn at step 1, which is a text one token longer.</p></details>
+    <details><summary>Why does the loop stop?</summary><p>The model draws the end token, or the text reaches a maximum length such as the context window.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. context ============================ -->
+<section id="context" aria-labelledby="context-h">
+  <h2 id="context-h">The context window</h2>
+  <p class="ask"><b>Guess first.</b> A diver's report begins &ldquo;Tag 4127 was a small bamboo shark&rdquo;. Forty tokens later it ends &ldquo;The shark in the Juhu rock pool was tag&rdquo;. If the model could see only the last 20 tokens, would it still know the number?</p>
+  <dl class="terms">
+    <div><dt>context window</dt><dd>the largest number of tokens a model reads at once; GPT-2's is 1,024</dd></div>
+    <div><dt>truncation</dt><dd>cutting off the oldest tokens when a text is longer than the window</dd></div>
+    <div><dt>prompt</dt><dd>the text given to the model before it starts to generate (<a href="../d7-assistants/#prompt">D7</a> covers prompts)</dd></div>
+  </dl>
+  <p class="claim">A model can use only the tokens inside its context window. What came before that is gone, and the model cannot tell it was ever there.</p>
+  <div class="card" id="win">
+    <div class="bar" id="win-bar"></div>
+    <div class="controls" id="win-controls"></div>
+    <div class="toks" id="win-toks" role="img" aria-label="The 46 tokens of a short report, with the ones outside the model's window struck through"></div>
+    <div class="readout" id="win-read"></div>
+    <div class="plot short" id="win-plot" role="img" aria-label="The probability GPT-2 gives to the start of the tag number against the number of tokens it can see"></div>
+    <p class="status" id="win-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>With all 46 tokens GPT-2 gives 42% to &#9601;4, the start of 4127. With 41 tokens, which cut off the word &ldquo;Tag&rdquo;, it gives 0.01%.</b> GPT-2 small, computed offline: the same prompt, shown to the model one window at a time.</p>
+  <p>Slide the window down from 46 tokens. The probability of the first token of the tag stays high down to 42 tokens and collapses at 41, where the word &ldquo;Tag&rdquo; drops out. Below that the model does not know a tag exists. Its top guess is &ldquo;ged&rdquo;, which would make &ldquo;tagged&rdquo;. The cliff is sharp because the tag appears once. A window in use is longer than this toy one, but the rule is the same.</p>
+  <p>GPT-2's window is 1,024 tokens long (Radford et al., 2019). The window is counted in tokens, so the cost of languages returns (<a href="../d1-tokenisation/#languages">D1</a>). The Hindi report m05 takes 117 tokens under GPT-2 and its English meaning takes 23, so a window fits 8 reports of the first kind and 44 of the second. A longer window costs more, because attention compares all pairs of tokens (<a href="../d4-self-attention/#mask">D4</a> and <a href="../d6-long-context/#cost">D6</a>).</p>
+  <div class="eqn" role="img" aria-label="A 1,024-token window fits 8 Hindi reports of 117 tokens or 44 English reports of 23 tokens"><span class="t c-navy"><b>1,024 &divide; 117</b><i>window &divide; Hindi report m05</i></span><span class="op">=</span><span class="t c-coral"><b>8</b><i>reports fit</i></span><span class="op">|</span><span class="t c-navy"><b>1,024 &divide; 23</b><i>window &divide; its English meaning</i></span><span class="op">=</span><span class="t c-teal"><b>44</b><i>reports fit</i></span></div>
+  <div class="break">
+    <p><b>Common belief.</b> A chat model remembers the whole conversation.</p>
+    <p><b>Why it fails.</b> The model has no memory outside its window. A chat application sends the earlier turns again along with a new message. When the conversation grows past the window, the oldest turns are cut or summarised, and the model does not know what it lost.</p>
+    <p><b>Better account.</b> The window is the model's only working memory. If something matters, it must be inside the window.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a model seems to ignore the start of a long prompt, count its tokens before anything else. Check whether your library cut the text from the left or from the right. Cutting from the wrong end removes the instructions or the question.</p>
+  </div>
+  <p class="used"><b>Used in:</b> sparse and linear attention, which stretch the window (<a href="../d6-long-context/#sparse">D6</a>), and test-time training, which tries another way to remember (<a href="../d6-long-context/#ttt">D6</a>).</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why did the probability drop at 41 tokens and not slowly?</summary><p>The window lost the word &ldquo;Tag&rdquo;, the only place where the number appears. Without it the model has no source for 4127.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. loss ============================ -->
+<section id="loss" aria-labelledby="loss-h">
+  <h2 id="loss-h">Training with cross-entropy</h2>
+  <p class="ask"><b>Guess first.</b> For the true token &#9601;back the model gave 17%. We need a number that is small when the model gave the true token a high probability and huge when it gave almost none. What would you compute from the 17%?</p>
+  <dl class="terms">
+    <div><dt>loss of one token \(\ell\)</dt><dd>\(-\ln p\), where \(p\) is the probability the model gave the true next token (<a href="../t7-probability/#crossent">0.7</a>)</dd></div>
+    <div><dt>nat</dt><dd>the unit of a natural-log loss; 1 nat is the loss at \(p = 1/e = 0.37\)</dd></div>
+    <div><dt>teacher forcing</dt><dd>scoring all positions of a training text using the true earlier tokens as context</dd></div>
+  </dl>
+  <p class="claim">Training a language model means lowering the loss \(-\ln p\) on the true next token, averaged over a huge amount of text. The slope of that loss at a score is \(p - y\), the same as for the softmax classifier of A3.</p>
+  <div class="card" id="tn">
+    <div class="bar" id="tn-bar"></div>
+    <div class="controls" id="tn-controls"></div>
+    <div class="bar" id="tn-act"></div>
+    <div class="nx-head"><span>token</span><span>score z</span><span>probability</span><span></span></div>
+    <div id="tn-rows" role="img" aria-label="Probabilities of the true token and its rivals, which change with training steps"></div>
+    <div class="readout" id="tn-read"></div>
+    <div class="eqs"><div class="eqn" id="tn-eqn" aria-live="polite"></div></div>
+    <div class="plot short" id="tn-loss" role="img" aria-label="The loss on the true token against the number of training steps"></div>
+    <p class="status" id="tn-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>For &#9601;back after &ldquo;put it&rdquo;, the loss starts at 1.77 nats (p = 17%). At a step size of 1, it falls to 0.31 after four steps and 0.11 after ten.</b> The scores here are nudged directly. A full model changes its weights, so the scores of other contexts move too.</p>
+  <p>Press One training step. The update subtracts \(\eta\) times the slope from all scores. The slope of the loss at the true token's score is \(p - 1\), which is negative, so its score rises. The slope at any other token's score is \(p\), which is positive, so those scores fall, the strongest rival most. This is the slope \(p - y\) that A3 found for a softmax classifier (<a href="../a3-logistic-regression/#softmax">A3</a>) and B4 used for the output of a network (<a href="../b4-backpropagation/#backward">B4</a>). The step sizes and the average over many examples come from <a href="../b3-loss-gradient-descent/#batches">B3</a> and <a href="../b5-optimisers/#sgd">B5</a>. A language model sees billions of such examples, with the true next token at all positions of all texts.</p>
+  <p>The loss for a whole text with \(n\) tokens is the average over its positions. The model scores all positions in one pass, using the true earlier tokens as context. This is teacher forcing, and it makes training fast.</p>
+  <p class="math">\[ \ell_t \;=\; -\ln p(x_t \mid x_1,\dots,x_{t-1}) \qquad\quad L \;=\; \frac{1}{n}\sum_{t=1}^{n} \ell_t \qquad\quad \frac{\partial \ell}{\partial z_k} \;=\; p_k - y_k \]</p>
+  <ul class="math-notes">
+    <li><b>\(x_t\)</b> is the \(t\)-th token of the text and <b>\(\ell_t\)</b> is the loss at position \(t\). <b>\(L\)</b> is the mean loss over the \(n\) positions.</li>
+    <li><b>\(p(x_t \mid x_1,\dots,x_{t-1})\)</b> is the probability the model gave to token \(x_t\) after the tokens before it.</li>
+    <li><b>\(p_k\)</b> is the probability of token \(k\) and <b>\(y_k\)</b> is 1 for the true token and 0 for all others (the one-hot label of <a href="../a3-logistic-regression/#softmax">A3</a>). The slope is \(p_k - 1\) for the true token and \(p_k\) for the rest.</li>
+  </ul>
+  <div class="eqn" role="img" aria-label="Worked examples of the loss: probability 17 percent gives 1.77 nats, 0.0001 gives 9.21 nats, and the uniform guess over 50,257 tokens gives 10.82 nats"><span class="t c-sand"><b>p = 0.171</b><i>&#9601;back after &ldquo;put it&rdquo;</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>1.77</b><i>&minus;ln p, nats</i></span><span class="op">|</span><span class="t c-sand"><b>p = 0.0001</b><i>&#9601;sharks after &ldquo;Two milk&rdquo;</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>9.21</b><i>&minus;ln p, nats</i></span><span class="op">|</span><span class="t c-sand"><b>p = 1/50,257</b><i>a uniform guess</i></span><span class="op">&rarr;</span><span class="t c-navy"><b>10.82</b><i>ln V, the starting loss</i></span></div>
+  <p>A model that starts with all scores equal gives all tokens \(1/V\), so its starting loss is \(\ln V = 10.82\) for GPT-2's vocabulary. Training brings the average well below that. If the first loss of a new run is far from \(\ln V\), something is broken (<a href="../b8-debugging/#recipe">B8</a>).</p>
+  <div class="break">
+    <p><b>Common belief.</b> A language model is trained to give the right answer, so accuracy is the thing to measure.</p>
+    <p><b>Why it fails.</b> There is usually no single right next token. After &ldquo;put it&rdquo; both &ldquo;in&rdquo; and &ldquo;back&rdquo; are fine, and the model gave &ldquo;back&rdquo; 17%. Counting only hits would give no credit for that 17%, and no slope to improve it.</p>
+    <p><b>Better account.</b> Cross-entropy grades the whole distribution. It rewards a model for putting probability on what followed, and it has a slope at all scores.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> A loss of <code>inf</code> or <code>nan</code> means \(-\ln 0\) was computed. Compute the loss from the scores with a function such as <code>log_softmax</code> or <code>cross_entropy</code>, which does not form a zero probability. Also check the first loss against \(\ln V\).</p>
+  </div>
+  <p class="used"><b>Used in:</b> pretraining of all models in this part, and fine-tuning (<a href="../d7-assistants/#sft">D7</a>).</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The true token has p = 0.9 before a step. What is the slope of the loss at its score?</summary><p>\(p - 1 = -0.1\). It is small because the model is nearly right. A model with p = 0.01 would have a slope of \(-0.99\).</p></details>
+    <details><summary>Why does the slope at a wrong token's score equal its probability?</summary><p>The label for a wrong token is 0, so \(p_k - y_k = p_k\). A likely wrong token gets pushed down hard, and an unlikely one hardly at all.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 6. perplexity ============================ -->
+<section id="perplexity" aria-labelledby="perplexity-h">
+  <h2 id="perplexity-h">Perplexity, and its trap</h2>
+  <p class="ask"><b>Guess first.</b> GPT-2 reads the same report in English and in Hindi. On average it is more surprised, per token, by which one?</p>
+  <dl class="terms">
+    <div><dt>perplexity</dt><dd>\(e^{L}\), the exponential of the mean loss; the number of equally likely tokens the model is torn between, on average</dd></div>
+    <div><dt>bits per character</dt><dd>the total loss in bits divided by the number of characters, so that texts cut into tokens in different ways can be compared</dd></div>
+  </dl>
+  <p class="claim">Perplexity is the exponential of the average loss per token. It is comparable only for the same tokenizer and the same text, so it can mislead across languages.</p>
+  <div class="card" id="ls">
+    <div class="bar" id="ls-bar"></div>
+    <div class="toks" id="ls-toks" role="img" aria-label="The tokens of a message, shaded by their loss in nats"></div>
+    <div class="readout" id="ls-read"></div>
+    <div class="eqs"><div class="eqn" id="ls-eqn" aria-live="polite"></div></div>
+    <div class="plot" id="ls-plot" role="img" aria-label="Bar chart of the chosen metric for the sixteen invented messages under GPT-2"></div>
+    <p class="status" id="ls-status"></p>
+  </div>
+  <p class="cap"><b>Per token, GPT-2 finds the Hindi and Marathi reports easy (perplexity 7 to 10) and the English ones hard (105 to 187). In total loss the order reverses: for the Tag 4127 report, English costs 201 nats, Hinglish 359, Hindi 469 and Marathi 523.</b> All sixteen messages are invented.</p>
+  <p class="flagline"><b>Check before reuse.</b> The Hindi, Marathi and Hinglish texts {{snippet:native-speaker-unchecked}}. The numbers show how GPT-2 treats these texts. They do not show how well it reads Hindi or Marathi as people write them.</p>
+  <p>Pick a Hindi message and look at the shaded tokens. GPT-2 splits a Devanagari letter into bytes (<a href="../d1-tokenisation/#bytes">D1</a>). Most letters become two pieces. The first piece is the two lead bytes, which say that a Devanagari letter is coming. The second piece is the last byte, which says which letter it is. In the eight Hindi and Marathi messages the lead pieces cost 1.1 nats on average and the last-byte pieces cost 3.0 nats. Nearly half of all pieces are the cheap lead kind, and they bring the average down. The result is a perplexity of about 8 for a text that GPT-2 handles poorly. An English word is one token that is hard to guess, so the English average is high. The same report costs more in total for Hindi, because it needs more tokens and a letter brings its own surprise. Switch the chart to total loss and to bits per character to see this.</p>
+  <p>Take the report on Tag 4127. In English (m02) it has 40 tokens and a total loss of 201 nats, a mean loss of 5.03 and a perplexity of \(e^{5.03} = 152.9\). In Hindi (m06) it has 227 tokens and a total loss of 469 nats, a mean loss of 2.07 and a perplexity of 7.9. Per character, the English report scores 1.9 bits and the Hindi one 4.4 bits. Jurafsky and Martin note that the perplexity of two language models is only comparable if they use identical vocabularies. Radford and colleagues (2019) avoid the issue. They divide the total log-probability by the number of canonical units of a data set, such as words. A language model's perplexity is a good number for comparing two versions of one model on one text. It says little across tokenizers.</p>
+  <p class="math">\[ \mathrm{PPL} \;=\; e^{L} \;=\; \exp\!\Big(\!-\frac{1}{n}\sum_{t=1}^{n}\ln p_t\Big) \;=\; \Big(\prod_{t=1}^{n} p_t\Big)^{-1/n} \]</p>
+  <ul class="math-notes">
+    <li><b>\(p_t\)</b> is the probability the model gave the true token at position \(t\), and \(L\) is the mean loss of the previous section.</li>
+    <li>If a model gave all tokens the probability \(1/N\), then \(L = \ln N\) and the perplexity would be \(N\). So perplexity reads as an effective number of choices.</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> A lower perplexity means a better model, whatever it is compared with.</p>
+    <p><b>Why it fails.</b> GPT-2's perplexity per token is 7 to 10 on the Hindi and Marathi reports and 105 to 187 on the English ones, though it knows English far better. The number depends on how the text is cut into tokens.</p>
+    <p><b>Better account.</b> Compare perplexity only for one tokenizer and one text. For different languages or tokenizers, use total loss on the same content, or bits per character.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Before you compare two perplexities, check that both come from the same tokenizer and the same text. If they do not, compare total loss or bits per character.</p>
+  </div>
+  <p class="used"><b>Used in:</b> checking pretraining runs (<a href="../b8-debugging/#recipe">B8</a>) and the perplexity of a reply in <a href="../d7-assistants/#sft">D7</a>.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A model gives the true tokens of a 4-token text the probabilities 0.5, 0.25, 0.1 and 0.8. What is the perplexity?</summary><p>The losses are 0.693, 1.386, 2.303 and 0.223, which sum to 4.605. The mean is 1.151, and \(e^{1.151} = 3.16\). The model is torn between about three tokens.</p></details>
+    <details><summary>Why can Hindi text have a lower per-token perplexity than English under GPT-2?</summary><p>Many Hindi tokens are the second or third byte of a letter, which are nearly certain. They lower the average without showing that the model reads Hindi well.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> Three tokens have scores \(z = (0, -0.45, -0.70)\). Compute their probabilities at \(T = 1\) and at \(T = 0.5\). Which token gains, and by how much?</p>
+        <details class="hint"><summary>Hint</summary><p>Divide the scores by \(T\) first, then exponentiate, then divide by the sum.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> A distribution is 0.50, 0.25, 0.10, 0.05, 0.04, 0.03, 0.02, 0.01. What does top-k with \(k = 3\) keep and what are the new probabilities? What does top-p with \(p = 0.9\) keep? Which of the two would keep more tokens if the distribution were flat?</p></li>
+      <li><p><span class="ex-tag">theory</span> A model gives the true tokens of a text the probabilities 0.5, 0.25, 0.1 and 0.8. Compute the loss of the tokens, the mean loss and the perplexity. Explain the perplexity as a number of choices.</p></li>
+      <li><p><span class="ex-tag">theory</span> Show that for softmax and \(\ell = -\ln p_y\) the slope at the score \(z_k\) is \(p_k - y_k\). Then compute the slopes for the true token (\(p = 0.171\)) and for the rival &#9601;in (\(p = 0.268\)) in the figure.</p>
+        <details class="hint"><summary>Hint</summary><p>Write \(\ell = -z_y + \ln\sum_j e^{z_j}\) and use the chain rule (<a href="../t6-gradients/#rules">0.6</a>).</p></details></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Write <code>top_p(probs, p)</code> in NumPy. Test it on the distribution of Theory 2, draw 1,000 samples with seed 4127, and compare the counts with the renormalised probabilities.</p></li>
+      <li><p><span class="ex-tag">practice</span> Load <a href="data/loss.json">loss.json</a>. Per message, compute the mean loss, the perplexity, the total loss and the bits per character. Reproduce the chart. Which language has the lowest perplexity and the highest total loss?</p></li>
+      <li><p><span class="ex-tag">practice</span> Load <a href="data/tiny.json">tiny.json</a>. Write <code>next_dist(w1, w2, T)</code>, then generate five reports at \(T = 0.5\) and five at \(T = 1.5\) with a fixed seed. Compute the perplexity of the reports under the model at \(T = 1\).</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> SharkCam may use a language model for three jobs. One fills a catch report from a template, one suggests a follow-up question to a fisher, and one reads a tag number out of a message. Which decoding settings would you pick for these jobs, and why? What would you measure to check your choice?</p></li>
+      <li><p><span class="ex-tag">open</span> After &ldquo;Two milk&rdquo; GPT-2 gave &ldquo;sharks&rdquo; 0.01%. How could you make a language model useful for SharkCam's own messages? Name two approaches, say what these need, and say what could go wrong.</p>
+        <details class="hint"><summary>Hint</summary><p>One option changes the prompt, and another changes the weights (see <a href="../b7-continual-learning/#transfer">B7</a> and <a href="../d7-assistants/#icl">D7</a>).</p></details></li>
+      <li><p><span class="ex-tag">open</span> Design a fair way to say how well a model reads Hindi compared with English. What would you use in place of per-token perplexity? Could your measure still be unfair to one language?</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Try these after two days, and again after a week, without looking back.</p>
+  <div class="recall comeback">
+    <details><summary>The Hindi report m05 takes 117 GPT-2 tokens and its English meaning 23. About how many times more does attention cost for the Hindi report, if cost grows with the square of the length? (Chapters <a href="../d1-tokenisation/#languages">D1</a> and <a href="../t2-algorithms/#bigo">0.2</a>)</summary><p>The ratio of lengths is 5.1, so the cost ratio is about \(5.1^2 \approx 26\).</p></details>
+    <details><summary>Softmax scores are (3, 3, 3). What are the probabilities, and what does a temperature of 0.1 change? (Chapter <a href="../t7-probability/#softmax">0.7</a>)</summary><p>One third for all three. Equal scores stay equal at any temperature, because only differences between scores matter.</p></details>
+    <details><summary>The true token has a probability of 0.9. What is the slope of the loss at its score, and at the score of a wrong token with p = 0.05? (Chapter <a href="../a3-logistic-regression/#softmax">A3</a>)</summary><p>\(p - 1 = -0.1\) for the true token, and \(+0.05\) for the wrong one. Both are small because the model is nearly right.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>{{snippet:gpt2-citation}} The vocabulary of 50,257 and context of 1,024 (section 2.3), byte-level BPE (section 2.2) and the use of canonical units for perplexity (section 3). {{snippet:gpt2-pdf-link}}. The model used here is GPT-2 small. {{snippet:gpt2-licence}} Parameter count (124,439,808) and vocabulary counts were computed from the weights.</li>
+    <li>Holtzman, A., Buys, J., Du, L., Forbes, M. and Choi, Y. (2020). The curious case of neural text degeneration. <i>ICLR 2020</i>. <a href="https://arxiv.org/abs/1904.09751">arxiv.org/abs/1904.09751</a>. Nucleus (top-p) sampling.</li>
+    <li>Fan, A., Lewis, M. and Dauphin, Y. (2018). Hierarchical neural story generation. <i>Proceedings of ACL 2018</i>, 889&ndash;898. <a href="https://aclanthology.org/P18-1082/">aclanthology.org/P18-1082</a>. Holtzman et al. cite it for top-k sampling.</li>
+    <li>Jurafsky, D. and Martin, J. H. <i>Speech and Language Processing</i> (3rd edition draft), chapter 3, section 3.3, on evaluating language models with perplexity. <a href="https://web.stanford.edu/~jurafsky/slp3/3.pdf">web.stanford.edu/~jurafsky/slp3/3.pdf</a>.</li>
+    <li>Alammar, J. (2019). The illustrated GPT-2. <a href="https://jalammar.github.io/illustrated-gpt2/">jalammar.github.io/illustrated-gpt2</a>. The generation loop, top-k sampling and the 1,024-token context.</li>
+    <li>The scripts that made the data: <a href="data/make_gpt2.py">make_gpt2.py</a> and <a href="data/make_tiny.py">make_tiny.py</a>. The invented messages: <a href="../data/sharks/messages.json">messages.json</a>.</li>
+  </ol>
+</section>

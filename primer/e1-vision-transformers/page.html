@@ -1,0 +1,509 @@
+---
+description: How a vision transformer reads a photo: patches, the patch matrix, position embeddings, the class token, where a patch looks, how it compares with a CNN, and discrete image tokens. Figures use a trained ViT-B/16 on shark photos.
+subtitle: Cut a photo into patches, turn the patches into tokens, and let a transformer read them
+kicker: Part E &middot; Chapter 1
+libs: plotly-cartesian, katex
+---
+<div class="tldr">
+  <p>A language model reads tokens (<a href="../d1-tokenisation/#units">D1</a>). A vision transformer (ViT) reads a photo the same way, once the photo is cut into square patches and the patches are turned into vectors. This chapter cuts a shark photo with a slider and computes a patch token from the numbers of a trained network. It then shows what the position embeddings and the class token do. You then click a patch to see where it looks, compare what a CNN and a ViT can reach, and replace patches by entries of a code book.</p>
+  <p>The network is torchvision's ViT-B/16 with ImageNet weights, run offline on photos of sharks, so its calls on shark species are often wrong, and the chapter says so. The code books are made with k-means on small patches. {{snippet:photos-credited-under}}</p>
+</div>
+<p class="youneed"><b>You will need:</b> <a href="../d5-transformer/#block">the transformer block</a> and <a href="../d4-self-attention/#score">attention</a> (D5, D4), the <a href="../d2-embeddings/#onehot">embedding table</a> (D2), <a href="../c1-convolution/#filter">filters</a> and <a href="../c2-cnns/#rf">receptive fields</a> (C1, C2), and <a href="../t5-vectors-matrices/#products">matrix products</a> (0.5).</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#cut">Cutting a photo into patches</a></li>
+    <li><a href="#embed">From a patch to a token</a></li>
+    <li><a href="#position">Position embeddings</a></li>
+    <li><a href="#cls">The class token</a></li>
+    <li><a href="#attend">Where a patch looks</a></li>
+    <li><a href="#vs">ViT against CNN</a></li>
+    <li><a href="#vq">Discrete image tokens</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. cut ============================ -->
+<section id="cut" aria-labelledby="cut-h">
+  <h2 id="cut-h">Cutting a photo into patches</h2>
+  <p class="ask"><b>Guess first.</b> A photo of 224 by 224 pixels has 50,176 pixels. If one pixel were one token, attention would compare all tokens with one another, as in <a href="../d4-self-attention/#mask">D4</a>. How many pairs is that? What could you use as a token instead?</p>
+  <dl class="terms">
+    <div><dt>patch</dt><dd>a square block of P by P pixels cut from the photo; the token of a ViT starts as one patch</dd></div>
+    <div><dt>patch side P</dt><dd>the side of a patch in pixels; ViT-B/16 means the base-size ViT with P = 16</dd></div>
+    <div><dt>sequence length</dt><dd>the number of tokens the transformer reads; attention costs grow with its square (<a href="../t2-algorithms/#bigo">0.2</a>)</dd></div>
+    <div><dt>vision transformer (ViT)</dt><dd>a transformer (<a href="../d5-transformer/#block">D5</a>) whose tokens are patches</dd></div>
+  </dl>
+  <p class="claim">A ViT reads a photo as a short row of patches, so that attention compares a few hundred tokens and not tens of thousands of pixels.</p>
+  <div class="card" id="cut-box">
+    <div class="bar" id="cut-photo"></div>
+    <div class="controls" id="cut-controls"></div>
+    <div class="bar" id="cut-btns"></div>
+    <canvas id="cut-cv" class="cvs" role="img" aria-label="The photo cut into patches, with tokens in a row below"></canvas>
+    <p class="status" id="cut-status" aria-live="polite"></p>
+    <div class="eqn eqs" id="cut-eqn" aria-live="polite"></div>
+    <p class="credit" id="cut-credit"></p>
+  </div>
+  <p class="cap"><b>Halving the patch side gives four times as many patches and about sixteen times as many attention pairs.</b> The photo is the same, and the count of numbers in it is the same: 224 &times; 224 &times; 3 = 150,528 for any patch size.</p>
+  <p>Move the slider, then press Step or Play. A patch is lifted from the grid into the row, and its position number appears below it. The numbers run in reading order, from the left of the top row to the right of the bottom row. The row shows the first nine tokens and the last, because 196 tokens do not fit on a screen. Tick the box and the class token takes position 0 (the <a href="#cls">class token</a> section explains it).</p>
+  <p>A worked case with P = 16. The photo has 224 pixels on a side, so 224 / 16 = 14 patches fit across and 14 down. That gives N = 14 &times; 14 = 196 patches. A patch has 16 &times; 16 pixels with three colours, so 768 numbers. Add the class token and the sequence has 197 tokens, so one head of attention scores 197 &times; 197 = 38,809 pairs. With one pixel per token the sequence has 50,176 tokens and 2,517,630,976 pairs, about 65,000 times more.</p>
+  <p>A second case, P = 8. Now N = 28 &times; 28 = 784 patches of 192 numbers. The sequence has 785 tokens and 616,225 pairs, which is 15.9 times the cost of P = 16. The cut loses no numbers, since 784 &times; 192 is again 150,528. What changes is how much the later blocks must handle.</p>
+  <div class="eqn" role="img" aria-label="Number of patches equals side over patch side, squared"><span class="t c-navy"><b>224 / 16</b><i>patches across, S / P</i></span><span class="op">&times;</span><span class="t c-navy"><b>224 / 16</b><i>patches down</i></span><span class="op">=</span><span class="t c-coral"><b>196</b><i>patches, N</i></span><span class="op">|</span><span class="t c-teal"><b>197&sup2;</b><i>pairs per head, (N + 1)&sup2;</i></span></div>
+  <p class="math">\[ N = \frac{S}{P}\cdot\frac{S}{P} = \frac{S^2}{P^2},\qquad \text{numbers per patch} = P^2 C,\qquad n = N + 1,\qquad \text{pairs per head} = n^2 \]</p>
+  <ul class="math-notes">
+    <li><b>\(S\)</b> is the side of the photo in pixels (224 here, a square photo) and <b>\(P\)</b> the side of a patch. <b>\(C\)</b> is the number of colour channels, 3 (<a href="../c1-convolution/#channels">C1</a>).</li>
+    <li><b>\(N\)</b> is the number of patches. <b>\(n\)</b> is the sequence length with the class token added; \(n\) matches the symbol of <a href="../d4-self-attention/#mask">D4</a>, where attention costs grow like \(n^2\).</li>
+  </ul>
+  <p>Why this works, and where it is crude. A patch of 16 pixels is cut with no regard to what is in it, so a fin can be split over four patches. The transformer must put it together again, and attention is the tool that does so. A small animal is a problem. A shark 60 pixels long in a photo 640 pixels wide is about 20 pixels long after the photo is resized to 224. It fills little more than one patch. The name of a model tells you its cost. ViT-B/32 has 49 patches and ViT-B/16 has 196, and the second does about four times the work (the count is in <a href="#vs">ViT against CNN</a>).</p>
+  <div class="break">
+    <p><b>Common belief.</b> Smaller patches always give a better view of the shark, so use the smallest.</p>
+    <p><b>Why it fails.</b> Cost grows with the square of N. From P = 16 to P = 8 the pairs grow 15.9 times, and a patch of 8 by 8 pixels has only 192 numbers. That is little to say about a fin by itself.</p>
+    <p><b>Better account.</b> The patch side trades detail against cost. The ViT paper (Dosovitskiy and others, 2021) notes that smaller patches cost more computation, and the choice of P is made for the budget at hand.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When you cut a photo with NumPy, check the order of the axes. <code>img.reshape(196, 768)</code> on its own gives stripes of 4 rows, not patches. The cut needs a reshape into (14, 16, 14, 16, 3), a transpose of the middle axes, and then a reshape. Test it: patch 1 must equal <code>img[0:16, 16:32]</code>.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+S, P, C = 224, 16, 3
+img = np.arange(S * S * C).reshape(S, S, C) % 251     # a made-up picture, values 0 to 250
+g = S // P
+patches = img.reshape(g, P, g, P, C).transpose(0, 2, 1, 3, 4).reshape(g * g, P * P * C)
+print(patches.shape)
+print(np.array_equal(patches[1], img[0:16, 16:32].reshape(-1)))
+print(patches.size == img.size)
+for P in (8, 16, 32):
+    N = (S // P) ** 2
+    print(P, N, N + 1, (N + 1) ** 2)</code></pre>
+  <pre class="out">(196, 768)
+True
+True
+8 784 785 616225
+16 196 197 38809
+32 49 50 2500</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>How many patches does a 224 by 224 photo give with P = 32, and how many numbers does a patch have?</summary><p>Since 224 / 32 = 7, there are 49 patches. A patch has 32 &times; 32 &times; 3 = 3,072 numbers. The total is 49 &times; 3,072 = 150,528, as before.</p></details>
+    <details><summary>Why does attention over patches cost about 16 times more when P goes from 16 to 8?</summary><p>N grows four times, since both the number across and the number down double. Attention compares all pairs, so its cost grows with the square of the sequence: 4 &times; 4 = 16, or 15.9 once the class token is counted.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. embed ============================ -->
+<section id="embed" aria-labelledby="embed-h">
+  <h2 id="embed-h">From a patch to a token</h2>
+  <p class="ask"><b>Guess first.</b> A patch of 16 by 16 pixels with three colours has 768 numbers. The vectors inside ViT-B/16 also have 768 numbers. Is the patch already the token, or does something still happen to it? If so, what is the simplest operation that could do it?</p>
+  <dl class="terms">
+    <div><dt>patch embedding</dt><dd>the vector a patch becomes, with d numbers (768 in ViT-B/16); the token the first block reads</dd></div>
+    <div><dt>linear projection</dt><dd>a matrix product plus a bias, \(W\mathbf{x} + \mathbf{b}\), the weighted sums of <a href="../b1-one-neuron/#neuron">B1</a></dd></div>
+    <div><dt>model width d</dt><dd>the length of a token vector (<a href="../d4-self-attention/#heads">D4</a>); here 768</dd></div>
+    <div><dt>filter</dt><dd>a set of weights laid over a patch, as in <a href="../c1-convolution/#filter">C1</a>; a row of the matrix is one</dd></div>
+  </dl>
+  <p class="claim">One matrix, the same for all patches, turns the 768 pixel numbers of a patch into 768 learned numbers. This is what a convolution with a 16 by 16 filter and a step of 16 does.</p>
+  <div class="card" id="em">
+    <div class="bar" id="em-bar"></div>
+    <div class="em-flow">
+      <div id="em-photo">
+        <p class="pane-h">Click a patch (or use the arrow keys)</p>
+        <canvas id="em-cv" role="img" aria-label="Photo with a patch selected"></canvas>
+      </div>
+      <div>
+        <div class="em-col"><p class="pane-h">The patch, 16 by 16 pixels, and its 768 numbers laid out in 16 rows of 48 (three cells, red, green and blue, for a pixel)</p>
+          <div class="pair"><canvas id="em-patch" role="img" aria-label="The selected patch magnified"></canvas><canvas id="em-x" role="img" aria-label="The 768 numbers of the patch as a coloured grid"></canvas></div></div>
+        <div class="em-col"><p class="pane-h">Eight of the 768 rows of the matrix, drawn as colour pictures, multiplied with the patch numbers and added to a bias</p>
+          <div id="em-rows"></div></div>
+      </div>
+    </div>
+    <p class="status" id="em-status" aria-live="polite"></p>
+    <p class="pane-h mt-10">Sizes for a patch side P (the live numbers above are for P = 16)</p>
+    <div class="eqn eqs" id="em-dims"></div>
+    <div class="eqn eqs" id="em-count"></div>
+    <p class="status" id="em-note"></p>
+    <p class="credit" id="em-credit"></p>
+  </div>
+  <p class="cap"><b>A token number is one dot product of the patch with one row, and the same 768 rows are used on all 196 patches.</b> Teal numbers are positive and coral numbers negative. Some rows look smooth and some look like noise.</p>
+  <p>The numbers in the figure come from the first layer of torchvision's ViT-B/16. The page takes the pixels of the selected patch, scales them as the network expects (subtract the mean, divide by the spread of the colour). It then computes eight of the 768 dot products itself. The results agree with the network's own output to within 0.003. Try the patch in the water and then a patch on the body. The values change, and the network reads them as its first description of the patch.</p>
+  <p>Two worked cases for the hammerhead photo. The patch at grid row 6, column 6 lies on the body. Its eight numbers are 0.04, &minus;0.05, &minus;0.11, 0.09, &minus;0.10, &minus;0.30, 0.09 and 0.22. The patch in the top left corner is blue water. Its eight numbers are &minus;0.09, 0.05, 0.16, &minus;0.09, &minus;0.03, 0.06, &minus;0.04 and &minus;0.02. The two sets differ, and the matrix has 760 more rows that the figure does not show.</p>
+  <div class="eqn" role="img" aria-label="Token equals matrix times patch plus bias"><span class="t c-teal"><b>768&times;1</b><i>token e</i></span><span class="op">=</span><span class="t c-navy"><b>768&times;768</b><i>W<sub>patch</sub>, 589,824 weights</i></span><span class="op">&times;</span><span class="t c-coral"><b>768&times;1</b><i>x, the flat patch</i></span><span class="op">+</span><span class="t c-sand"><b>768&times;1</b><i>bias b</i></span></div>
+  <p class="math">\[ \mathbf{e}_i = W_{\text{patch}}\,\mathbf{x}_i + \mathbf{b},\qquad W_{\text{patch}}\in\mathbb{R}^{d\times P^2C},\qquad \mathbf{x}_i\in\mathbb{R}^{P^2C} \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{x}_i\)</b> is patch \(i\) flattened into a list of \(P^2C = 768\) numbers, row by row, three colours per pixel. <b>\(\mathbf{e}_i\)</b> is its embedding, with \(d = 768\) numbers.</li>
+    <li><b>\(W_{\text{patch}}\)</b> has \(d\) rows and \(P^2C\) columns. Row \(j\) is a filter of 16 by 16 by 3 weights, and output number \(j\) is its dot product with the patch plus \(b_j\). The matrix and the bias are learned with the rest of the network (<a href="../b4-backpropagation/#backward">B4</a>).</li>
+    <li>The count of learned numbers is \(d\,P^2C + d = 589{,}824 + 768 = 590{,}592\). In <a href="../c1-convolution/#size">C1</a> terms, a convolution with 768 filters of 16 by 16 on 3 channels has \((16\cdot16\cdot3+1)\cdot768 = 590{,}592\) weights. With a step of 16 it gives \((224-16)/16+1 = 14\) positions across.</li>
+  </ul>
+  <p>Why it works. The first block needs vectors, and a linear map is the plainest way to get them. It is cheap: one patch costs 589,824 multiply-adds, and the whole photo 115,605,504, the same for P = 8, 16 or 32, because a pixel number meets 768 weights once. The cost that depends on P comes later, in the blocks. Where it is limited. The matrix sees one patch at a time, so it cannot know about the neighbouring patch. All use of context is left to attention.</p>
+  <div class="break">
+    <p><b>Analogy.</b> The embedding table of <a href="../d2-embeddings/#onehot">D2</a>: a token ID picks a row, and the row is its vector.</p>
+    <p><b>Where it breaks.</b> A table has one row per known token. There is no table of patches, since there are 256<sup>768</sup> possible patches. The matrix gives a vector to any patch, including one never seen, and patches with similar pixels get similar vectors. The matrix is a function and not a dictionary.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a pretrained ViT returns confident nonsense on your own photo, print the mean and spread of the input after scaling. They should be near 0 and 1 for red, green and blue. A network trained on scaled pixels given values from 0 to 255 produces tokens a hundred times too large. Check also that the colour order is red, green, blue and not blue, green, red.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+rng = np.random.default_rng(4127)
+img = rng.integers(0, 256, size=(224, 224, 3)).astype(float)
+patches = img.reshape(14, 16, 14, 16, 3).transpose(0, 2, 1, 3, 4).reshape(196, 768)
+W = rng.normal(0, 0.02, size=(768, 768))     # made-up weights: one row per output number
+b = np.zeros(768)
+tokens = patches @ W.T + b
+print(tokens.shape, W.size + b.size)
+w0 = W[0].reshape(16, 16, 3)                 # row 0 as a 16 by 16 by 3 filter
+by_hand = (img[0:16, 16:32] * w0).sum() + b[0]
+print(np.isclose(tokens[1, 0], by_hand))
+print(768 * 768 * 196)</code></pre>
+  <pre class="out">(196, 768) 590592
+True
+115605504</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>With P = 32, how many columns does the patch matrix have, and how many weights?</summary><p>A patch has 32 &times; 32 &times; 3 = 3,072 numbers, so the matrix has 3,072 columns and 768 rows: 2,359,296 weights, plus 768 biases. A larger patch gives a larger matrix and fewer tokens.</p></details>
+    <details><summary>Why is the same matrix used for all patches?</summary><p>So that a feature found in one part of the photo can be found in another, as with a filter that slides in <a href="../c1-convolution/#filter">C1</a>. It also keeps the count of weights small: one matrix and not 196.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. position ============================ -->
+<section id="position" aria-labelledby="position-h">
+  <h2 id="position-h">Position embeddings</h2>
+  <p class="ask"><b>Guess first.</b> You cut a shark photo into patches and move all of them to other places. The ViT still gets all the patches, and the position vectors stay at their places. Does its answer change a little, or fall apart? What would a CNN do?</p>
+  <dl class="terms">
+    <div><dt>position embedding</dt><dd>a learned vector added to a patch token; row \(i\) of a table with \(N + 1\) rows says "this token is in place \(i\)"</dd></div>
+    <div><dt>permutation</dt><dd>a reordering of a list (<a href="../t4-discrete-maths/#counting">0.4</a>)</dd></div>
+    <div><dt>bag of patches</dt><dd>a model that uses what the patches contain and not where they are</dd></div>
+  </dl>
+  <p class="claim">Attention alone cannot tell where a patch came from, so a ViT adds a position vector to a token. In these photos, the trained ViT leans less on positions than a CNN leans on layout.</p>
+  <div class="card" id="ps-box">
+    <p class="pane-h">A. The position table of the trained ViT: click a position and see how similar the other 195 positions are to it</p>
+    <div class="pair"><div><p class="pane-h">Photo (for orientation)</p><canvas id="ps-photo" role="img" aria-label="Photo with the chosen position outlined"></canvas></div><div><p class="pane-h">Cosine similarity of position embeddings</p><canvas id="ps-map" role="img" aria-label="Map of cosine similarity of the position embedding"></canvas></div></div>
+    <p class="status" id="ps-status" aria-live="polite"></p>
+    <div class="eqn eqs" id="ps-eq"></div>
+    <p class="credit" id="ps-credit"></p>
+  </div>
+  <p class="cap"><b>Positions that are close have similar embeddings, and positions in the same row or column are more alike than positions that merely share a distance.</b> Nobody told the network this. It is the table that training produced.</p>
+  <p>Without a position vector, the model would treat the 196 patches as a set. This can be shown in two lines. Attention (<a href="../d4-self-attention/#score">D4</a>) computes an output as a weighted sum of values, with weights from query-key dot products. If you reorder the input tokens, the same sums are formed from the same numbers. The outputs then come out reordered in the same way and are otherwise unchanged. The code below checks it. Adding a position vector breaks this symmetry: patch content moves, position vectors stay, and the outputs change.</p>
+  <p class="math">\[ \mathbf{z}^{(0)}_i = \mathbf{e}_i + E_{\text{pos}}[i],\qquad E_{\text{pos}}\in\mathbb{R}^{(N+1)\times d} \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{z}^{(0)}_i\)</b> is the input of token \(i\) to the first block. <b>\(\mathbf{e}_i\)</b> is its patch embedding from the last section.</li>
+    <li><b>\(E_{\text{pos}}\)</b> is a table like the embedding table of D2: one row per place, with \(N + 1\) rows because the class token has a place too. For ViT-B/16 it has \(197\times768 = 151{,}296\) numbers, learned with the rest of the network (the 2017 transformer used the fixed sinusoids of <a href="../d5-transformer/#position">D5</a> instead).</li>
+  </ul>
+  <p>The table has structure. Over the 196 patch positions, two positions one patch apart have an average cosine of 0.73. For positions 3 apart it is 0.33, and for positions 10 apart &minus;0.05 (pairs whose centres are 1, 3 or 10 patches apart, mostly in the same row or column). Same-row pairs 3 columns apart average 0.22, against &minus;0.04 for pairs about as far apart that share neither row nor column. The ViT paper reports the same two features, closeness and a row and column pattern (Dosovitskiy and others, 2021). The fall with distance is not smooth: pairs 6 apart average 0.38, which is more than the 0.33 of pairs 3 apart. The paper notes a sinusoidal look in the position tables of larger grids, and this may be the same effect.</p>
+  <div class="card" id="sh-box">
+    <p class="pane-h">B. Move patches: the first k patches of a fixed random order are passed along in a circle, and the position vectors stay where they are</p>
+    <div class="bar" id="sh-bar"></div>
+    <div class="controls" id="sh-controls"></div>
+    <div class="two">
+      <div><canvas id="sh-cv" role="img" aria-label="The photo with patches moved"></canvas><div class="toplist mt-8" id="sh-top"></div></div>
+      <div><div class="plot" id="sh-plot" role="img" aria-label="Share of photos whose top call is unchanged against the number of patches moved, for ViT-B/16 and ResNet-18"></div></div>
+    </div>
+    <div class="readout" id="sh-read"></div>
+    <p class="credit" id="sh-credit"></p>
+  </div>
+  <p class="cap"><b>When all 196 patches are moved, ViT-B/16 still gives the same top call on 29% of the runs. ResNet-18 never does once 128 patches are moved.</b> The measure is whether the call stays the same, which is not the same as being right: the unmoved call is wrong for some of these photos.</p>
+  <p>The plotted result is an average over 14 photos and 16 random orders (224 runs per point, from the 14 photos of the shark folder). At 16 patches moved the ViT keeps its call 76% of the time and ResNet-18 51%. At 64 moved: 66% and 16%. At 128 moved: 38% and 0%. A ViT, then, depends less on where a patch is, and more on what the patches contain: colours and textures. A study of DeiT models reached a similar conclusion (Naseer and others, 2021). The two networks were also trained with different recipes (torchvision's ViT-B/16 uses a modified DeiT recipe, ResNet-18 a simple one), so this run cannot separate architecture from training.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Position embeddings are how a ViT learns the layout of a shark: fins above, tail behind.</p>
+    <p><b>Why it fails.</b> With all patches moved the hammerhead photo still gets the call "hammerhead" (39%), and 29% of the runs on all photos keep their call. For labelling a whole photo, the content of the patches contains most of the answer.</p>
+    <p><b>Better account.</b> Positions encode layout, and layout matters for tasks that ask where, such as finding the shark in the frame or counting animals. For a single label, texture and colour often decide. This is a measurement on 14 photos and one network, and it does not say that positions are useless.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If you feed a ViT a photo of a different size, the number of patches changes and the position table no longer has the right number of rows. Libraries resize the table by interpolating the patch rows in two dimensions. The class token's row must stay at index 0 and not be interpolated.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+rng = np.random.default_rng(4127)
+n, d = 5, 4
+X = rng.normal(size=(n, d))
+Wq, Wk, Wv = (rng.normal(size=(d, d)) for _ in range(3))
+def attend(X):
+    Q, K, V = X @ Wq, X @ Wk, X @ Wv
+    s = Q @ K.T / np.sqrt(d)
+    w = np.exp(s - s.max(1, keepdims=True)); w /= w.sum(1, keepdims=True)
+    return w @ V
+perm = np.array([3, 0, 4, 1, 2])
+print(np.allclose(attend(X)[perm], attend(X[perm])))              # reorder the tokens: the outputs reorder
+pos = rng.normal(size=(n, d))
+print(np.allclose(attend(X + pos)[perm], attend(X[perm] + pos)))  # tokens move, positions stay: the outputs differ</code></pre>
+  <pre class="out">True
+False</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why does attention without positions treat the patches as a set?</summary><p>An output is a weighted sum over all tokens, with weights computed from the query and key vectors of the tokens. Reorder the tokens and the sums keep the same terms, so the outputs are the same vectors in a new order.</p></details>
+    <details><summary>The page shows that a ViT keeps its call when patches move. Does that prove positions are useless?</summary><p>No. It shows that for a one-word label of these 14 photos the patch contents contain most of the answer. Tasks that depend on layout were not tested.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. cls ============================ -->
+<section id="cls" aria-labelledby="cls-h">
+  <h2 id="cls-h">The class token</h2>
+  <p class="ask"><b>Guess first.</b> A transformer gives back one vector per token, so 196 vectors for 196 patches. A classifier needs one vector for the photo. Would you average the patch vectors, use the middle patch, or something else?</p>
+  <dl class="terms">
+    <div><dt>class token</dt><dd>one extra token placed before the patches; it starts as a learned vector with no pixels in it, and its final vector is the summary the classifier reads</dd></div>
+    <div><dt>head</dt><dd>here, the final linear layer that turns the class vector into scores for the 1,000 classes (not an attention head)</dd></div>
+    <div><dt>readout</dt><dd>the step that takes the answer out of the network</dd></div>
+  </dl>
+  <p class="claim">The class token is an empty slot that attention can fill. After 12 blocks its vector is a summary of the photo, and one linear layer turns it into scores.</p>
+  <div class="card" id="cl-box">
+    <div class="bar" id="cl-bar"></div>
+    <div class="controls" id="cl-controls"></div>
+    <div class="cl-grid">
+      <div><canvas id="cl-cv" role="img" aria-label="Photo shaded by the class token's attention"></canvas></div>
+      <div><svg id="cl-diagram" role="img" aria-label="Diagram: the class token and the patch tokens go through 12 blocks, then the class token goes to a linear head"></svg></div>
+    </div>
+    <div class="eqn eqs" id="cl-eq"></div>
+    <p class="status" id="cl-status" aria-live="polite"></p>
+    <p class="credit" id="cl-credit"></p>
+  </div>
+  <p class="cap"><b>In the first blocks the class token spreads its attention over nearly 100 patches. By the last blocks, ten patches have half of its patch attention.</b> The maps are averages over the 12 heads of a block, and the brightest patch is drawn fully bright in all blocks.</p>
+  <p>Slide the block from 0 to 11. The class token goes through the same blocks, with the same weights, as the patch tokens. In a block it reads the patches (this is the map) and the patches may read it. In the hammerhead photo, 97 patches are needed to reach half of its patch attention at block 0, 42 at block 2 and 10 at block 11. In the same blocks it also puts 21% (block 0), 57% (block 2) and 37% (block 11) of its weight on itself, which is the first number in the boxes.</p>
+  <p>The class token starts with the same learned vector for all photos, so any difference in its final vector comes from what it read. After the 12th block, torchvision applies a layer norm and a linear layer with 768 &times; 1,000 + 1,000 = 769,000 numbers. For the hammerhead crop the top of the 1,000 scores is "hammerhead" at 88%. The same network calls the grey bamboo shark in its tank an electric ray (56%), and the spadenose crop an eel (31%). ImageNet has three shark classes (great white, tiger, hammerhead), so spadenose and bamboo sharks have no label of their own.</p>
+  <div class="eqn" role="img" aria-label="Scores equal head matrix times class vector plus bias"><span class="t c-teal"><b>1,000&times;1</b><i>scores</i></span><span class="op">=</span><span class="t c-navy"><b>1,000&times;768</b><i>W<sub>head</sub></i></span><span class="op">&times;</span><span class="t c-coral"><b>768&times;1</b><i>y, class vector after the last norm</i></span><span class="op">+</span><span class="t c-sand"><b>1,000&times;1</b><i>bias</i></span></div>
+  <p class="math">\[ \mathbf{z}^{(0)}_0 = \mathbf{x}_{\text{class}},\qquad \mathbf{y} = \mathrm{LN}\big(\mathbf{z}^{(L)}_0\big),\qquad \text{scores} = W_{\text{head}}\,\mathbf{y} + \mathbf{b}_{\text{head}} \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{x}_{\text{class}}\)</b> is the learned starting vector of the class token, with 768 numbers (the ViT paper writes it the same way). <b>\(L\)</b> is the number of blocks, 12, so \(\mathbf{z}^{(L)}_0\) is the class token after the last block.</li>
+    <li><b>\(\mathrm{LN}\)</b> is layer norm (<a href="../b6-deep-networks/#norm">B6</a>). The scores go through softmax as in <a href="../a3-logistic-regression/#softmax">A3</a> to give the probabilities.</li>
+  </ul>
+  <p>Where it can mislead. A bright patch in the map shows where the class token read, which need not be where the evidence for the answer lies. <a href="../b9-explaining/#attention">B9</a> tests this on the same network and finds that flattening the last layer's attention changes the hammerhead score from 88% to 81%. The class token is also one design choice among others. The ViT paper compares it with averaging the patch vectors, and finds that both work similarly once the learning rate is tuned for the two designs.</p>
+  <div class="break">
+    <p><b>Common belief.</b> The class token is a special part of the model that looks at the picture.</p>
+    <p><b>Why it fails.</b> It has no pixels and no weights of its own beyond a starting vector. It is one more token that the same attention and MLP weights act on.</p>
+    <p><b>Better account.</b> It is a place to put an answer. Attention gives it a way to gather from the patches, and training decides what it gathers.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Averaging the patch vectors gives a usable summary, but a head trained on the class token will not work on the average without training. Mixing the two readouts between training and use is a quiet way to lose accuracy.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+rng = np.random.default_rng(4127)
+d, n_classes = 768, 1000
+y = rng.normal(size=d)                                  # the class vector after the last norm (made-up numbers)
+W = rng.normal(0, 0.02, size=(n_classes, d))            # made-up head, one row per class
+b = np.zeros(n_classes)
+scores = W @ y + b
+p = np.exp(scores - scores.max()); p /= p.sum()
+print(scores.shape, W.size + b.size)
+print(round(float(p.sum()), 3), int(p.argmax()), round(float(p.max()), 3))</code></pre>
+  <pre class="out">(1000,) 769000
+1.0 749 0.006</pre>
+  <p>The head turns 768 numbers into 1,000 scores. The numbers here are made up, so the winning class tells you little. With a trained head the winner is the call of the network.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>How many tokens does ViT-B/16 read for a 224 by 224 photo, and which one is read by the classifier?</summary><p>The sequence has 197 tokens: the 196 patches and the class token. The classifier reads only the class token after the last block.</p></details>
+    <details><summary>The class token has no pixels. How can its final vector depend on the photo?</summary><p>In the blocks, attention lets it read the patch tokens, and the MLP and later blocks work on what it read. Its start is the same for all photos, and the difference comes from the patches.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. attend ============================ -->
+<section id="attend" aria-labelledby="attend-h">
+  <h2 id="attend-h">Where a patch looks</h2>
+  <p class="ask"><b>Guess first.</b> The first layer of a CNN reads a 3 by 3 window. In the first block of a ViT, a patch can attend to all 196 others. Do you expect the heads there to look mostly at neighbours, or all over the photo?</p>
+  <dl class="terms">
+    <div><dt>attention head</dt><dd>one of the parallel attention computations of a block, with its own weights (<a href="../d4-self-attention/#heads">D4</a>); 12 per block in ViT-B/16</dd></div>
+    <div><dt>attention distance</dt><dd>the average distance, in patches, between a patch and the patches it attends to, weighted by the attention</dd></div>
+    <div><dt>L2H5</dt><dd>layer 2, head 5, counting from 0, as in D4</dd></div>
+  </dl>
+  <p class="claim">A head has a habit. In this network a few heads look at neighbours, many look across the whole photo, and the habits change with depth.</p>
+  <div class="card" id="at-box">
+    <div class="bar" id="at-bar"></div>
+    <canvas id="at-cv" class="cvs" role="img" aria-label="Photo shaded by the attention of a chosen head from a chosen patch"></canvas>
+    <p class="status" id="at-status" aria-live="polite"></p>
+    <div class="eqn eqs" id="at-eq" aria-live="polite"></div>
+    <div class="eqn eqs" id="at-eq2"></div>
+    <p class="credit" id="at-credit"></p>
+  </div>
+  <p class="cap"><b>Head L2H5 sends most of a patch's weight to its neighbours. Head L0H6 follows patches that look alike across the photo.</b> The coral square is the query patch. The brightest patches get the most weight, and the shading is relative to the largest weight in the row.</p>
+  <p>Click a patch and switch heads. The six heads were picked by looking at the maps of all 144 heads for one query, to show the range. They are not an average, and other heads look different. The short descriptions of a head, such as "stays on the neighbours", say what its weights do for this query on these photos. They are descriptions of the maps and do not name a proven job of the head. The maps are stored at 16 levels, so shares are accurate to a point or two. The first row of boxes shows where the weight of this head goes: on the patch itself, on its eight neighbours, farther away, and on the class token. The second row gives the mean distance of the attention of this patch and of the whole head.</p>
+  <p>The measured distances for all heads are in the next section. In block 0 the heads attend on average 6.7 to 7.6 patches away. Even attention over the 196 patches would give 7.3. This does not mean that block 0 attends evenly. The map of L0H6 picks patches that look like the query, such as the body of the shark, and these lie far apart. Blocks 2 and 3 contain the most local heads (distance 1.5 for L2H5 and L3H7). The last blocks are wide again. Dosovitskiy and others (2021) found, for their ViT-L/16, that some heads attend widely in low layers and others locally, and that distance grows with depth. This ViT-B/16 differs in two ways. All 12 heads of block 0 are wide, and the local heads appear later, in blocks 2 to 4. So the mean distance falls from 7.0 in block 0 to 4.3 in block 4 and then rises to 7.3 in block 11. The two networks differ in size and in training. The paper's model saw a far larger set than ImageNet-1k, and torchvision's weights used a DeiT-style recipe. The pattern depends on the network and its training, and this page does not test which factor matters.</p>
+  <p>A worked case. The query patch at row 6, column 6 sends weight to the patch at row 6, column 9, which is 3 patches away. It also sends weight to row 9, column 10, which is \(\sqrt{3^2+4^2} = 5\) patches away. The attention distance of the patch is the average of such distances, weighted by the attention given. The late heads such as L7H6 put weight on a few patches of plain water. Darcet and others (2024) report high-norm tokens in background areas of other ViTs and show that they appear in the attention maps. This chapter did not test whether the same thing happens here.</p>
+  <p class="math">\[ \bar d(q) = \frac{\sum_{k=1}^{N} a_{qk}\,\lVert \mathbf{p}_q - \mathbf{p}_k\rVert}{\sum_{k=1}^{N} a_{qk}} \]</p>
+  <ul class="math-notes">
+    <li><b>\(a_{qk}\)</b> is the attention weight of query patch \(q\) on patch \(k\) (<a href="../d4-self-attention/#score">D4</a>). The sums skip the class token, so the denominator is the weight that falls on patches.</li>
+    <li><b>\(\mathbf{p}_q\)</b> is the grid position (row, column) of patch \(q\), and \(\lVert\cdot\rVert\) the straight-line distance in patches. The distance of a head is the average of \(\bar d(q)\) over all queries and 14 photos.</li>
+  </ul>
+  <div class="debug">
+    <p><b>Debug tip.</b> A bright patch is not evidence. <a href="../b9-explaining/#attention">B9</a> shows that a head's map differs from a gradient map and that the answer remains under flattened attention. Treat these maps as a view of how information moves, and use occlusion (B9) to test what the answer needs.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+g = 14
+r, c = np.divmod(np.arange(g * g), g)                   # grid row and column of the 196 patches
+q = 6 * g + 6                                           # the query patch at row 6, column 6
+dist = np.hypot(r - r[q], c - c[q])                     # distance in patches from the query to every patch
+even = np.full(g * g, 1 / (g * g))                      # even attention: the same weight on all patches
+near = np.exp(-dist ** 2 / 2); near /= near.sum()       # made-up weights that fall off with distance
+print(dist[6 * g + 9], dist[9 * g + 10])
+print(round(float((even * dist).sum()), 2), round(float((near * dist).sum()), 2))
+D = np.hypot(r[:, None] - r[None, :], c[:, None] - c[None, :])   # distances between all pairs of patches
+print(round(float(D.mean()), 2))                        # even attention, averaged over all queries</code></pre>
+  <pre class="out">3.0 5.0
+5.38 1.21
+7.28</pre>
+  <p>The first line repeats the worked case. Even attention gives 5.4 for this query, which is near the middle of the photo. Over all queries it gives 7.3 on average, since a query near an edge is far from most patches. The made-up weights that fall off with distance give 1.2.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A head puts all its weight on the patch itself. What is its attention distance?</summary><p>Zero patches. All terms of the sum have distance 0.</p></details>
+    <details><summary>Why can a head with a large attention distance still be selective?</summary><p>It can pick a few patches that look alike and lie far apart, such as the parts of one animal. Distance measures where the weight falls, not how concentrated it is.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 6. vs ============================ -->
+<section id="vs" aria-labelledby="vs-h">
+  <h2 id="vs-h">ViT against CNN</h2>
+  <p class="ask"><b>Guess first.</b> A CNN is built to read nearby pixels. A ViT can read any patch from the first block. Which of the two needs more training photos to learn to recognise sharks, and why?</p>
+  <dl class="terms">
+    <div><dt>inductive bias</dt><dd>what a model assumes before it sees any data, built into its design</dd></div>
+    <div><dt>locality</dt><dd>the assumption that nearby pixels belong together; a conv layer reads a small window</dd></div>
+    <div><dt>weight sharing</dt><dd>using the same weights at all positions (<a href="../c2-cnns/#params">C2</a>)</dd></div>
+    <div><dt>receptive field</dt><dd>the part of the photo that can change one number of a layer (<a href="../c2-cnns/#rf">C2</a>)</dd></div>
+  </dl>
+  <p class="claim">A CNN assumes that nearby pixels matter first. A ViT assumes little, so it can learn more, and it needs more data to do so.</p>
+  <div class="card" id="rc-box">
+    <div class="controls" id="rc-controls"></div>
+    <canvas id="rc-cv" class="cvs" role="img" aria-label="Two copies of the photo showing what a CNN window and a ViT block can reach"></canvas>
+    <p class="status" id="rc-status" aria-live="polite"></p>
+    <div class="eqn eqs" id="rc-eq"></div>
+    <div class="bar mt-12" id="rc-bar"></div>
+    <div class="two">
+      <div><p class="pane-h">Mean attention distance of the 144 heads of ViT-B/16, against the farthest reach of a CNN stack</p><div class="plot" id="rc-plot1" role="img" aria-label="Mean attention distance of the heads of ViT-B/16 by block, with the farthest reach of stacked 3 by 3 layers"></div></div>
+      <div><p class="pane-h">Share of attention that falls inside the window, mean over heads</p><div class="plot" id="rc-plot2" role="img" aria-label="Share of attention inside a small window around the query patch, by block"></div></div>
+    </div>
+    <div class="readout" id="rc-read"></div>
+    <p class="credit" id="rc-credit"></p>
+  </div>
+  <p class="cap"><b>A stack of 3 by 3 convolutions needs about five layers to reach the average distance at which ViT heads already attend in block 0.</b> In block 0 of this ViT only about 6% of the attention falls on the 3 by 3 window that one conv layer would read.</p>
+  <p>The left picture is drawn from the design of the two networks. The CNN window grows by one patch on all sides with a 3 by 3 layer, so after k layers it is 2k + 1 patches wide (<a href="../c2-cnns/#rf">C2</a>). The ViT picture is not a measurement: it says that in block 1 a head <em>can</em> read all tokens. The charts are measured. They give the mean attention distance of a head. They also give the farthest that a stack of k layers reaches along the diagonal, which is \(k\sqrt{2}\) patches, and the share of attention that falls in a window. Five layers reach 7.1 patches, and block 0 heads attend 6.7 to 7.6 patches away on average.</p>
+  <p>Now the parameters. A ViT block has 12d&sup2; + 13d = 7,087,872 numbers for d = 768. Of these, 2,362,368 are in attention, 4,722,432 in the MLP and 3,072 in two norms (the same block as GPT-2 small in <a href="../d5-transformer/#block">D5</a>). Twelve blocks give 85,054,464, and with the patch matrix (590,592), the class token (768), the position table (151,296), the last norm (1,536) and the head (769,000) the total is 86,567,656. A 3 by 3 conv layer with 768 channels in and out has 5,309,184 numbers, which is more than the attention in a ViT block. Parameter counts do not tell the work. ViT-B/32 has 88.2 million numbers and ViT-B/16 has 86.6 million. The second needs 17.6 GFLOPs against 4.4 (torchvision's counts), since it runs the same blocks over 197 tokens and not 50.</p>
+  <div class="card">
+    <div class="bar" id="pm-bar"></div>
+    <div class="plot short" id="pm-plot" role="img" aria-label="Bar chart of numbers learned in five networks"></div>
+    <div class="readout" id="pm-read"></div>
+  </div>
+  <p class="cap"><b>All three ViTs in the list have at least 3.3 times as many numbers as ResNet-50, and the ViT-B/16 does 17.6 GFLOPs of work where ResNet-18 does 1.8.</b> The torchvision accuracy on ImageNet-1k is 69.8% (ResNet-18), 76.1% (ResNet-50), 75.9% (ViT-B/32), 81.1% (ViT-B/16) and 79.7% (ViT-L/16). The weights were trained with different recipes, so the list compares packages and does not isolate the design.</p>
+  <p>What the data does. The ViT paper trained models on ImageNet alone, on ImageNet-21k and on JFT-300M. With ImageNet alone, ViT-Large did worse than ViT-Base. With the largest set, the large model won. Its authors conclude that large-scale training outweighs the lack of an image bias (Dosovitskiy and others, 2021). Where a CNN's locality helps, a small training set is enough. Where the data is large, the ViT can learn what a CNN assumes and more. For SharkCam, with a few thousand photos, a pretrained network of either kind is the starting point, and the fine-tuning of <a href="../b7-continual-learning/#transfer">B7</a> does the rest.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Transformers replaced CNNs because they are better.</p>
+    <p><b>Why it fails.</b> With ImageNet alone, the larger ViT did worse than the smaller one. On the torchvision list, ViT-B/16 needs far more numbers and work than ResNet-18 to gain 11 points of accuracy, and it was trained with a different recipe. On a small robot (<a href="../f2-robots/#budget">F2</a>) work counts.</p>
+    <p><b>Better account.</b> The two designs make different assumptions. Which works better depends on the amount of data, the compute available and the task. Many models combine them, with convolutions for the first layers and attention above.</p>
+  </div>
+  <pre class="code" data-run><code>d = 768
+conv3 = (3 * 3 * d + 1) * d            # a 3 by 3 convolution from 768 to 768 channels
+attn = 4 * d * d + 4 * d               # W_Q, W_K, W_V, W_O with their biases
+mlp = d * 4 * d + 4 * d + 4 * d * d + d
+norms = 2 * 2 * d
+block = attn + mlp + norms
+print(conv3, attn, mlp, block)
+print(12 * block + 590592 + 768 + 197 * d + 2 * d + (d * 1000 + 1000))</code></pre>
+  <pre class="out">5309184 2362368 4722432 7087872
+86567656</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>What does a CNN assume that a ViT does not?</summary><p>Locality (nearby pixels matter first) and the same filters at all positions, built into all layers. A ViT shares weights across tokens, but its attention can read any token from the first block.</p></details>
+    <details><summary>ViT-B/32 and ViT-B/16 have almost the same number of weights. Why does ViT-B/16 cost about four times more work?</summary><p>The weights are the same blocks. B/16 runs them over 197 tokens and B/32 over 50, and the work grows with the number of tokens (and with its square in attention).</p></details>
+  </div>
+</section>
+
+<!-- ============================ 7. vq ============================ -->
+<section id="vq" aria-labelledby="vq-h">
+  <h2 id="vq-h">Discrete image tokens</h2>
+  <p class="ask"><b>Guess first.</b> A text token is a whole number: an ID in a vocabulary (<a href="../d1-tokenisation/#vocab">D1</a>). A patch token so far is a list of 768 numbers with decimals. If you wanted to give a language model the whole photo as a sentence, what would you need?</p>
+  <dl class="terms">
+    <div><dt>vector quantisation</dt><dd>replacing a vector by the nearest entry of a short list of vectors</dd></div>
+    <div><dt>code book</dt><dd>that list: K vectors with IDs from 0 to K &minus; 1</dd></div>
+    <div><dt>image token</dt><dd>the ID of the code that replaces a patch</dd></div>
+  </dl>
+  <p class="claim">Replace the patches by the IDs of their nearest code-book entries, and a photo becomes a short sentence of integers that a language model can read or write.</p>
+  <div class="card" id="vq-box">
+    <div class="bar" id="vq-bar"></div>
+    <div class="pair"><div><p class="pane-h">Original, 28 &times; 28 patches of 8 &times; 8</p><canvas id="vq-orig" role="img" aria-label="Original photo"></canvas></div><div><p class="pane-h">Rebuilt from codes</p><canvas id="vq-rec" role="img" aria-label="Photo rebuilt from codes"></canvas></div></div>
+    <div class="vq-grid mt-12">
+      <div><p class="pane-h">The code book (dark tiles are unused for this photo)</p><canvas id="vq-book" role="img" aria-label="The code book as a grid of small patches"></canvas></div>
+      <div><div class="vq-ins"><span>patch</span><canvas id="vq-p" role="img" aria-label="The chosen patch magnified"></canvas><span>nearest code</span><canvas id="vq-c" role="img" aria-label="Its nearest code magnified"></canvas></div>
+        <div class="eqn eqs" id="vq-eq"></div></div>
+    </div>
+    <div class="eqn eqs" id="vq-eq2"></div>
+    <div class="readout" id="vq-read"></div>
+    <p class="status" id="vq-status" aria-live="polite"></p>
+    <p class="credit" id="vq-credit"></p>
+  </div>
+  <p class="cap"><b>With 256 codes, the 784 patches become 784 integers and the picture is recognisable but blocky. With 4 codes it is a few flat tones.</b> The code books here come from plain k-means on 8 by 8 pixel patches of 11 other photos.</p>
+  <p>Click a patch. The page finds the code with the smallest squared distance to the patch's 192 numbers, and the rebuilt picture uses the code's pixels. This is vector quantisation. The simplest way to make the code book is k-means: the code book is the set of K cluster centres. Check the sizes. A photo of 224 &times; 224 &times; 3 &times; 8 = 1,204,224 bits becomes 784 tokens of 8 bits (K = 256), which is 6,272 bits, 192 times smaller. The fit is poor: details are gone, and many patches of water or sand share one code. A code book is a dictionary, and the token is the dictionary entry. This is also how subwords work in D1, with a difference: the entry is chosen by distance, not by merges.</p>
+  <p class="math">\[ k^*(i) = \arg\min_{k\in\{0,\dots,K-1\}} \lVert \mathbf{x}_i - \mathbf{c}_k\rVert^2,\qquad \text{bits per token} = \log_2 K \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{x}_i\)</b> is patch \(i\) as a list of numbers (192 for an 8 by 8 patch with three colours). <b>\(\mathbf{c}_k\)</b> is code \(k\) of the code book, and \(k^*(i)\) is the ID that becomes the image token.</li>
+    <li>\(\arg\min\) means "the \(k\) that makes the squared distance smallest". \(K\) is the number of codes, and \(\log_2 K\) is the number of bits needed to write one ID (8 bits for 256 codes).</li>
+  </ul>
+  <p>The toy here works on raw pixels. Systems that make image tokens for language models learn the codes inside a network. In the VQ-VAE (van den Oord and others, 2017) an encoder network maps the photo to a grid of vectors. These vectors are replaced by their nearest entries of a learned code book, and a decoder rebuilds the picture from the entries. The nearest-entry step has no slope, so training copies the decoder's slope back to the encoder as if the step were not there. DALL-E (Ramesh and others, 2021) uses a related discrete autoencoder to compress a 256 by 256 photo into a 32 by 32 grid of tokens from a vocabulary of 8,192. This cuts the length that the transformer must model by a factor of 192. Esser and others (2021) learn the codes with a CNN and model the tokens with an autoregressive transformer, which is the next-token prediction of <a href="../d3-next-token/#distribution">D3</a>. A practical limit: some codes are used rarely or never (the dark tiles above), which wastes the book.</p>
+  <div class="break">
+    <p><b>Common belief.</b> An image token is a piece of the picture.</p>
+    <p><b>Why it fails.</b> In this toy it is, because the codes are raw pixels. In a learned system the code is an entry that the decoder turns into pixels together with its neighbours. It says "something like this goes here". The codes cannot be read back into patches without the decoder.</p>
+    <p><b>Better account.</b> An image token is an ID in a vocabulary of visual words, chosen by closeness. Its meaning comes from the dictionary and the decoder, as the meaning of a text token comes from its embedding.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When a quantiser gives blurry pictures, count the codes used. If only a handful of the 256 are used, the code book has collapsed. The fix is in training (restart unused codes, or use a smaller code book) and the decoder is not at fault. The readout above shows this count.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+# vector quantisation of 2 by 2 grey patches (made-up numbers)
+patches = np.array([[10, 12, 11, 9], [200, 210, 205, 198], [120, 20, 118, 25], [15, 14, 13, 12]], float)
+book = np.array([[10, 10, 10, 10], [200, 200, 200, 200], [120, 20, 120, 20]], float)
+d2 = ((patches[:, None, :] - book[None, :, :]) ** 2).sum(2)
+codes = d2.argmin(1)
+print(codes)
+print(np.round(np.sqrt(d2.min(1) / 4), 1))     # typical gap per number
+print(np.log2(len(book)))                      # bits per token</code></pre>
+  <pre class="out">[0 1 2 0]
+[1.2 5.7 2.7 3.7]
+1.584962500721156</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A code book has 1,024 codes and a photo becomes 256 tokens. How many bits is the photo?</summary><p>log<sub>2</sub> 1,024 = 10 bits per token, so 256 &times; 10 = 2,560 bits.</p></details>
+    <details><summary>What is lost when a patch is replaced by its nearest code?</summary><p>The detail that distinguishes the patch from its code, such as fine texture and small differences in colour. A larger code book loses less and costs more bits per token.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> A ViT takes a 384 by 384 photo with P = 16. Find N, the sequence length n with a class token, the number of attention pairs per head, and the ratio to the 224 by 224 case. Then find the P at which the 384 photo gives the same N as the 224 photo with P = 16.</p>
+        <details class="hint"><summary>Hint</summary><p>N = (S/P)&sup2;. For the second part set (384/P)&sup2; = 196 and solve for P. Does P come out a whole number?</p></details></li>
+      <li><p><span class="ex-tag">theory</span> Show that the patch matrix of a ViT is a convolution. Give the kernel size, the step, the number of output channels and the number of weights. Then say how many positions the output has for a 224 photo, using the output-size formula of <a href="../c1-convolution/#size">C1</a>.</p></li>
+      <li><p><span class="ex-tag">theory</span> Prove that attention without position vectors is permutation-equivariant: if \(\Pi\) reorders the tokens, \(\mathrm{Attn}(\Pi X) = \Pi\,\mathrm{Attn}(X)\). Then say what changes when \(E_{\text{pos}}\) is added, and what would happen to the outputs if the whole photo were moved one patch to the right with wrap-around.</p>
+        <details class="hint"><summary>Hint</summary><p>Write the score matrix as \(QK^\top\) with \(Q = XW_Q\). Reordering rows of \(X\) reorders the rows of \(Q\) and \(K\). What does a permutation matrix do to \(QK^\top\) and to softmax?</p></details></li>
+      <li><p><span class="ex-tag">theory</span> A code book with K = 512 codes is used for patches of 16 by 16 pixels on a 224 photo. How many bits is the photo, how many times smaller than the raw pixels, and how many different token sentences are there?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Write <code>unpatchify(patches, S, P, C)</code> in NumPy, the inverse of the cut in the first section, and check it with <code>np.array_equal</code> on a random image. Use it to move the patches of a picture according to a permutation of your choice.</p></li>
+      <li><p><span class="ex-tag">practice</span> Compute the average distance between two random positions of a 14 by 14 grid (the value 7.3 in the figure). Then compute it for a 7 by 7 grid and for a 28 by 28 grid, and say how it grows with the side.</p>
+        <details class="hint"><summary>Hint</summary><p>Build the coordinates with <code>np.divmod(np.arange(g * g), g)</code> and use broadcasting for all pairs.</p></details></li>
+      <li><p><span class="ex-tag">practice</span> Write k-means with K = 8 on the 8 by 8 patches of a random-noise picture with a smooth gradient added, in NumPy only. Quantise the picture and plot the squared error against K = 2, 4, 8, 16. Is the curve smooth, and where does it stop being worth adding codes?</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> SharkCam runs on a small computer and sees sharks that fill about 10% of a frame. You can choose P = 8, 16 or 32 on a frame resized to 224 by 224. What would you measure to choose, and what could go wrong? Think about the size of the animal in pixels, the cost per frame and what the figure on patches moved says about relying on layout.</p></li>
+      <li><p><span class="ex-tag">open</span> The patches-moved test shows that the ViT keeps its top call under heavy shuffling. Design a test to find out whether a shark detector built on a ViT uses the animal or the blue water. Say what you would change in the photos, what you would count, and how many photos you would need before you trusted a difference.</p></li>
+      <li><p><span class="ex-tag">open</span> A discrete image token loses detail. Name two jobs where that is acceptable and two where it is unacceptable, for SharkCam. Say what you would check before choosing a code-book size.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Answer after two days and again after a week, without looking back.</p>
+  <div class="recall comeback">
+    <details><summary>A ViT cuts a 224 by 224 photo with P = 16. Write down N, the numbers in a patch and the sequence length. Then say why halving P costs about 16 times more attention.</summary><p>N = 196, 768 numbers in a patch, sequence length 197 with the class token. N grows 4 times, and attention costs grow with the square of the sequence, so about 16 times (<a href="#cut">cut</a>, and the n&sup2; cost of <a href="../d4-self-attention/#mask">D4</a>).</p></details>
+    <details><summary>The patch matrix is a convolution. Which numbers of a C1 filter correspond to its kernel size, stride and number of filters, and how does this tie to the embedding table of D2?</summary><p>Kernel 16, stride 16, 768 filters. Like the D2 table, it turns an input into a vector of d numbers. It is a function of the patch and not a lookup (<a href="#embed">embed</a>, <a href="../c1-convolution/#size">C1</a>, <a href="../d2-embeddings/#onehot">D2</a>).</p></details>
+    <details><summary>C3 shows that a classifier of ResNet-18 loses its shark calls in murky water. What would the patches-moved test tell you about whether a ViT would rely on the colour of the water, and what would it not tell you?</summary><p>That the ViT keeps its call when the layout is destroyed, so colour and texture of patches contain much of the answer. This is a warning that water colour could be a cue (<a href="../b9-explaining/#shortcut">B9</a>, <a href="../c3-domain-shift/#water">C3</a>). It does not show that the water is the cue. That needs edits to the photos.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M., Minderer, M., Heigold, G., Gelly, S., Uszkoreit, J., Houlsby, N. (2021). An image is worth 16x16 words: Transformers for image recognition at scale. <i>ICLR 2021</i>. arXiv:2010.11929. The source of the patch, class token, position embedding, inductive bias and data-size results quoted here. The paper's models were pre-trained on ImageNet-21k or JFT-300M, and the network of this page was trained on ImageNet-1k.</li>
+    <li>Naseer, M., Ranasinghe, K., Khan, S., Hayat, M., Khan, F. S., Yang, M.-H. (2021). Intriguing properties of vision transformers. <i>NeurIPS 2021</i>. arXiv:2105.10497. Patch shuffling and permutation invariance in DeiT models.</li>
+    <li>Darcet, T., Oquab, M., Mairal, J., Bojanowski, P. (2024). Vision transformers need registers. <i>ICLR 2024</i>. arXiv:2309.16588. High-norm tokens in background areas of ViT attention maps.</li>
+    <li>van den Oord, A., Vinyals, O., Kavukcuoglu, K. (2017). Neural discrete representation learning (VQ-VAE). arXiv:1711.00937. Published at NeurIPS 2017.</li>
+    <li>Ramesh, A., Pavlov, M., Goh, G., Gray, S., Voss, C., Radford, A., Chen, M., Sutskever, I. (2021). Zero-shot text-to-image generation. arXiv:2102.12092. The 32 by 32 grid of tokens with 8,192 values (the DALL-E paper, ICML 2021).</li>
+    <li>Esser, P., Rombach, R., Ommer, B. (2021). Taming transformers for high-resolution image synthesis. arXiv:2012.09841. A learned code book with a transformer over the codes (CVPR 2021).</li>
+    <li>Torchvision (PyTorch). Models <code>vit_b_16</code>, <code>vit_b_32</code>, <code>vit_l_16</code>, <code>resnet18</code> and <code>resnet50</code> with ImageNet-1k weights. Parameter counts, GFLOPs and accuracy come from the model metadata in the library. The ViT-B/16 weights were trained with torchvision's own recipe, a modified version of the DeiT recipe, so they differ from the weights of the original paper. The library code has a BSD 3-clause licence. {{snippet:torchvision-terms}} This page ships eight rows of the first-layer matrix, attention maps and scores computed from the network, and not the weights.</li>
+    <li>Touvron, H., Cord, M., Douze, M., Massa, F., Sablayrolles, A., Jégou, H. (2021). Training data-efficient image transformers and distillation through attention (DeiT). <i>ICML 2021</i>. arXiv:2012.12877. The recipe that torchvision's ViT-B/16 weights modify.</li>
+    <li>{{snippet:photos-credited-ref}}</li>
+    <li>The figures use data computed for this chapter by <code>data/make_vit.py</code>, <code>make_shuffle.py</code> and <code>make_vq.py</code>.</li>
+  </ol>
+</section>

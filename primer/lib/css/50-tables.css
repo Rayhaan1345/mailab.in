@@ -1,0 +1,72 @@
+/* Tables: table styles shared by chapters. */
+
+.sv-table { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; }
+.sv-table th, .sv-table td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: right; }
+.sv-table th:first-child, .sv-table td:first-child { text-align: left; }
+.sv-table th { font-weight: 500; color: var(--muted); }
+.sv-table tbody tr[data-order] { cursor: pointer; }
+.sv-table tbody tr[data-order]:hover td { background: var(--mark); }
+.sv-table tbody tr.on td { background: var(--mark); color: var(--ink); font-weight: 600; }
+.sv-table tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 2px solid var(--rule); }
+
+/* Data tables. Four table styles grew separately: .tbl (chapter text), .wtab (weights), .ptable (practice sets) and .sv-table (below).
+   They share the first rule. Each keeps its own sizes, because the rows differ in density. .tbl is scoped to table.tbl:
+   C2 uses a div called tbl as a scroll wrapper. */
+
+table.tbl, .wtab, .ptable { border-collapse: collapse; font-feature-settings: "tnum" 1, "lnum" 1; }
+
+/* .tbl: tables in chapter text (A4, A6, F1, F2, F3). */
+
+table.tbl { width: 100%; font-size: 14.5px; margin: 6px 0 0; }
+table.tbl th, table.tbl td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; vertical-align: top; }
+table.tbl th:first-child, table.tbl td:first-child { text-align: left; }
+table.tbl th { font-weight: 500; color: var(--muted); }
+table.tbl tr.pick td { background: var(--mark); color: var(--ink); font-weight: 600; }
+table.tbl td.gap { color: var(--coral); font-weight: 600; }
+table.tbl.words td, table.tbl.words th { text-align: left; font-feature-settings: normal; }
+table.tbl.words td:first-child { white-space: nowrap; color: var(--ink); font-weight: 600; }
+
+@media (max-width: 600px) {
+  table.tbl { font-size: 13px; }
+  table.tbl th, table.tbl td { padding: 4px 4px; }
+}
+
+/* .wtab: weights tables (A1, A3). */
+
+.wtab-wrap { overflow-x: auto; max-width: 46em; margin: 8px 0 14px; }
+.wtab { width: 100%; font-size: 14.5px; }
+.wtab th, .wtab td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: right; color: var(--ink-2); }
+.wtab th { font-weight: 500; font-size: 13px; color: var(--muted); }
+.wtab td:first-child, .wtab th:first-child { text-align: left; }
+.wtab tfoot td { border-bottom: 0; border-top: 2px solid var(--rule); color: var(--ink); font-weight: 600; }
+.wtab tr.best td { background: var(--mark); color: var(--ink); font-weight: 600; }
+
+@media (max-width: 760px) {
+  .wtab { font-size: 12.5px; }
+  .wtab th, .wtab td { padding: 3px 4px; }
+}
+
+/* Practice-set tables (.ptable) */
+.ptable { width: 100%; max-width: 30em; margin: 0 auto 0 0; font-size: 15px; }
+.ptable.cmx { max-width: 24em; }
+.ptable.cmx th, .ptable.cmx td { text-align: center; }
+.ptable.cmx th:first-child, .ptable.cmx td:first-child { text-align: left; }
+.ptable caption { padding: 0 0 6px; text-align: left; font-size: 14.5px; color: var(--ink-2); caption-side: top; }
+.ptable th, .ptable td { padding: 5px 9px; text-align: right; border-bottom: 1px solid var(--rule); color: var(--ink-2); }
+.ptable th:first-child, .ptable td:first-child { text-align: left; }
+.ptable thead th { font-size: 13.5px; font-weight: 500; color: var(--muted); }
+.ptable thead th.grp { text-align: center; border-bottom: 1px solid var(--rule); }
+.ptable td.dg { background: var(--mark); color: var(--ink); font-weight: 600; }
+.ptable tbody th { font-weight: 500; color: var(--ink); }
+.ptable.w2 { max-width: 40em; }
+.ptable.tl td:last-child { text-align: left; white-space: nowrap; }
+.ptable.lft th, .ptable.lft td { text-align: left; }
+.ptable.lft.w2 { max-width: 42em; }
+
+@media (max-width: 760px) {
+  .ptable { font-size: 14px; }
+  .ptable th, .ptable td { padding: 5px 5px; }
+}
+
+/* Scroll wrapper for a wide table */
+.tscroll { overflow-x: auto; margin: 4px 0 8px; }

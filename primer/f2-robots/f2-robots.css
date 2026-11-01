@@ -1,0 +1,15 @@
+/* Styles for this chapter only. Shared styles are in primer/lib/css. */
+
+.card .bar .label { margin-right: 4px; }
+.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
+.tbl td.okc { color: var(--link-hover); font-weight: 600; }
+.tbl td.nocc { color: var(--coral); }
+.card .group { border-radius: 16px; }
+#qz-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; margin: 10px 0 0; max-width: 520px; }
+#qz-grid .dg { text-align: center; border: 1.5px solid var(--rule); border-radius: 6px; padding: 3px 2px 1px; background: var(--paper); }
+#qz-grid .dg canvas { width: 100%; max-width: 40px; height: auto; display: block; margin: 0 auto; image-rendering: pixelated; background: #fff; }
+#qz-grid .dg span { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+#qz-grid .dg.bad { border-color: var(--coral); background: color-mix(in srgb, var(--coral) 16%, transparent); }
+#qz-grid .dg.bad span { color: var(--coral); }
+#lp-svg { max-width: 100%; }
+#aim-svg { max-width: 640px; margin: 0 auto; }

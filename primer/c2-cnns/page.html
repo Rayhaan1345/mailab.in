@@ -1,0 +1,369 @@
+---
+description: Stacked filters that read a handwritten tag number: draw a digit and watch a small CNN's feature maps and probabilities, measure what one cell can see, and count why shared filters save millions of numbers.
+subtitle: Stacked filters that read a handwritten tag number, and how much of the picture one cell can see
+kicker: Part C &middot; Chapter 2
+libs: plotly-cartesian, katex
+---
+<div class="tldr">
+  <p>A filter finds one pattern. A convolutional network, or CNN, stacks layers of filters with pooling in between, so that later layers read patterns made from earlier ones. This chapter builds the stack and runs a trained network on a digit you draw. It measures what one cell of a deep map can see and counts how many numbers sharing the filters saves. Then it tests the limits: shift or turn a digit and the network starts to fail.</p>
+  <p>The network has 3,730 numbers. It was trained offline in PyTorch on the handwritten digits of <a href="../c1-convolution/#pixels">C1</a> (MNIST, LeCun et al., 1998), then exported as weights and runs here in plain JavaScript in your browser. On the 10,000 MNIST test digits it is right 98.9% of the time. It plays the part of the reader of tag numbers in SharkCam's logbooks.</p>
+</div>
+<p class="youneed"><b>You will need:</b> <a href="../c1-convolution/">filters, stride, padding and pooling</a> (C1), <a href="../a3-logistic-regression/#softmax">softmax</a> (A3) and the idea that <a href="../b4-backpropagation/#backward">backpropagation</a> sets the weights (B4).</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#stack">From one filter to a stack</a></li>
+    <li><a href="#read">Reading a handwritten tag</a></li>
+    <li><a href="#rf">What one cell can see</a></li>
+    <li><a href="#params">Why sharing filters saves numbers</a></li>
+    <li><a href="#limits">Where the reader fails</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. stack ============================ -->
+<section id="stack" aria-labelledby="stack-h">
+  <h2 id="stack-h">From one filter to a stack</h2>
+  <p class="ask"><b>Guess first.</b> A 28 by 28 digit goes through a 3 by 3 convolution with 6 filters and a 2 by 2 max pool. Then it goes through a 3 by 3 convolution with 12 filters, another 2 by 2 max pool and a dense layer with 10 outputs. How wide is the map just before the dense layer? And about how many numbers does the whole network learn: hundreds, thousands or millions?</p>
+  <dl class="terms">
+    <div><dt>CNN</dt><dd>a network of convolution layers (followed by ReLU), pooling layers, and a dense layer at the end</dd></div>
+    <div><dt>conv layer</dt><dd>a bank of filters slid over the input, writing one map per filter (<a href="../c1-convolution/#filter">C1</a>)</dd></div>
+    <div><dt>dense layer</dt><dd>all outputs are weighted sums of all inputs, the layer of <a href="../b1-one-neuron/#layer">B1</a></dd></div>
+    <div><dt>flatten</dt><dd>unroll the last maps into one vector for the dense layer</dd></div>
+  </dl>
+  <p class="claim">A CNN is a short list of layers, and the formulas of C1 give the size and the number of weights of all of them.</p>
+  <div class="card" id="ar">
+    <div class="bar" id="ar-bar"></div>
+    <div class="tbl" id="ar-table"></div>
+    <div class="eqn eqs" id="ar-total"></div>
+    <div class="eqn eqs" id="ar-eqn"></div>
+  </div>
+  <p class="cap"><b>The digit reader has five layers and 3,730 numbers. Its last map is 5 by 5 by 12, which flatten turns into 300 inputs for the dense layer.</b> A plain network with 128 hidden units needs 101,770 numbers for the same digit. Click a row to see the working, edit the number of filters, or build your own stack.</p>
+  <p>Follow the sizes with the formula of <a href="../c1-convolution/#size">C1</a>. The 3 by 3 convolution turns 28 into 26. The pool halves it to 13. The second convolution gives 11, and the second pool gives 5, because \(\lfloor (11-2)/2 \rfloor + 1 = 5\) drops the last row and column. Twelve maps of 5 by 5 flatten to 300 numbers, and the dense layer has \((300 + 1) \times 10 = 3{,}010\) numbers. The convolution layers have \((3 \cdot 3 \cdot 1 + 1) \cdot 6 = 60\) and \((3 \cdot 3 \cdot 6 + 1) \cdot 12 = 660\) numbers. The total is 60 + 660 + 3,010 = 3,730. The answer to the guess is therefore 5 by 5 and a few thousand numbers.</p>
+  <div class="eqn" role="img" aria-label="Sizes 28, 26, 13, 11, 5 and parameter counts 60, 660, 3010 adding to 3730"><span class="t c-navy"><b>28 &rarr; 26 &rarr; 13 &rarr; 11 &rarr; 5</b><i>side of the picture: conv, pool, conv, pool</i></span><span class="op">|</span><span class="t c-teal"><b>60</b><i>conv 1: (3&times;3&times;1+1)&times;6</i></span><span class="op">+</span><span class="t c-teal"><b>660</b><i>conv 2: (3&times;3&times;6+1)&times;12</i></span><span class="op">+</span><span class="t c-teal"><b>3,010</b><i>dense: (300+1)&times;10</i></span><span class="op">=</span><span class="t c-coral"><b>3,730</b><i>numbers learned</i></span></div>
+  <p>The whole network is a composition of the layers, written layer by layer. The notation follows the primer: a superscript in square brackets numbers the layer.</p>
+  <p class="math">\[ \begin{aligned} \mathbf{h}^{[1]} &= \mathrm{pool}\big(\mathrm{ReLU}(K^{[1]} * \mathbf{x} + \mathbf{b}^{[1]})\big) \\ \mathbf{h}^{[2]} &= \mathrm{pool}\big(\mathrm{ReLU}(K^{[2]} * \mathbf{h}^{[1]} + \mathbf{b}^{[2]})\big) \\ \mathbf{p} &= \mathrm{softmax}\big(W\,\mathrm{flat}(\mathbf{h}^{[2]}) + \mathbf{b}\big) \end{aligned} \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{x}\)</b> is the 28 by 28 picture and <b>\(\mathbf{h}^{[l]}\)</b> is the stack of maps after layer \(l\) (6 maps of 13 by 13, then 12 maps of 5 by 5).</li>
+    <li><b>\(K^{[l]}\)</b> contains the filters of layer \(l\). Here \(K\) is short for kernel, the filter of <a href="../c1-convolution/#filter">C1</a>, and not the keys of attention. The star means slide and sum, as in C1. A filter in layer 2 spans all 6 maps of layer 1, so it has \(3 \cdot 3 \cdot 6\) weights.</li>
+    <li><b>\(\mathbf{b}^{[l]}\)</b> is one bias per filter. <b>\(W\)</b> and <b>\(\mathbf{b}\)</b> are the weights (10 by 300) and biases of the dense layer.</li>
+    <li><b>\(\mathbf{p}\)</b> is the vector of ten probabilities. Softmax is the function of <a href="../a3-logistic-regression/#softmax">A3</a>.</li>
+  </ul>
+  <div class="break">
+    <p><b>Analogy.</b> A CNN is a line of inspectors. The first spot short edges, the next combine edges into curves, and the last one decides which digit it is.</p>
+    <p><b>Where it breaks.</b> Nobody assigns the jobs. All filters start random and are adjusted together by gradient descent from the final loss (<a href="../b4-backpropagation/#backward">B4</a>). The first layer often ends up with edge finders, but some filters are plain blurs, and the later layers are not clean detectors of curves or loops. Where interpretation helps and where it misleads is the topic of <a href="../b9-explaining/">B9</a>.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> <code>Conv2d</code> expects input of size (batch, channels, height, width). A batch of grey digits has no channel, so add one with <code>x[:, None]</code>, or you will see an error about the input having the wrong number of dimensions. And <code>cross_entropy</code> wants raw scores. If you apply softmax first and then <code>cross_entropy</code>, the softmax runs twice and the slopes get flat.</p>
+  </div>
+  <pre class="code"><code>import torch, torch.nn as nn, torch.nn.functional as F
+
+class TagReader(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 6, 3)        # 28 -> 26, six 3 by 3 filters
+        self.conv2 = nn.Conv2d(6, 12, 3)       # 13 -> 11, twelve filters over six maps
+        self.fc = nn.Linear(12 * 5 * 5, 10)    # 5 by 5 maps after the second pool
+    def forward(self, x):
+        x = F.max_pool2d(F.relu(self.conv1(x)), 2)
+        x = F.max_pool2d(F.relu(self.conv2(x)), 2)
+        return self.fc(x.flatten(1))           # ten scores
+
+net = TagReader()
+print(net(torch.zeros(1, 1, 28, 28)).shape)
+for name, p in net.named_parameters():
+    print(f"{name:12s} {str(tuple(p.shape)):16s} {p.numel()}")
+print("total", sum(p.numel() for p in net.parameters()))</code></pre>
+  <pre class="out">torch.Size([1, 10])
+conv1.weight (6, 1, 3, 3)     54
+conv1.bias   (6,)             6
+conv2.weight (12, 6, 3, 3)    648
+conv2.bias   (12,)            12
+fc.weight    (10, 300)        3000
+fc.bias      (10,)            10
+total 3730</pre>
+  <p>Training adds a loop. The loss is the cross-entropy of <a href="../b3-loss-gradient-descent/#cost">B3</a>. The call <code>loss.backward()</code> runs the backward pass of <a href="../b4-backpropagation/#backward">B4</a> through the convolutions. A filter weight used at 676 positions receives the sum of the slopes from all of them. Two passes over the 60,000 training digits already give 97.4% on the 10,000 test digits.</p>
+  <pre class="code"><code># X, y: 60,000 training digits (0..1, size (60000, 1, 28, 28)) and labels
+# Xt, yt: the 10,000 test digits and labels
+net = TagReader(); opt = torch.optim.Adam(net.parameters(), lr=3e-3)
+for epoch in range(2):
+    perm = torch.randperm(60000)
+    for i in range(0, 60000, 128):
+        idx = perm[i:i + 128]
+        loss = F.cross_entropy(net(X[idx]), y[idx])      # softmax and log loss in one call
+        opt.zero_grad(); loss.backward(); opt.step()
+    acc = (net(Xt).argmax(1) == yt).float().mean().item()
+    print(f"pass {epoch + 1}: last loss {loss.item():.3f}, test accuracy {acc:.3f}")</code></pre>
+  <pre class="out">pass 1: last loss 0.118, test accuracy 0.972
+pass 2: last loss 0.045, test accuracy 0.974</pre>
+  <p>The network of this chapter was trained for 10 passes with a learning-rate schedule. The training digits were shifted by up to 2 squares, turned by up to 10 degrees and zoomed between 0.9 and 1.1. The network reaches 98.9%. Without the shifted examples it reaches 98.7%. A plain network with 101,770 numbers, trained for 10 passes with the same optimiser and no tuning, reaches 97.4%. That is one run per network, so the gap of 1.3 to 1.5 points is only a rough guide.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A 3 by 3 conv layer with padding 1 turns 8 maps of 14 by 14 into 16 maps. What is the output size and how many numbers does the layer learn?</summary><p>The size stays 14 by 14 because \(p = (k-1)/2\). The layer learns \((3 \cdot 3 \cdot 8 + 1) \cdot 16 = 73 \cdot 16 = 1{,}168\) numbers.</p></details>
+    <details><summary>Why does the dense layer have 300 inputs?</summary><p>The last pool leaves 12 maps of 5 by 5, and 12 &times; 5 &times; 5 = 300. Flatten lists them in one row.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. read ============================ -->
+<section id="read" aria-labelledby="read-h">
+  <h2 id="read-h">Reading a handwritten tag</h2>
+  <p class="ask"><b>Guess first.</b> You draw a 7. The network answers with ten numbers, one per digit. What do the ten numbers add up to? And how many of them do you expect to be above 0.1?</p>
+  <dl class="terms">
+    <div><dt>score \(z_k\)</dt><dd>the raw output of the dense layer for digit \(k\), also called a logit (<a href="../a3-logistic-regression/#softmax">A3</a>)</dd></div>
+    <div><dt>softmax</dt><dd>turns the ten scores into probabilities that are positive and add up to 1 (<a href="../t7-probability/#softmax">0.7</a>)</dd></div>
+    <div><dt>centre of mass</dt><dd>the average position of the ink, weighted by its value; MNIST digits are placed so that it is in the middle</dd></div>
+  </dl>
+  <p class="claim">A CNN reads in stages: filters write maps, pooling shrinks them, and a dense layer turns the last maps into ten scores that softmax turns into probabilities.</p>
+  <div class="card" id="rd">
+    <div class="bar" id="rd-bar"></div>
+    <div class="rd-top">
+      <div><p class="pane-h">Draw here with the mouse or a finger</p><canvas class="pad" id="rd-pad" role="img" aria-label="A drawing pad. Draw a digit; the network reads it."></canvas></div>
+      <div><p class="pane-h">What the network sees</p><canvas class="fig" id="rd-in" width="28" height="28" role="img" aria-label="The drawing as 28 by 28 grey values"></canvas></div>
+      <div><p class="pane-h">Probabilities. Click a bar for its working.</p><div id="rd-bars"></div><p id="rd-ans" aria-live="polite"></p></div>
+    </div>
+    <p class="pane-h mt-14" id="rd-h1"></p>
+    <div class="mapgrid" id="rd-c1"></div>
+    <p class="pane-h" id="rd-h2"></p>
+    <div class="mapgrid" id="rd-c2"></div>
+    <div class="eqn eqs" id="rd-eqn"></div>
+  </div>
+  <p class="cap"><b>The layer 1 maps show your drawing through six filters. The layer 2 maps are smaller and harder to read. The last step turns them into ten probabilities that add up to 1.</b> The small squares above the layer 1 maps are the filters: teal for positive weights, coral for negative.</p>
+  <p>Draw a digit and watch all three stages update as you move. The network was trained on digits that fit a 20 by 20 box, centred by their centre of mass in a 28 by 28 picture. The box <b>Centre and scale my drawing like MNIST</b> does the same to your drawing. Untick it, draw a small digit in one corner and compare. The filters have some structure. Filters 2 and 5 compare the top and bottom of the window, and filter 6 compares left and right. Filters 3 and 4 are blurs, with mostly positive weights. Filter 1 is a dead unit (<a href="../b1-one-neuron/#activations">B1</a>): its weights are small and its bias is negative, so ReLU keeps its map empty on all 10,000 test digits. This is true for this trained network only. Another training run gives different filters.</p>
+  <p>Layer 1 maps keep the layout of your drawing, so you can recognise it in them. Layer 2 maps have 11 by 11 cells, and a cell covers a bigger patch (the next section measures how big). You can no longer read a digit in them. The dense layer multiplies the 300 numbers of the last maps by its weights and gets one score per digit. Click any bar to see how that score becomes a probability.</p>
+  <p class="math">\[ \begin{aligned} z_k &= \mathbf{w}_k \cdot \mathrm{flat}(\mathbf{h}^{[2]}) + b_k \\ p_k &= \frac{e^{z_k}}{\sum_{j=0}^{9} e^{z_j}} \end{aligned} \]</p>
+  <ul class="math-notes">
+    <li><b>\(z_k\)</b> is the score of digit \(k\), a dot product of its 300 weights \(\mathbf{w}_k\) with the flattened last maps, plus a bias \(b_k\).</li>
+    <li><b>\(p_k\)</b> is the probability of digit \(k\). The ten values are positive and add up to 1 by construction.</li>
+    <li>The boxes under the figure subtract the largest score before taking the exponential. This does not change \(p_k\) and avoids overflow when scores are large, the usual practice in code (<a href="../t7-probability/#softmax">0.7</a>).</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> A network that is right on 98.9% of test digits knows what a digit is.</p>
+    <p><b>Why it fails.</b> The 98.9% was measured on digits only. The network was also given 2,000 images of random noise (pixel values drawn at random between 0 and 1). It answered 8 for all of them, with a probability above 0.9 for 94% of them. Draw a scribble or a letter, and you will probably see a confident answer too. The ten probabilities must add up to 1, so there is no way to say &ldquo;none of these&rdquo;.</p>
+    <p><b>Better account.</b> A softmax probability is a share among the ten classes it was trained on. It does not measure whether the picture is a digit at all. Fixes include an extra class for &ldquo;not a digit&rdquo; and checks on the scores before softmax. <a href="../b9-explaining/#cam">B9</a> shows what a network looks at when it makes a call like this.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When a model works on test digits and fails on your own pictures, look at what it receives. Compare your 28 by 28 array with a test digit. Is the ink high and the paper 0 (white on black)? Is the digit about 20 squares tall and centred? Is the scale 0 to 1? Most failures of a first deployed model are a mismatch in one of these, not a wrong network. The panel &ldquo;What the network sees&rdquo; is that check.</p>
+  </div>
+  <p>In code, softmax subtracts the largest score first, as the boxes under the figure do. The answer is the same, and large scores no longer overflow.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+def softmax(z):
+    e = np.exp(z - z.max())            # subtract the largest score: same answer, no overflow
+    return e / e.sum()
+
+print(softmax(np.array([2.0, 0.0, -1.0])).round(3))
+print(softmax(np.array([1000.0, 0.0, -1000.0])))   # exp(1000) overflows</code></pre>
+  <pre class="out">[0.844 0.114 0.042]
+[1. 0. 0.]</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The scores are 2.0, 0.0 and &minus;1.0 for three classes. What are the probabilities?</summary><p>\(e^{2} = 7.389\), \(e^{0} = 1\), \(e^{-1} = 0.368\), sum 8.757. The probabilities are 0.844, 0.114 and 0.042, and they add up to 1.</p></details>
+    <details><summary>The network says 8 for pure noise. Does that mean it thinks the noise looks like an 8?</summary><p>Not necessarily. The scores come from weights fitted to digits, and noise is outside the data the weights were fitted to. Some class must win, and softmax turns its win into a high probability.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. receptive field ============================ -->
+<section id="rf" aria-labelledby="rf-h">
+  <h2 id="rf-h">What one cell can see</h2>
+  <p class="ask"><b>Guess first.</b> A cell in the map of conv layer 2 reads a 3 by 3 patch of the pooled maps. How many pixels of the original 28 by 28 digit can its value depend on: 9, 16, 36 or 64?</p>
+  <dl class="terms">
+    <div><dt>receptive field \(r\)</dt><dd>the square of input pixels that can change the value of one cell</dd></div>
+    <div><dt>jump \(j\)</dt><dd>the distance in input pixels between neighbouring cells of a map</dd></div>
+    <div><dt>effective receptive field</dt><dd>the pixels that change the value by a noticeable amount (Luo et al., 2016)</dd></div>
+  </dl>
+  <p class="claim">The receptive field grows with depth by \(r_{\text{out}} = r_{\text{in}} + (k-1)\,j_{\text{in}}\), while the jump grows by \(j_{\text{out}} = s\,j_{\text{in}}\).</p>
+  <div class="card" id="rf">
+    <div class="bar" id="rf-bar"></div>
+    <div class="rf-grid">
+      <div><p class="pane-h">The digit you drew, with the receptive field in coral</p><canvas class="fig" id="rf-in" role="img" aria-label="The input digit with the receptive field of the selected cell outlined and the influential pixels in teal"></canvas></div>
+      <div><p class="pane-h">The map. Click a cell, or use the arrow keys.</p><canvas class="fig" id="rf-map" tabindex="0" role="img" aria-label="The selected feature map; the chosen cell is outlined"></canvas></div>
+    </div>
+    <div class="eqn eqs" id="rf-eqn"></div>
+    <p class="status" id="rf-status" aria-live="polite"></p>
+    <div class="tbl" id="rf-table"></div>
+  </div>
+  <p class="cap"><b>A cell of conv layer 2 can depend on an 8 by 8 patch of the digit, and a cell of pool 2 on a 10 by 10 patch. The influence inside the patch is uneven: the middle 6 by 6 of a pool 2 frame, about a third of its pixels, has about two thirds of it.</b> The coral frame is the full receptive field. The teal pixels are the ones whose nudge changes the cell the most.</p>
+  <p>The figure uses the digit from the drawing pad above. Pick a layer, then click a cell in the map. The coral frame shows which input pixels the cell can depend on, and the equation boxes give its size. With the nudge test ticked, the figure also changes the pixels in the frame by a small amount, one at a time, and measures how much the cell moves. This is a slope, in the sense of <a href="../t6-gradients/#slope">0.6</a>, found by central differences as in <a href="../b4-backpropagation/#check">gradient checking</a>.</p>
+  <p>Where the numbers come from: conv 1 cells read 3 by 3 pixels, so \(r = 3\) and \(j = 1\). A pool 1 cell reads a 2 by 2 block of conv 1 cells, whose spots are 1 pixel apart. It spans \(3 + (2-1)\cdot 1 = 4\) pixels, and neighbouring pool 1 cells are 2 pixels apart. A conv 2 cell reads a 3 by 3 block of pool 1 cells, which are 2 pixels apart, so \(r = 4 + (3-1)\cdot 2 = 8\). A pool 2 cell reads 2 by 2 conv 2 cells, 2 pixels apart, so \(r = 8 + (2-1) \cdot 2 = 10\), and its jump is \(4\).</p>
+  <p class="math">\[ \begin{aligned} r_{\text{out}} &= r_{\text{in}} + (k - 1)\, j_{\text{in}} \\ j_{\text{out}} &= s\, j_{\text{in}} \\ \text{first input pixel of cell } i &= i \cdot j_{\text{out}} \end{aligned} \]</p>
+  <ul class="math-notes">
+    <li><b>\(r_{\text{in}}\)</b> is the receptive field of one cell of the layer's input (1 for the picture itself), and <b>\(r_{\text{out}}\)</b> that of one cell of its output.</li>
+    <li><b>\(k\)</b> and <b>\(s\)</b> are the filter or pool size and the stride. <b>\(j_{\text{in}}\)</b> is the jump of the input map in pixels.</li>
+    <li>Why it works: a window of \(k\) cells covers \((k-1)\) gaps of \(j_{\text{in}}\) pixels, plus the receptive field of one cell at its end.</li>
+    <li>Padding shifts the frame by the padding but does not change its size. This network has no padding, so the frame starts at \(i \cdot j_{\text{out}}\).</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> A cell reads all pixels of its receptive field equally.</p>
+    <p><b>Why it fails.</b> The pixels of the frame were nudged for the 5 cells with the largest values in the layer, using the 20 example test digits. That makes 100 cells per layer. In conv 2 the median cell had 64% of the frame pixels above a tenth of its largest slope, in pool 2 only 43%. In conv 2 the middle 4 by 4 of the frame, a quarter of its pixels, held 42% of the total slope. In pool 2 the middle 6 by 6, about a third of its pixels, held 68%. The filter weights differ, ReLU switches some units off, and pooling passes only the largest value of a block.</p>
+    <p><b>Better account.</b> The receptive field is the upper limit of what a cell can see. The effective receptive field is usually smaller and concentrated in the middle, as Luo et al. (2016) found for deep networks. The frame answers &ldquo;could this pixel matter?&rdquo;, and the nudge test answers &ldquo;does it, for this picture?&rdquo;.</p>
+  </div>
+  <p><b>Why this matters for SharkCam.</b> A shark may fill 300 pixels of a 640 pixel photo. A cell with a 10 by 10 receptive field cannot see a shark. It sees a bit of skin or a tooth. To tell a shark from a ray, a late layer needs a receptive field about as large as the animal. Networks reach it by stacking many layers, by pooling and by strides, which raise the jump. The cost is that a deep cell mixes in a large patch, so the position of a detail blurs.</p>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a CNN fails on large objects but works on small ones, check the receptive field of the last conv layer against the object size. Add a pool or a stride earlier, or one more layer, or resize the photo, before you change anything else.</p>
+  </div>
+  <p>The recursion is four lines of code. It reproduces the table above.</p>
+  <pre class="code" data-run><code>layers = [("conv1", 3, 1), ("pool1", 2, 2),
+          ("conv2", 3, 1), ("pool2", 2, 2)]       # (name, k, s)
+r, j = 1, 1                  # one input pixel: receptive field 1, jump 1
+for name, k, s in layers:
+    r = r + (k - 1) * j      # k cells span k - 1 gaps of j pixels
+    j = j * s
+    print(f"{name}: receptive field {r} x {r}, jump {j}")</code></pre>
+  <pre class="out">conv1: receptive field 3 x 3, jump 1
+pool1: receptive field 4 x 4, jump 2
+conv2: receptive field 8 x 8, jump 2
+pool2: receptive field 10 x 10, jump 4</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Three stacked 3 by 3 convolutions with stride 1 and no pooling: what is the receptive field?</summary><p>\(r = 1 + 2 + 2 + 2 = 7\). A layer adds \((3-1) \cdot 1 = 2\). A single 7 by 7 filter sees the same patch.</p></details>
+    <details><summary>Why is the receptive field of conv 2 (8) bigger than 3 + 3 &minus; 1 = 5?</summary><p>Pool 1 lies between the layers and doubles the jump. The conv 2 window spans two gaps of 2 pixels, so it adds \(2 \cdot 2 = 4\), not 2, to the 4 pixels of a pool 1 cell.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. params ============================ -->
+<section id="params" aria-labelledby="params-h">
+  <h2 id="params-h">Why sharing filters saves numbers</h2>
+  <p class="ask"><b>Guess first.</b> A conv layer with six 3 by 3 filters on a 28 by 28 digit has 60 numbers. A dense layer that writes the same six maps of 26 by 26 from the 784 pixels needs how many: about 6,000, about 600,000, or about 3 million?</p>
+  <dl class="terms">
+    <div><dt>local connectivity</dt><dd>an output square reads only a small patch of the input, not the whole picture</dd></div>
+    <div><dt>weight sharing</dt><dd>the same filter weights are used at all positions</dd></div>
+    <div><dt>locally connected layer</dt><dd>local patches but separate weights for a position (no sharing)</dd></div>
+  </dl>
+  <p class="claim">Locality cuts the weights per output from the whole picture to one patch, and sharing cuts the number of weight sets from one per output square to one per filter.</p>
+  <div class="card" id="pm">
+    <div class="bar" id="pm-bar"></div>
+    <div class="controls" id="pm-controls"></div>
+    <div class="plot" id="pm-plot" role="img" aria-label="Parameter counts of three layer types on a log axis"></div>
+    <div class="eqn eqs" id="pm-eqn"></div>
+    <div class="eqn eqs" id="pm-eqn2"></div>
+  </div>
+  <p class="cap"><b>For the 28 by 28 digit a dense layer needs 3,183,960 numbers, a locally connected layer 40,560 and a convolution 60. For a 224 by 224 photo with 64 maps the dense layer needs about 483 billion.</b> The vertical axis is logarithmic, so equal steps are factors of 10.</p>
+  <p>The three rows of equation boxes follow from counting weights. A dense layer connects all \(n \cdot n \cdot C_{\text{in}}\) inputs to all \(m \cdot m \cdot F\) outputs, plus one bias per output. Here \(m\) is the side of an output map and \(F\) the number of maps. They are not the number of examples or the Fisher information. A locally connected layer connects an output to only \(k \cdot k \cdot C_{\text{in}}\) inputs, but keeps separate weights for separate output squares, so it needs \((k^2 C_{\text{in}} + 1) \cdot m^2 F\). A convolution uses one set of weights per filter for all positions.</p>
+  <p class="math">\[ \begin{aligned} N_{\text{dense}} &= (n^2 C_{\text{in}} + 1)\, m^2 F \\ N_{\text{local}} &= (k^2 C_{\text{in}} + 1)\, m^2 F \\ N_{\text{conv}} &= (k^2 C_{\text{in}} + 1)\, F \end{aligned} \]</p>
+  <ul class="math-notes">
+    <li><b>\(n\)</b> is the side of the input and <b>\(C_{\text{in}}\)</b> its number of channels; <b>\(m\)</b> is the side of an output map and <b>\(F\)</b> the number of maps (filters).</li>
+    <li><b>\(k\)</b> is the filter side. With <i>same</i> padding and stride 1, \(m = n\). With no padding, \(m = n - k + 1\).</li>
+    <li>The ratio \(N_{\text{dense}} / N_{\text{conv}}\) is about \(n^2 m^2 / k^2\): it grows with the fourth power of the picture side.</li>
+  </ul>
+  <p>Worked examples. Digit: \(n = 28\), \(C_{\text{in}} = 1\), \(k = 3\), no padding, \(m = 26\), \(F = 6\): \(N_{\text{dense}} = 785 \times 4{,}056 = 3{,}183{,}960\), \(N_{\text{local}} = 10 \times 4{,}056 = 40{,}560\), \(N_{\text{conv}} = 10 \times 6 = 60\). Photo: \(n = 224\), \(C_{\text{in}} = 3\), same padding, \(F = 64\), \(m = 224\): the dense layer has \(150{,}529 \times 3{,}211{,}264 \approx 4.8 \times 10^{11}\) numbers, which is about 1.9 terabytes as 32-bit floats. The convolution has \(28 \times 64 = 1{,}792\) numbers. Nobody trains the dense version.</p>
+  <p>The savings have a price. Sharing assumes that a pattern means the same wherever it appears. For a stroke in a digit this is true. For a photo from SharkCam's dive camera it is partly false. The sky is at the top and the sand at the bottom, so the same blue patch means different things in different places. A convolution cannot use position, but the dense layer at the end can, because it reads fixed positions in the flattened maps. CS231n (Karpathy and others) names the same limit for centred faces, where a locally connected layer can be better.</p>
+  <div class="break">
+    <p><b>Analogy.</b> Weight sharing is one stamp pressed at all places on a page, instead of cutting a different stamp for another place.</p>
+    <p><b>Where it breaks.</b> A stamp gives the same mark wherever it is pressed, which is why the filter finds a pattern anywhere. A stamp cannot say where the pattern was unless you keep the page around it. When the position is the answer, the network needs other help, such as the dense layer at the end or coordinates added to the input.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Count the numbers before you train: <code>sum(p.numel() for p in net.parameters())</code>. If a small CNN has millions, the dense layer after <code>flatten</code> is the usual cause. Without the two pools, the digit reader would flatten 12 maps of 24 by 24. That is 6,912 inputs and 69,130 numbers in the dense layer, which is 23 times more than now.</p>
+  </div>
+  <p>The three counts are one short function.</p>
+  <pre class="code" data-run><code>def counts(n, c_in, F, k, same=False):
+    m = n if same else n - k + 1       # side of an output map
+    outs = m * m * F                   # output squares in all maps
+    dense = (n * n * c_in + 1) * outs  # an output reads all inputs
+    local = (k * k * c_in + 1) * outs  # a patch, separate weights per square
+    conv = (k * k * c_in + 1) * F      # a patch, one shared set per filter
+    return dense, local, conv
+
+print(counts(28, 1, 6, 3))
+print(counts(224, 3, 64, 3, same=True))</code></pre>
+  <pre class="out">(3183960, 40560, 60)
+(483388358656, 89915392, 1792)</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A conv layer has 3 by 3 filters, 16 input channels and 32 filters. How many numbers does it learn, and does the picture size change the answer?</summary><p>\((3 \cdot 3 \cdot 16 + 1) \cdot 32 = 145 \cdot 32 = 4{,}640\). The picture size does not enter, so the count is the same for a 28 by 28 or a 224 by 224 input.</p></details>
+    <details><summary>Why is the locally connected layer 40,560 and not 60?</summary><p>An output square has its own 10 numbers (9 weights and a bias), and there are 4,056 output squares (6 maps of 26 by 26). That gives 40,560. The convolution shares 10 numbers per filter across all squares, so it has 60 for 6 filters.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 5. limits ============================ -->
+<section id="limits" aria-labelledby="limits-h">
+  <h2 id="limits-h">Where the reader fails</h2>
+  <p class="ask"><b>Guess first.</b> The digit reader uses the same filters at all positions and has pooling layers. If you move a test digit 3 squares to the right, or turn it by 30 degrees, will the accuracy on all 10,000 test digits stay above 95%?</p>
+  <dl class="terms">
+    <div><dt>equivariance</dt><dd>if the input moves, the feature maps move with it (<a href="../c1-convolution/#filter">C1</a>)</dd></div>
+    <div><dt>invariance</dt><dd>the final answer does not change when the input moves</dd></div>
+    <div><dt>data augmentation</dt><dd>training on shifted, turned or otherwise changed copies of the examples (<a href="../c3-domain-shift/#augment">C3</a>)</dd></div>
+  </dl>
+  <p class="claim">A CNN is equivariant to shifts by construction, but its answer is only as invariant as its training taught it to be.</p>
+  <div class="card" id="lm">
+    <div class="bar" id="lm-bar"></div>
+    <div class="controls" id="lm-controls"></div>
+    <div class="lm-grid">
+      <div><p class="pane-h">The test digit after the change</p><canvas class="fig" id="lm-cv" width="28" height="28" role="img" aria-label="The test digit after it has been moved or turned"></canvas><p id="lm-ans" aria-live="polite" style="font-size:15px;color:var(--ink-2)"></p></div>
+      <div><div class="plot" id="lm-plot" role="img" aria-label="Accuracy on 10,000 test digits against the shift or the turn, for two networks"></div><div class="key" id="lm-key"></div></div>
+    </div>
+  </div>
+  <p class="cap"><b>A network trained on centred digits drops from 98.7% to 87.9% when the test set is moved 3 squares and to 44.0% at 5 squares. Training with small shifts, turns and zoom lifts the 3-square result to 95.7%, while the two turning curves stay within 2.5 points of one another.</b> Both curves were measured on all 10,000 test digits, one trained network of the two kinds. The coral dotted line marks the setting of the slider.</p>
+  <p>Slide the slider and watch the network's answer for one digit, then compare with the measured curves. The left panel is a single example and the chart is the average over 10,000 digits, so a single digit can be read right where the average is poor. Moving the digit right by \(d\) squares shifts all feature maps by \(d\) cells (equivariance, which you saw in <a href="../c1-convolution/#filter">C1</a>), and pooling absorbs shifts smaller than its block. After that the dense layer reads fixed positions of the last maps. A shift of 3 squares in the input is a shift of less than one cell of pool 2. It still moves the ink into positions that the dense weights were never fitted on.</p><p>The shift in this figure wraps round the edge, as <code>torch.roll</code> does: ink pushed off the right edge returns on the left. Some ink wraps for 6% of the test digits at 3 squares, 30% at 5 squares and 79% at 8 squares. The curves beyond about 4 squares therefore measure a slightly different test than a plain slide would.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A CNN is invariant to where the object is, because it uses the same filter at all positions.</p>
+    <p><b>Why it fails.</b> The measured curve of the network trained on centred digits falls to 44% at 5 squares. Equivariance is a property of the convolution layers. Invariance of the final answer is not, and the dense layer is where it can be lost.</p>
+    <p><b>Better account.</b> Convolution gives equivariance, pooling a little tolerance, and examples with shifts teach the rest. The shifted training examples lifted the accuracy at 3 squares from 87.9% to 95.7%. Turning is different: the training here only included turns up to 10 degrees, so the network is only about 2 points better at 40 degrees. It learns the changes it was shown. <a href="../c3-domain-shift/#augment">C3</a> uses the same idea to prepare a network for murky water.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When a model does well on the test set and badly in the field, the first suspect is a difference in position, size, lighting or colour between the two. Make a test set that applies one of those changes at a time, as this figure does, and measure which one hurts. That tells you which augmentation to add.</p>
+  </div>
+  <p>The same test in code, for the two-pass <code>net</code> of the first section, which was trained on digits without shifts. It gives 97.4%, 93.8% and 59.4% for 0, 2 and 4 squares. One run of a small network, so the numbers are a rough guide.</p>
+  <pre class="code"><code>for dx in (0, 2, 4):
+    right = (net(torch.roll(Xt, dx, dims=3)).argmax(1) == yt)
+    print(f"moved right by {dx} squares: test accuracy {right.float().mean():.3f}")</code></pre>
+  <pre class="out">moved right by 0 squares: test accuracy 0.974
+moved right by 2 squares: test accuracy 0.938
+moved right by 4 squares: test accuracy 0.594</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The feature maps of a shifted digit are shifted copies. Why does the answer still change?</summary><p>The last layer is dense and reads fixed positions. The same ink in different positions meets different weights, and the training data did not show it such positions.</p></details>
+    <details><summary>What would you add to the training set to make the reader tolerate a 5 square shift?</summary><p>Copies of the digits shifted by up to 5 squares. The network learns the tolerance from the examples it sees.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> Two ways to see a 7 by 7 patch: one 7 by 7 convolution, or three stacked 3 by 3 convolutions with stride 1. Show that both have a receptive field of 7. With \(C\) channels in and out and no biases, how many weights does the layer or stack use? Which is smaller, and by how much for \(C = 32\)?</p>
+        <details class="hint"><summary>Hint</summary><p>One filter has \(k \cdot k \cdot C\) weights and there are \(C\) filters, so a layer has \(k^2 C^2\) weights.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> A network reads a 32 by 32 colour photo. Its layers are, in order: conv 5 by 5 with 16 filters and same padding. Max pool 2 by 2. Conv 3 by 3 with 32 filters and no padding. Max pool 2 by 2. Flatten. Dense 10. Give the side of the map after the layers, the number of numbers learned in the layers and the total.</p></li>
+      <li><p><span class="ex-tag">theory</span> A dense layer writes 16 maps of 64 by 64 from a 64 by 64 RGB crop. A convolution with 3 by 3 filters (same padding) writes the same maps. Compute \(N_{\text{dense}}\), \(N_{\text{local}}\) and \(N_{\text{conv}}\), and the ratio of dense to conv.</p></li>
+      <li><p><span class="ex-tag">theory</span> Explain why shifting the input of a convolution layer by one pixel shifts its output by one cell. Then explain why a dense layer after flatten breaks that property. What does max pooling with block size 2 do to a shift of one pixel?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Build <code>torchvision.models.resnet18()</code> without weights. Pass a zero tensor of size (1, 3, 224, 224) through <code>conv1</code>, <code>maxpool</code>, <code>layer1</code>, <code>layer2</code>, <code>layer3</code> and <code>layer4</code> in turn and print the sizes. Compare the first two with the output-size formula, and print the number of numbers in the layers.</p></li>
+      <li><p><span class="ex-tag">practice</span> Train the <code>TagReader</code> for 3 passes. Then measure its test accuracy when the test digits are moved right by 0 to 6 squares with <code>torch.roll</code>. Plot or print the curve and compare it with the chart above.</p></li>
+      <li><p><span class="ex-tag">practice</span> Replace all max pools in the <code>TagReader</code> by a convolution with stride 2 (so that the map sizes stay the same). How does the number of parameters change, and what accuracy do you get after 3 passes?</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> Turn the test digits by 180 degrees and look at which digits the network confuses. Which pairs would you expect, and why? What does this say about asking a CNN to read a tag that is held upside down?</p></li>
+      <li><p><span class="ex-tag">open</span> SharkCam has to find sharks that are 40 to 400 pixels wide. How do the receptive field of the last layer and the pooling layers interact with the size of the shark? Describe two designs that could handle several sizes and what you would measure to choose between them.</p></li>
+      <li><p><span class="ex-tag">open</span> The reader answers 8 for random noise. Propose two ways to make it answer &ldquo;not a digit&rdquo; for such inputs, and a test set that would show whether it works.</p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================ come back ============================ -->
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Try these after two days and again after a week. Say the answer aloud before you open it.</p>
+  <div class="recall comeback">
+    <details><summary>A 5 by 5 conv layer with stride 2 and padding 2 reads a 28 by 28 map. What is the output side, and how does a 2 by 2 max pool with stride 2 change it? (<a href="../c1-convolution/#size">C1</a>)</summary><p>Conv: \(\lfloor (28 + 4 - 5)/2 \rfloor + 1 = \lfloor 13.5 \rfloor + 1 = 14\). The pool then gives \(\lfloor (14-2)/2 \rfloor + 1 = 7\).</p></details>
+    <details><summary>In the digit reader, one weight of a conv 1 filter is used at 26 &times; 26 positions. How many terms are added up in its slope for one training digit, and why? (<a href="../b4-backpropagation/#paths">B4, a value used twice</a>)</summary><p>There are 676 terms, one per position. A weight used several times has one path to the loss per use, and the slopes of the paths add up. The slope is then averaged over the batch.</p></details>
+    <details><summary>Batch norm (<a href="../b6-deep-networks/#norm">B6</a>) stores a mean and variance per channel and uses them at test time. For a CNN, the average runs over the batch and all positions of one channel. Why is that a natural choice for conv layers, given weight sharing?</summary><p>All positions of a channel come from the same filter, so they have the same meaning and can share one mean and one variance. The statistics then need as many numbers as channels, not as many as squares.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>{{snippet:mnist-licence}} This page shows a few of its digits.</li>
+    <li>{{snippet:lecun-1998}} MNIST, and a CNN for digits. The citation details were checked against the Crossref record, and the data details against the copy that torchvision downloads.</li>
+    <li>Stanford CS231n, Convolutional Neural Networks (notes). Parameter sharing (34,944 parameters against over 105 million without sharing, in its AlexNet example), locally connected layers and the receptive field. <a href="https://cs231n.github.io/convolutional-networks/">cs231n.github.io/convolutional-networks</a></li>
+    <li>Araujo, A., Norris, W. and Sim, J. (2019). Computing receptive fields of convolutional neural networks. <i>Distill</i>. The recursion for receptive field and effective stride, which this chapter writes in forward form. <a href="https://distill.pub/2019/computing-receptive-fields/">distill.pub/2019/computing-receptive-fields</a></li>
+    <li>Luo, W., Li, Y., Urtasun, R. and Zemel, R. (2016). Understanding the effective receptive field in deep convolutional neural networks. <i>Advances in Neural Information Processing Systems 29</i> (arXiv:1701.04128). The effective receptive field is Gaussian-like and covers only part of the theoretical one. <a href="https://arxiv.org/abs/1701.04128">arxiv.org/abs/1701.04128</a></li>
+    <li>Dumoulin, V. and Visin, F. (2016). A guide to convolution arithmetic for deep learning. arXiv:1603.07285. <a href="https://arxiv.org/abs/1603.07285">arxiv.org/abs/1603.07285</a></li>
+    <li>The experiments of this chapter were run for this primer in PyTorch: the network, the shifted and turned test sets, the noise test and the plain network. The code is in the chapter's text. Figures use Plotly and the weights in <code>data/cnn.json</code>.</li>
+  </ol>
+</section>

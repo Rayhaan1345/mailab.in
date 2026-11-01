@@ -337,7 +337,7 @@
       var P = Kit.palette(), i, j, o = relu_ ? relu(full.out) : full.out;
       for (i = 0; i < N; i++) for (j = 0; j < N; j++) { ci.fillStyle = inkColour(P, img[i * N + j]); ci.fillRect(j * CELL, i * CELL, CELL, CELL); }
       var r = Math.floor(cur / M), c = cur % M;
-      ci.fillStyle = "rgba(194,86,58,0.18)"; ci.fillRect(c * CELL, r * CELL, 3 * CELL, 3 * CELL);
+      ci.fillStyle = "rgba(" + hexRGB(P.coral).join(",") + ",0.18)"; ci.fillRect(c * CELL, r * CELL, 3 * CELL, 3 * CELL);
       ci.strokeStyle = P.coral; ci.lineWidth = 3; ci.strokeRect(c * CELL + 1.5, r * CELL + 1.5, 3 * CELL - 3, 3 * CELL - 3);
       for (i = 0; i < M; i++) for (j = 0; j < M; j++) {
         var idx = i * M + j; co.fillStyle = idx < revealed ? divColour(P, o[idx], vmax) : P.paper; co.fillRect(j * CELL, i * CELL, CELL, CELL);
@@ -395,14 +395,14 @@
       }, function (svg) {
         if (m <= 0) return;
         var r = Math.floor(sel / m), c = sel % m;
-        Kit.el("rect", { x: pad + c * s * c1, y: pad + r * s * c1, width: k * c1, height: k * c1, rx: 4, fill: "rgba(194,86,58,0.15)", stroke: P.coral, "stroke-width": 3 }, svg);
+        Kit.el("rect", { x: pad + c * s * c1, y: pad + r * s * c1, width: k * c1, height: k * c1, rx: 4, fill: "rgba(" + hexRGB(P.coral).join(",") + ",0.15)", stroke: P.coral, "stroke-width": 3 }, svg);
         for (var a = 0; a < m; a++) for (var b = 0; b < m; b++) Kit.el("circle", { cx: pad + b * s * c1 + c1 / 2, cy: pad + a * s * c1 + c1 / 2, r: 2.6, fill: a === r && b === c ? P.coral : P.navy, opacity: a === r && b === c ? 1 : 0.55 }, svg);
       });
       svgI.setAttribute("aria-label", "Input grid with padding: " + n + " by " + n + " with " + p + " rings of zeros");
       if (m <= 0) { svgO.innerHTML = ""; svgO.setAttribute("viewBox", "0 0 100 40"); var tt = Kit.el("text", { x: 50, y: 24, "text-anchor": "middle", "font-size": 8, fill: P.coral }, svgO); tt.textContent = "No window fits"; }
       else grid(svgO, m, function (a, b, svg) {
         var x = pad + b * c1, y = pad + a * c1, on = a * m + b === sel;
-        var rr = Kit.el("rect", { x: x + 1, y: y + 1, width: c1 - 2, height: c1 - 2, rx: 3, fill: on ? "rgba(194,86,58,0.25)" : css(mixRGB(P.paper, P.teal, 0.25)), stroke: on ? P.coral : P.teal, "stroke-width": on ? 3 : 1.2, style: "cursor:pointer" }, svg);
+        var rr = Kit.el("rect", { x: x + 1, y: y + 1, width: c1 - 2, height: c1 - 2, rx: 3, fill: on ? "rgba(" + hexRGB(P.coral).join(",") + ",0.25)" : css(mixRGB(P.paper, P.teal, 0.25)), stroke: on ? P.coral : P.teal, "stroke-width": on ? 3 : 1.2, style: "cursor:pointer" }, svg);
         rr.addEventListener("click", function () { sel = a * m + b; draw(); });
       });
       svgO.setAttribute("aria-label", "Output grid: " + m + " by " + m);

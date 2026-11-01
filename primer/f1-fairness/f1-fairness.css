@@ -1,0 +1,20 @@
+/* Styles for this chapter only. Shared styles are in primer/lib/css. */
+
+.card .bar .label { margin-right: 4px; }
+.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
+.card .bar select, .card .controls select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.card .bar label:has(select) { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
+.tbl .cell-note { font-size: 12.5px; color: var(--muted); }
+.vbar { grid-template-columns: 150px 1fr 52px; }
+@media (max-width: 600px) {
+  .vbar { grid-template-columns: 110px 1fr 46px; }
+}
+#pv-table tr[data-i] { cursor: pointer; }
+#pv-table tr.uniq td { background: color-mix(in srgb, var(--coral) 18%, transparent); }
+#pv-table tr.homo td { background: color-mix(in srgb, var(--sand) 22%, transparent); }
+#pv-table tr.pick td { box-shadow: inset 0 2px 0 var(--ink), inset 0 -2px 0 var(--ink); font-weight: 600; }
+#pv-table td, #pv-table th { text-align: left; padding: 3px 8px; }
+#pv-table td:last-child, #pv-table td:nth-last-child(2), #pv-table th:last-child, #pv-table th:nth-last-child(2) { text-align: right; }
+#pv-table s { color: var(--muted); }
+.plot.bias { min-height: 760px; }
+.card .group { border-radius: 16px; }

@@ -1,0 +1,115 @@
+/* Maths and code: equation boxes, typeset maths with symbol notes, code blocks with output, Python colours. */
+
+.formula { font-style: italic; white-space: nowrap; }
+.eq { font-style: italic; white-space: nowrap; }
+
+/* Illustrated equations: a value in a box, with its meaning underneath. Coloured boxes match the figure. */
+
+.eqn { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 6px; max-width: 46em; margin: 6px 0 16px; }
+.eqn .t { display: inline-flex; flex-direction: column; align-items: center; min-width: 2.6em; padding: 4px 10px 4px; border: 1.5px solid var(--rule); border-radius: 7px; background: var(--bg); }
+.eqn .t b { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); white-space: nowrap; font-feature-settings: "tnum" 1, "lnum" 1; }
+.eqn .t i { font-style: normal; font-size: 12.5px; line-height: 1.25; color: var(--muted); text-align: center; max-width: 11em; }
+.eqn .t i:empty { display: none; }
+.eqn .op { padding: 5px 1px 0; font-size: 20px; line-height: 1.3; color: var(--ink-2); white-space: nowrap; }
+.eqn sup { font-size: 0.7em; line-height: 0; }
+.eqn .c-coral { border-color: var(--coral); }
+.eqn .c-coral b { color: var(--coral); }
+.eqn .c-navy { border-color: var(--navy); }
+.eqn .c-navy b { color: var(--navy); }
+.eqn .c-teal { border-color: var(--teal); }
+.eqn .c-teal b { color: var(--link-hover); }
+.eqn .c-sand { border-color: var(--sand); }
+.eqn .c-sand b { color: var(--sand); }
+
+/* Typeset maths (KaTeX) blocks with annotations underneath. */
+
+.math { max-width: 46em; margin: 8px 0 6px; overflow-x: auto; overflow-y: hidden; color: var(--ink); }
+.math-notes { max-width: 46em; margin: 0 0 16px; padding: 0; list-style: none; font-size: 15px; color: var(--ink-2); }
+.math-notes li { margin: 3px 0; }
+.math-notes b { color: var(--ink); }
+.katex { font-size: 1.08em; }
+
+/* Code: Andrew Ng style short blocks, output below. */
+
+pre.code, pre.out { max-width: 46em; margin: 10px 0 0; padding: 12px 14px; border-radius: 6px; overflow-x: auto; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 14px; line-height: 1.5; }
+pre.code { position: relative; background: var(--paper); border: 1px solid var(--rule); color: var(--ink); }
+pre.out { margin: 0 0 16px; border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 6px 6px; background: var(--bg); color: var(--ink-2); }
+pre.out::before { content: "output"; display: block; margin-bottom: 4px; font-family: "Spectral SC", Georgia, serif; font-size: 13px; letter-spacing: 0.04em; color: var(--muted); }
+pre.code + pre.out { margin-top: 0; }
+pre.code:has(+ pre.out) { border-radius: 6px 6px 0 0; }
+pre.code .kit-copy, pre.code .kit-run { position: absolute; top: 8px; font: 13px "Spectral", Georgia, serif; padding: 1px 9px; border: 1px solid var(--rule); border-radius: 999px; background: var(--bg); color: var(--muted); cursor: pointer; }
+pre.code .kit-copy { right: 8px; }
+pre.code .kit-run { right: 64px; }
+pre.code .kit-copy:hover, pre.code .kit-run:hover { color: var(--link-hover); border-color: var(--teal); }
+code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
+
+@media (max-width: 760px) {
+  pre.code, pre.out { font-size: 13px; }
+}
+
+.math { position: relative; }
+code { overflow-wrap: anywhere; }
+pre code { overflow-wrap: normal; }
+
+/* Python syntax colours (Kit.highlightPython). Colours come from the palette and are mixed towards the ink colour so that
+   each reaches 4.5:1 on the code background in light and dark mode. Weight and style carry meaning too, never colour alone. */
+
+.tok-k { color: var(--navy); font-weight: 600; }
+.tok-s { color: color-mix(in srgb, var(--teal) 75%, var(--ink)); }
+.tok-n { color: color-mix(in srgb, var(--coral) 80%, var(--ink)); }
+.tok-c { color: var(--muted); font-style: italic; }
+.tok-b { color: color-mix(in srgb, var(--sand) 65%, var(--ink)); }
+.tok-f { color: var(--ink); font-weight: 600; }
+
+/* Equation rows under a figure. On an .eqn itself (class "eqn eqs") it only sets the top margin.
+   On a container (div.eqs) it stacks the .eqn rows it holds. */
+
+.eqs, .eq1 { margin: 10px 0 0; }
+.eqs:where(:not(.eqn)) { display: grid; gap: 4px; }
+.eqs:where(:not(.eqn)) .eqn { margin: 0; }
+.eqs .status { margin: 0 0 2px; }
+
+/* Equation boxes: page variants */
+.eqn .op.wrap { white-space: normal; }
+
+/* Matrix products drawn as boxes (B1, B2) */
+.mxrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; margin: 14px 0 0; }
+.mxrow .op { font-size: 20px; color: var(--ink-2); }
+.mxg { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.mxl { font-size: 12.5px; color: var(--muted); }
+table.mx { border-collapse: collapse; border-left: 2px solid var(--ink-2); border-right: 2px solid var(--ink-2); border-radius: 4px; margin: 0; font-feature-settings: "tnum" 1, "lnum" 1; }
+table.mx td { padding: 2px 8px; text-align: right; font-size: 15.5px; color: var(--ink); }
+.mxg.hi table.mx { border-color: var(--teal); }
+.mxg.hi table.mx td { color: var(--link-hover); font-weight: 600; }
+
+/* Code walk-through: code view, variable boxes, cells, frames (0.1, 0.2) */
+.mono, .codeview, .qcode, .vb b, .cdetail pre, .cdetail code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+.codeview { font-size: 14px; line-height: 1.65; background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 0; overflow-x: auto; }
+.codeview .ln { display: block; padding: 0 12px; white-space: pre; border-left: 3px solid transparent; color: var(--ink-2); }
+.codeview .ln.on { background: var(--mark); border-left-color: var(--teal); color: var(--ink); }
+.codeview .ln.skip { opacity: 0.38; }
+.codeview .ln.err { background: color-mix(in srgb, var(--coral) 14%, transparent); border-left-color: var(--coral); color: var(--ink); }
+.codeview .ln.dim { opacity: 0.6; }
+.codeview .cm { color: var(--muted); }
+.vars { display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; min-height: 56px; }
+.vb { display: inline-flex; flex-direction: column; padding: 3px 11px 4px; border: 1.5px solid var(--navy); border-radius: 7px; background: var(--bg); min-width: 4.4em; }
+.vb small { font-size: 12.5px; color: var(--muted); line-height: 1.2; }
+.vb b { font-size: 16px; font-weight: 600; color: var(--ink); line-height: 1.35; white-space: nowrap; }
+.vb i { font-style: normal; font-size: 12px; color: var(--muted); }
+.vb.new { border-color: var(--coral); }
+.vb.new b { color: var(--coral); }
+.vb.gone { opacity: 0.45; border-style: dashed; }
+.vb.err { border-color: var(--coral); }
+.vb.err b { color: var(--coral); white-space: normal; font-size: 14px; }
+.vbox-title { margin: 0 0 6px; font-family: "Spectral SC", Georgia, serif; font-size: 13.5px; letter-spacing: 0.04em; color: var(--muted); }
+.frames { display: grid; gap: 10px; }
+.fbox { padding: 8px 10px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.cells { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
+.cells .c { display: flex; flex-direction: column; align-items: center; min-width: 52px; padding: 3px 6px 4px; border: 1.5px solid var(--rule); border-radius: 6px; background: var(--bg); position: relative; }
+.cells .c small { font-size: 12px; color: var(--muted); line-height: 1.2; }
+.cells .c b { font-size: 16px; font-weight: 600; line-height: 1.4; font-feature-settings: "tnum" 1, "lnum" 1; }
+.cells .c.cur { border-color: var(--coral); box-shadow: 0 0 0 2px var(--coral); }
+.cells .c.done { background: var(--paper); }
+.cells .c.kept { border-color: var(--teal); background: var(--mark); }
+.cells .c.sel { border-color: var(--teal); background: var(--mark); }
+.cells .c.cur small::before { content: "\2192 "; color: var(--coral); }

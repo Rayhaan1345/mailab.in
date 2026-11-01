@@ -1,0 +1,414 @@
+---
+description: A model is a rule with dials. Supervised learning sets the dials from examples with answers, and the lazy model is the first score any model must beat. Interactive figures on made-up shark records.
+subtitle: A model is a rule with dials. A baseline tells you whether the rule is worth keeping.
+libs: plotly-cartesian, d3, katex
+---
+<div class="tldr">
+  <p>A model turns inputs into a prediction. Its parameters are the dials that decide which prediction. Supervised learning sets the dials from examples that come with answers. This chapter builds those ideas on the SharkCam catch records, then introduces the lazy model, the first score any model must beat. The chapters after it fit the dials (<a href="../a2-linear-regression/">A2</a>, <a href="../a3-logistic-regression/">A3</a>), grade the result (<a href="../a4-grading-models/">A4</a>) and try other kinds of rules (<a href="../a5-decision-trees/">A5</a>, <a href="../a6-boosting/">A6</a>).</p>
+  <p>{{snippet:sharks-made-up}}</p>
+</div>
+<p class="youneed"><b>You will need:</b> <a href="../t3-algebra-functions/#machines">functions</a> and <a href="../t3-algebra-functions/#exponents">exponents</a>, <a href="../t7-probability/#spread">the mean</a> and <a href="../t8-charts/#types">reading charts</a>. The code blocks use a little <a href="../t1-python/#arrays">NumPy</a>.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#model">A model is a rule with dials</a></li>
+    <li><a href="#supervised">Learning from examples with answers</a></li>
+    <li><a href="#lazy">The lazy model</a></li>
+    <li><a href="#search">Learning as a search for good dials</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#comeback">Come back later</a></li>
+  </ol>
+</nav>
+
+<!-- ============================ 1. model ============================ -->
+<section id="model" aria-labelledby="model-h">
+  <h2 id="model-h">A model is a rule with dials</h2>
+  <p class="ask"><b>Guess first.</b> You want to estimate a spadenose shark's weight from its length, without a scale. A simple rule says: weight = a &times; length &times; length &times; length, where <i>a</i> is a number you can choose. A 41 cm shark has a length cubed of 68,921. Weights here are a fraction of a kilogram. Should <i>a</i> be about 0.0000033, about 0.033 or about 3.3?</p>
+  <dl class="terms">
+    <div><dt>model</dt><dd>a rule that turns inputs into a prediction</dd></div>
+    <div><dt>input (feature)</dt><dd>a number you give the model, such as a length</dd></div>
+    <div><dt>prediction \(\hat y\)</dt><dd>the model's output, its guess at the answer</dd></div>
+    <div><dt>parameter</dt><dd>a dial inside the model whose value is set from data</dd></div>
+  </dl>
+  <p class="claim">A model has a fixed form and adjustable parameters. The form says how inputs become a prediction. The parameters say which prediction.</p>
+  <div class="card" id="dl">
+    <div class="controls" id="dl-controls"></div>
+    <div class="bar" id="dl-bar"></div>
+    <div class="plot tall" id="dl-plot" role="img" aria-label="Weight against length for 268 made-up spadenose sharks. A teal curve, weight equals a times length cubed, moves with the dial a. A dashed line shows the lazy model, which always says the average weight. Thin grey lines join each shark to the curve."></div>
+    <div class="readout"><span>Dial a: <b id="dl-a">7.00</b> millionths</span><span>Average miss of the rule: <b id="dl-miss">0</b></span><span>Average miss of the lazy model: <b id="dl-lazy">0</b></span><span id="dl-verdict"></span></div>
+    <div class="eqn" id="dl-eqn" aria-live="polite"></div>
+  </div>
+  <p class="cap"><b>Near a = 3.3 the rule misses by about 0.025 kg on average, against 0.113 kg for the lazy model. At a = 7 it does worse than the lazy model.</b> That answers the guess: about 0.0000033, or 3.3 millionths.</p>
+  <p>The dots are made-up spadenose records. The teal curve is the model's prediction for any length. The thin grey lines show the miss for a shark, and the <i>average miss</i> is their mean length: it says how far off the model is in kilograms. Slide <i>a</i> and watch the curve swing. The coral ring is Tag 3305, a 41.0 cm adult. The boxes under the plot work out the prediction for it, step by step.</p>
+  <p>The lazy model is a dashed line. It ignores the length and says the average weight, 0.226 kg, for all sharks. It is the simplest model there is, and <a href="#lazy">the next sections</a> use it as a yardstick. A model with the dial at zero predicts 0 kg for all sharks. That does worse than the lazy model.</p>
+  <p class="math">\[ \hat y = f(\mathbf{x};\,\theta) \qquad\text{here}\qquad \hat y = a\,L^{3} \]</p>
+  <ul class="math-notes">
+    <li><b>\(f\)</b> is the model: the form of the rule. <b>\(\mathbf{x}\)</b> is the input, here the length \(L\) in cm.</li>
+    <li><b>\(\theta\)</b> (theta) is short for all the parameters together. This model has one, \(\theta = (a)\).</li>
+    <li><b>\(\hat y\)</b> (read "y hat") is the prediction. The true answer is \(y\). A hat always marks a model's guess.</li>
+  </ul>
+  <p>A person chose the form \(a L^3\), because weight grows like volume and volume grows like length cubed (<a href="../t3-algebra-functions/#exponents">0.3</a>). Nobody chose the value of \(a\) by looking at single sharks. Its value comes from the data. That split of work is the core of machine learning: people choose the form, and data sets the parameters.</p>
+  <p><b>A second worked example.</b> The figure tests the dial on 268 sharks. Here is the test by hand on three records from the code block below. Cube the length, multiply by the dial (in millionths, as in the figure), and compare with the weight. The miss is the gap with its sign dropped.</p>
+  <div class="wtab-wrap"><table class="wtab" aria-label="Three made-up sharks, the guess of the cube rule at a equal to 3.3 and at 7 millionths, and the misses. The average miss is 0.026 kg at 3.3 and 0.301 kg at 7.">
+    <thead><tr><th>length, cm</th><th>length cubed</th><th>weight, kg</th><th>guess at a = 3.3</th><th>miss</th><th>guess at a = 7</th><th>miss</th></tr></thead>
+    <tbody>
+      <tr><td>29.2</td><td>24,897</td><td>0.066</td><td>0.082</td><td>0.016</td><td>0.174</td><td>0.108</td></tr>
+      <tr><td>42.8</td><td>78,403</td><td>0.287</td><td>0.259</td><td>0.028</td><td>0.549</td><td>0.262</td></tr>
+      <tr><td>51.3</td><td>135,006</td><td>0.413</td><td>0.446</td><td>0.033</td><td>0.945</td><td>0.532</td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="4">average miss, kg</td><td>0.026</td><td></td><td>0.301</td></tr></tfoot>
+  </table></div>
+  <p>At 3.3 millionths the misses are small and similar. At 7 millionths the miss grows with the length, because a wrong dial multiplies the length cubed and the longest shark has the biggest cube.</p>
+  <p><b>Where the form breaks.</b> The best dial still leaves an average miss of 0.025 kg. The exponent in these records is 2.92 (<a href="../a2-linear-regression/#loglog">A2</a> measures it), so the cube is slightly too steep. For the 31 sharks of 50 cm or more, the rule at 3.3 millionths is too heavy by 0.032 kg on average. Moving the dial cannot repair a form that is a little wrong. The dial also belongs to one species. For the 82 cm hammerhead Tag 5519, 82 cubed is 551,368, and times 3.3 millionths gives 1.82 kg against a recorded 2.610 kg. The dial that fits Tag 5519 alone is 4.7 millionths.</p>
+  <p><b>In practice.</b> Choose the form from what you know about the problem, start with the simplest one, and count its parameters. Write the model as a function with the parameters as arguments, as the code below does. A common mistake is to fit a dial on one group and apply it to another, as with Tag 5519.</p>
+  <div class="break">
+    <p><b>Common belief.</b> A model is a long list of rules that a programmer wrote, one per case.</p>
+    <p><b>Why it fails.</b> Nobody wrote "a 41 cm spadenose weighs 0.225 kg". The model has one dial, and it gives an answer for lengths nobody recorded.</p>
+    <p><b>Better account.</b> A programmer writes the form. The data sets the parameters. A change in the data changes the behaviour without any new code.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Parameters have units. The dial \(a\) here has units of kg per cm<sup>3</sup>. If the predictions are all about a thousand times too large or too small, look for grams mixed with kilograms.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+
+# 8 made-up spadenose records: length in cm, weight in kg
+length = np.array([18.2, 29.2, 33.2, 36.5, 39.4, 42.8, 46.4, 51.3])
+weight = np.array([0.018, 0.066, 0.128, 0.169, 0.167, 0.287, 0.297, 0.413])
+
+def model(length, a):
+    return a * length ** 3          # the form of the rule: weight = a * length^3
+
+for a in [7e-6, 3.3e-6]:
+    guess = model(length, a)
+    print(f"a = {a:.1e}: average miss = {np.abs(guess - weight).mean():.3f} kg")
+
+lazy = weight.mean()                 # the lazy model: always the average weight
+print(f"lazy model says {lazy:.3f} kg: average miss = {np.abs(lazy - weight).mean():.3f} kg")</code></pre>
+  <pre class="out">a = 7.0e-06: average miss = 0.236 kg
+a = 3.3e-06: average miss = 0.020 kg
+lazy model says 0.193 kg: average miss = 0.104 kg</pre>
+  <p class="used"><b>Used in:</b> the line \(\hat y = w x + b\) has two dials and is the model of <a href="../a2-linear-regression/#line">A2</a>. A neuron in <a href="../b1-one-neuron/#neuron">B1</a> is the same idea with a bend added.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The dial is set to a = 0. What does the rule predict for a 50 cm shark, and why?</summary><p>It predicts 0 kg. The prediction is \(a\) times the length cubed, and anything times zero is zero. A lazy model that says 0.226 kg would do better.</p></details>
+    <details><summary>Which part of the model is set from data: the form \(a L^3\) or the number \(a\)?</summary><p>The number \(a\). The form was chosen by a person. This is why the same form can be reused for milk sharks, with a different value of \(a\).</p></details>
+    <details><summary>At the best dial the average miss is 0.025 kg. Can a further move of the dial lower it?</summary><p>No. The average miss is smallest at the best dial, so any move raises it. To lower it you must change the form, for example by making the exponent a second dial, as <a href="../a2-linear-regression/#loglog">A2</a> does.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 2. supervised ============================ -->
+<section id="supervised" aria-labelledby="supervised-h">
+  <h2 id="supervised-h">Learning from examples with answers</h2>
+  <p class="ask"><b>Guess first.</b> Below is a small table of made-up sharks. You want a model that names the species from the other columns. Which column is the answer, and which would you give the model? If you wanted the weight instead, what changes? Check your plan with the buttons.</p>
+  <dl class="terms">
+    <div><dt>supervised learning</dt><dd>learning from examples that come with the right answer</dd></div>
+    <div><dt>example</dt><dd>one row: a shark with its measurements and its answer</dd></div>
+    <div><dt>label</dt><dd>the answer column, the thing the model must predict (also called the target)</dd></div>
+    <div><dt>classification</dt><dd>the label is a category, such as a species</dd></div>
+    <div><dt>regression</dt><dd>the label is a number, such as a weight</dd></div>
+  </dl>
+  <p class="claim">Supervised learning starts from examples that pair inputs \(\mathbf{x}\) with a label \(y\). The model must predict \(y\) from \(\mathbf{x}\), including for sharks it has not seen.</p>
+  <div class="card" id="cp">
+    <div class="bar"><span class="label">Question</span><div id="cp-chips"></div></div>
+    <div class="cp-wrap"><table id="cp-table" aria-label="Six made-up shark records and one new shark, with the label column outlined in coral and the input columns in navy"></table></div>
+    <div class="cp-sum">
+      <div><b id="cp-task">&hellip;</b><span>kind of task</span></div>
+      <div><b><span id="cp-m">600</span> examples</b><span>the full table has 600 rows</span></div>
+      <div><b><span id="cp-d">6</span> inputs</b><span>counted from the ticked columns</span></div>
+    </div>
+    <div class="eqn mt-12"><span class="t c-navy"><b id="cp-x">&hellip;</b><i>x of example 1: the inputs for Tag 3305</i></span><span class="op">&rarr;</span><span class="t c-coral"><b id="cp-y">&hellip;</b><i>y of example 1: its label</i></span></div>
+    <p class="status" id="cp-note" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>The question you ask picks the label. The type of the label decides the task: a category gives classification, a number gives regression.</b></p>
+  <p>The coral column is the answer the model must learn to give. The navy columns are its inputs. The last row is a new shark whose answer is unknown. Filling in the question mark is what a trained model does. Untick an input to see how the table changes, and untick all of them to see what a model without inputs is left with.</p>
+  <p>The tag number is a name. It has no link to the animal's size or species, and a model that used it would learn to recognise tags it has seen, not sharks. The word "supervised" refers to the labels: someone supplied the right answer for the training examples, so the model has something to be graded against.</p>
+  <p class="math">\[ \bigl\{(\mathbf{x}^{(i)},\, y^{(i)})\bigr\}_{i=1}^{m} \qquad\text{with}\qquad \mathbf{x}^{(i)} = (x^{(i)}_1,\, \dots,\, x^{(i)}_d) \]</p>
+  <ul class="math-notes">
+    <li><b>\(m\)</b> is the number of examples, here 600 in the full table. <b>\(i\)</b> numbers them, so \(\mathbf{x}^{(i)}\) is the inputs of the \(i\)-th shark and \(y^{(i)}\) its label.</li>
+    <li><b>\(d\)</b> is the number of inputs for one shark. The subscript \(j\) in \(x_j\) numbers the inputs.</li>
+  </ul>
+  <p><b>One table, two questions.</b> Take Tag 4127, the 44.0 cm juvenile bamboo shark. If the question is the species, its label is the word "bamboo" and the task is classification. If the question is the weight, its label is 0.281 kg and the task is regression. The inputs are the same. Only the label column changes. In code, the table becomes a matrix \(X\) with one row per shark and one column per input, and a vector \(\mathbf{y}\) with one label per shark.</p>
+  <p>The same layout fits the clinic story. The Pima data is a published dataset of {{snippet:pima-data}}, not data from Mumbai. Woman A is one row, and her label is the diagnosis:</p>
+  <div class="eqn" role="img" aria-label="Woman A from the Pima data as an example: the inputs are glucose 158, BMI 31.6 and age 28, and the label is 1, which means diabetes"><span class="t c-navy"><b>(158, 31.6, 28)</b><i>x of Woman A: glucose, BMI, age</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>1</b><i>y: she has diabetes</i></span><span class="t"><b>d = 3</b><i>inputs</i></span><span class="t"><b>m = 768</b><i>women in the table</i></span></div>
+  <p><b>When it fails.</b> Supervised learning works when the label depends on the inputs and the examples look like the cases you will meet later. It fails when labels are wrong, when the inputs lack the information, or when the future differs from the past. A label also costs effort: a weight needs a scale and a species needs an expert.</p>
+  <p><b>In practice.</b> Before you fit anything, count the rows and columns, and look for values that mean "not measured". The Pima file stores 374 missing insulin readings as 0, and a model that reads them as measurements learns nonsense. Ask who produced the label, and when (<a href="../a4-grading-models/#leak">A4</a> covers leaks).</p>
+  <div class="break">
+    <p><b>Common belief.</b> A trained model stores the table and looks up the most similar shark.</p>
+    <p><b>Why it fails.</b> The cube rule keeps one number, \(a\), and the 268 records can be deleted after training. It still answers for a length that was never recorded.</p>
+    <p><b>Better account.</b> The models in this primer keep parameters, a summary of the examples, and not the examples themselves. A few other methods do store examples, and this primer leaves them out.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> If a model scores suspiciously well, look for an input that is a copy of the label or built from it. In this made-up table, girth was computed from weight, so girth nearly gives the weight away. Names such as tag numbers can leak in other ways. <a href="../a4-grading-models/#leak">A4</a> treats leaks in detail.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+
+# columns: length (cm), girth (cm). Rows: made-up Tags 4127, 3305, 5519 and 4766
+X = np.array([[44.0, 12.4], [41.0, 11.5], [82.0, 27.6], [29.2, 7.3]])
+y = np.array([0.281, 0.228, 2.610, 0.066])   # weight in kg: the label
+
+m, d = X.shape
+print("examples m =", m, " inputs d =", d)
+print("example 1: x =", X[0], " y =", y[0])</code></pre>
+  <pre class="out">examples m = 4  inputs d = 2
+example 1: x = [44.  12.4]  y = 0.281</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+# three made-up sharks (Tags 4127, 3305 and 5519): the inputs are length and depth
+length = np.array([44.0, 41.0, 82.0])
+depth = np.array([0.4, 18.0, 14.0])
+species = np.array(["bamboo", "spadenose", "hammerhead"])
+weight = np.array([0.281, 0.228, 2.610])
+
+X = np.c_[length, depth]             # one row per shark, one column per input
+print("X has", X.shape[0], "rows and", X.shape[1], "columns")
+for question, y in [("species", species), ("weight", weight)]:
+    kind = "regression" if y.dtype.kind == "f" else "classification"
+    print(f"{question:8s} y = {y}  ->  {kind}")</code></pre>
+  <pre class="out">X has 3 rows and 2 columns
+species  y = ['bamboo' 'spadenose' 'hammerhead']  ->  classification
+weight   y = [0.281 0.228 2.61 ]  ->  regression</pre>
+  <p class="used"><b>Used in:</b> <a href="../a2-linear-regression/#line">A2</a> (a number as the label) and <a href="../a3-logistic-regression/#sigmoid">A3</a> (a category as the label). The grading of a model on sharks it has not seen is the subject of <a href="../a4-grading-models/#splits">A4</a>.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>You want to predict whether a shark is an adult from its length and girth. What is the label, and is this regression or classification?</summary><p>The label is "adult or juvenile". It has two possible values, so this is classification.</p></details>
+    <details><summary>A table lists 768 women with glucose, BMI, age and a yes or no for diabetes. Which column is the label, what are \(m\) and \(d\), and what is the task?</summary><p>The label is the yes or no column, with \(m = 768\) and \(d = 3\). The label is a category, so the task is classification.</p></details>
+    <details><summary>A model keeps learning from the sharks it sees at the dock, after training is finished. True or false?</summary><p>False for the models of this primer. After training, the parameters stay fixed. The model reads them and does not change them. Learning happens again only when someone runs training on new labelled examples. <a href="../c3-domain-shift/#adapt">C3</a> covers methods that adapt during use as a special case.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 3. lazy ============================ -->
+<section id="lazy" aria-labelledby="lazy-h">
+  <h2 id="lazy-h">The lazy model</h2>
+  <p class="ask"><b>Guess first.</b> The made-up table has 600 sharks: 268 spadenose, 200 milk sharks, 72 bamboo sharks, 57 hammerheads and 3 Ganges sharks. A model that ignores the shark and always says one species is right how often, if it picks the best species? And can the month of the catch help a rule do better?</p>
+  <dl class="terms">
+    <div><dt>baseline</dt><dd>a simple model you must beat before you trust a complicated one</dd></div>
+    <div><dt>lazy model</dt><dd>the baseline that ignores the inputs: the commonest label for a category, the average for a number</dd></div>
+    <div><dt>base rate</dt><dd>the share of examples that have a given label (<a href="../t7-probability/#bayes">0.7</a>)</dd></div>
+    <div><dt>accuracy</dt><dd>the share of predictions that are right</dd></div>
+    <div><dt>cut-off</dt><dd>a value of one input that splits the sharks into two parts</dd></div>
+  </dl>
+  <p class="claim">A model is worth keeping only if it beats the lazy model. On these records the lazy model, which always says spadenose, is right for 268 of 600 sharks: 44.7%.</p>
+  <div class="card" id="lz">
+    <div class="controls" id="lz-controls"></div>
+    <div class="bar" id="lz-bar"></div>
+    <svg id="lz-svg" role="img" aria-label="Stacked histogram of an input for 600 made-up sharks, coloured by species"></svg>
+    <div class="parts" id="lz-parts"></div>
+    <div class="eqn mt-12" id="lz-eqn" aria-live="polite"></div>
+    <p class="status" id="lz-status" aria-live="polite"></p>
+    <div class="sp-counts" id="lz-sp"></div>
+  </div>
+  <p class="cap"><b>One cut-off on length lifts accuracy from 44.7% to 73.7%. No cut-off on the month of the catch beats the lazy model at all.</b> Faded bars are sharks the rule gets wrong.</p>
+  <p>Build a rule. Pick an input, drag the coral cut-offs along the axis, and choose the species to say in the parts. Solid bars are sharks your rule gets right. Dashed faded bars are mistakes. The first task is to reach 70% with one cut-off on length. The second is to beat the lazy model using the month. The button "Show the best rule for this input" searches many cut-offs and shows the best one it finds, so use it after you have tried.</p>
+  <p>The lazy model's score depends on the data, not on the model. If 90% of the catch were spadenose, the lazy model would score 90%, and a rule at 74% would be worse than a rule that ignores the shark. That is why a score needs its baseline beside it. For a number such as weight, the lazy model says the average, as in the first figure.</p>
+  <p>Notice what the best rules never do. None of them says "Ganges shark", because three sharks in 600 are too few to be the commonest species in any wide part. <a href="../a4-grading-models/#rare">A4</a> returns to this: a model can score well and still miss the animal you care about.</p>
+  <p><b>What the best-rule button does.</b> For a cut-off on length, say the commonest species on the two sides and count the sharks this gets right. Then move the cut-off and count again. At 30 cm both sides have spadenose as the commonest species, so the rule repeats the lazy model. As the cut-off moves right, the long side turns into mostly milk sharks while the short side stays spadenose, and the count peaks near 55 cm. After that it falls, because milk sharks start to fall on the short side (16 below 54.8 cm, 40 below 60 cm).</p>
+  <div class="wtab-wrap"><table class="wtab" aria-label="Seven cut-offs on length for 600 made-up sharks, with the number of sharks a one-cut rule gets right and its accuracy. The highest of the seven is 54.8 cm with 442 right, 73.7 percent.">
+    <thead><tr><th>cut-off, cm</th><th>short side says</th><th>long side says</th><th>right, of 600</th><th>accuracy</th></tr></thead>
+    <tbody>
+      <tr><td>30</td><td>spadenose</td><td>spadenose</td><td>268</td><td>44.7%</td></tr>
+      <tr><td>40</td><td>spadenose</td><td>milk</td><td>348</td><td>58.0%</td></tr>
+      <tr><td>45</td><td>spadenose</td><td>milk</td><td>394</td><td>65.7%</td></tr>
+      <tr><td>50</td><td>spadenose</td><td>milk</td><td>434</td><td>72.3%</td></tr>
+      <tr class="best"><td>54.8</td><td>spadenose</td><td>milk</td><td>442</td><td>73.7%</td></tr>
+      <tr><td>60</td><td>spadenose</td><td>milk</td><td>428</td><td>71.3%</td></tr>
+      <tr><td>70</td><td>spadenose</td><td>milk</td><td>334</td><td>55.7%</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>A second baseline, from the clinic.</b> In the published Pima data, 268 of 768 women have diabetes. The lazy model says "no diabetes" for all of them, so it scores:</p>
+  <div class="eqn" role="img" aria-label="The lazy model on the Pima data: 500 right out of 768 women is 65.1 percent, and it finds none of the 268 women with diabetes"><span class="t c-teal"><b>500</b><i>right: the women without diabetes</i></span><span class="op">&divide;</span><span class="t"><b>768</b><i>women in the table</i></span><span class="op">=</span><span class="t c-sand"><b>65.1%</b><i>lazy accuracy</i></span><span class="op">&rarr;</span><span class="t c-coral"><b>0 of 268</b><i>women with diabetes found</i></span></div>
+  <p>A screening model must beat 65.1% and also find some of the 268. The sharks give the same warning: "no Ganges shark" is right for 597 of 600 records, 99.5%, and finds none of the three.</p>
+  <p><b>When it misleads.</b> The baseline depends on how the labels are spread, so it changes from table to table. It also ignores cost. When missing a case is worse than a false alarm, a lazy model with a high score can be useless.</p>
+  <p><b>In practice.</b> Keep a ladder of baselines: the lazy model, a one-cut rule, then the method in use today. Beat the highest rung that is cheap to run, and score all of them on the same sharks.</p>
+  <p class="math">\[ \text{accuracy} = \frac{1}{m}\sum_{i=1}^{m} \mathbf{1}\bigl[\hat y^{(i)} = y^{(i)}\bigr] \qquad \text{lazy accuracy} = \frac{\max_k n_k}{m} \]</p>
+  <ul class="math-notes">
+    <li><b>\(\mathbf{1}[\cdot]\)</b> is 1 when the statement inside is true and 0 when it is false, so the sum counts the correct predictions.</li>
+    <li><b>\(n_k\)</b> is the number of examples with label \(k\). The largest \(n_k\) over \(m\) is the base rate of the commonest label: \(268/600 = 0.447\).</li>
+  </ul>
+  <div class="break">
+    <p><b>Common belief.</b> A model that is right 74% of the time is a good model.</p>
+    <p><b>Why it fails.</b> Whether 74% is good depends on the baseline. It is a large gain over 44.7%. It would be a loss against 90%.</p>
+    <p><b>Better account.</b> Report a score next to the lazy model's score on the same data, and read the gap between them.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Before you celebrate a score, compute the lazy model's score on the same data. If your model is within a few points of it, the model has learned little. If it is far above and surprises you, look for a leak (<a href="../a4-grading-models/#leak">A4</a>).</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+
+species = ["spadenose", "milk", "bamboo", "hammerhead", "ganges"]
+# how many of the 600 made-up sharks fall below and above a 54.8 cm cut-off
+below = np.array([258, 16, 57, 13, 0])
+above = np.array([10, 184, 15, 44, 3])
+total = below.sum() + above.sum()
+
+lazy = (below + above).max() / total
+rule = (below.max() + above.max()) / total
+print("lazy model:", round(lazy, 3), "- always says", species[(below + above).argmax()])
+print("one-cut rule:", round(rule, 3), "- says", species[below.argmax()], "below and", species[above.argmax()], "above")</code></pre>
+  <pre class="out">lazy model: 0.447 - always says spadenose
+one-cut rule: 0.737 - says spadenose below and milk above</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+total = np.array([268, 200, 72, 57, 3])               # sharks per species in the made-up table
+cuts = [30, 40, 45, 50, 54.8, 60, 70]                 # cut-offs on length, cm
+# sharks shorter than each cut-off: one row per species (spadenose, milk, bamboo, hammerhead, Ganges)
+below = np.array([[40, 148, 194, 237, 258, 268, 268],
+                  [0, 0, 0, 3, 16, 40, 134],
+                  [2, 15, 32, 49, 57, 62, 72],
+                  [0, 2, 3, 5, 13, 16, 29],
+                  [0, 0, 0, 0, 0, 0, 0]])
+
+for j, cut in enumerate(cuts):
+    right = below[:, j].max() + (total - below[:, j]).max()   # commonest species on each side
+    print(f"cut at {cut:4.1f} cm: {right} of 600 right = {right / 600:.1%}")</code></pre>
+  <pre class="out">cut at 30.0 cm: 268 of 600 right = 44.7%
+cut at 40.0 cm: 348 of 600 right = 58.0%
+cut at 45.0 cm: 394 of 600 right = 65.7%
+cut at 50.0 cm: 434 of 600 right = 72.3%
+cut at 54.8 cm: 442 of 600 right = 73.7%
+cut at 60.0 cm: 428 of 600 right = 71.3%
+cut at 70.0 cm: 334 of 600 right = 55.7%</pre>
+  <p class="used"><b>Used in:</b> a baseline is the first row of any results table (<a href="../t8-charts/#tables">0.8</a>). It is the starting point for grading in <a href="../a4-grading-models/#splits">A4</a> and the first step of Karpathy's recipe for debugging networks (<a href="../b8-debugging/#recipe">B8</a>).</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A table has 1,000 sharks and 620 of them are adults. What does the lazy model score when it predicts adult or juvenile?</summary><p>It always says "adult" and scores 62%. A model with 65% accuracy has barely improved on the lazy model.</p></details>
+    <details><summary>In the Pima data, 268 of 768 women have diabetes. What does the lazy model score, and what is wrong with it as a screening tool?</summary><p>It says "no diabetes" for all women and scores \(500/768 = 65.1\%\). It never finds a woman who has diabetes, although its accuracy looks respectable.</p></details>
+    <details><summary>Your rule scores 74%, but you tuned its cut-off on the same 600 sharks you score it on. Should you trust the 74% for new sharks?</summary><p>Treat it as optimistic. A rule tuned on the records can fit them a little better than it will fit new ones. Grading on records the rule never saw is the subject of <a href="../a4-grading-models/#splits">A4</a>.</p></details>
+  </div>
+</section>
+
+<!-- ============================ 4. search ============================ -->
+<section id="search" aria-labelledby="search-h">
+  <h2 id="search-h">Learning as a search for good dials</h2>
+  <p class="ask"><b>Guess first.</b> The cube rule has one dial, so trying a few hundred settings is quick. A small neural network has thousands of dials. Suppose you try 10 settings of a dial, and a computer can test a million combinations per second. How long does a model with 20 dials take?</p>
+  <dl class="terms">
+    <div><dt>loss</dt><dd>one number that says how badly a model does on the examples; lower is better (<a href="../a2-linear-regression/#line">A2</a> gives the standard formula)</dd></div>
+    <div><dt>training</dt><dd>searching for the parameter values with the lowest loss</dd></div>
+    <div><dt>random search</dt><dd>trying settings at random and keeping the best</dd></div>
+  </dl>
+  <p class="claim">Training is a search for the parameter values with the lowest loss. Random tries work for one dial. With many dials they cannot finish, and a smarter search is needed.</p>
+  <div class="card" id="sr">
+    <div class="bar" id="sr-bar"></div>
+    <div class="plot" id="sr-plot" role="img" aria-label="Average miss of the cube rule against the dial a. Coral dots mark the settings you have tried. A teal ring marks the best so far."></div>
+    <div class="readout"><span>Settings tried: <b id="sr-n">0</b></span><span>Best so far: <b id="sr-best">none yet</b></span></div>
+    <p class="status" id="sr-true"></p>
+    <div class="controls mt-12" id="sr-controls"></div>
+    <div class="eqn" id="sr-eqn" aria-live="polite"></div>
+  </div>
+  <p class="cap"><b>A few random tries, then tries near the best, find a good setting of one dial. With 20 dials, testing all combinations would take about 3 million years, and with 24 dials longer than the age of the universe.</b></p>
+  <p>The loss here is the average miss of the cube rule on the 268 made-up spadenose records. A press of "Try one random a" tests one setting and plots it. The curve is hidden by default, because an actual search sees only the points it has tried. Press "Try 10 near the best so far" to zoom in. That is a search with two stages, wide and then narrow, and it works well for one dial. Switch on the whole curve to check your best against the true lowest point.</p>
+  <p>The boxes below count the combinations. With \(d\) dials and \(k\) settings per dial, there are \(k^d\) combinations to test. The count grows by a factor of 10 with a new dial (<a href="../t3-algebra-functions/#exponents">0.3</a>). The searches that make training practical use the slope of the loss to decide which way to turn the dials, so they never test all combinations. <a href="../a2-linear-regression/#descent">A2</a> builds the first one, gradient descent.</p>
+  <p class="math">\[ \text{combinations} = k^{d} \qquad\qquad \theta^{\star} = \arg\min_{\theta}\; L(\theta) \]</p>
+  <ul class="math-notes">
+    <li><b>\(k\)</b> is the number of settings tried per dial and <b>\(d\)</b> is the number of dials.</li>
+    <li><b>\(L(\theta)\)</b> is the loss for the parameters \(\theta\). <b>\(\arg\min\)</b> means "the argument that gives the smallest value", so \(\theta^{\star}\) is the best setting of the dials.</li>
+  </ul>
+  <p><b>The arithmetic behind the caption.</b> Its numbers come from one division:</p>
+  <div class="eqn" role="img" aria-label="The time to test all combinations of 20 dials at 10 settings and a million tests per second: 10 to the 14 seconds, about 3.2 million years"><span class="t c-navy"><b>10<sup>20</sup></b><i>combinations: 20 dials, 10 settings</i></span><span class="op">&divide;</span><span class="t"><b>10<sup>6</sup></b><i>tests per second</i></span><span class="op">=</span><span class="t c-coral"><b>10<sup>14</sup> s</b><i>seconds in all</i></span><span class="op">&divide;</span><span class="t"><b>3.16&times;10<sup>7</sup></b><i>seconds in a year</i></span><span class="op">=</span><span class="t c-sand"><b>3.2 million</b><i>years</i></span></div>
+  <p>Adding four dials multiplies the count, and the wait, by 10,000. That gives \(3.2\times 10^{10}\) years, and the universe is about 14 billion years old.</p>
+  <p><b>A search you can run.</b> The code below repeats the two stages of the figure on the eight records, with a fixed seed. The best of five wide tries has an average miss of 0.040 kg. Five more tries within one millionth of it find 3.15 millionths and 0.017 kg. The grid of the first code block, with 801 settings, reaches 0.015 kg.</p>
+  <p><b>When it breaks.</b> The loss curve of one dial is a single valley, so narrowing the range around the best try makes sense. With several valleys the second stage could settle in the wrong one. A try also reveals only the loss at that setting, not which way is downhill. Gradient descent adds that missing piece, the slope.</p>
+  <p><b>In practice.</b> Random search is still a standard way to set hyperparameters, the settings chosen before training such as a learning rate, with a few dozen tries. Draw a dial that spans orders of magnitude on a log scale: pick the exponent at random, then raise 10 to it. On a linear scale from \(10^{-7}\) to \(10^{-4}\), nine tries in ten exceed \(10^{-5}\).</p>
+  <div class="break">
+    <p><b>Common belief.</b> A deployed model keeps learning from the sharks it sees.</p>
+    <p><b>Why it fails.</b> Using a model reads its parameters and leaves them alone. Training changes them, and training is a separate step with labelled examples.</p>
+    <p><b>Better account.</b> Training and use are two phases. A model that changes during use needs a method built for it (<a href="../c3-domain-shift/#adapt">C3</a>).</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When you search, look at where the best value falls. If it falls at the edge of the range you tried, the true best may lie outside it, so widen the range.</p>
+  </div>
+  <pre class="code" data-run><code>import numpy as np
+
+length = np.array([18.2, 29.2, 33.2, 36.5, 39.4, 42.8, 46.4, 51.3])
+weight = np.array([0.018, 0.066, 0.128, 0.169, 0.167, 0.287, 0.297, 0.413])
+
+settings = np.linspace(0, 8e-6, 801)          # 801 settings of the dial a
+miss = [np.abs(a * length ** 3 - weight).mean() for a in settings]
+best = settings[int(np.argmin(miss))]
+print(f"best of 801 settings: a = {best:.2e}, average miss = {min(miss):.3f} kg")
+print("settings to try with 20 dials at 10 settings each:", 10 ** 20)</code></pre>
+  <pre class="out">best of 801 settings: a = 3.06e-06, average miss = 0.015 kg
+settings to try with 20 dials at 10 settings each: 100000000000000000000</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+length = np.array([18.2, 29.2, 33.2, 36.5, 39.4, 42.8, 46.4, 51.3])
+weight = np.array([0.018, 0.066, 0.128, 0.169, 0.167, 0.287, 0.297, 0.413])
+miss = lambda a: np.abs(a * length ** 3 - weight).mean()
+
+rng = np.random.default_rng(1)
+wide = rng.uniform(0, 8e-6, 5)                      # stage 1: five tries anywhere in 0 to 8 millionths
+for a in wide:
+    print(f"wide  a = {a:.2e}  average miss = {miss(a):.3f}")
+best = wide[np.argmin([miss(a) for a in wide])]
+near = rng.uniform(best - 1e-6, best + 1e-6, 5)     # stage 2: five tries within 1 millionth of the best
+for a in near:
+    print(f"near  a = {a:.2e}  average miss = {miss(a):.3f}")
+both = np.r_[wide, near]
+top = both[np.argmin([miss(a) for a in both])]
+print(f"best of 10 tries: a = {top:.2e}, average miss = {miss(top):.3f} kg")</code></pre>
+  <pre class="out">wide  a = 4.09e-06  average miss = 0.058
+wide  a = 7.60e-06  average miss = 0.273
+wide  a = 1.15e-06  average miss = 0.122
+wide  a = 7.59e-06  average miss = 0.272
+wide  a = 2.49e-06  average miss = 0.040
+near  a = 2.34e-06  average miss = 0.050
+near  a = 3.15e-06  average miss = 0.017
+near  a = 2.31e-06  average miss = 0.051
+near  a = 2.59e-06  average miss = 0.034
+near  a = 1.55e-06  average miss = 0.098
+best of 10 tries: a = 3.15e-06, average miss = 0.017 kg</pre>
+  <p class="used"><b>Used in:</b> gradient descent (<a href="../a2-linear-regression/#descent">A2</a>), the loss of a network (<a href="../b3-loss-gradient-descent/#cost">B3</a>) and the many-dial searches of <a href="../b5-optimisers/#sgd">B5</a>.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>You try 100 settings for 5 dials. How many combinations is that?</summary><p>\(100^5 = 10^{10}\), ten billion. At a million per second that is about 3 hours.</p></details>
+    <details><summary>Your best setting of a dial is the largest value you tried. What do you do?</summary><p>Try larger values. The true best may lie beyond the edge of the range.</p></details>
+    <details><summary>You try only 3 settings for 20 dials. How many combinations is that, and how long at a million per second?</summary><p>\(3^{20} = 3{,}486{,}784{,}401\) combinations, which take about 3,487 seconds, a little under an hour. With 30 dials the same grid would take over six years.</p></details>
+  </div>
+</section>
+
+<!-- ============================ exercises ============================ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> A table has 1,000 sharks and 620 are adults. What accuracy does the lazy model score for adult or juvenile? A second table has 1,000 sharks and 50 of one rare species. What does the lazy model score for "is it this rare species", and what does that say about quoting accuracy alone?</p>
+        <details class="hint"><summary>Hint</summary><p>The lazy model says the commonest label. Count the sharks it gets right.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> How many parameters do these models have? (a) \(\hat y = a L^3\). (b) \(\hat y = w x + b\). (c) \(\hat y = w_1 x_1 + w_2 x_2 + w_3 x_3 + b\). (d) \(\hat y = a L^{k}\), where both \(a\) and \(k\) are dials. Which of these have the same form but different numbers of parameters?</p></li>
+      <li><p><span class="ex-tag">theory</span> Explain in two or three sentences why the tag number should not be an input to a species model. What would happen to a new shark's tag?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Load <code>catch.csv</code> with pandas. Compute the lazy model's accuracy for the column <code>mature</code> on all 600 records. Then compute the accuracy of the rule "mature if length is at least 40 cm" and compare.</p></li>
+      <li><p><span class="ex-tag">practice</span> For the spadenose records only, search settings of \(a\) in \(\hat y = a L^3\) from 1e-6 to 8e-6 and report the setting with the smallest average miss. How far is it from 3.3e-6, and why might it differ?</p></li>
+      <li><p><span class="ex-tag">practice</span> Build the best one-cut rule for the species using the weight instead of the length. Report the cut-off, the two species it says and the accuracy.</p>
+        <details class="hint"><summary>Hint</summary><p>Try all the midpoints between sorted weights, and in the two parts say the commonest species.</p></details></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> SharkCam looks at 2,400 video frames from one dive. Suppose a shark is in view in 199 of them. What is the lazy model for "is a shark in view", and what does it score? What would you want to know about a detector besides its accuracy?</p></li>
+      <li><p><span class="ex-tag">open</span> A teammate says: "My rule gets 74%, so it has understood what separates the species." How would you test the claim? Which simpler explanations would you rule out first?</p></li>
+      <li><p><span class="ex-tag">open</span> Name two inputs SharkCam has on the boat at the dock that it would not have on a dive. How would that change what a model trained on dock records can do underwater?</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Try these after two days and again after a week, without looking back.</p>
+  <div class="recall comeback">
+    <details><summary>A shark is twice as long as another. The cube rule predicts how many times the weight? (<a href="../t3-algebra-functions/#exponents">0.3</a>) And what does the dial \(a\) do to that ratio?</summary><p>Eight times, since \(2^3 = 8\). The dial \(a\) cancels in the ratio: it scales all predictions together and leaves the ratio alone.</p></details>
+    <details><summary>A bar chart shows a model's accuracy as 74% next to a bar for the lazy model, and the axis starts at 40%. What are two things to check? (<a href="../t8-charts/#misleading">0.8</a>)</summary><p>Check that the axis starts at zero, because a truncated axis makes a gap look bigger. Check that both bars are scored on the same data. The gap between 74% and 44.7% is large on a fair axis too, but its size depends on the baseline.</p></details>
+    <details><summary>The average of the nine spadenose lengths in <a href="../t7-probability/#spread">0.7</a> is 37.2 cm. If your model had no inputs, would it predict this value for a shark's length? Why is that the lazy model for a number?</summary><p>Yes. With no inputs, a model for a number can say only one thing for all sharks, and the mean is the single value with the smallest squared miss (A2). That is the lazy model for numbers.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Alammar, J. (2016). A Visual and Interactive Guide to the Basics of Neural Networks. A house-price model with one input, a weight and a bias, fitted by turning dials: the model for this primer's way of introducing a model and its error. <a href="https://jalammar.github.io/visual-interactive-guide-basics-neural-networks/">jalammar.github.io</a></li>
+    <li>Google for Developers. Machine Learning Crash Course: Supervised learning. Defines examples, features and labels. <a href="https://developers.google.com/machine-learning/intro-to-ml/supervised">developers.google.com</a></li>
+    <li>Karpathy, A. (2019). A Recipe for Training Neural Networks. Recommends starting from simple baselines, including an input-independent one, before building anything complicated. <a href="https://karpathy.github.io/2019/04/25/recipe/">karpathy.github.io</a></li>
+    <li>Sanderson, G. (3Blue1Brown). Neural networks, chapter 2, "Gradient descent, how neural networks learn": learning as a search for good parameters. <a href="https://www.3blue1brown.com/lessons/gradient-descent">3blue1brown.com</a></li>
+    <li>{{snippet:catch-ref}} The spadenose law is from Gladston et al. (2018), Journal of Applied Ichthyology, 34(3), 753&ndash;757, with the values read from the FishBase table, as noted in species.json.</li>
+  </ol>
+</section>

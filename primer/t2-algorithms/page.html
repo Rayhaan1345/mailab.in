@@ -1,0 +1,929 @@
+---
+description: Stacks, queues, dictionaries, searching, sorting, top-k, recursion and Big-O, with a sorting race, a step counter and a code-tracing table.
+subtitle: Count the steps a program takes, and see which ones keep up as the data grows
+kicker: Part 0 &middot; Toolkit &middot; Chapter 0.2
+libs: plotly-cartesian, katex
+---
+<div class="tldr">
+  <p>An algorithm is a recipe a computer can follow, and a data structure is the way the data is laid out for that recipe. This chapter shows how to count steps. You will see why a dictionary finds a tag faster than a list and why sorting by merging beats sorting by inserting. You will also see why a model that compares all pairs of tokens gets expensive on long inputs.</p>
+  <p>The chapter ends with tracing a program by hand, line by line, and predicting the next value before you look. This habit makes you a better programmer and a better reader of code.</p>
+</div>
+<p class="youneed"><b>You will need:</b> the lists, loops, functions and dictionaries of <a href="../t1-python/">Python</a>. Logarithms appear once, as "how many times can you halve n"; <a href="../t3-algebra-functions/#logs">0.3</a> covers them properly.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#stacks">Stacks and queues</a></li>
+    <li><a href="#lookup">Lists and dictionaries for lookup</a></li>
+    <li><a href="#search">Linear and binary search</a></li>
+    <li><a href="#sorting">Sorting: insertion and merge</a></li>
+    <li><a href="#topk">Top-k</a></li>
+    <li><a href="#recursion">Recursion and trees</a></li>
+    <li><a href="#bigo">Big-O: steps against size</a></li>
+    <li><a href="#tracing">Tracing code by hand</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+  </ol>
+</nav>
+
+<!-- ============ 1. stacks and queues ============ -->
+<section id="stacks" aria-labelledby="stacks-h">
+  <h2 id="stacks-h">Stacks and queues</h2>
+  <p class="ask"><b>Guess first.</b> You add the tags 4127, 3305 and 5519 to a pile, in that order, and then take two off. Which two come out, and in which order, if the pile is a stack? What if it is a queue?</p>
+  <dl class="terms">
+    <div><dt>stack</dt><dd>a pile where the last item added is the first one out (last in, first out)</dd></div>
+    <div><dt>queue</dt><dd>a line where the first item added is the first one out (first in, first out)</dd></div>
+    <div><dt>push, pop</dt><dd>add to the top of a stack; remove from the top</dd></div>
+    <div><dt>enqueue, dequeue</dt><dd>add to the back of a queue; remove from the front</dd></div>
+  </dl>
+  <p class="claim">A stack hands back the newest item first. A queue hands back the oldest item first.</p>
+  <div class="card" id="sq">
+    <div class="bar" id="sq-bar"></div>
+    <div class="split2">
+      <div>
+        <p class="vbox-title">Stack (push and pop at the top)</p>
+        <div id="sq-stack" class="stackbox" role="img" aria-label="A stack of tags with the newest at the top"></div>
+        <p class="outline">Came out: <span id="sq-sout"></span></p>
+      </div>
+      <div>
+        <p class="vbox-title">Queue (enqueue at the back, dequeue at the front)</p>
+        <div id="sq-queue" class="queuebox" role="img" aria-label="A queue of tags with the oldest at the front"></div>
+        <p class="outline">Came out: <span id="sq-qout"></span></p>
+      </div>
+    </div>
+    <p class="status" id="sq-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>The same tags go in, in the same order, and different tags come out.</b> Remove two from the stack and two from the queue, and compare the two lines of output. You can add more tags too.</p>
+  <p>A stack is how an undo button works: the last thing you did is the first thing to undo. A queue is how a camera that sends frames to a model works: frames are processed in the order they arrive. Python's list is a good stack. For a queue use <code>collections.deque</code>, because taking the first item from a list makes all the others shift along, while a deque gives up its front item cheaply.</p>
+  <pre class="code" data-run><code>from collections import deque
+
+stack = []
+for tag in [4127, 3305, 5519]:
+    stack.append(tag)            # push
+print(stack.pop(), stack.pop())  # pop twice
+
+queue = deque()
+for tag in [4127, 3305, 5519]:
+    queue.append(tag)            # enqueue
+print(queue.popleft(), queue.popleft())  # dequeue twice</code></pre>
+  <pre class="out">5519 3305
+4127 3305</pre>
+    <p>Trace six operations on the tags 4127, 3305, 5519 and 4635. The output shows both containers after the step. The stack gives back 5519 and then 4635, the newest items. The queue gives back 4127 and then 3305, the oldest.</p>
+  <pre class="code" data-run><code>from collections import deque
+
+stack, queue = [], deque()
+for op in ["add 4127", "add 3305", "add 5519", "remove", "add 4635", "remove"]:
+    if op == "remove":
+        gave = (stack.pop(), queue.popleft())
+        print(f"{op:9} stack {stack} gave {gave[0]} | queue {list(queue)} gave {gave[1]}")
+    else:
+        tag = int(op.split()[1])
+        stack.append(tag)
+        queue.append(tag)
+        print(f"{op:9} stack {stack} | queue {list(queue)}")</code></pre>
+  <pre class="out">add 4127  stack [4127] | queue [4127]
+add 3305  stack [4127, 3305] | queue [4127, 3305]
+add 5519  stack [4127, 3305, 5519] | queue [4127, 3305, 5519]
+remove    stack [4127, 3305] gave 5519 | queue [3305, 5519] gave 4127
+add 4635  stack [4127, 3305, 4635] | queue [3305, 5519, 4635]
+remove    stack [4127, 3305] gave 4635 | queue [5519, 4635] gave 3305</pre>
+  <p>A stack can also check that the brackets of a formula match. Push a bracket when it opens and pop when one closes. A closing bracket with an empty stack, or a non-empty stack at the end, means the brackets do not match.</p>
+  <pre class="code" data-run><code>def balanced(text):
+    stack = []
+    for ch in text:
+        if ch == "(":
+            stack.append(ch)          # push when a bracket opens
+        elif ch == ")":
+            if not stack:             # a closing bracket with nothing open
+                return False
+            stack.pop()               # pop when it closes
+    return not stack                  # everything opened was closed
+
+print(balanced("(w * (x + 1)) + b"))
+print(balanced("(w * (x + 1) + b"))
+print(balanced("w * x) + b"))</code></pre>
+  <pre class="out">True
+False
+False</pre>
+  <p class="used"><b>In practice:</b> use a list as a stack and <code>collections.deque</code> as a queue. Taking the first item from a list moves all the other items along, so it slows down as the list grows. <code>deque.popleft()</code> takes the same time at any size.</p>
+  <div class="break">
+    <p><b>Analogy.</b> A stack is a pile of plates. You add and remove only at the top, so the plate you washed last is the first one back.</p>
+    <p><b>Where it breaks.</b> You cannot reach into a pile of plates, but a Python list used as a stack lets you read or change any item by its index. Python does not enforce the stack rule. It is a habit in your code: use only <code>append</code> and <code>pop</code>.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Popping from an empty stack raises an <code>IndexError</code>. Test with <code>if stack:</code> before you pop.</p>
+  </div>
+  <p class="used"><b>Used in:</b> recursion (below) works because Python keeps a stack of calls that are waiting for an answer. Backpropagation (<a href="../b4-backpropagation/#backward">B4</a>) replays the steps of a forward pass newest first, as a stack hands items back. A data loader that feeds a model one batch after another behaves like a queue.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Add A, B, C, then remove one, add D, then remove two. What comes out of a stack, and of a queue?</summary><p>Stack: C, then D, then B. Queue: A, then B, then C. For the stack, after C leaves the pile is A, B, then D goes on top, and two pops give D and B.</p></details>
+    <details><summary>What is left in the stack and in the queue at the end of the trace?</summary><p>The stack has 4127 and 3305, with 3305 on top. The queue has 5519 and 4635, with 5519 at the front.</p></details>
+    <details><summary>In the bracket check, what does a non-empty stack at the end tell you?</summary><p>Some bracket was opened and never closed.</p></details>
+  </div>
+</section>
+
+<!-- ============ 2. lookup ============ -->
+<section id="lookup" aria-labelledby="lookup-h">
+  <h2 id="lookup-h">Lists and dictionaries for lookup</h2>
+  <p class="ask"><b>Guess first.</b> You have 10,000 tags in a list and the same tags in a dictionary. You ask whether tag 14,100 is present. About how many tags does the list look at before it answers, and how many does the dictionary look at?</p>
+  <dl class="terms">
+    <div><dt>lookup</dt><dd>finding the stored value that belongs to a key</dd></div>
+    <div><dt>comparison</dt><dd>checking one stored item against the target; this chapter counts comparisons as steps</dd></div>
+    <div><dt>hash</dt><dd>a number computed from a key that says where its entry is stored</dd></div>
+    <div><dt>hash table</dt><dd>the structure behind Python's dictionaries and sets</dd></div>
+  </dl>
+  <p class="claim">A list finds an item by checking the items one by one. A dictionary computes where the item must be and goes straight there.</p>
+  <div class="card" id="lk">
+    <div class="bar" id="lk-bar"><span class="label">List size n</span></div>
+    <div class="split2">
+      <div>
+        <p class="vbox-title">List: check one tag after another</p>
+        <div id="lk-list" class="strip" role="img" aria-label="A row of cells for the list; the scan fills from the left until it meets the target"></div>
+        <p class="bigcount"><b id="lk-lc">0</b> <span>comparisons</span></p>
+      </div>
+      <div>
+        <p class="vbox-title">Dictionary: hash the tag, go to its slot</p>
+        <div id="lk-dict" class="strip" role="img" aria-label="A row of slots for the dictionary; one jump lands on the target"></div>
+        <p class="bigcount"><b id="lk-dc">0</b> <span>comparisons</span></p>
+      </div>
+    </div>
+    <div class="bar" id="lk-bar2"></div>
+    <div class="readout" id="lk-avg"></div>
+  </div>
+  <p class="cap"><b>A list needs about n/2 comparisons on average and the dictionary needs a little more than 1, however large n gets.</b> Press Find a tag, then Run 1,000 lookups to average out the luck of a single target.</p>
+  <p>The dictionary in the figure is a small hash table. It turns a tag into a slot number with a formula, and two tags sometimes end up in the same slot. When that happens the slot keeps a short chain of tags and the lookup checks them. That is why the average is a little above 1. Python's dictionaries are built on the same idea. Its documentation lists a key lookup as constant time on average, with a worst case that grows with n if many keys collide.</p>
+  <pre class="code" data-run><code>tags = list(range(4101, 14101))          # 10,000 tags
+
+def find_in_list(tags, target):
+    comparisons = 0
+    for t in tags:
+        comparisons += 1
+        if t == target:
+            return comparisons
+    return None
+
+table = {t: i for i, t in enumerate(tags)}   # tag -&gt; position
+print(find_in_list(tags, 14100))
+print(table[14100])
+print(14100 in tags, 14100 in table)</code></pre>
+  <pre class="out">10000
+9999
+True True</pre>
+  <p>The last line looks the same for both, but <code>in tags</code> scans the list while <code>in table</code> is a lookup. The same is true for sets. Python's own documentation of its built-in types lists <code>x in list</code> as linear and <code>x in set</code> and a dictionary lookup as constant on average.</p>
+  <p>Build a toy hash table by hand with 8 slots. The slot of a tag is the remainder after dividing by 8. Tag 4127 gives 7, since 8 &times; 515 = 4120. Tags 3305, 5519 and 4635 give 1, 7 and 3. Tags 4127 and 5519 collide in slot 7, which keeps a short chain. Looking up 3305 makes one comparison and 5519 makes two. Looking up 4636 reaches the empty slot 4 and answers "not here" with none.</p>
+  <pre class="code" data-run><code>SLOTS = 8
+table = [[] for _ in range(SLOTS)]
+for tag in [4127, 3305, 5519, 4635]:
+    table[tag % SLOTS].append(tag)      # the toy hash: tag mod 8
+print(table)
+
+def lookup(tag):
+    comparisons = 0
+    for t in table[tag % SLOTS]:
+        comparisons += 1
+        if t == tag:
+            break
+    return comparisons
+
+print(lookup(3305), lookup(5519), lookup(4636))</code></pre>
+  <pre class="out">[[], [3305], [], [4635], [], [], [], [4127, 5519]]
+1 2 0</pre>
+  <p>The slot is computed, not searched, so the cost does not depend on how many tags are stored while the chains stay short. Working tables grow as they fill. Python's own dictionary resolves a collision by probing other slots instead of keeping a chain, but the cost argument is the same. A key must give the same slot on all lookups, so it cannot change after it is stored. A dictionary also uses more memory than a list of the same keys, because it keeps empty slots.</p>
+  <p class="used"><b>In practice:</b> when you test membership many times, use a set or a dictionary. To test many items against a long list, convert the list once with <code>set(tags)</code> and test against the set.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Computers are so fast that the choice of list or dictionary does not matter.</p>
+    <p><b>Why it fails.</b> It matters when a lookup happens millions of times on a large table. At a million entries a list scan makes about half a million comparisons, a dictionary about one. A single lookup is quick either way. A tokenizer that looks up a million words is not.</p>
+    <p><b>Better account.</b> Judge a structure by how its cost grows with n, not by how fast one operation feels at the size you tried.</p>
+  </div>
+  <p class="used"><b>Used in:</b> a tokenizer's vocabulary is a dictionary from token text to an integer ID, so turning a word into its ID does not scan fifty thousand entries (<a href="../d1-tokenisation/#vocab">D1</a>). The column names of a pandas table are keys in the same way.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>You need to test whether 5,000 tags appear in a log of 10 million tags. Do you loop over the log once per tag, or turn the log into a set first?</summary><p>Build a set once, which costs about 10 million steps, then test the 5,000 tags at about one step apiece. Looping over the log once per tag costs up to 5,000 times 10 million steps.</p></details>
+    <details><summary>How many comparisons does the toy table make for tag 5519, and why?</summary><p>Two. The tag goes to slot 7, where 4127 is stored first, so the lookup checks 4127 and then 5519.</p></details>
+    <details><summary>Building a set from a list of n tags takes about n steps. When is that cost worth paying?</summary><p>When you test many items against the list. The set costs about n steps once, and then a test costs about one step instead of up to n.</p></details>
+  </div>
+</section>
+
+<!-- ============ 3. searching ============ -->
+<section id="search" aria-labelledby="search-h">
+  <h2 id="search-h">Linear and binary search</h2>
+  <p class="ask"><b>Guess first.</b> A sorted list has 1,000 lengths. You may ask questions of the form "is the target above the item at position p?". How many questions are enough to find any target for sure: about 10, about 100 or about 500?</p>
+  <dl class="terms">
+    <div><dt>linear search</dt><dd>check the items in order until you find the target</dd></div>
+    <div><dt>binary search</dt><dd>in a sorted list, check the middle item and discard the half that cannot contain the target</dd></div>
+    <div><dt>sorted</dt><dd>in increasing order; binary search needs this</dd></div>
+    <div><dt>\(\log_2 n\)</dt><dd>how many times you can halve n before 1 is left; \(\log_2 1024 = 10\)</dd></div>
+  </dl>
+  <p class="claim">Binary search needs a sorted list and finds any item in about \(\log_2 n\) steps. Linear search needs no order and may take n steps.</p>
+  <div class="card" id="bs">
+    <div class="controls" id="bs-controls"></div>
+    <div class="bar" id="bs-bar"></div>
+    <div id="bs-svg-wrap"><svg id="bs-svg" role="img" aria-label="Sorted shark lengths as bars; the search window shrinks as binary search discards half at a time"></svg></div>
+    <div class="eqn" id="bs-eqn" role="img" aria-label="List size, its logarithm and the largest number of steps"></div>
+    <p class="status" id="bs-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>A step discards half of what is left, so the window shrinks 16, 8, 4, 2, 1 and the search ends in at most 5 steps for 16 items.</b> Pick a target and press Step. Predict whether the next middle item will be above or below the target before you press.</p>
+  <p>The window is the stretch of positions that could still contain the target, from <code>lo</code> to <code>hi</code>. The middle position is <code>mid</code>. If the middle item is too small, all items at or below <code>mid</code> are too small and <code>lo</code> moves to <code>mid + 1</code>. If it is too large, <code>hi</code> moves to <code>mid - 1</code>. If <code>lo</code> passes <code>hi</code>, the window is empty and the target is not in the list.</p>
+  <p>A worked example with 1,000 items:</p>
+  <div class="eqn" role="img" aria-label="Worked example: 1,000 items need at most 10 steps"><span class="t c-navy"><b>1,000</b><i>items, n</i></span><span class="op">&rarr;</span><span class="t c-sand"><b>9.97</b><i>\(\log_2 n\)</i></span><span class="op">&rarr;</span><span class="t c-teal"><b>10</b><i>at most this many steps</i></span></div>
+  <p class="math">\[ \text{steps} \le \lfloor \log_2 n \rfloor + 1 \]</p>
+  <ul class="math-notes">
+    <li><b>\(n\)</b> is the number of items in the sorted list.</li>
+    <li><b>\(\lfloor x \rfloor\)</b> means round \(x\) down to a whole number. For \(n = 1{,}000\), \(\log_2 n \approx 9.97\), so the bound is \(9 + 1 = 10\).</li>
+    <li>Doubling \(n\) adds one step. A million items need at most 20 steps.</li>
+  </ul>
+  <pre class="code" data-run><code>def binary_search(items, target):
+    lo, hi = 0, len(items) - 1
+    steps = 0
+    while lo &lt;= hi:
+        mid = (lo + hi) // 2
+        steps += 1
+        if items[mid] == target:
+            return mid, steps
+        elif items[mid] &lt; target:
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return None, steps
+
+lengths = [28.5, 36.1, 41.0, 42.4, 42.4, 44.0, 45.1, 46.0,
+           52.0, 54.4, 62.2, 64.3, 74.5, 75.0, 82.0, 87.2]   # cm, sorted; made-up records
+print(binary_search(lengths, 62.2))
+print(binary_search(lengths, 60.0))      # not present
+print(binary_search(range(1_000_000), 999_999))</code></pre>
+  <pre class="out">(10, 4)
+(None, 4)
+(999999, 20)</pre>
+  <p>Python already has binary search for sorted lists in the <code>bisect</code> module. <code>bisect_left</code> returns the position where a value would go to keep the list sorted. That is what a decision tree does when it looks for where a split threshold falls among the sorted values of a feature.</p>
+  <pre class="code" data-run><code>from bisect import bisect_left
+
+lengths = [28.5, 36.1, 41.0, 42.4, 42.4, 44.0, 45.1, 46.0,
+           52.0, 54.4, 62.2, 64.3, 74.5, 75.0, 82.0, 87.2]   # cm, sorted; made-up records
+print(bisect_left(lengths, 60.0))   # 10 sharks are shorter than 60.0
+print(bisect_left(lengths, 62.2))</code></pre>
+  <pre class="out">10
+10</pre>
+  <p>The printed windows shrink from 16 positions to 8, 3 and 1, and the search finds 62.2 at position 10 in 4 steps. For the absent 60.0 the same four steps end with <code>lo = 10</code> above <code>hi = 9</code>. An empty window means "not here", and <code>lo</code> is where 60.0 would be inserted, the value <code>bisect_left</code> returns.</p>
+  <pre class="code" data-run><code>lengths = [28.5, 36.1, 41.0, 42.4, 42.4, 44.0, 45.1, 46.0,
+           52.0, 54.4, 62.2, 64.3, 74.5, 75.0, 82.0, 87.2]   # cm, sorted; made-up records
+
+def trace(items, target):
+    lo, hi = 0, len(items) - 1
+    step = 0
+    while lo &lt;= hi:
+        mid = (lo + hi) // 2
+        step += 1
+        print(f"step {step}: lo={lo} hi={hi} mid={mid} items[mid]={items[mid]}")
+        if items[mid] == target:
+            print("found at", mid)
+            return
+        elif items[mid] &lt; target:
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    print("not found; lo =", lo, "above hi =", hi)
+
+trace(lengths, 62.2)
+trace(lengths, 60.0)</code></pre>
+  <pre class="out">step 1: lo=0 hi=15 mid=7 items[mid]=46.0
+step 2: lo=8 hi=15 mid=11 items[mid]=64.3
+step 3: lo=8 hi=10 mid=9 items[mid]=54.4
+step 4: lo=10 hi=10 mid=10 items[mid]=62.2
+found at 10
+step 1: lo=0 hi=15 mid=7 items[mid]=46.0
+step 2: lo=8 hi=15 mid=11 items[mid]=64.3
+step 3: lo=8 hi=10 mid=9 items[mid]=54.4
+step 4: lo=10 hi=10 mid=10 items[mid]=62.2
+not found; lo = 10 above hi = 9</pre>
+  <p>Binary search keeps one fact true: if the target is in the list, it lies between positions <code>lo</code> and <code>hi</code>. Discarding the half that cannot contain it keeps the fact true while the window halves. Halving n down to 1 takes about \(\log_2 n\) steps.</p>
+  <p>With repeated values the search may find either copy. <code>bisect_left</code> and <code>bisect_right</code> return the first position and the position after the last copy, so two searches count items in a range. Here 42.4 occupies positions 3 and 4, and 6 sharks lie between 40 and 50 cm.</p>
+  <pre class="code" data-run><code>from bisect import bisect_left, bisect_right
+
+lengths = [28.5, 36.1, 41.0, 42.4, 42.4, 44.0, 45.1, 46.0,
+           52.0, 54.4, 62.2, 64.3, 74.5, 75.0, 82.0, 87.2]
+print(bisect_left(lengths, 42.4), bisect_right(lengths, 42.4))
+print(bisect_right(lengths, 50) - bisect_left(lengths, 40))</code></pre>
+  <pre class="out">3 5
+6</pre>
+  <p class="used"><b>In practice:</b> write the loop once to understand it, then use <code>bisect</code>. The usual mistakes are <code>&lt;</code> against <code>&lt;=</code> in the loop test and <code>mid</code> against <code>mid + 1</code> in the update, which cause an endless loop or a missed item.</p>
+    <div class="break">
+    <p><b>Common belief.</b> Binary search is always faster than linear search.</p>
+    <p><b>Why it fails.</b> Binary search needs a sorted list, and sorting costs about \(n \log_2 n\) steps. For one search in an unsorted list, a single pass of linear search is cheaper than sorting first.</p>
+    <p><b>Better account.</b> Sort once and search many times, or keep the data in a dictionary. The cost of preparing the data belongs in the count.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Binary search on a list that is not sorted does not raise an error. It quietly returns a wrong answer. If a search misses something you can see, check the order first.</p>
+  </div>
+  <pre class="code" data-run><code>def binary_search(items, target):
+    lo, hi = 0, len(items) - 1
+    while lo &lt;= hi:
+        mid = (lo + hi) // 2
+        if items[mid] == target:
+            return mid
+        elif items[mid] &lt; target:
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return None
+
+print(binary_search([5, 1, 9, 3, 7], 3))          # 3 is in the list
+print(binary_search(sorted([5, 1, 9, 3, 7]), 3))  # sort first</code></pre>
+  <pre class="out">None
+1</pre>
+  <p class="used"><b>Used in:</b> a decision tree picks a split threshold by trying values between neighbouring items of a sorted column (<a href="../a5-decision-trees/#grow">A5</a>). Searching sorted values by halving is also how libraries find where a number falls among a list of cut points.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>What is the largest number of steps binary search needs on 1,000,000 items?</summary><p>At most 20 steps. Since \(\log_2 1{,}000{,}000 \approx 19.93\), the bound \(\lfloor 19.93 \rfloor + 1\) is 20.</p></details>
+    <details><summary>Why can binary search not be used on the unsorted list of lengths in tag order?</summary><p>It relies on one fact: if the middle item is too small, so are all the items before it. That fact is false for an unsorted list, so it would discard the wrong half.</p></details>
+    <details><summary>Why does the loop test use <code>lo &lt;= hi</code> and not <code>lo &lt; hi</code>?</summary><p>When <code>lo</code> equals <code>hi</code> the window still contains one item, the last candidate. Stopping early would miss it, as in step 4 of the trace.</p></details>
+  </div>
+</section>
+
+<!-- ============ 4. sorting ============ -->
+<section id="sorting" aria-labelledby="sorting-h">
+  <h2 id="sorting-h">Sorting: insertion and merge</h2>
+  <p class="ask"><b>Guess first.</b> Insertion sort and merge sort will race on the same 16 shark lengths, taken from the made-up catch table. Both count their comparisons. Which finishes with fewer, and by how much? What about for 1,000 sharks?</p>
+  <dl class="terms">
+    <div><dt>sort</dt><dd>put items in increasing order</dd></div>
+    <div><dt>insertion sort</dt><dd>take the next item and slide it left past larger items until it fits, like sorting a hand of cards</dd></div>
+    <div><dt>merge sort</dt><dd>split the list in halves, sort the two halves the same way, then merge the two sorted halves</dd></div>
+    <div><dt>merge</dt><dd>combine two sorted lists into one by repeatedly taking the smaller front item</dd></div>
+  </dl>
+  <p class="claim">Insertion sort takes up to about \(n^2/2\) comparisons, and merge sort takes about \(n \log_2 n\). The gap widens quickly as n grows.</p>
+  <div class="card" id="sr">
+    <div class="bar" id="sr-bar"></div>
+    <div class="controls" id="sr-controls"></div>
+    <div class="split2">
+      <div>
+        <p class="vbox-title">Insertion sort</p>
+        <svg id="sr-ins" role="img" aria-label="Bars of shark lengths being sorted by insertion sort"></svg>
+        <p class="bigcount"><b id="sr-ic">0</b> <span>comparisons</span> <span id="sr-id" class="done"></span></p>
+      </div>
+      <div>
+        <p class="vbox-title">Merge sort</p>
+        <svg id="sr-mrg" role="img" aria-label="Bars of shark lengths being sorted by merge sort"></svg>
+        <p class="bigcount"><b id="sr-mc">0</b> <span>comparisons</span> <span id="sr-md" class="done"></span></p>
+      </div>
+    </div>
+    <p class="status" id="sr-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>Merge sort finishes first on shuffled lengths, and insertion sort wins when the list is already almost in order.</b> The 16 default lengths are sixteen records of the made-up catch table, in tag order. Watch where the two algorithms spend their comparisons: insertion sort slides one bar at a time, merge sort works on growing sorted blocks.</p>
+  <p>Insertion sort compares a bar with the one on its left and swaps while the left one is larger. On a reversed list all bars slide all the way, which is the worst case. On a nearly sorted list most bars need one comparison. Merge sort does not care about the order it starts in. It halves the list about \(\log_2 n\) times and one level of merging touches all n items once.</p>
+  <div class="eqn" id="sr-eqn" role="img" aria-label="Live comparison counts for the chosen list size"></div>
+  <p class="math">\[ C_{\text{insertion}} \le \frac{n(n-1)}{2}, \qquad C_{\text{merge}} \le n \lceil \log_2 n \rceil \]</p>
+  <ul class="math-notes">
+    <li><b>\(C\)</b> is the number of comparisons. <b>\(n\)</b> is the number of items.</li>
+    <li>Insertion sort's worst case is a reversed list: bar number \(i\) passes all \(i-1\) bars before it, and \(1 + 2 + \dots + (n-1) = n(n-1)/2\).</li>
+    <li>Merge sort's bound comes from about \(\lceil \log_2 n \rceil\) levels of merging, which use at most n comparisons apiece.</li>
+  </ul>
+  <pre class="code" data-run><code>def insertion_sort(a):
+    a = list(a)
+    comparisons = 0
+    for i in range(1, len(a)):
+        j = i
+        while j &gt; 0:
+            comparisons += 1
+            if a[j - 1] &gt; a[j]:
+                a[j - 1], a[j] = a[j], a[j - 1]
+                j -= 1
+            else:
+                break
+    return a, comparisons
+
+def merge_sort(a):
+    if len(a) &lt;= 1:
+        return list(a), 0
+    mid = len(a) // 2
+    left, cl = merge_sort(a[:mid])
+    right, cr = merge_sort(a[mid:])
+    out, i, j, c = [], 0, 0, 0
+    while i &lt; len(left) and j &lt; len(right):
+        c += 1
+        if left[i] &lt;= right[j]:
+            out.append(left[i]); i += 1
+        else:
+            out.append(right[j]); j += 1
+    out += left[i:] + right[j:]
+    return out, cl + cr + c
+
+lengths = [42.4, 45.1, 74.5, 41.0, 36.1, 44.0, 64.3, 46.0,
+           82.0, 28.5, 87.2, 42.4, 75.0, 62.2, 54.4, 52.0]   # cm, in tag order; made-up records
+print(insertion_sort(lengths)[1], merge_sort(lengths)[1])
+print(insertion_sort(sorted(lengths))[1], merge_sort(sorted(lengths))[1])
+print(insertion_sort(sorted(lengths, reverse=True))[1])</code></pre>
+  <pre class="out">60 44
+15 32
+120</pre>
+  <p>The race and the code count the same way: one comparison whenever two lengths are compared. Python's own <code>sorted</code> uses an algorithm called Timsort, which takes advantage of any order already present in the data. For your own code, call <code>sorted</code> and keep the hand-written versions for learning.</p>
+  <p>Count by hand on the first four lengths, 42.4, 45.1, 74.5 and 41.0. Insertion sort compares 45.1 with 42.4 (1), then 74.5 with 45.1 (1), then slides 41.0 past 74.5, 45.1 and 42.4 (3). The total is 5. Merge sort sorts [42.4, 45.1] with 1 comparison and [74.5, 41.0] with 1. It then merges them by comparing 42.4 with 41.0, 42.4 with 74.5 and 45.1 with 74.5 (3). The total is also 5. For four items the two tie, and the gap opens as the list grows. On a shuffled list insertion sort falls between its best case, n &minus; 1 = 15, and its worst, 120. The 16 lengths needed 60.</p>
+  <p>Python's <code>sorted</code> is stable: items with equal keys keep their earlier order. That makes two-pass sorts work. Sort by length first and by species second, and the lengths stay in order within a species. <code>key=</code> chooses what to sort on, and <code>reverse=True</code> flips the order.</p>
+  <pre class="code" data-run><code>sharks = [(4127, "bamboo", 44.0), (3305, "spadenose", 41.0),
+          (5519, "hammerhead", 82.0), (8512, "bamboo", 42.4)]   # tag, species, cm
+by_length = sorted(sharks, key=lambda r: r[2], reverse=True)
+print([r[0] for r in by_length])
+step1 = sorted(sharks, key=lambda r: r[2])         # by length
+step2 = sorted(step1, key=lambda r: r[1])          # then by species: stable
+print([(r[1], r[2]) for r in step2])</code></pre>
+  <pre class="out">[5519, 4127, 8512, 3305]
+[('bamboo', 42.4), ('bamboo', 44.0), ('hammerhead', 82.0), ('spadenose', 41.0)]</pre>
+  <p class="used"><b>In practice:</b> to reorder one array by another, use <code>np.argsort</code> (<a href="../t1-python/#arrays">0.1</a>). To sort a list in place, call <code>list.sort()</code>.</p>
+  <div class="break">
+    <p><b>Common belief.</b> Merge sort is always faster than insertion sort.</p>
+    <p><b>Why it fails.</b> Big-O describes the worst case as n grows. On a list that is already in order, insertion sort needs only n - 1 comparisons, fewer than merge sort. For very short lists the extra bookkeeping of merging does not pay off.</p>
+    <p><b>Better account.</b> Merge sort's cost barely depends on the input order, while insertion sort's depends on it heavily. That is why the winner changes with the data.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> <code>list.sort()</code> sorts the list in place and returns <code>None</code>. Writing <code>lengths = lengths.sort()</code> throws your list away.</p>
+  </div>
+  <pre class="code" data-run><code>lengths = [74.5, 41.0, 36.1]
+result = lengths.sort()
+print(result, lengths)
+print(sorted([74.5, 41.0, 36.1]))</code></pre>
+  <pre class="out">None [36.1, 41.0, 74.5]
+[36.1, 41.0, 74.5]</pre>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>For n = 1,000 reversed items, about how many comparisons does insertion sort need, and how many does merge sort need at most?</summary><p>Insertion sort: 1,000 times 999 over 2, which is 499,500. Merge sort: at most 1,000 times 10, which is 10,000. The ratio is about 50.</p></details>
+    <details><summary>The list is already sorted. How many comparisons does insertion sort make for n items?</summary><p>n - 1. An item is compared once with its left neighbour, finds it smaller or equal, and stays.</p></details>
+    <details><summary>Two sharks have the same length. After <code>sorted(..., key=length)</code>, which comes first?</summary><p>The one that came first in the input. Python's sort is stable, so ties keep their earlier order.</p></details>
+  </div>
+</section>
+
+<!-- ============ 5. top-k ============ -->
+<section id="topk" aria-labelledby="topk-h">
+  <h2 id="topk-h">Top-k</h2>
+  <p class="ask"><b>Guess first.</b> A model scores 50,000 possible next words and you want only the 5 best. Do you have to sort all 50,000 first?</p>
+  <dl class="terms">
+    <div><dt>top-k</dt><dd>the k items with the largest scores</dd></div>
+    <div><dt>scan</dt><dd>one pass over the items, looking at the items once</dd></div>
+    <div><dt>board</dt><dd>the short list of the k best items seen so far (a name used in this chapter)</dd></div>
+  </dl>
+  <p class="claim">To find the k largest of n items you need not sort all of them. Scan once and keep a board of the k best so far.</p>
+  <div class="card" id="tk">
+    <div class="controls" id="tk-controls"></div>
+    <div class="bar" id="tk-bar"></div>
+    <div id="tk-cells" class="cells" role="img" aria-label="Sixteen shark lengths in a row with a pointer that moves along them; the best k so far are highlighted"></div>
+    <div class="vars" id="tk-board"></div>
+    <div class="readout"><span>Comparisons so far: <b id="tk-c">0</b></span><span>Full merge sort of these 16 would use: <b id="tk-sort">0</b></span></div>
+    <p class="status" id="tk-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>After the board fills, most items fail the first check and cost one comparison.</b> Slide k and press Step. Late items rarely enter the board.</p>
+  <p>For a vocabulary of n = 50,000 words and k = 50, the scan needs about 50,000 comparisons plus a few thousand to place the winners. A full sort needs about \(n \log_2 n \approx 780{,}000\). The scan wins because few items ever beat the weakest member of the board. Python's <code>heapq.nlargest</code> uses a smarter board called a heap, which keeps its weakest member at the front. Its documentation advises using <code>sorted</code> when k is large and <code>max</code> when k is 1.</p>
+  <pre class="code" data-run><code>import heapq
+
+lengths = [42.4, 45.1, 74.5, 41.0, 36.1, 44.0, 64.3, 46.0,
+           82.0, 28.5, 87.2, 42.4, 75.0, 62.2, 54.4, 52.0]   # cm, in tag order; made-up records
+
+print(sorted(lengths, reverse=True)[:3])
+print(heapq.nlargest(3, lengths))
+
+def top_k(items, k):
+    board, comparisons = [], 0        # the board: the k best so far, largest first
+    for x in items:
+        if len(board) == k:
+            comparisons += 1
+            if x &lt;= board[-1]:         # not above the weakest board item
+                continue
+            board.pop()
+        i = len(board)
+        while i &gt; 0:                  # find the place for x
+            comparisons += 1
+            if board[i - 1] &gt;= x:
+                break
+            i -= 1
+        board.insert(i, x)
+    return board, comparisons
+
+print(top_k(lengths, 3))</code></pre>
+  <pre class="out">[87.2, 82.0, 75.0]
+[87.2, 82.0, 75.0]
+([87.2, 82.0, 75.0], 25)</pre>
+  <p>Follow the board for k = 3 on the sixteen lengths. The first three items fill it. Items 4 and 5 (41.0 and 36.1) are below the weakest member, so one comparison rejects them. Items 6, 7 and 8 enter the board and cost two or three comparisons. After all 16 items the scan has used 25 comparisons, where a full merge sort used 44.</p>
+  <pre class="code" data-run><code>lengths = [42.4, 45.1, 74.5, 41.0, 36.1, 44.0, 64.3, 46.0,
+           82.0, 28.5, 87.2, 42.4, 75.0, 62.2, 54.4, 52.0]   # cm, in tag order; made-up records
+board, comparisons = [], 0
+for n, x in enumerate(lengths[:8], 1):
+    if len(board) == 3:
+        comparisons += 1
+        if x &lt;= board[-1]:                  # rejected by one comparison
+            print(n, x, board, comparisons)
+            continue
+        board.pop()
+    i = len(board)
+    while i &gt; 0:
+        comparisons += 1
+        if board[i - 1] &gt;= x:
+            break
+        i -= 1
+    board.insert(i, x)
+    print(n, x, board, comparisons)</code></pre>
+  <pre class="out">1 42.4 [42.4] 0
+2 45.1 [45.1, 42.4] 1
+3 74.5 [74.5, 45.1, 42.4] 3
+4 41.0 [74.5, 45.1, 42.4] 4
+5 36.1 [74.5, 45.1, 42.4] 5
+6 44.0 [74.5, 45.1, 44.0] 7
+7 64.3 [74.5, 64.3, 45.1] 10
+8 46.0 [74.5, 64.3, 46.0] 12</pre>
+  <p>The order of arrival matters. In increasing order a new item always beats the weakest and must be placed: 42 comparisons for these 16. In decreasing order only the first three enter: 15 comparisons. In random order item \(i\) enters with probability \(k/i\), because it must be among the best \(k\) of the first \(i\). Summing \(k/i\) from \(i = k + 1\) to \(n\) gives about \(k \ln(n/k)\) entries after the first \(k\). For \(n = 50{,}000\) and \(k = 50\) that is about 50 + 345 = 395 entries. One random run varies around that figure: this one gave 375.</p>
+  <pre class="code" data-run><code>import heapq, math, random
+
+random.seed(0)
+n, k = 50_000, 50
+heap, entered = [], 0
+for _ in range(n):
+    x = random.random()
+    if len(heap) &lt; k:
+        heapq.heappush(heap, x)
+        entered += 1
+    elif x &gt; heap[0]:                  # beats the weakest of the k
+        heapq.heapreplace(heap, x)
+        entered += 1
+print(entered, round(k + k * math.log(n / k)))</code></pre>
+  <pre class="out">375 395</pre>
+  <p class="used"><b>In practice:</b> top-k sampling for text keeps the k best scores and rescales them to sum to 1 (<a href="../d3-next-token/#sampling">D3</a>). Take made-up probabilities 0.55, 0.30, 0.10, 0.04 and 0.01 with k = 2. The kept ones sum to 0.85, so they become 0.55 / 0.85 = 0.65 and 0.30 / 0.85 = 0.35.</p>
+    <div class="break">
+    <p><b>Common belief.</b> To find the best few items you must sort all of them.</p>
+    <p><b>Why it fails.</b> A scan with a board of k places needs about n comparisons when k is small, and a full sort needs about \(n \log_2 n\). Most of the sorting work orders items that you never use.</p>
+    <p><b>Better account.</b> Keep a board when you want only the best few. Sort when you want the whole order, or when k is close to n.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> Check the cases at the edges: k larger than the list, and ties. With <code>k = 20</code> and 16 items, <code>sorted(...)[:20]</code> quietly returns all 16, while code that assumes k items may fail.</p>
+  </div>
+  <p class="used"><b>Used in:</b> a language model scores all the words in its vocabulary for the next position. Top-k sampling keeps the k highest scores and draws the next word from those only (<a href="../d3-next-token/#sampling">D3</a>).</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>Why does the scan with a board cost about n comparisons and not n times k?</summary><p>Most items are smaller than the weakest board member, so one comparison rejects them. Only a few items enter the board, and only those pay for placing themselves among the k members.</p></details>
+    <details><summary>In which order should the data arrive to make the board scan as slow as possible?</summary><p>Increasing order. A new item always beats the weakest board member, so it enters the board and must be placed.</p></details>
+  </div>
+</section>
+
+<!-- ============ 6. recursion ============ -->
+<section id="recursion" aria-labelledby="recursion-h">
+  <h2 id="recursion-h">Recursion and trees</h2>
+  <p class="ask"><b>Guess first.</b> A function <code>total(n)</code> returns <code>n + total(n - 1)</code>, and <code>total(0)</code> returns 0. What is <code>total(4)</code>? What happens if you forget the rule for 0?</p>
+  <dl class="terms">
+    <div><dt>recursion</dt><dd>a function that calls itself on a smaller version of the problem</dd></div>
+    <div><dt>base case</dt><dd>the smallest case, answered directly so the calls stop</dd></div>
+    <div><dt>call stack</dt><dd>the stack of calls waiting for an answer from the call above them</dd></div>
+    <div><dt>tree</dt><dd>a graph with one root and no loops, here a call tree (a reminder; <a href="../t4-discrete-maths/#graphs">0.4</a> defines graphs); a leaf is a node with no children</dd></div>
+  </dl>
+  <p class="claim">A recursive function solves a problem by solving a smaller copy of it, and it stops at a base case.</p>
+  <div class="card" id="rc">
+    <div class="controls" id="rc-controls"></div>
+    <div class="bar" id="rc-bar"></div>
+    <div class="split2 rsplit">
+      <div id="rc-svg-wrap"><svg id="rc-svg" role="img" aria-label="The tree of calls made by a recursive function"></svg></div>
+      <div>
+        <p class="vbox-title">Call stack</p>
+        <div id="rc-stack" class="callstack" aria-live="polite"></div>
+      </div>
+    </div>
+    <p class="note" id="rc-legend"></p>
+    <div class="readout"><span>Calls made so far: <b id="rc-n">0</b></span><span>Deepest stack: <b id="rc-d">0</b></span><span>Answer: <b id="rc-a">?</b></span></div>
+  </div>
+  <p class="cap"><b>The call stack grows by one frame per waiting call, and answers come back up in the reverse order of the calls.</b> Choose <code>total</code>, step through, and then try <code>fib</code> to see a function that calls itself twice.</p>
+  <p>The function <code>total(4)</code> waits for <code>total(3)</code>, which waits for <code>total(2)</code>, and so on down to the base case <code>total(0)</code>. Then the answers return one by one: 0, 1, 3, 6, 10. The call stack is a stack in the sense of the first section.</p>
+  <pre class="code" data-run><code>def total(n):
+    if n == 0:                 # base case
+        return 0
+    return n + total(n - 1)    # a smaller copy of the problem
+
+print(total(4))
+print(total(100))</code></pre>
+  <pre class="out">10
+5050</pre>
+  <p>Trees are recursive too: a tree is a root with smaller trees hanging from it. A decision tree answers a question about a shark by testing one feature and then handing the shark to the smaller tree on the chosen side. The toy tree below is made up for this figure.</p>
+  <div class="card" id="tr">
+    <div class="controls" id="tr-controls"></div>
+    <div id="tr-svg-wrap"><svg id="tr-svg" role="img" aria-label="A small decision tree with the path taken by one shark highlighted"></svg></div>
+    <div class="callstack" id="tr-stack" aria-live="polite"></div>
+  </div>
+  <p class="cap"><b>A test sends the shark into a smaller tree, and the answer travels back through the same calls.</b> Slide the length and the depth and watch the path change.</p>
+  <pre class="code" data-run><code>tree = {"test": ("length_cm", 58),
+        "yes": {"leaf": "juvenile"},
+        "no": {"test": ("depth_m", 30),
+               "yes": {"leaf": "adult, inshore"},
+               "no": {"leaf": "adult, offshore"}}}
+
+def predict(node, shark):
+    if "leaf" in node:                         # base case
+        return node["leaf"]
+    feature, cut = node["test"]
+    branch = "yes" if shark[feature] &lt; cut else "no"
+    return predict(node[branch], shark)        # a smaller tree
+
+print(predict(tree, {"length_cm": 62.5, "depth_m": 22}))
+print(predict(tree, {"length_cm": 45.0, "depth_m": 22}))</code></pre>
+  <pre class="out">adult, inshore
+juvenile</pre>
+  <p>Recursive functions fit recursive data. To count the leaves of the toy tree, a leaf counts as 1 and any other node adds the counts of its two sides. The depth follows the same pattern: a leaf has depth 0 and any other node is 1 deeper than its deeper side. The toy tree has 3 leaves, and its longest path has 2 tests.</p>
+  <pre class="code" data-run><code>tree = {"test": ("length_cm", 58),
+        "yes": {"leaf": "juvenile"},
+        "no": {"test": ("depth_m", 30),
+               "yes": {"leaf": "adult, inshore"},
+               "no": {"leaf": "adult, offshore"}}}
+
+def count_leaves(node):
+    if "leaf" in node:                  # base case
+        return 1
+    return count_leaves(node["yes"]) + count_leaves(node["no"])
+
+def depth(node):
+    if "leaf" in node:
+        return 0
+    return 1 + max(depth(node["yes"]), depth(node["no"]))
+
+print(count_leaves(tree), depth(tree))</code></pre>
+  <pre class="out">3 2</pre>
+  <div class="break">
+    <p><b>Common belief.</b> A function that calls itself is just as cheap as the loop version.</p>
+    <p><b>Why it fails.</b> When a function calls itself twice, it can repeat the same work many times. The naive <code>fib</code> in the figure computes <code>fib(2)</code> again and again, and the count of calls explodes.</p>
+    <p><b>Better account.</b> Count the calls, not the lines of code. A dictionary that stores the answers the first time removes the repeats.</p>
+  </div>
+  <pre class="code" data-run><code>calls = 0
+def fib(n):
+    global calls
+    calls += 1
+    return n if n &lt; 2 else fib(n - 1) + fib(n - 2)
+
+print(fib(20), calls)
+
+memo, calls2 = {}, 0
+def fib_memo(n):
+    global calls2
+    calls2 += 1
+    if n in memo:
+        return memo[n]
+    memo[n] = n if n &lt; 2 else fib_memo(n - 1) + fib_memo(n - 2)
+    return memo[n]
+
+print(fib_memo(20), calls2)</code></pre>
+  <pre class="out">6765 21891
+6765 39</pre>
+  <p>The explosion of <code>fib</code> has a formula. Let \(c(n)\) be the number of calls that <code>fib(n)</code> makes. Then \(c(0) = c(1) = 1\), and for larger \(n\) the call counts itself plus the calls of its two children: \(c(n) = 1 + c(n-1) + c(n-2)\). This gives 1, 1, 3, 5, 9, 15, 25 for \(n\) from 0 to 6, as the output below shows. It matches \(c(n) = 2\,\mathrm{fib}(n+1) - 1\), so \(c(20) = 2 \times 10{,}946 - 1 = 21{,}891\). The calls grow like the Fibonacci numbers, about 1.6 times larger when \(n\) grows by 1.</p>
+  <pre class="code" data-run><code>calls = 0
+def fib(n):
+    global calls
+    calls += 1
+    return n if n &lt; 2 else fib(n - 1) + fib(n - 2)
+
+for n in range(7):
+    calls = 0
+    value = fib(n)
+    print(n, value, calls)</code></pre>
+  <pre class="out">0 0 1
+1 1 1
+2 1 3
+3 2 5
+4 3 9
+5 5 15
+6 8 25</pre>
+  <p class="used"><b>In practice:</b> Python stops a recursion at 1,000 nested calls by default, so <code>total(2000)</code> fails with a RecursionError. Use a loop for simple counting and recursion for trees and nested data, where the structure is itself recursive.</p>
+  <div class="debug">
+    <p><b>Debug tip.</b> A missing base case ends in a <code>RecursionError</code>, because the stack of waiting calls grows until Python's limit. Check that the calls move toward the base case.</p>
+  </div>
+  <pre class="code" data-error><code>def total(n):
+    return n + total(n - 1)    # no base case
+
+total(5)</code></pre>
+  <pre class="out">RecursionError: maximum recursion depth exceeded</pre>
+  <p class="used"><b>Used in:</b> a decision tree is a recursive object, and growing one is a recursive procedure: split the data, then grow a smaller tree on both sides (<a href="../a5-decision-trees/#grow">A5</a>). Visiting the nodes of a tree with a stack goes deep first, and with a queue goes level by level.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>What are the two parts a recursive function needs?</summary><p>A base case that returns an answer without another call, and a recursive case that calls the function on a smaller input, so the calls move toward the base case.</p></details>
+    <details><summary>In <code>predict</code>, which line is the base case?</summary><p>The line that tests <code>"leaf" in node</code> and returns the label. A leaf has no smaller tree to hand the shark to.</p></details>
+    <details><summary>How many calls does <code>fib(4)</code> make?</summary><p>It makes 9 calls, from the table: 1, 1, 3, 5, 9 for n from 0 to 4.</p></details>
+  </div>
+</section>
+
+<!-- ============ 7. Big-O ============ -->
+<section id="bigo" aria-labelledby="bigo-h">
+  <h2 id="bigo-h">Big-O: steps against size</h2>
+  <p class="ask"><b>Guess first.</b> A program does 1,000 steps on an input of 1,000 items. If the input doubles to 2,000 items, how many times as many steps will it do if its cost grows like n? Like n squared? Like \(\log_2 n\)?</p>
+  <dl class="terms">
+    <div><dt>Big-O</dt><dd>how the number of steps grows with the input size n, ignoring constant factors and smaller terms</dd></div>
+    <div><dt>\(O(1)\)</dt><dd>constant: the steps do not grow with n</dd></div>
+    <div><dt>\(O(\log n)\)</dt><dd>logarithmic: doubling n adds one step; binary search</dd></div>
+    <div><dt>\(O(n)\)</dt><dd>linear: doubling n doubles the steps; a scan</dd></div>
+    <div><dt>\(O(n \log n)\)</dt><dd>a little worse than linear; merge sort</dd></div>
+    <div><dt>\(O(n^2)\)</dt><dd>quadratic: doubling n quadruples the steps; insertion sort's worst case, comparing all pairs</dd></div>
+  </dl>
+  <p class="claim">Big-O describes how the step count grows as n grows. Doubling n doubles \(O(n)\), roughly doubles \(O(n \log n)\), quadruples \(O(n^2)\) and adds one step to \(O(\log n)\).</p>
+  <div class="card" id="bo">
+    <div class="controls" id="bo-controls"></div>
+    <div class="bar" id="bo-bar"><span class="label">Axes</span></div>
+    <div class="plot tall" id="bo-plot" role="img" aria-label="Steps against input size for log n, n, n log n and n squared; n squared climbs fastest"></div>
+    <div class="readout" id="bo-read"></div>
+  </div>
+  <p class="cap"><b>For small n the curves lie close together, and beyond a few hundred items the n squared curve leaves the others behind.</b> Raise the constant factor on the n log n curve and the curves cross much later.</p>
+  <p>The step counts here are formulas with a constant factor in front: the n log n algorithm uses \(c \cdot n \log_2 n\) steps and the other algorithms use one step per unit. Big-O drops the constant \(c\), but the constant decides who wins for small n. In the figure, move the constant to 20 and find the size where the n squared curve first rises above the n log n curve.</p>
+  <p>Big-O also drops smaller terms. A program that makes \(3n^2 + 5n + 2\) steps is \(O(n^2)\), because at large n the \(5n\) and 2 are a tiny share of the total. The boxes below use the n you set in the figure.</p>
+  <div class="eqn" id="bo-eqn" role="img" aria-label="A worked example of the three terms of 3 n squared plus 5 n plus 2 for the chosen n"></div>
+  <p class="math">\[ T(n) = 3n^2 + 5n + 2 = O(n^2) \]</p>
+  <ul class="math-notes">
+    <li><b>\(T(n)\)</b> is the number of steps the program takes on an input of size \(n\).</li>
+    <li><b>\(O(n^2)\)</b> says that for large \(n\), \(T(n)\) is at most a constant times \(n^2\). The constant 3, the \(5n\) and the 2 are not part of the label.</li>
+  </ul>
+  <pre class="code" data-run><code>import random
+random.seed(1)
+
+def comparisons(n):
+    a = [random.random() for _ in range(n)]
+    lin = 0                                 # linear search for the last item
+    for x in a:
+        lin += 1
+        if x == a[-1]:
+            break
+    b, ins = list(a), 0                     # insertion sort
+    for i in range(1, n):
+        j = i
+        while j &gt; 0:
+            ins += 1
+            if b[j - 1] &gt; b[j]:
+                b[j - 1], b[j] = b[j], b[j - 1]
+                j -= 1
+            else:
+                break
+    def ms(x):                              # merge sort
+        if len(x) &lt;= 1:
+            return x, 0
+        m = len(x) // 2
+        l, cl = ms(x[:m])
+        r, cr = ms(x[m:])
+        out, i, j, c = [], 0, 0, 0
+        while i &lt; len(l) and j &lt; len(r):
+            c += 1
+            if l[i] &lt;= r[j]:
+                out.append(l[i]); i += 1
+            else:
+                out.append(r[j]); j += 1
+        return out + l[i:] + r[j:], cl + cr + c
+    _, mrg = ms(a)
+    return lin, ins, mrg
+
+prev = None
+for n in (100, 200, 400, 800):
+    lin, ins, mrg = comparisons(n)
+    ratio = "" if prev is None else f"  x{ins / prev[0]:.1f} {mrg / prev[1]:.1f}"
+    print(n, lin, ins, mrg, ratio)
+    prev = (ins, mrg)</code></pre>
+  <pre class="out">100 100 2268 549 
+200 200 9589 1278   x4.2 2.3
+400 400 40102 2975   x4.2 2.3
+800 800 163427 6737   x4.1 2.3</pre>
+  <p>The last two numbers on a line show what happened to insertion sort and merge sort when n doubled. Insertion sort's count roughly quadrupled whenever n doubled. Merge sort's roughly doubled, slightly more. That is what \(O(n^2)\) and \(O(n \log n)\) predict, observed without a stopwatch.</p>
+  <p>Count the steps of code with three rules. A loop over n items costs n steps. A loop inside a loop costs n times n. A step that halves the problem costs about \(\log_2 n\). Steps one after another add, and the largest term wins. The block prints the counts for n = 1,000.</p>
+  <pre class="code" data-run><code>n = 1000
+steps = {"one pass": 0, "pass inside pass": 0, "halving": 0}
+for x in range(n):                 # one pass over n items
+    steps["one pass"] += 1
+for x in range(n):                 # a pass inside a pass
+    for y in range(n):
+        steps["pass inside pass"] += 1
+m = n
+while m &gt; 1:                       # halve until one is left
+    m = m // 2
+    steps["halving"] += 1
+print(steps)</code></pre>
+  <pre class="out">{'one pass': 1000, 'pass inside pass': 1000000, 'halving': 9}</pre>
+  <p>Scale this up to a million records. In the worst case, a list in reverse order, insertion sort needs about \(n(n-1)/2 \approx 5 \times 10^{11}\) comparisons. Merge sort needs about \(n \log_2 n \approx 2 \times 10^{7}\) comparisons. Suppose a program makes \(10^7\) comparisons per second, an assumed round number for plain Python. Insertion sort then needs about 14 hours and merge sort about 2 seconds. The ratio, about 25,000, matches \(n / (2\log_2 n)\).</p>
+  <pre class="code" data-run><code>import math
+
+n = 1_000_000
+insertion = n * (n - 1) // 2
+merge = n * math.ceil(math.log2(n))
+speed = 10_000_000                 # comparisons per second: an assumed round number
+print(insertion, merge)
+print(round(insertion / speed / 3600, 1), "hours", round(merge / speed, 1), "seconds")</code></pre>
+  <pre class="out">499999500000 20000000
+13.9 hours 2.0 seconds</pre>
+  <p class="used"><b>In practice:</b> Big-O guides the choice and a measurement settles it. Time the program on your own data with <code>time.perf_counter</code>, because constants matter at small n. Profile before you optimise, since the slow line is often not where you expect.</p>
+  <div class="break">
+    <p><b>Common belief.</b> An \(O(n)\) program is always faster than an \(O(n^2)\) one, and Big-O says how long a program takes.</p>
+    <p><b>Why it fails.</b> Big-O ignores constants, the machine and the input. A program with \(100n\) steps is slower than one with \(n^2\) steps for all n below 100.</p>
+    <p><b>Better account.</b> Big-O says how the cost grows. It tells you which program will win for a large enough n, and when to expect trouble if the input gets bigger.</p>
+  </div>
+  <p>Now the case that matters most for the rest of this primer. A language model reads a prompt of n tokens. Self-attention compares all tokens with all the other tokens, so it forms about \(n^2\) pairs. Vaswani and colleagues list the cost of a self-attention layer as \(O(n^2 \cdot d)\), where \(d\) is the size of the vectors, in Table 1 of the paper that introduced the Transformer.</p>
+  <div class="card" id="at">
+    <div class="controls" id="at-controls"></div>
+    <div class="eqn" id="at-eqn" role="img" aria-label="Prompt length and the number of token pairs it creates"></div>
+  </div>
+  <p class="cap"><b>A prompt ten times longer makes a hundred times as many pairs.</b> Slide n and compare the pair count with that of a 1,000-token prompt, which has a million pairs.</p>
+  <p>Memory grows with the pairs too. Take \(n = 10{,}000\) tokens. A full table of attention scores has \(n^2 = 10^8\) numbers. At 4 bytes per number that is 400 MB for one head in one layer, if stored in full. This is why long inputs need the methods of <a href="../d6-long-context/#cost">D6</a>.</p>
+  <p class="used"><b>Used in:</b> the \(n^2\) growth of attention is why long prompts are expensive, and why <a href="../d6-long-context/#sparse">D6</a> studies variants that look at a window or a summary instead of all pairs. The same step-counting habit appears in <a href="../b8-debugging/#grad">B8</a>, where the update-to-weight ratio shows how many steps a layer needs to change by its own size.</p>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>An algorithm takes 3 seconds for n = 1,000 and is \(O(n^2)\). About how long for n = 4,000?</summary><p>About 48 seconds. Quadrupling n multiplies the steps by 16, and 3 times 16 is 48. The constants cancel in the ratio, which is why Big-O is useful for predictions.</p></details>
+    <details><summary>Which grows faster, \(100\, n \log_2 n\) or \(n^2\)?</summary><p>\(n^2\) eventually, but only from n = 997 onward. Below that, the \(100\, n \log_2 n\) program takes more steps.</p></details>
+    <details><summary>A loop over n items makes one dictionary lookup in the body. What is the Big-O of the loop?</summary><p>\(O(n)\). The loop makes n passes, and a dictionary lookup costs about one step.</p></details>
+  </div>
+</section>
+
+<!-- ============ 8. tracing ============ -->
+<section id="tracing" aria-labelledby="tracing-h">
+  <h2 id="tracing-h">Tracing code by hand</h2>
+  <p class="ask"><b>Guess first.</b> Before you run it, what does this print? Start with <code>total = 0</code>. Then loop over the lengths 42.4, 74.5 and 64.3 and add a length to <code>total</code> only when it is over 60. Finally call <code>print(total)</code>.</p>
+  <dl class="terms">
+    <div><dt>trace</dt><dd>a record of what a program does, one line at a time</dd></div>
+    <div><dt>trace table</dt><dd>a table with a row per line executed and a column per variable</dd></div>
+    <div><dt>state</dt><dd>the values of all variables at one moment</dd></div>
+  </dl>
+  <p class="claim">To trace code, write down the values of the variables after the lines that run. The table shows what the loop and the conditions did.</p>
+  <div class="card" id="tc">
+    <div class="bar" id="tc-bar"></div>
+    <div class="split2 tsplit">
+      <div class="codeview" id="tc-code" role="img" aria-label="The program being traced with the next line highlighted"></div>
+      <div id="tc-panel"></div>
+    </div>
+    <div class="tscroll"><table class="ttable" id="tc-table"></table></div>
+    <p class="status" id="tc-status" aria-live="polite"></p>
+  </div>
+  <p class="cap"><b>Predicting a value before the table shows it is the fastest way to find out which lines you misread.</b> Fill in the highlighted row and press Check. If you are stuck, press Show answer and look at which line changed what.</p>
+  <p>The fourth program has a bug on purpose. Trace it, decide what it should have printed, and find the line that makes the difference. An off-by-one error, such as a loop that starts at 1 and skips the first item, only shows up in a trace as a missing row.</p>
+    <p>Trace a loop that halves. Start with <code>n = 20</code> and <code>count = 0</code>, and repeat <code>n = n // 2</code> and <code>count = count + 1</code> while <code>n &gt; 1</code>. The operator <code>//</code> rounds down. The loop ends when <code>n</code> reaches 1, with <code>count = 4</code>, which is \(\lfloor\log_2 20\rfloor\). A loop that halves counts logarithms. The printed lines are the trace table.</p>
+  <pre class="code" data-run><code>n, count = 20, 0
+print("start", n, count)
+while n &gt; 1:
+    n = n // 2
+    count = count + 1
+    print("pass", count, "n =", n, "count =", count)</code></pre>
+  <pre class="out">start 20 0
+pass 1 n = 10 count = 1
+pass 2 n = 5 count = 2
+pass 3 n = 2 count = 3
+pass 4 n = 1 count = 4</pre>
+  <p>Tracing also finds assignment bugs. With <code>a = 3</code> and <code>b = 5</code>, the lines <code>a = b</code> and then <code>b = a</code> leave both at 5, because <code>a</code> changed before <code>b</code> used it. The tuple form <code>a, b = b, a</code> works out the right side first and swaps the two.</p>
+  <pre class="code" data-run><code>a, b = 3, 5
+a = b
+b = a
+print(a, b)
+
+a, b = 3, 5
+a, b = b, a
+print(a, b)</code></pre>
+  <pre class="out">5 5
+5 3</pre>
+  <p class="used"><b>In practice:</b> most editors have a debugger that runs a program line by line and shows the variables, which is a trace table made for you. Set the first stop at the line you doubt, not at the top of the file.</p>
+  <div class="break">
+    <p><b>Common belief.</b> If you read a program once and it looks right, you understand it.</p>
+    <p><b>Why it fails.</b> Reading feels like understanding even when you skip a line. A trace makes you commit to the values line by line, and the first row where your value differs from the computer's shows the line you misread.</p>
+    <p><b>Better account.</b> Predict, then run, then compare. The gap between the two is where you learn.</p>
+  </div>
+  <div class="debug">
+    <p><b>Debug tip.</b> When a program gives a wrong answer, put <code>print</code> calls that show the variables after the suspect lines. That is a trace table written by the computer. Compare it with your own trace and look for the first row where they differ.</p>
+  </div>
+  <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>In the trace of the first program, which lines leave the variable <code>total</code> unchanged?</summary><p>The loop header and the <code>if</code> test do not change <code>total</code>. Only the line <code>total = total + length</code> does, and it runs only when the test is True.</p></details>
+    <details><summary>In the halving loop, what is <code>count</code> at the end for <code>n = 21</code>?</summary><p>It is 4. The values of <code>n</code> are 21, 10, 5, 2 and 1, so the loop body runs four times.</p></details>
+  </div>
+</section>
+
+<!-- ============ exercises ============ -->
+<section id="exercises" aria-labelledby="exercises-h">
+  <h2 id="exercises-h">Exercises</h2>
+  <div class="exercises">
+    <h3>Theory</h3>
+    <ol>
+      <li><p><span class="ex-tag">theory</span> Start with an empty stack and an empty queue. Apply these operations to both: add 1, add 2, remove, add 3, add 4, remove, remove. List what comes out of the stack and of the queue, and what is left in both.</p>
+        <details class="hint"><summary>Hint</summary><p>Write the contents after any operation. A stack removes from the top, a queue from the front.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> What is the largest number of steps binary search needs for n = 16, 1,000 and 1,000,000? How many steps does doubling n add? Why does the search take just one more step when the list doubles?</p></li>
+      <li><p><span class="ex-tag">theory</span> Give the Big-O class of these step counts, and say what happens to the count when n doubles: (a) \(5n + 40\); (b) \(n + 100 \log_2 n\); (c) \(3n^2 + 5n + 2\); (d) \(2^n\). Then find the smallest whole n for which \(n^2\) is larger than \(100\, n \log_2 n\).</p>
+        <details class="hint"><summary>Hint</summary><p>Divide both sides of the last inequality by n first. You then compare n with \(100 \log_2 n\). Try n = 900 and n = 1,000, then narrow the range.</p></details></li>
+      <li><p><span class="ex-tag">theory</span> Trace <code>f(3)</code> by hand for <code>def f(n): return 1 if n == 0 else n * f(n - 1)</code>. Write the call stack at its deepest point, and say how many calls are made in all. What does the function compute?</p></li>
+    </ol>
+    <h3>Practice</h3>
+    <ol>
+      <li><p><span class="ex-tag">practice</span> Write <code>lower_bound(items, x)</code> using a binary search loop. It returns the position where \(x\) would be inserted in the sorted list, the same value as <code>bisect_left</code>. Test it against <code>bisect_left</code> on 1,000 random targets.</p></li>
+      <li><p><span class="ex-tag">practice</span> Run the insertion sort with a comparison counter on reversed lists of lengths 10, 20 and 40. Check that the counts equal \(n(n-1)/2\). Repeat with merge sort and compare with \(n \lceil \log_2 n \rceil\).</p></li>
+      <li><p><span class="ex-tag">practice</span> Make a list of 10,000 random lengths with <code>random.seed(0)</code>. Find the 5 largest with a scan, with <code>sorted</code> and with <code>heapq.nlargest</code>, and check that all three agree. Count the comparisons of your scan.</p></li>
+      <li><p><span class="ex-tag">practice</span> A fisherman's message is <code>"shark milk shark bamboo shark milk"</code>. Use a dictionary to count how often a word appears, then print the words from most to least frequent. This is the first step of building a tokenizer's vocabulary.</p></li>
+    </ol>
+    <h3>Think deeper</h3>
+    <ol>
+      <li><p><span class="ex-tag">open</span> SharkCam saves a log of 10 million frame records, and a researcher has a list of 5,000 flagged tags. She wants all the records whose tag is flagged. Describe two ways to do it, estimate the number of comparisons for both, and say what you would measure to check your estimate.</p></li>
+      <li><p><span class="ex-tag">open</span> The sorting race shows insertion sort beating merge sort on nearly sorted lists. When might that matter in practice? Design a small experiment that finds the list size below which the simpler algorithm wins on your computer, and say what could make your result misleading.</p></li>
+      <li><p><span class="ex-tag">open</span> Attention compares all pairs of tokens. Suppose a model instead let a token look only at the 512 tokens before it. How would its cost grow with n? What might the model lose? Write one sentence per answer, and say what you would test to find out.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="comeback" aria-labelledby="comeback-h">
+  <h2 id="comeback-h">Come back later</h2>
+  <p>Answer after two days, and again after a week, without scrolling up.</p>
+  <div class="recall comeback">
+    <details><summary>A pandas filter such as <code>df[df["length_cm"] &gt; 60]</code> touches all rows. How does its cost grow with the number of rows, and what does that say about filtering 10 million rows twice?</summary><p>It grows in proportion to the number of rows, so it is \(O(n)\). Two filters cost about twice one filter, which is acceptable. The chapter on Python described the mask the filter builds.</p></details>
+    <details><summary>Why does a dictionary need keys that cannot change, and how does that connect to hashing?</summary><p>The dictionary computes a slot from the key. If a key changed afterwards, its slot would change and the entry could not be found. Tuples and strings never change, so Python allows them as keys; lists can change, so it refuses them.</p></details>
+    <details><summary>Binary search on 1,000,000 sorted items takes at most 20 steps. What would the same count be for a linear search, and what is the ratio?</summary><p>Linear search may need up to 1,000,000 steps, so the ratio is 50,000. A million items is no harder for binary search than 20 steps, which is the whole value of keeping data sorted.</p></details>
+  </div>
+</section>
+
+<section class="refs" aria-labelledby="refs-h">
+  <h2 id="refs-h">Sources and further reading</h2>
+  <ol>
+    <li>Python Software Foundation. <i>The Python Tutorial</i>, section 5.1, "More on Lists" (lists as stacks, and <code>collections.deque</code> as a queue). <a href="https://docs.python.org/3/tutorial/datastructures.html">docs.python.org/3/tutorial/datastructures.html</a></li>
+    <li>Python Software Foundation. "Time complexity of operations on built-in types": average-case costs of list, set and dictionary operations. <a href="https://docs.python.org/3/builtins/time-complexity.html">docs.python.org/3/builtins/time-complexity.html</a></li>
+    <li>Python Software Foundation. Documentation of the <a href="https://docs.python.org/3/library/bisect.html"><code>bisect</code></a> and <a href="https://docs.python.org/3/library/heapq.html"><code>heapq</code></a> modules, and the <a href="https://docs.python.org/3/howto/sorting.html">Sorting HOWTO</a> (Timsort, and <code>list.sort()</code> returning <code>None</code>).</li>
+    <li>Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L., and Polosukhin, I. (2017). Attention is all you need. <i>Advances in Neural Information Processing Systems 30 (NeurIPS 2017)</i>; arXiv:1706.03762. Table 1 lists the cost of a self-attention layer as \(O(n^2 \cdot d)\). <a href="https://arxiv.org/abs/1706.03762">arxiv.org/abs/1706.03762</a></li>
+    <li>Halim, S. and Halim, F. VisuAlgo: visualising data structures and algorithms through animation, National University of Singapore. A good place to watch these algorithms on your own data. <a href="https://visualgo.net/en/sorting">visualgo.net/en/sorting</a></li>
+  </ol>
+</section>
