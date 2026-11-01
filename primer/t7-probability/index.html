@@ -87,6 +87,8 @@ code { overflow-wrap: anywhere; }
     <li><b>\(x_i\)</b> is the \(i\)-th value (a shark's length) and <b>\(n\)</b> the number of values.</li>
     <li><b>\(\bar{x}\)</b>, read "x bar", is the mean. <b>\(\sigma^2\)</b> is the variance and <b>\(\sigma\)</b> the standard deviation. The sigmoid is also written \(\sigma\), but it always has a bracket, \(\sigma(z)\).</li>
   </ul>
+  <p>Two checks by hand. Take three lengths: 33.2, 35.4 and 44.1 cm. The mean is 37.57. The deviations are \(-4.37\), \(-2.17\) and 6.53, and their squares are 19.07, 4.69 and 42.68, which add up to 66.45. Dividing by 3 gives a variance of 22.15 cm\(^2\), and the root is an SD of 4.71 cm. Dividing by 2, as for a sample, would give 5.76 cm. The squares also explain why the mean is the centre: it is the value that makes the sum of squared deviations smallest. For the nine lengths that sum is 235.8 about the mean of 37.23, against 266.0 about the median of 35.4 and 304.7 about 40.</p>
+  <p>The whole catch table shows the same gap between mean and median. Its weights have a mean of 1.185 kg and a median of 0.43 kg. The 57 hammerheads and 3 Ganges sharks, with mean weights of 4.45 and 38 kg, pull the mean up.</p>
   <div class="break">
     <p><b>Common belief.</b> The mean describes a typical shark.</p>
     <p><b>Why it fails.</b> After the slip the mean is 42.4 cm, and no shark in the group is near that length. A mean mixes all values, outliers included.</p>
@@ -111,11 +113,42 @@ median : 35.4
 SD     : 5.12 (divides by n)
 SD     : 5.43 (divides by n - 1)
 after the slip: 42.42 18.88 35.4</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+# three spadenose lengths from the made-up catch records, worked by hand
+x = np.array([33.2, 35.4, 44.1])
+dev = x - x.mean()
+print("mean       :", round(x.mean(), 2))
+print("deviations :", dev.round(2))
+print("squares    :", (dev ** 2).round(2), " sum", round((dev ** 2).sum(), 2))
+print("variance   :", round((dev ** 2).mean(), 2), " SD", round(x.std(), 2))
+
+# the mean makes the sum of squared deviations smallest
+lengths = np.array([32.7, 33.2, 33.4, 33.9, 35.4, 36.8, 37.3, 44.1, 48.3])
+for centre in [lengths.mean(), np.median(lengths), 40.0]:
+    print(round(centre, 2), round(((lengths - centre) ** 2).sum(), 1))</code></pre>
+  <pre class="out">mean       : 37.57
+deviations : [-4.37 -2.17  6.53]
+squares    : [19.07  4.69 42.68]  sum 66.45
+variance   : 22.15  SD 4.71
+37.23 235.8
+35.4 266.0
+40.0 304.7</pre>
+  <pre class="code"><code>import pandas as pd
+
+catch = pd.read_csv("catch.csv")                  # the 600 made-up records
+print(catch["weight_kg"].agg(["mean", "median", "max"]).round(3))</code></pre>
+  <pre class="out">mean       1.185
+median     0.432
+max       58.605
+Name: weight_kg, dtype: float64</pre>
+  <p><b>In practice.</b> Quote the mean with the SD for a column that roughly follows a bell curve, and the median with the quartiles for a lopsided one. Pandas <code>describe()</code> prints the count, mean, SD, minimum, quartiles and maximum in one table. A glance at it catches slips such as 95 cm for a spadenose shark.</p>
   <p class="used"><b>Used in:</b> checking data before training (<a href="../b8-debugging/#recipe">B8</a>), and the spread of a test score (sections below).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why does the SD react more to one outlier than the mean does?</summary><p>The SD squares the deviations, so a deviation twice as large counts four times as much. The mean only adds the values.</p></details>
     <details><summary>When would you report the median instead of the mean?</summary><p>When a few extreme values would pull the mean away from where most of the data lies, such as lengths with a typing slip or incomes in a city.</p></details>
+    <details><summary>What is the SD of the values 5, 5, 5 and 5?</summary><p>It is 0. All the deviations are 0, so the variance is 0. A column with an SD of 0 gives a model no information.</p></details>
   </div>
 </section>
 
@@ -146,6 +179,8 @@ after the slip: 42.42 18.88 35.4</pre>
     <li><b>\(\mu\)</b> is the mean and <b>\(\sigma\)</b> the SD of the column (for a sample, the sample mean and SD).</li>
     <li><b>\(f(x)\)</b> is the height of the normal curve at \(x\). You rarely compute it by hand; the useful facts are the shares: 68.3% of the area within one SD, 95.4% within two, 99.7% within three.</li>
   </ul>
+  <p>A z-score depends on the group you standardise against. Tag 5519 is an 82.0 cm hammerhead. Among all 600 records (mean 54.0 cm, SD 22.8 cm) it has \(z = (82.0-54.0)/22.8 = 1.23\), so it looks long. Among the 57 hammerheads (mean 82.1 cm, SD 41.4 cm) its z-score is about 0, because it is a typical hammerhead.</p>
+  <p>The bell curve also gives a quick estimate. A spadenose shark of 50 cm has \(z = (50-39.1)/8.6 = 1.27\), and about 10.2% of a bell curve lies above that. The made-up table has 30 spadenose sharks above 50 cm out of 268, which is 11.2%. The two differ by one percentage point, so the bell curve is a fair shortcut for this column, as the 66% within one SD suggested.</p>
   <div class="break">
     <p><b>Common belief.</b> Measurements follow a bell curve.</p>
     <p><b>Why it fails.</b> Weight grows with length cubed, so weights pile up at the small end with a long tail to the right. Counts, waiting times and incomes are lopsided as well.</p>
@@ -176,11 +211,26 @@ print("z of a 52 cm shark:", standardise(new_shark, length.mean(), length.std())
 weight z: [-0.89 -0.56 -0.68 -0.63 -0.36 -0.21 -0.35  1.93  1.74]
 means about 0: True  SDs: 1.0 1.0
 z of a 52 cm shark: [2.88]</pre>
+  <pre class="code" data-run><code>from math import erf, sqrt
+
+# Tag 5519: an 82.0 cm hammerhead, made-up record
+z_all = (82.0 - 53.98) / 22.77       # against all 600 records
+z_own = (82.0 - 82.11) / 41.4        # against the 57 hammerheads
+print(round(z_all, 2), round(z_own, 3))
+
+# share of spadenose sharks above 50 cm if lengths followed a bell curve
+z = (50 - 39.1) / 8.6
+share = 0.5 * (1 - erf(z / sqrt(2)))
+print(round(z, 2), round(share, 3), "against", round(30 / 268, 3), "in the table")</code></pre>
+  <pre class="out">1.23 -0.003
+1.27 0.102 against 0.112 in the table</pre>
+  <p><b>In practice.</b> A column whose values are all equal has an SD of 0 and divides by zero. Code either drops such a column or adds a tiny number \(\epsilon\) to the variance, as the normalisation layers of <a href="../b6-deep-networks/#norm">B6</a> do.</p>
   <p class="used"><b>Used in:</b> feature scaling (<a href="../a2-linear-regression/#scaling">A2</a>), batch norm and layer norm (<a href="../b6-deep-networks/#norm">B6</a>), and the normal-curve intervals later in this chapter.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A shark is 52 cm long. Lengths have mean 39.1 and SD 8.6. What is its z-score, and is it unusual?</summary><p>\(z = (52 - 39.1)/8.6 = 1.5\). That is 1.5 SDs above the mean, large but not rare: about 7% of a bell curve lies above it.</p></details>
     <details><summary>After standardising, what are the mean and SD of the column?</summary><p>The mean is 0 and the SD is 1, whatever the original units.</p></details>
+    <details><summary>Spadenose lengths have mean 39.1 and SD 8.6. A shark has \(z = -2\). How long is it?</summary><p>\(39.1 - 2\times8.6 = 21.9\) cm. Only about 2.3% of a bell curve lies that far below the mean.</p></details>
   </div>
 </section>
 
@@ -213,6 +263,8 @@ z of a 52 cm shark: [2.88]</pre>
     <li><b>\(P(D)\)</b> is the base rate. <b>\(P(+ \mid D)\)</b> is the sensitivity. <b>\(P(+ \mid \text{not } D)\)</b> is 1 minus the specificity.</li>
     <li>Counting 1,000 patients, as above, is the same calculation in whole numbers. Gigerenzer and Hoffrage (1995) argued that counts like these make Bayesian reasoning easier than percentages do.</li>
   </ul>
+  <p>The rule is counting done twice. The share of patients who are sick and flagged can be written as \(P(D)\,P(+\mid D)\) or as \(P(+)\,P(D\mid +)\). Setting these equal and dividing by \(P(+)\) gives \(P(D\mid +)\). The flagged group has two sources, the sick who are flagged and the healthy who are flagged, which is why \(P(+)\) is the sum in the denominator.</p>
+  <p>Now the Pima rule, with a base rate of 0.349, a sensitivity of 0.508 and a specificity of 0.875. Sick and flagged: \(0.349\times0.508 = 0.177\). Healthy and flagged: \(0.651\times0.125 = 0.081\). So \(P(D\mid +) = 0.177/(0.177+0.081) = 0.685\), the 69% above. Use the same rule where only 5 patients in 100 are sick. The two products become \(0.0254\) and \(0.1188\), and the chance falls to \(0.0254/0.1442 = 0.176\). The rule is the same and the answer has changed, because the base rate changed.</p>
   <div class="break">
     <p><b>Common belief.</b> A test that is right 90% of the time makes a positive result 90% likely to be right.</p>
     <p><b>Why it fails.</b> The 90% answers a different question: of the sick, how many are flagged. A flagged patient needs the answer to: of the flagged, how many are sick. The two numbers differ whenever the base rate is low.</p>
@@ -236,11 +288,24 @@ print("Bayes' rule:", round(p, 3))</code></pre>
   <pre class="out">flagged: 164.0  of which sick: 72.0
 chance a flagged patient is sick: 0.439
 Bayes' rule: 0.439</pre>
+  <pre class="code" data-run><code>def flagged_sick(prevalence, sensitivity, specificity):
+    caught = sensitivity * prevalence
+    false_alarms = (1 - specificity) * (1 - prevalence)
+    return caught / (caught + false_alarms)
+
+print(round(flagged_sick(0.349, 0.508, 0.875), 3))   # Pima glucose rule
+print(round(flagged_sick(0.05, 0.508, 0.875), 3))    # same rule, 5% sick
+print(round(flagged_sick(0.001, 0.99, 0.99), 3))     # good test, rare condition</code></pre>
+  <pre class="out">0.685
+0.176
+0.09</pre>
+  <p><b>In practice.</b> Quote the base rate with any test result. Sensitivity and specificity are usually quoted as properties of the test, while the base rate differs from clinic to clinic. The chance that a flagged patient is sick differs with it. A common mistake is to use the base rate of a test set that was balanced for training as if it described the clinic.</p>
   <p class="used"><b>Used in:</b> precision, recall and screening in <a href="../a4-grading-models/#screening">A4</a>, the clinic case in <a href="../f1-fairness/#missing">F1</a>, and the diabetes screening project (<a href="https://rayhaan1345.github.io/projects/diabetes-screening/">project page</a>). There the base rate of diabetes in one population need not match another.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The same 90%/90% test is used where 35% of patients are sick. Does a flagged patient's chance of being sick rise or fall, and to what?</summary><p>It rises, to about 83%: \(0.9 \times 0.35 = 0.315\) flagged and sick, against \(0.1 \times 0.65 = 0.065\) flagged and healthy, so \(0.315/0.380 = 0.83\).</p></details>
     <details><summary>Why can a test with 99% sensitivity and 95% specificity still give mostly false alarms?</summary><p>If only 1% are sick, the 95% specificity still flags 5% of the 99% who are healthy. That is about 50 false alarms for 10 true cases.</p></details>
+    <details><summary>A test is 99% sensitive and 99% specific. One patient in 1,000 has the condition. What is the chance that a flagged patient has it?</summary><p>Sick and flagged: \(0.001\times0.99 = 0.00099\). Healthy and flagged: \(0.999\times0.01 = 0.00999\). The chance is \(0.00099/0.01098 = 9\%\).</p></details>
   </div>
 </section>
 
@@ -270,6 +335,8 @@ Bayes' rule: 0.439</pre>
     <li><b>\(T\)</b> is the temperature. \(T = 1\) is plain softmax. As \(T \to 0\) the top class gets probability near 1, and as \(T\) grows all classes approach \(1/\text{(number of classes)}\).</li>
     <li>Adding the same number to all scores leaves the probabilities unchanged, because \(e^{c}\) cancels in the fraction. Only differences between scores matter.</li>
   </ul>
+  <p>By hand, for the scores 2, 1 and \(-1\) of the guess. The exponentials are \(e^2 = 7.389\), \(e^1 = 2.718\) and \(e^{-1} = 0.368\), and they add up to 10.475. The probabilities are 0.705, 0.259 and 0.035. At \(T=2\) the scores become 1, 0.5 and \(-0.5\), the exponentials 2.718, 1.649 and 0.607, their total 4.974, and the probabilities 0.547, 0.331 and 0.122.</p>
+  <p>The first two probabilities have a ratio of \(0.705/0.259 = 2.72 = e^1\). In general the ratio of two probabilities is \(e\) raised to the gap between their scores. A gap of 1 makes one class 2.7 times as likely, and a gap of 2 makes it 7.4 times as likely. Temperature divides the gaps: at \(T=2\) the same gap of 1 gives a ratio of \(e^{0.5} = 1.65\).</p>
   <div class="break">
     <p><b>Common belief.</b> A softmax probability of 0.98 means the model is 98% sure it is right.</p>
     <p><b>Why it fails.</b> Softmax always produces numbers that add up to 1, even for a photo of a boat, and a model trained to be confident can give 0.98 to a wrong answer.</p>
@@ -297,12 +364,27 @@ print("stable:", softmax(big).round(3))</code></pre>
 T = 1.0: [0.655 0.197 0.098 0.04  0.01 ]
 T = 5.0: [0.288 0.226 0.197 0.164 0.124]
 naive : [nan nan]
-stable: [0.731 0.269]</code></pre>
+stable: [0.731 0.269]</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+z = np.array([2.0, 1.0, -1.0])
+e = np.exp(z)
+print(e.round(3), e.sum().round(3))
+print((e / e.sum()).round(3))
+print("ratio of the top two:", round(e[0] / e[1], 3), " e =", round(np.e, 3))
+e2 = np.exp(z / 2)
+print("T = 2:", (e2 / e2.sum()).round(3))</code></pre>
+  <pre class="out">[7.389 2.718 0.368] 10.475
+[0.705 0.259 0.035]
+ratio of the top two: 2.718  e = 2.718
+T = 2: [0.547 0.331 0.122]</pre>
+  <p><b>In practice.</b> Chat tools and APIs offer temperature as a setting. Values below 1 make the output steadier, and a value near 0 picks the top choice almost always. For training, give the loss function the raw scores. It applies softmax itself (<a href="../b3-loss-gradient-descent/#cost">B3</a>).</p>
   <p class="used"><b>Used in:</b> the softmax classifier (<a href="../a3-logistic-regression/#softmax">A3</a>), next-word probabilities and temperature (<a href="../d3-next-token/#sampling">D3</a>), and attention weights (<a href="../d4-self-attention/#score">D4</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Scores of 3, 3 and 3 go into softmax. What probabilities come out?</summary><p>One third for all three. Only the differences between scores matter, and here they are all zero.</p></details>
     <details><summary>You want a model to pick more adventurous answers. Raise or lower T?</summary><p>Raise it. A higher temperature flattens the probabilities, so lower-scored answers get picked more often.</p></details>
+    <details><summary>Two classes have scores 0 and \(\ln 3\) (about 1.1). What probabilities does softmax give?</summary><p>\(e^0 = 1\) and \(e^{\ln 3} = 3\), so the probabilities are \(1/4\) and \(3/4\). A gap of \(\ln 3\) makes one class three times as likely.</p></details>
   </div>
 </section>
 
@@ -335,6 +417,8 @@ stable: [0.731 0.269]</code></pre>
     <li>If all \(K\) classes get equal probability, \(p = 1/K\) and \(\ell = \ln K\). With five species that is 1.609, a useful number to expect at the start of training (<a href="../b8-debugging/#recipe">B8</a>).</li>
     <li>The slope of \(-\ln p\) is \(-1/p\) (<a href="../t6-gradients/#rules">0.6</a>), so a confident mistake receives a very strong push to change.</li>
   </ul>
+  <p>The three photos of the guess cost \(-\ln 0.9 = 0.105\), \(-\ln 0.5 = 0.693\) and \(-\ln 0.01 = 4.605\). The straight line \(1-p\) would charge 0.1, 0.5 and 0.99. The log losses add up to 5.404, an average of 1.80, and the third photo supplies 4.605 of that total, which is 85%. One confident mistake dominates the loss, and that is the intended behaviour.</p>
+  <p>With softmax, the push on a score is simple. For the true class \(t\), the loss is \(-\ln p_t = -z_t + \ln\sum_j e^{z_j}\). The slope with respect to \(z_k\) is \(-1\) for \(k=t\) and 0 otherwise, from the first term, plus \(e^{z_k}/\sum_j e^{z_j} = p_k\) from the second. So the slope is \(p_k - y_k\), where \(y_k\) is 1 for the true class and 0 for the others. For the five scores of the last section with a milk shark as the truth, the slopes are 0.655, \(-0.803\), 0.098, 0.040 and 0.010. The milk score is pushed up with strength 0.80 and the others are pushed down in proportion to their probability. The code checks this by nudging.</p>
   <div class="break">
     <p><b>Common belief.</b> Cross-entropy is a fancy way to count mistakes. Accuracy would do.</p>
     <p><b>Why it fails.</b> Two models can have the same accuracy and very different losses, as the code below shows. Accuracy also has a slope of zero at nearly all points, so it cannot tell training which way to move.</p>
@@ -356,11 +440,36 @@ print("five equal scores:", round(-np.log(1 / 5), 3), "= ln 5 =", round(np.log(5
   <pre class="out">C accuracy 0.75  cross-entropy 1.19
 D accuracy 0.75  cross-entropy 0.684
 five equal scores: 1.609 = ln 5 = 1.609</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+# scores for spadenose, milk, grey bamboo, hammerhead, Ganges
+z = np.array([2.4, 1.2, 0.5, -0.4, -1.8])
+true = 1                         # the photo shows a milk shark
+
+def loss(z):
+    p = np.exp(z - z.max())
+    p = p / p.sum()
+    return -np.log(p[true])
+
+p = np.exp(z) / np.exp(z).sum()
+print("p - y   :", (p - np.eye(5)[true]).round(4))
+h = 1e-6
+nudged = [(loss(z + h * np.eye(5)[k]) - loss(z - h * np.eye(5)[k])) / (2 * h)
+          for k in range(5)]
+print("nudging :", np.round(nudged, 4))
+
+p3 = np.array([0.9, 0.5, 0.01])    # the three photos of the guess
+print(np.round(-np.log(p3), 3), round(-np.log(p3).mean(), 3))</code></pre>
+  <pre class="out">p - y   : [ 0.6551 -0.8027  0.098   0.0398  0.0098]
+nudging : [ 0.6551 -0.8027  0.098   0.0398  0.0098]
+[0.105 0.693 4.605] 1.801</pre>
+  <p><b>In practice.</b> Frameworks offer one function that takes raw scores and does softmax and cross-entropy together, using the slope above and avoiding \(\ln 0\). Passing it probabilities applies softmax twice. That common mistake trains slowly and gives losses that look wrong.</p>
   <p class="used"><b>Used in:</b> logistic regression and the softmax classifier (<a href="../a3-logistic-regression/#softmax">A3</a>), the loss for networks (<a href="../b3-loss-gradient-descent/#cost">B3</a>), and next-word prediction and perplexity (<a href="../d3-next-token/#perplexity">D3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the loss when a model gives the true class probability 0.25?</summary><p>\(-\ln 0.25 = \ln 4 = 1.386\). It is the loss of a model that spreads its belief evenly over four classes.</p></details>
     <details><summary>Why does a product of probabilities become a sum of logs, and why does that help?</summary><p>\(\ln(ab) = \ln a + \ln b\). A sum of a few hundred terms is a normal-sized number, while the product of a few hundred probabilities is too small for a computer to store.</p></details>
+    <details><summary>A model's loss on one photo is 0.693. What probability did it give the true class?</summary><p>\(e^{-0.693} = 0.5\). A loss of \(\ln 2\) means the true class got one half.</p></details>
   </div>
 </section>
 
@@ -390,6 +499,8 @@ five equal scores: 1.609 = ln 5 = 1.609</pre>
     <li>The second form shows that the EMA is a weighted mean of all past readings, with weights \((1-\beta)\beta^k\) for a reading \(k\) days old.</li>
     <li>Momentum and Adam (<a href="../b5-optimisers/#momentum">B5</a>) use this update on gradients, with \(\beta_1\) and \(\beta_2\).</li>
   </ul>
+  <p>By hand with \(\beta=0.9\), starting from 0. After the first reading, \(\bar{x}_1 = 0.9\times0 + 0.1\times28.4 = 2.84\). After the second, \(\bar{x}_2 = 0.9\times2.84 + 0.1\times28.9 = 2.556 + 2.89 = 5.446\). Dividing by \(1-\beta^t\) repairs the start: \(2.84/0.1 = 28.4\) and \(5.446/0.19 = 28.66\). The weights on today's reading and the two before it are 0.1, 0.09 and 0.081.</p>
+  <p>How fast does an EMA react? After a jump in the readings it closes the share \(1-\beta^k\) of the gap in \(k\) days. For \(\beta=0.9\), 10 days close 65% and 22 days close 90%. For \(\beta=0.99\) the 90% mark takes \(\ln 0.1/\ln 0.99 = 229\) days. A slow average smooths well and also reports old news.</p>
   <div class="break">
     <p><b>Analogy.</b> A leaky bucket. Day by day you pour in a small share of today's water, and a share of the old water leaks out.</p>
     <p><b>Where it breaks.</b> A bucket eventually forgets old water completely. An EMA never does: its weights shrink but never reach zero. A moving average of the last \(N\) readings, by contrast, drops a reading entirely on day \(N+1\).</p>
@@ -414,11 +525,22 @@ print("plain mean    :", round(x.mean(), 2))</code></pre>
   <pre class="out">start at 0   : [ 2.84  5.45  7.68  9.77 11.71 13.36 14.87 16.25]
 bias-corrected: [28.4  28.66 28.34 28.42 28.59 28.5  28.5  28.54]
 plain mean    : 28.52</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+# weights on the last three readings, and days to close 90% of a jump
+for beta in [0.9, 0.99]:
+    days = np.log(0.1) / np.log(beta)
+    weights = [round((1 - beta) * beta ** k, 4) for k in range(3)]
+    print(f"beta = {beta}: weights {weights}, 90% of a jump after {days:.0f} days")</code></pre>
+  <pre class="out">beta = 0.9: weights [0.1, 0.09, 0.081], 90% of a jump after 22 days
+beta = 0.99: weights [0.01, 0.0099, 0.0098], 90% of a jump after 229 days</pre>
+  <p><b>In practice.</b> Adam's usual settings are \(\beta_1 = 0.9\) for the average of gradients and \(\beta_2 = 0.999\) for the average of squared gradients (Kingma and Ba, 2015). A batch norm layer in PyTorch blends 10% of the newest batch into its running mean by default, which is \(\beta = 0.9\) (<a href="../b6-deep-networks/#norm">B6</a>).</p>
   <p class="used"><b>Used in:</b> momentum and Adam (<a href="../b5-optimisers/#momentum">B5</a>), smoothing a noisy training-loss curve (<a href="../b8-debugging/#lrtest">B8</a>), and the running averages inside batch norm (<a href="../b6-deep-networks/#norm">B6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>With \(\beta = 0.99\), about how many recent readings does the EMA effectively average?</summary><p>About \(1/(1-0.99) = 100\).</p></details>
     <details><summary>Why does an EMA started at 0 read too low at first?</summary><p>The first updates keep a share \(\beta\) of the starting 0, so the average is dragged towards 0 until enough readings have been mixed in.</p></details>
+    <details><summary>With \(\beta = 0.5\), what weights do today's and yesterday's readings get?</summary><p>Today's reading gets \(1-\beta = 0.5\) and yesterday's gets \(0.5\times0.5 = 0.25\). The weights halve from one day to the next, and the average forgets quickly.</p></details>
   </div>
 </section>
 
@@ -446,6 +568,9 @@ plain mean    : 28.52</pre>
     <li><b>\(p_k\)</b> is the probability of outcome \(x_k\). The sum runs over all outcomes.</li>
     <li><b>\(\sigma\)</b> is the SD of one case, here \(\sqrt{0.7875} = 0.887\) sharks. <b>SE</b> is the standard error, and about 95% of averages fall within 1.96 SE of the expectation.</li>
   </ul>
+  <p>The numbers behind the funnel. First \(E[X^2] = 0\times0.5 + 1\times0.3 + 4\times0.15 + 9\times0.05 = 1.35\). The variance is \(1.35 - 0.75^2 = 0.7875\) and the SD is 0.887. Then \(\mathrm{SE} = 0.887/\sqrt{10} = 0.28\) for 10 dives, so 95% of averages fall within \(1.96\times0.28 = 0.55\) of 0.75. For 1,000 dives the SE is 0.028 and the range is 0.055.</p>
+  <p>Why \(\sqrt{n}\)? The variance of a sum of independent cases is the sum of their variances, \(n\sigma^2\). The mean divides the sum by \(n\), which divides the variance by \(n^2\), so the variance of the mean is \(\sigma^2/n\) and its SD is \(\sigma/\sqrt{n}\).</p>
+  <p>The formula needs independent cases. The 2,400 frames of the made-up dive log come from one dive at one frame per second, and neighbouring frames look nearly alike. They count as far fewer than 2,400 independent cases, so the true wobble of a score on them is larger than \(\sigma/\sqrt{2400}\) says.</p>
   <div class="break">
     <p><b>Common belief.</b> A model's test score is a fixed property of the model.</p>
     <p><b>Why it fails.</b> The score is an average over one test set. Another set of the same size would give a different score, with a wobble of about \(\sigma/\sqrt{n}\).</p>
@@ -470,11 +595,22 @@ average after  100 dives: 0.91
 average after 1000 dives: 0.787
 standard error at n = 100: 0.089</pre>
   <p>In this run, the first 10 dives gave 1.0, a gap of 0.25. That is within the typical wobble of 0.28. With another seed, the average could fall anywhere in the funnel.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+p = 0.82                      # share of test frames a model gets right
+for n in [200, 2000]:
+    se = np.sqrt(p * (1 - p) / n)
+    print(f"n = {n}: standard error {se:.4f},",
+          f"95% range +/- {1.96 * se * 100:.1f} points")</code></pre>
+  <pre class="out">n = 200: standard error 0.0272, 95% range +/- 5.3 points
+n = 2000: standard error 0.0086, 95% range +/- 1.7 points</pre>
+  <p><b>In practice.</b> For a rare class the useful test size is the number of cases of that class. Three Ganges records can give a recall of only 0, 1/3, 2/3 or 1.</p>
   <p class="used"><b>Used in:</b> how much to trust a score on a held-out set (<a href="../a4-grading-models/#splits">A4</a>), batch size and gradient noise (<a href="../b3-loss-gradient-descent/#noise">B3</a>), and the next two sections.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A test set has 100 frames and the score wobbles by about 4 points. How many frames would you need to bring the wobble to about 2 points?</summary><p>You would need 400. The wobble goes with \(1/\sqrt{n}\), so halving it needs four times the frames.</p></details>
     <details><summary>What is the expectation of one roll of a fair six-sided die?</summary><p>\((1+2+3+4+5+6)/6 = 3.5\). The expectation need not be a value the die can show.</p></details>
+    <details><summary>A test set has 3,000 frames cut from five long dives. Why might the wobble of the score be larger than \(\sigma/\sqrt{3000}\) suggests?</summary><p>Frames from one dive are alike, so they act as fewer independent cases. The formula counts 3,000 independent cases and overstates the evidence.</p></details>
   </div>
 </section>
 
@@ -504,6 +640,8 @@ standard error at n = 100: 0.089</pre>
     <li><b>\(\hat{p}\)</b>, read "p hat", is the observed share right (here 121/154 = 0.786) and <b>\(n\)</b> the test set size.</li>
     <li>The square root is the standard error of a share. The 1.96 comes from the normal curve: 95% of the area lies within 1.96 SDs. For 121 of 154 the formula gives 72.1% to 85.1%, matching the bootstrap.</li>
   </ul>
+  <p>The formula by hand. The share is \(\hat{p} = 121/154 = 0.786\). Then \(\hat{p}(1-\hat{p}) = 0.786\times0.214 = 0.168\), and dividing by 154 gives 0.00109. The root is the standard error, 0.033. Times 1.96 this is 0.065, so the interval is \(0.786 \pm 0.065\), from 0.721 to 0.851. With 1,500 women the standard error is 0.0106, the margin 0.021, and the interval runs from 0.765 to 0.806.</p>
+  <p>For few cases the formula breaks. If a model finds 2 of the 3 Ganges sharks, \(\hat{p} = 0.67\), and the formula gives 0.13 to 1.20. An upper end above 100% is impossible. The bootstrap interval of three cases runs from 0 to 1. Both results say that three cases tell you very little about recall.</p>
   <div class="break">
     <p><b>Common belief.</b> A 95% interval means there is a 95% chance that the true value is inside this one.</p>
     <p><b>Why it fails.</b> The true value is a fixed number, and a given interval either has it or misses it. What varies from study to study is the interval.</p>
@@ -527,11 +665,25 @@ print("formula     :", round(p - 1.96 * np.sqrt(p * (1 - p) / 154), 3), "to", ro
   <pre class="out">score: 0.786
 95% interval: 0.721 to 0.851
 formula     : 0.721 to 0.851</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+right = np.array([1, 1, 0])          # 2 of the 3 Ganges sharks found
+p = right.mean()
+se = np.sqrt(p * (1 - p) / 3)
+print("formula  :", round(p - 1.96 * se, 2), "to", round(p + 1.96 * se, 2))
+
+rng = np.random.default_rng(1)
+boot = [rng.choice(right, size=3, replace=True).mean() for _ in range(5000)]
+print("bootstrap:", np.percentile(boot, [2.5, 97.5]).round(2))</code></pre>
+  <pre class="out">formula  : 0.13 to 1.2
+bootstrap: [0. 1.]</pre>
+  <p><b>In practice.</b> Write a score with its interval and the test size, such as 78.6% (95% interval 72.1 to 85.1, 154 women). Overlapping intervals are a blunt way to compare two models. Grade both on the same cases and use the paired comparison of the next section.</p>
   <p class="used"><b>Used in:</b> reporting a test score (<a href="../a4-grading-models/#splits">A4</a>), comparing a model with its baseline (<a href="../a1-what-is-a-model/#lazy">A1</a>), and the test in the next section.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why does a resample contain 154 women when only 154 women exist?</summary><p>Women are drawn with replacement, so the same woman can be drawn several times and others not at all. A resample has the same size as the test set, which keeps the noise level right.</p></details>
     <details><summary>Two models both score 80%, one on 100 frames and one on 1,000. Which interval is narrower, and by roughly how much?</summary><p>The 1,000-frame interval is narrower by a factor of \(\sqrt{10} \approx 3.2\).</p></details>
+    <details><summary>At the same test size, is the interval wider for a score near 50% or near 95%?</summary><p>Near 50%. The quantity \(\hat{p}(1-\hat{p})\) is 0.25 at one half and 0.048 at 0.95, so the standard error is about 2.3 times larger near 50%.</p></details>
   </div>
 </section>
 
@@ -560,6 +712,8 @@ formula     : 0.721 to 0.851</pre>
     <li><b>\(d\)</b> is the number of frames where only one model is right and <b>\(b\)</b> the number B wins (the larger of the two counts).</li>
     <li><b>\(\binom{d}{k}\)</b> counts the ways \(k\) of \(d\) coin flips can come up heads (<a href="../t4-discrete-maths/#counting">0.4</a>). Dividing by \(2^d\) turns the count into a probability, and the 2 adds the equally lopsided split in the other direction. This is the sign test, a simple form of McNemar's test.</li>
   </ul>
+  <p>How many wins are enough? With 15 disagreements, a split of 12 to 3 gives \(2\times(455+105+15+1)/32{,}768 = 0.035\), under 0.05. A split of 11 to 4 gives 0.118. So B needs 12 wins out of 15. The same accuracy gap can also count for more or less. B winning 11 to 4 is a net gain of 7 frames with \(p=0.118\). B winning 17 to 10 is also a net gain of 7, over 27 disagreements, and gives \(p=0.248\). More disagreement means more noise around the same net gain.</p>
+  <p>With many disagreements the bell curve is a good shortcut. Under coin flips the wins of B have mean \(d/2\) and SD \(\sqrt{d}/2\). For 40 of 60, \(z = (39.5-30)/3.87 = 2.45\), where 39.5 includes a half-step correction. The two-sided p-value is 0.014, close to the 0.013 of the full count.</p>
   <div class="break">
     <p><b>Common belief.</b> A p-value of 0.12 means a 12% chance that the models are equal, so B is 88% likely to be better.</p>
     <p><b>Why it fails.</b> The p-value assumes the models are equal and asks how surprising the data are. It does not give the probability that the assumption is true.</p>
@@ -582,11 +736,29 @@ print("simulated:", np.mean(np.abs(wins - d / 2) >= abs(b - d / 2)))</code></pre
   <pre class="out">one side : 0.0592
 two sides: 0.1185
 simulated: 0.11945</pre>
+  <pre class="code" data-run><code>from math import comb, sqrt, erf
+
+def p_value(d, b):
+    return 2 * sum(comb(d, k) for k in range(b, d + 1)) / 2 ** d
+
+# with 15 disagreements, 12 wins is enough and 11 is not
+print(round(p_value(15, 12), 4), round(p_value(15, 11), 4))
+# the same net gain of 7 frames, over 15 and over 27 disagreements
+print(round(p_value(15, 11), 3), round(p_value(27, 17), 3))
+# bell-curve shortcut for 40 of 60
+z = (39.5 - 30) / (sqrt(60) / 2)
+normal = 2 * (1 - 0.5 * (1 + erf(z / sqrt(2))))
+print(round(p_value(60, 40), 4), round(normal, 4))</code></pre>
+  <pre class="out">0.0352 0.1185
+0.118 0.248
+0.0135 0.0142</pre>
+  <p><b>In practice.</b> The test needs disagreements. Two models that are nearly identical produce few of them, and then no test set of a sensible size can separate them. Libraries offer this paired test as McNemar's test.</p>
   <p class="used"><b>Used in:</b> comparing models and settings fairly (<a href="../a4-grading-models/#cv">A4</a>, <a href="../a6-boosting/#forest">A6</a>), and judging whether an adaptation method helps (<a href="../c3-domain-shift/#adapt">C3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Why do the 160 frames that both models get right play no part in the test?</summary><p>They do not separate the models. Only a frame where one model is right and the other wrong can favour either one.</p></details>
     <details><summary>A p-value is 0.03. Does that prove B is much better?</summary><p>No. It says luck alone rarely gives a split this lopsided. B's edge could still be tiny, and with enough frames even a tiny edge gives a small p-value.</p></details>
+    <details><summary>B wins 9 of the 10 frames where the models disagree. Is the two-sided p-value below 0.05?</summary><p>Yes. \(2\times(10+1)/1024 = 0.021\). With so few disagreements, a split of 9 to 1 is needed. A split of 8 to 2 gives 0.109.</p></details>
   </div>
 </section>
 
@@ -624,6 +796,8 @@ simulated: 0.11945</pre>
     <li><b>\(z_x^{(i)}\)</b> and <b>\(z_y^{(i)}\)</b> are the z-scores of day \(i\) for the two columns, and <b>\(n\)</b> the number of days.</li>
     <li>Written as vectors of z-scores, \(r = \mathbf{z}_x\cdot\mathbf{z}_y / n\): a dot product (<a href="../t5-vectors-matrices/#cosine">0.5</a>) that equals the cosine of the angle between them.</li>
   </ul>
+  <p>A small case by hand: five made-up days with water temperatures 27, 28, 29, 30 and 31 and sightings 2, 1, 4, 3 and 5. The z-scores of temperature are \(-1.41\), \(-0.71\), 0, 0.71 and 1.41. Those of sightings are \(-0.71\), \(-1.41\), 0.71, 0 and 1.41. The products are 1, 1, 0, 0 and 2, and their mean is \(r = 0.8\).</p>
+  <p>Correlation sees only straight-line trends. If \(x\) runs from \(-2\) to 2 and \(y = x^2\), then \(y\) is fixed by \(x\) and still \(r=0\), because the left side falls while the right side rises. Correlation also needs enough days. As a rough rule, the size of \(r\) must exceed about \(1.96/\sqrt{n}\) to differ from zero, which is 0.16 for 150 days and 0.57 for 12 days. That is why \(r\) wobbles in the narrow windows of the figure.</p>
   <div class="break">
     <p><b>Common belief.</b> If two things move together, one causes the other.</p>
     <p><b>Why it fails.</b> A third quantity may drive both (a confounder, as here), the arrow may run the other way, or a small sample may produce a pattern by chance.</p>
@@ -647,11 +821,33 @@ print("r inside band  :", round(np.corrcoef(ice[band], seen[band])[0, 1], 2))</c
 days in band   : 31
 r inside band  : 0.1</pre>
   <p>The code draws its own made-up days, so its numbers differ a little from the figure's.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+temp = np.array([27, 28, 29, 30, 31.0])           # five made-up days
+seen = np.array([2, 1, 4, 3, 5.0])
+z = lambda a: (a - a.mean()) / a.std()
+print("z of temperature:", z(temp).round(2))
+print("z of sightings  :", z(seen).round(2))
+r_own = (z(temp) * z(seen)).mean()
+print("r =", round(r_own, 2), " numpy:", round(np.corrcoef(temp, seen)[0, 1], 2))
+
+x = np.arange(-2.0, 3.0)
+print("y = x**2, fully set by x:", round(abs(np.corrcoef(x, x ** 2)[0, 1]), 2))
+for n in [150, 12]:
+    print(n, "days: |r| must beat about", round(1.96 / np.sqrt(n), 2))</code></pre>
+  <pre class="out">z of temperature: [-1.41 -0.71  0.    0.71  1.41]
+z of sightings  : [-0.71 -1.41  0.71  0.    1.41]
+r = 0.8  numpy: 0.8
+y = x**2, fully set by x: 0.0
+150 days: |r| must beat about 0.16
+12 days: |r| must beat about 0.57</pre>
+  <p><b>In practice.</b> Plot two columns before you quote a correlation. Look for groups, outliers and the sample size. A strong link between a feature and a label can be a shortcut, such as water colour read as a sign of sharks (<a href="../b9-explaining/#shortcut">B9</a>).</p>
   <p class="used"><b>Used in:</b> feature importance and its limits (<a href="../a6-boosting/#importance">A6</a>), spurious cues in images (<a href="../b9-explaining/#shortcut">B9</a>), and subgroup checks in health data (<a href="../f1-fairness/#groups">F1</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>Hospitals with more doctors have more deaths. Name a confounder.</summary><p>Hospital size, or how ill the patients are. Large hospitals treat more and sicker patients, which raises both the number of doctors and the number of deaths.</p></details>
     <details><summary>How would you test whether ice cream affects sightings?</summary><p>Intervene: set sales high on some days and low on others at random, with the water temperature varying freely, and compare sightings. Or compare days of nearly equal temperature, as the figure does.</p></details>
+    <details><summary>Two columns have \(r = 0\). Does that mean they are unrelated?</summary><p>No. \(r\) measures straight-line trends only. If \(y = x^2\) for \(x\) from \(-2\) to 2, then \(r=0\) while \(y\) depends fully on \(x\).</p></details>
   </div>
 </section>
 

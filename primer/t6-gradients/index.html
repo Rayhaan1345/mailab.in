@@ -85,6 +85,8 @@
     <li><b>\(h\)</b> is the nudge. The sign \(\approx\) means "close to, when \(h\) is small".</li>
   </ul>
   <p>The second form is the one that predicts. At 80 cm the slope is 0.0768 kg per cm, so a shark that grows 2 cm gains about \(2 \times 0.0768 = 0.154\) kg. The true gain is 0.157 kg. The prediction is a little low because the slope keeps rising during the 2 cm.</p>
+  <p>Where does the rule for powers come from? Nudge \(L\) by \(h\) in \(W = 4\times10^{-6}L^3\). Expanding \((L+h)^3 = L^3 + 3L^2h + 3Lh^2 + h^3\) shows that the rise is \(4\times10^{-6}(3L^2h + 3Lh^2 + h^3)\). Divide by \(h\) and the chord slope is \(4\times10^{-6}(3L^2 + 3Lh + h^2)\). As \(h\) shrinks the last two terms vanish and \(1.2\times10^{-5}L^2\) remains. At 80 cm with \(h=1\) the chord slope is \(4\times10^{-6}\times(19{,}200 + 240 + 1) = 0.0778\), a little above the slope of 0.0768.</p>
+  <p>A second forecast, at 50 cm. The slope is \(1.2\times10^{-5}\times 2500 = 0.03\) kg per cm, so 2 cm of growth should add about 0.06 kg. The true gain is \(4\times10^{-6}(52^3-50^3) = 0.0624\) kg, which is 4% more. For this curve the forecast is low by about \(h/L\): 2.5% at 80 cm and 4% at 50 cm. A slope is a promise about tiny nudges, and it loosens as the nudge grows relative to the curve.</p>
   <div class="break">
     <p><b>Common belief.</b> A curve has one slope, like a line.</p>
     <p><b>Why it fails.</b> Only a straight line has the same slope at all points. On this curve the slope at 80 cm is 2.56 times the slope at 50 cm.</p>
@@ -108,11 +110,29 @@ print(round(2 * by_formula, 4), "kg predicted by slope times 2 cm")</code></pre>
 0.0768 kg per cm, by formula
 0.1575 kg gained going from 80 to 82 cm
 0.1536 kg predicted by slope times 2 cm</pre>
+  <pre class="code" data-run><code># the chord slope at 80 cm for a shrinking nudge h (made-up law, kg)
+def weight(L):
+    return 4e-6 * L ** 3
+
+for h in [10, 1, 0.1, 0.001]:
+    chord = (weight(80 + h) - weight(80)) / h
+    print(f"h = {h}: chord slope {chord:.4f}")
+print("slope at 50 cm:", round(1.2e-5 * 50 ** 2, 4))
+print("gain from 50 to 52 cm:", round(weight(52) - weight(50), 4),
+      "against slope times 2:", round(2 * 1.2e-5 * 50 ** 2, 4))</code></pre>
+  <pre class="out">h = 10: chord slope 0.0868
+h = 1: chord slope 0.0778
+h = 0.1: chord slope 0.0769
+h = 0.001: chord slope 0.0768
+slope at 50 cm: 0.03
+gain from 50 to 52 cm: 0.0624 against slope times 2: 0.06</pre>
+  <p><b>In practice.</b> Libraries find slopes by rule. A nudge test is still the standard check for a slope you wrote by hand. With 64-bit numbers a nudge near \(10^{-5}\), taken on both sides of the point, works well. Much smaller nudges lose digits to rounding, as the practice problems show.</p>
   <p class="used"><b>Used in:</b> the slope of an error is what gradient descent follows (<a href="../a2-linear-regression/#descent">A2</a>), and the nudge test is the basis of gradient checking (<a href="../b4-backpropagation/#check">B4</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What does a derivative of 0.03 kg per cm mean for a shark of 50 cm?</summary><p>A small extra length adds about 0.03 kg per cm: growing 1 cm adds about 30 g. The statement is accurate for small nudges only.</p></details>
     <details><summary>Why does the chord slope change when you change the nudge h?</summary><p>The chord joins two points on a curve, and a bigger gap lets the curve bend away from the tangent. For tiny h the curve looks straight and the chord matches the tangent.</p></details>
+    <details><summary>What is the slope of the weight law at 100 cm, and how does it compare with the slope at 50 cm?</summary><p>\(1.2\times10^{-5}\times 100^2 = 0.12\) kg per cm. That is 4 times the slope at 50 cm, because the slope goes with \(L^2\) and doubling \(L\) quadruples it.</p></details>
   </div>
 </section>
 
@@ -150,6 +170,8 @@ print(round(2 * by_formula, 4), "kg predicted by slope times 2 cm")</code></pre>
     </tbody>
   </table>
   <p>ReLU has a corner at \(z = 0\), where no single slope exists. Most libraries use 0 there. It rarely matters, because inputs seldom hit the corner.</p>
+  <p>The table in use. Take \(f(x) = 3x^2 + 2\ln x + 5\) at \(x = 2\). The constant 5 drops out, \(3x^2\) has slope \(6x\) and \(2\ln x\) has slope \(2/x\). The slope is \(6\cdot2 + 2/2 = 13\), and a nudge of \(10^{-6}\) gives 13.0000. Now compare activations. Tanh has slope \(1-\tanh^2 z\), which is 1 at \(z=0\) and 0.071 at \(z=2\). The sigmoid has 0.25 and 0.105 at the same points. At its peak tanh passes on four times as much of a nudge, and it falls off faster in the tails.</p>
+  <p>The peak of 0.25 matters in a stack. With weights near 1, a sigmoid layer passes on at most a quarter of a nudge, so ten of them pass on at most \(0.25^{10} \approx 10^{-6}\). This is one reason deep networks avoid sigmoids in their hidden layers (<a href="../b4-backpropagation/#vanish">B4</a>).</p>
   <div class="break">
     <p><b>Common belief.</b> Where the output is large, the slope is large.</p>
     <p><b>Why it fails.</b> A sigmoid output of 0.999 has a slope near 0.001. The value says where you are on the curve. The slope says how much a nudge matters there.</p>
@@ -174,11 +196,32 @@ z = 2.0: nudged 0.1050, formula 0.1050
 z = 5.0: nudged 0.0066, formula 0.0066
 ReLU slope at -2.0: 0.0
 ReLU slope at 3.0: 1.0</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+def f(x):
+    return 3 * x ** 2 + 2 * np.log(x) + 5
+
+h = 1e-6
+by_rules = 6 * 2 + 2 / 2                # slopes: 6x and 2/x
+by_nudging = (f(2 + h) - f(2)) / h
+print(by_rules, round(by_nudging, 4))
+
+for z in [0.0, 2.0]:
+    sig = 1 / (1 + np.exp(-z))
+    t_slope, s_slope = 1 - np.tanh(z) ** 2, sig * (1 - sig)
+    print(f"z = {z}: tanh slope {t_slope:.4f}, sigmoid slope {s_slope:.4f}")
+print("ten sigmoid layers, at best:", f"{0.25 ** 10:.2e}")</code></pre>
+  <pre class="out">13.0 13.0
+z = 0.0: tanh slope 1.0000, sigmoid slope 0.2500
+z = 2.0: tanh slope 0.0707, sigmoid slope 0.1050
+ten sigmoid layers, at best: 9.54e-07</pre>
+  <p><b>In practice.</b> Deep-learning libraries store one rule per operation and combine them with the chain rule, so you rarely write a slope by hand. You still need the table to explain what training does. ReLU became a common default in hidden layers partly because its slope is 1 when the unit is on, so it does not shrink the signal.</p>
   <p class="used"><b>Used in:</b> the sigmoid and ReLU slopes feed neurons (<a href="../b1-one-neuron/#neuron">B1</a>) and backpropagation (<a href="../b4-backpropagation/#backward">B4</a>); flat tails lead to vanishing gradients (<a href="../b6-deep-networks/#signal">B6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What is the sigmoid's slope at z = 0, and why is that its maximum?</summary><p>It is \(0.5 \times 0.5 = 0.25\). The product \(\sigma(1-\sigma)\) is largest when \(\sigma = 0.5\), and \(\sigma = 0.5\) at \(z = 0\).</p></details>
     <details><summary>A ReLU unit receives \(z = -3\). What does a nudge of \(z\) do to its output?</summary><p>No change at all: the slope is 0 there. A unit stuck in that region passes no learning signal back (a "dead" ReLU, discussed in <a href="../b8-debugging/#lab">B8</a>).</p></details>
+    <details><summary>What is the slope of \(5x^4\) at \(x = 2\)?</summary><p>The rule for powers gives \(5\times4x^3 = 20x^3\), which is \(20\times8 = 160\).</p></details>
   </div>
 </section>
 
@@ -212,6 +255,7 @@ ReLU slope at 3.0: 1.0</pre>
     <li><b>\(\partial\)</b> is a curly "d". It says other variables are frozen while this one is nudged.</li>
     <li><b>\(L(w_1 + h,\; w_2)\)</b> is the loss after nudging only \(w_1\).</li>
   </ul>
+  <p>A worked slice. Take the bowl of the next section, \(L = 0.5(w_1-0.5)^2 + (w_2+0.5)^2 + 0.6(w_1-0.5)(w_2+0.5)\). Freeze \(w_2 = 1\), so \(w_2+0.5 = 1.5\). Then \(L = 0.5(w_1-0.5)^2 + 2.25 + 0.9(w_1-0.5)\), a curve in \(w_1\) alone. Its slope is \((w_1-0.5) + 0.9\), which is 2.4 at \(w_1 = 2\). Freeze \(w_2 = -0.5\) instead. The cross term vanishes and the slope at \(w_1 = 2\) is 1.5. The same weight gives two slopes, because the term \(0.6(w_1-0.5)(w_2+0.5)\) ties the slope along \(w_1\) to the value of \(w_2\).</p>
   <div class="break">
     <p><b>Analogy.</b> On a hillside, the slope towards the east and the slope towards the north are two different numbers. You measure either one by walking along a single compass direction.</p>
     <p><b>Where it breaks.</b> A hillside has two directions to check. A model can have millions of weights, so it has millions of partial derivatives, and you cannot draw the hill. The idea extends to any number of weights. The picture does not.</p>
@@ -219,11 +263,23 @@ ReLU slope at 3.0: 1.0</pre>
   <div class="debug">
     <p><b>Debug tip.</b> If a hand-written derivative disagrees with a nudge test, check which variable you nudged. Swapping \(w_1\) and \(w_2\) in a formula gives a perfectly smooth, wrong answer.</p>
   </div>
+  <pre class="code" data-run><code>def L(w1, w2):
+    a, b = w1 - 0.5, w2 + 0.5
+    return 0.5 * a ** 2 + b ** 2 + 0.6 * a * b
+
+h = 1e-6
+for w2 in [1.0, -0.5]:
+    slope = (L(2 + h, w2) - L(2 - h, w2)) / (2 * h)     # nudge w1 only
+    print(f"w2 frozen at {w2}: slope along w1 = {slope:.3f}")</code></pre>
+  <pre class="out">w2 frozen at 1.0: slope along w1 = 2.400
+w2 frozen at -0.5: slope along w1 = 1.500</pre>
+  <p><b>In practice.</b> A model with a million weights has a million partial derivatives. Nudging the weights one at a time would cost a million evaluations of the loss. Backpropagation (<a href="../b4-backpropagation/#backward">B4</a>) gets all of them from one forward and one backward pass, at a cost of a few forward passes. That is why training large networks is possible.</p>
   <p class="used"><b>Used in:</b> a model has one partial derivative per weight, which together form the gradient in the next section (<a href="../a2-linear-regression/#descent">A2</a>, <a href="../b3-loss-gradient-descent/#landscape">B3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>What does the symbol \(\partial L/\partial w_2\) ask you to do?</summary><p>Nudge \(w_2\), keep \(w_1\) frozen, and measure how much \(L\) changes per unit nudge.</p></details>
     <details><summary>On the map, where is a slice with \(w_2\) frozen?</summary><p>It is a horizontal line through the point, because \(w_2\) is the vertical axis and stays fixed along it.</p></details>
+    <details><summary>For \(L = 3w_1^2 + w_1w_2\), what is \(\partial L/\partial w_2\)?</summary><p>Freeze \(w_1\). The term \(3w_1^2\) is a constant and drops out, and \(w_1w_2\) has slope \(w_1\). So \(\partial L/\partial w_2 = w_1\).</p></details>
   </div>
 </section>
 
@@ -257,6 +313,7 @@ ReLU slope at 3.0: 1.0</pre>
     <li><b>\(\mathbf{w} \leftarrow \mathbf{w} - \eta\,\nabla L\)</b> is the downhill step the button takes. <a href="../a2-linear-regression/#descent">A2</a> turns it into training.</li>
   </ul>
   <p>Why does the gradient point to the steepest direction? The slope in a direction given by a unit vector \(\mathbf{u}\) is the dot product \(\nabla L \cdot \mathbf{u}\) (see <a href="../t5-vectors-matrices/#dot">vectors</a>). A dot product is largest when the two vectors point the same way, and then it equals the length of the gradient.</p>
+  <p>The foggy hillside in numbers. The gradient is \((2,3)\), with length \(\sqrt{13} = 3.6\). Its direction is the angle whose tangent is \(3/2\), 56 degrees above east. A unit step east rises 2 and a unit step north rises 3. A unit step along \((2,3)/\sqrt{13} = (0.555,\ 0.832)\) rises \(2\times0.555 + 3\times0.832 = 3.6\), more than either.</p>
   <p>The gradient is zero at the bottom of the bowl, and the loss is flat there. Choose the saddle or the two dips and find other points where the gradient is zero but you are not at a lowest point. The next sections give the tools to tell them apart.</p>
   <div class="break">
     <p><b>Common belief.</b> Minus the gradient points at the minimum.</p>
@@ -288,17 +345,28 @@ w = np.array([2.0, 1.0])
 print("rule    :", grad(w))
 print("nudging :", np.round(grad_by_nudging(w), 4))
 print("loss now:", L(w))
-print("after one step of 0.3 downhill:", round(L(w - 0.3 * grad(w)), 4))</code></pre>
+print("after one step of 0.3 downhill:", round(L(w - 0.3 * grad(w)), 4))
+
+for step in range(4):  # four steps of size 0.3, always downhill
+    print(step, w.round(3), round(L(w), 4))
+    w = w - 0.3 * grad(w)</code></pre>
   <pre class="out">rule    : [2.4 3.9]
 nudging : [2.4 3.9]
 loss now: 4.725
-after one step of 0.3 downhill: 0.5675</pre>
+after one step of 0.3 downhill: 0.5675
+0 [2. 1.] 4.725
+1 [ 1.28 -0.17] 0.5675
+2 [ 0.987 -0.508] 0.116
+3 [ 0.842 -0.591] 0.0481</pre>
+  <p>Follow the printed steps. From \((2,1)\) the gradient is \((2.4,\ 3.9)\), so a step of 0.3 moves the point to \((2-0.72,\ 1-1.17) = (1.28,\ -0.17)\). The loss falls from 4.725 to 0.5675. There the gradient is \((0.978,\ 1.128)\), much smaller, so the next step is shorter and ends at \((0.987,\ -0.508)\). The steps shrink by themselves because the gradient shrinks near the bottom.</p>
+  <p><b>In practice.</b> Nobody prints a gradient with a million entries. People watch its length, called the gradient norm (<a href="../b8-debugging/#grad">B8</a>), and the loss. A loss measured on a small batch gives a noisy gradient (<a href="../b3-loss-gradient-descent/#noise">B3</a>). A single step may then fail to lower the loss even when the code is right.</p>
   <p class="used"><b>Used in:</b> one gradient entry per weight is what training computes (<a href="../a2-linear-regression/#descent">A2</a>, <a href="../b3-loss-gradient-descent/#landscape">B3</a>), and the loss surface idea returns in <a href="../b3-loss-gradient-descent/#landscape">B3</a>.</p>
   <p>The nudge uses both sides of the point (\(L(w+h) - L(w-h)\), divided by \(2h\)). That is more accurate than nudging one side. <a href="../b4-backpropagation/#check">B4</a> uses this same check to test a backpropagation implementation.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The gradient at a point is (3, 4). How steep is the steepest direction, and which way is downhill?</summary><p>The steepness is \(\sqrt{9+16} = 5\). Downhill is the opposite direction, \((-3, -4)\).</p></details>
     <details><summary>A contour line runs north-east at the point. Which way does the gradient point?</summary><p>At right angles to it: north-west or south-east, whichever side has higher loss.</p></details>
+    <details><summary>The loss is \(w_1^2 + w_2^2\). What is the gradient at \((3,4)\), and where does a step with \(\eta = 0.1\) take the point?</summary><p>The partial derivatives are \(2w_1 = 6\) and \(2w_2 = 8\), so the gradient is \((6,8)\), with length 10. The step moves to \((3-0.6,\ 4-0.8) = (2.4,\ 3.2)\).</p></details>
   </div>
 </section>
 
@@ -327,6 +395,8 @@ after one step of 0.3 downhill: 0.5675</pre>
     <li><b>\(\ell\)</b> is the loss for one example, here \((a - y)^2\) for a label \(y\).</li>
     <li>In training you nudge the weight \(w\), not the input. The chain is the same, with \(dz/dw = x\) as the first link.</li>
   </ul>
+  <p>The rule follows from using the nudge idea twice. A nudge \(\Delta x\) moves \(z\) by about \((dz/dx)\,\Delta x\). That change in \(z\) moves \(a\) by about \((da/dz)\) times as much. So \(\Delta a \approx (da/dz)(dz/dx)\,\Delta x\).</p>
+  <p>The same 1 cm matters differently at other lengths. At \(x=60\) cm, \(z=-1\), the sigmoid slope is 0.197 and the chain slope is \(0.1\times0.197 = 0.0197\). At 78 cm it is 0.0214. At 90 cm, \(z=2\), it is \(0.1\times0.105 = 0.0105\). At 120 cm, \(z=5\), it is 0.00066. A 120 cm shark moves the output more than 30 times less per centimetre than a 78 cm one, because the sigmoid is saturated there. For a larger nudge the forecast drifts. From 78 cm, 10 cm of growth is forecast to raise \(a\) by \(10\times0.0214 = 0.214\). The true rise is \(0.858 - 0.690 = 0.168\), because the slope falls as the curve flattens.</p>
   <p><a href="../b4-backpropagation/#backward">B4</a> builds this into backpropagation: it walks the chain from the loss back to the weights and multiplies the local slopes on the way, once for all the weights.</p>
   <div class="break">
     <p><b>Analogy.</b> A train of gears. A 10-to-1 gear driving a 4-to-1 gear turns the last shaft 40 times slower than the first: the ratios multiply.</p>
@@ -361,12 +431,35 @@ print("by nudging  :", round(nudge, 4))</code></pre>
   <pre class="out">local slopes: -0.6201 0.2139 78.0
 chain rule  : -10.3455
 by nudging  : -10.3451</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+def a_of(x):
+    return sigmoid(0.1 * (x - 70))      # length x -&gt; score z -&gt; probability a
+
+for x in [60, 78, 90, 120]:
+    a = a_of(x)
+    chain = 0.1 * a * (1 - a)           # dz/dx times da/dz
+    true = a_of(x + 1) - a              # the true change for a 1 cm nudge
+    print(f"x = {x}: chain slope {chain:.5f}, true change {true:.5f}")
+forecast = 10 * 0.1 * sigmoid(0.8) * (1 - sigmoid(0.8))
+true_rise = a_of(88) - a_of(78)
+print("10 cm from 78: forecast", round(forecast, 3), "true", round(true_rise, 3))</code></pre>
+  <pre class="out">x = 60: chain slope 0.01966, true change 0.02011
+x = 78: chain slope 0.02139, true change 0.02098
+x = 90: chain slope 0.01050, true change 0.01011
+x = 120: chain slope 0.00066, true change 0.00063
+10 cm from 78: forecast 0.214 true 0.168</pre>
+  <p><b>In practice.</b> Libraries keep \(z\) and \(a\) from the forward pass, because the local slopes need them. This is part of why training uses more memory than prediction.</p>
   <p class="used"><b>Used in:</b> backpropagation multiplies local slopes along a computation graph (<a href="../b4-backpropagation/#backward">B4</a>).</p>
   <p>The last local slope, \(dz/dw = 78\), is large because lengths are in centimetres. A weight attached to a big input moves the score a lot, which makes its gradient big. This is one reason <a href="../a2-linear-regression/#scaling">A2</a> rescales features before training.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The local slopes along a chain are 3, 0.5 and 0.1. What is the slope of the whole chain?</summary><p>\(3 \times 0.5 \times 0.1 = 0.15\).</p></details>
     <details><summary>Why can the chain rule fail for a large nudge?</summary><p>A local slope is measured at the starting point. A large nudge moves the signal to where the slopes are different, so the product no longer matches the true change.</p></details>
+    <details><summary>One link of a chain has slope 0, such as a ReLU that received a negative score. What is the slope of the whole chain?</summary><p>It is 0, whatever the other links are. A product with a zero factor is zero, so no nudge of the input reaches the output.</p></details>
   </div>
 </section>
 
@@ -397,7 +490,31 @@ by nudging  : -10.3451</pre>
     <li><b>\(w^\ast\)</b> is the lowest point and \(\delta\) the distance from it. The middle formula says the loss rises like \(\tfrac12 k\delta^2\) with \(k = f''\).</li>
     <li><b>\(\eta < 2/k\)</b> is the largest step size that keeps a gradient step from growing the distance, for a perfect parabola of curvature \(k\).</li>
   </ul>
+  <p>Two steps behind these formulas. Near a smooth bottom the loss is about \(f(w^\ast) + f'(w^\ast)\delta + \tfrac12 f''(w^\ast)\delta^2\). The slope \(f'\) is 0 at the bottom, so the middle term vanishes and \(\tfrac12 k\delta^2\) is the first term left. For that parabola the slope is \(k\delta\), so one step of size \(\eta\) gives a new distance \(\delta - \eta k\delta = (1-\eta k)\delta\). The distance shrinks when \(\lvert 1-\eta k\rvert < 1\), which means \(0 < \eta k < 2\).</p>
   <p>With many weights, curvature is a table of second partial derivatives, the Hessian. Its eigenvectors (<a href="../t5-vectors-matrices/#eigen">0.5</a>) are the directions in which the valley is sharpest and flattest, and its eigenvalues are the curvatures along them. A saddle has positive curvature in one direction and negative in another: the gradient is zero there, yet it is no minimum. Positive curvature means a valley, negative means a hilltop.</p>
+  <p>A two-weight case: the bowl of the last section. Its second derivatives are 1 along \(w_1\), 2 along \(w_2\) and 0.6 for the mixed term, so the Hessian is \(\begin{pmatrix}1&0.6\\0.6&2\end{pmatrix}\). The trace is 3 and the determinant is \(2-0.36 = 1.64\), so \(\lambda^2-3\lambda+1.64=0\) and \(\lambda = (3\pm\sqrt{2.44})/2 = 2.281\) or \(0.719\). The sharpest direction has curvature 2.28, so the largest safe step is \(2/2.281 = 0.877\). The code runs 60 steps at 0.8 and at 0.9.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+H = np.array([[1.0, 0.6],
+              [0.6, 2.0]])               # second derivatives of the bowl
+vals, vecs = np.linalg.eigh(H)
+limit = 2 / vals.max()
+print("curvatures:", vals.round(3), " step limit 2/max:", round(limit, 3))
+
+def grad(w):                              # gradient of the bowl
+    a, b = w[0] - 0.5, w[1] + 0.5
+    return np.array([a + 0.6 * b, 2 * b + 0.6 * a])
+
+for eta in [0.8, 0.9]:
+    w = np.array([2.0, 1.0])
+    for _ in range(60):
+        w = w - eta * grad(w)
+    dist = np.linalg.norm(w - [0.5, -0.5])
+    print(f"eta = {eta}: distance from the bottom after 60 steps = {dist:.5f}")</code></pre>
+  <pre class="out">curvatures: [0.719 2.281]  step limit 2/max: 0.877
+eta = 0.8: distance from the bottom after 60 steps = 0.00002
+eta = 0.9: distance from the bottom after 60 steps = 44.01931</pre>
+  <p>Along the sharpest direction a step multiplies the distance by \(1-\eta\lambda\). At 0.8 that factor is \(-0.82\), so the distance shrinks. At 0.9 it is \(-1.05\), so the distance grows by about 5% per step and the walker leaves the bowl.</p>
   <p>Curvature appears again in the optimiser chapter (<a href="../b5-optimisers/#curvature">B5</a>), where Adam's running average of squared gradients is often read as a rough gauge of curvature. It also returns in <a href="../b7-continual-learning/#fisher">B7</a>: a weight whose loss is sharp (a large Fisher information) is one the model cannot afford to change.</p>
   <div class="break">
     <p><b>Common belief.</b> If the gradient is zero, training has found the lowest point.</p>
@@ -423,12 +540,14 @@ for name, k in [("sharp", 6.0), ("flat", 0.5)]:
     print(f"{name}: curvature {curv:.2f}, loss rise at 0.5 = {rise:.3f}, w after 8 steps = {w:.3f}")</code></pre>
   <pre class="out">sharp: curvature 6.00, loss rise at 0.5 = 0.750, w after 8 steps = 0.006
 flat: curvature 0.50, loss rise at 0.5 = 0.062, w after 8 steps = 0.515</pre>
+  <p><b>In practice.</b> Nobody forms the Hessian of a large network, since a million weights give a table of \(10^{12}\) entries. People watch the loss for swings, or estimate the largest curvature by repeated multiplication (<a href="../t5-vectors-matrices/#eigen">0.5</a>). A step size that suits the sharpest direction crawls along the flat ones. Momentum and Adam (<a href="../b5-optimisers/#momentum">B5</a>) are two remedies.</p>
   <p class="used"><b>Used in:</b> step size and curvature in optimisers (<a href="../b5-optimisers/#curvature">B5</a>), and the Fisher information in <a href="../b7-continual-learning/#fisher">B7</a>.</p>
   <p>Both walkers started at 1.5. The sharp one bounced from side to side (the factor is \(1 - 0.25 \times 6 = -0.5\)) and ended near the bottom. The flat one shrank its distance by only 12.5% per step.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A valley has curvature 4. How much does the loss rise when you move 0.3 from the bottom?</summary><p>\(\tfrac12 \times 4 \times 0.3^2 = 0.18\).</p></details>
     <details><summary>For a curvature of 10, what is the largest step size that does not make the distance to the bottom grow?</summary><p>\(2/10 = 0.2\). Above it, a gradient step overshoots by more than the distance it started from.</p></details>
+    <details><summary>At a point the gradient is 0 and the curvature is \(-2\). Is it a valley bottom or a hilltop?</summary><p>A hilltop. Negative curvature means the slope falls as you move, so the loss drops on both sides of the point.</p></details>
   </div>
 </section>
 

@@ -109,6 +109,8 @@
   <p class="cap"><b>The same 600 records answer four different questions, and narrow bins reveal humps that wide bins hide.</b> Slide the bin width from 40 cm down to 2 cm and watch the histogram change character. The records are made up.</p>
   <p>With 40 cm bins the lengths look like one tall hump. With 5 cm bins there are humps near 35 cm and 65 cm, because the table contains several species of different sizes. Switch on the colours to see which species make which hump. Neither bin width is wrong. A histogram always involves a choice of bins, so state it when you share one.</p>
   <p>A box plot throws away the detail of a histogram and keeps what is easy to compare. The line in the box is the median, and half of the values lie inside the box. The dots are values far from the middle, and for Ganges sharks all the dots are far from the others, because there are only three of them. A scatter plot, finally, shows two numbers per shark at once. Dots that run up and to the right say that heavier sharks are longer.</p>
+  <p>Read a box by hand. For the 16 records of the code below, the box runs from 42.4 cm to 66.85 cm with the median at 49.0, so it is 24.45 cm tall. The whiskers reach the furthest records within 1.5 box heights of the box, which sets the limits at 5.7 and 103.5 cm. No record of the 16 lies outside them, so there are no dots. Libraries differ a little in how they cut the quartiles. For all 600 records the upper limit is about 104 cm, and 11 records lie beyond it: 8 hammerheads and all 3 Ganges sharks.</p>
+  <p>The number of bins is a choice too. NumPy's automatic rule gives 37 bins of 6 cm for these records, and Sturges' rule gives 11 bins of 20 cm. Only the first shows the humps of the species.</p>
   <pre class="code" data-run><code>import numpy as np
 
 # lengths in cm of 16 records from the made-up catch table
@@ -123,6 +125,23 @@ for width in (40, 20, 10):
 40 [ 2 12  2]
 20 [0 2 8 4 2]
 10 [0 0 1 1 6 2 2 2 2 0]</pre>
+  <pre class="code"><code>import numpy as np
+import pandas as pd
+
+catch = pd.read_csv("catch.csv")                  # the 600 made-up records
+L = catch["length_cm"]
+q1, q2, q3 = np.percentile(L, [25, 50, 75])
+fence = q3 + 1.5 * (q3 - q1)                      # dots start beyond this length
+print(round(q1, 1), round(q2, 1), round(q3, 1), round(fence, 1))
+print(catch[L &gt; fence]["species"].value_counts().to_dict())
+for rule in ["sturges", "auto"]:
+    edges = np.histogram_bin_edges(L, bins=rule)
+    print(rule, len(edges) - 1, "bins of", round(edges[1] - edges[0], 1), "cm")</code></pre>
+  <pre class="out">39.0 50.4 65.1 104.4
+{'hammerhead': 8, 'ganges': 3}
+sturges 11 bins of 20.3 cm
+auto 37 bins of 6.0 cm</pre>
+  <p><b>In practice.</b> Draw a histogram of the main columns before you model them. It shows impossible values such as a negative weight, humps from mixed groups, and gaps. Try more than one bin width. With 600 dots a scatter plot hides overlap, so make the dots see-through.</p>
   <div class="break">
     <p><b>Common belief.</b> A bar chart and a histogram are the same thing.</p>
     <p><b>Why it fails.</b> The bars of a bar chart are separate categories, and you may reorder them. The bars of a histogram are ranges of one number, they touch, and their order is fixed. Moving a bin edge moves records from one bar to another.</p>
@@ -135,6 +154,7 @@ for width in (40, 20, 10):
     <p class="recall-h">Quick quiz</p>
     <details><summary>The median length is 50.4 cm and the mean is 54.0 cm. What does the gap tell you about the lengths?</summary><p>A few very long sharks, such as the Ganges sharks, pull the mean up more than the median. The median is the middle record and does not move when the largest value grows. The mean adds the values up (<a href="../t7-probability/#spread">0.7</a>).</p></details>
     <details><summary>You want to compare the typical length of five species. Which chart do you use?</summary><p>A box plot with one box per species. It shows the median and the spread side by side. A histogram of all sharks would blend the species.</p></details>
+    <details><summary>A histogram of lengths has two humps. What do you check next?</summary><p>Whether two groups are mixed. Colour or split the bars by species or by sex. Two groups with different typical lengths give two humps even when either group alone has one.</p></details>
   </div>
 </section>
 
@@ -161,6 +181,8 @@ for width in (40, 20, 10):
     <li><b>\(W\)</b> is the weight in kg and <b>\(L\)</b> the length in cm. <b>\(a\)</b> and <b>\(b\)</b> are constants of the species.</li>
     <li>The right side is a straight line in \(\log L\) with intercept \(\log a\) and slope \(b\). That is why the dots line up on log-log axes.</li>
   </ul>
+  <p>Two sharks give a rough exponent. Take Tag 4127 (44.0 cm, 0.281 kg) and Tag 5519 (82.0 cm, 2.610 kg). The slope on log-log axes is the change in \(\ln W\) over the change in \(\ln L\): \((0.959 - (-1.269))/(4.407 - 3.784) = 2.228/0.623 = 3.58\). The two sharks are different species, so this is a rough number. The fit to all 600 records gives 3.25. Doubling the length multiplies the weight by \(2^b\): 8 for \(b=3\), 9.5 for 3.25 and 12 for 3.58.</p>
+  <p>A log-log plot makes big relative errors look small. A weight 30% too high lies only \(\ln 1.3 = 0.26\) above the line, on an axis that spans 8 units from 0.018 to 58.6 kg. Judge a fit by the ratio of prediction to truth. The closeness of dots on the plot misleads here.</p>
   <p>A second use of a log axis is for quantities that span many powers of ten. Compare two gaps: from 1 to 10, and from 100 to 1,000. On a linear axis the second gap is 100 times longer than the first. On a log axis the two gaps are the same length, because both are a factor of 10.</p>
   <div class="card" id="lg">
     <div class="bar" id="lg-bar"></div>
@@ -177,6 +199,16 @@ W = np.array([0.267, 0.242, 2.128, 0.228, 0.164, 0.281, 1.175, 0.303,
 b, log_a = np.polyfit(np.log(L), np.log(W), 1)   # a straight line in the logs
 print(round(b, 2))                               # the slope is the exponent</code></pre>
   <pre class="out">3.36</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+# two sharks (Tag 5519, Tag 4127) give a rough exponent
+b = (np.log(2.610) - np.log(0.281)) / (np.log(82.0) - np.log(44.0))
+print(round(b, 2))
+# weight multiplier when the length doubles, for three exponents
+print([round(float(2 ** e), 1) for e in (3.0, 3.25, b)])</code></pre>
+  <pre class="out">3.58
+[8.0, 9.5, 12.0]</pre>
+  <p><b>In practice.</b> Natural logs and base-10 logs give the same slope, because the choice only rescales the axis. A log axis adds little when the data span less than a factor of 10. Use one when the values span several powers of 10, or when you care about ratios.</p>
   <div class="break">
     <p><b>Common belief.</b> A straight line on a chart means that one thing grows in steady steps with the other.</p>
     <p><b>Why it fails.</b> On a log-log plot a straight line means a power law, and the dots may be curving upward on the ordinary axes. Steady steps along a log axis are steady ratios.</p>
@@ -189,6 +221,7 @@ print(round(b, 2))                               # the slope is the exponent</co
     <p class="recall-h">Quick quiz</p>
     <details><summary>A line on a log-log plot has slope 2. If x doubles, by what factor does y change?</summary><p>By a factor of 4, since \(y \propto x^2\) and \(2^2 = 4\).</p></details>
     <details><summary>The gridlines of a log axis are labelled 1, 10, 100. What is the value halfway along the axis between 10 and 100?</summary><p>About 32, not 55. Halfway in distance means halfway in the ratio, so the value is the square root of \(10 \times 100\), which is 31.6.</p></details>
+    <details><summary>A line on a log-log plot has slope 1. What does that say about y and x?</summary><p>\(y\) is proportional to \(x\), so doubling \(x\) doubles \(y\). A slope of 1 is the case \(b=1\) of the power law.</p></details>
   </div>
 </section>
 
@@ -223,6 +256,8 @@ print(round(b, 2))                               # the slope is the exponent</co
     <li><b>"effect"</b> is the relative change from the first value to the second, as a fraction.</li>
     <li>For a bar chart the "size shown" is the relative change in the bar heights measured from the axis start. For a pictogram it is the relative change in the area drawn.</li>
   </ul>
+  <p>The pictogram tab in numbers. Bamboo has 72 records and spadenose has 268, a ratio of 3.72. Draw the second icon with both its height and its width 3.72 times larger and its area grows by \(3.72^2 = 13.9\) times. The effect shown is \(13.9-1 = 12.9\), and the effect in the data is \(3.72-1 = 2.72\). The lie factor is \(12.9/2.72 = 4.7\). Scaling the sides by the square root of the ratio gives a lie factor of 1.</p>
+  <p>The other three tabs reduce to numbers too. On the log tab the Ganges bar is 7.3 times as long as the spadenose bar, for mean weights that differ by 168 times. On the window tab, August to November rises from 18 to 88 records, which is 389%. A line through those four months climbs by 23 records a month. February to May falls by 14.5 a month, and the whole year is nearly flat at +1.5. On the two-axis tab, the correlation of records with water temperature over the ten open months is \(-0.43\) whatever range you give the right axis. Only the picture changes.</p>
   <pre class="code" data-run><code>def lie_factor(shown_first, shown_second, true_first, true_second):
     shown = abs(shown_second - shown_first) / shown_first
     true = abs(true_second - true_first) / true_first
@@ -231,9 +266,15 @@ print(round(b, 2))                               # the slope is the exponent</co
 female, male = 65.77, 67.92         # mean lengths of milk sharks, cm (made-up table)
 axis_start = 64                      # the axis of the misleading chart
 print(round(lie_factor(female - axis_start, male - axis_start, female, male), 1))
-print(round(lie_factor(female - 0, male - 0, female, male), 1))</code></pre>
+print(round(lie_factor(female - 0, male - 0, female, male), 1))
+
+bamboo, spadenose = 72, 268          # records in the made-up table
+ratio = spadenose / bamboo
+# the icon grown in both height and width
+print(round(lie_factor(1, ratio ** 2, bamboo, spadenose), 1))</code></pre>
   <pre class="out">37.2
-1.0</pre>
+1.0
+4.7</pre>
   <p>The five tools have a common test: ask what you would see if the chart were drawn the other way. Start the axis at zero, scale an icon by its area, label the log axis, show the full year, or draw two panels. If the story changes, the drawing made the story. The differences in this table are also small for a reason. Milk shark lengths vary by many centimetres from shark to shark, so a gap of two centimetres between averages of 116 and 84 sharks is not a strong finding.</p>
     <div class="break">
     <p><b>Common belief.</b> If the numbers printed on a chart are correct, the chart shows the data fairly.</p>
@@ -243,10 +284,12 @@ print(round(lie_factor(female - 0, male - 0, female, male), 1))</code></pre>
   <div class="debug">
     <p><b>Debug tip.</b> Before you trust a chart, run five checks. Where does the axis start? Are marks scaled by area or by height? Is a scale logarithmic, and are its ticks labelled? Which months or items are missing? How many axes are there?</p>
   </div>
+  <p><b>In practice.</b> The zero rule is for bars, because the length of a bar is its value. A dot or a line may start elsewhere when the axis is labelled and the question is about change, such as water at 26 to 30 degrees. Before you share a chart, show it to someone who has not seen the numbers and ask for the headline. If their headline differs from yours, redraw it.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A bar chart with an axis starting at 98 shows 99 and 100. The second bar is twice as tall. What is the lie factor?</summary><p>The bars measure 1 and 2 above the axis, so the shown effect is 1 (a 100% rise). The data rose from 99 to 100, which is 1.01%. The lie factor is about 99.</p></details>
     <details><summary>Why is a dual-axis chart easy to bend into any story?</summary><p>The reader compares the height of two lines, and the heights depend on two axis ranges that the author picks. Changing either range moves one line past the other without changing a single number.</p></details>
+    <details><summary>A line chart of water temperature has an axis from 26 to 30 degrees C. Is it misleading?</summary><p>Not by itself. A line shows change, and a labelled axis tells the reader the range. A bar chart on the same axis would mislead, because bar lengths would exaggerate the ratios.</p></details>
   </div>
 </section>
 
@@ -271,6 +314,7 @@ print(round(lie_factor(female - 0, male - 0, female, male), 1))</code></pre>
   <p class="cap"><b>The depth-3 tree is right about 80% of the time and never finds a Ganges shark. The boosted model has about the same accuracy and finds two of the three.</b> Click a cell to hear it read aloud. The matrices come from a five-fold cross-validation on the made-up catch table.</p>
   <p>Read the figure in this order. First the row labels: the rows are the true species and the columns are the model's answers. The number in brackets beside a row name is the row total, the number of true sharks of that species. The totals are 268 spadenose, 200 milk, 72 bamboo, 57 hammerhead and 3 Ganges. The diagonal contains the correct answers. Accuracy is the sum of the diagonal divided by 600. Then look at the rows with small totals. The Ganges row has three sharks, so a model can miss all of them and lose only half a percent of accuracy.</p>
   <p>Switch the view to the share of the row. The diagonal then shows recall, the share of a true class that was found. Switch to the share of the column and the diagonal shows precision, the share of a label that was right. A column that sums to zero, such as the Ganges column of the always-spadenose model, has no precision at all, because the model never uses that label. The tree uses the label Ganges once, wrongly, so its precision for Ganges is 0 of 1.</p>
+  <p>Compare the boosted model on the same row. It finds 2 of the 3 Ganges sharks, so recall is \(2/3 = 0.67\). It uses the label Ganges 5 times, in the column total, and 2 of those are right, so precision is \(2/5 = 0.40\). The other 3 labels are hammerheads called Ganges. Recall rose from 0 to 0.67, and precision is the price. Which model is better depends on what a false alarm costs against a missed shark.</p>
   <p>A worked example with the bamboo row of the depth-3 tree:</p>
   <div class="eqn" aria-hidden="false" role="img" aria-label="Worked example: recall for bamboo of the depth-3 tree"><span class="t c-teal"><b>23</b><i>bamboo found</i></span><span class="op">&divide;</span><span class="t c-navy"><b>72</b><i>true bamboo, the row total</i></span><span class="op">=</span><span class="t c-coral"><b>32%</b><i>recall for bamboo, depth-3 tree</i></span></div>
   <pre class="code" data-run><code>import numpy as np
@@ -296,10 +340,38 @@ print(np.round(cm.diagonal() / cm.sum(axis=0), 3))  # precision: diagonal over c
     <p><b>Why it fails.</b> Accuracy adds up the diagonal, so large classes dominate it. A model that never finds the rarest class loses very little.</p>
     <p><b>Better account.</b> Look at the row of the classes that matter to you. For a rare class the row, and not the overall accuracy, tells you whether the model is useful. <a href="../a4-grading-models/#matrix">A4</a> develops the scores.</p>
   </div>
+  <p>To find where a model confuses most, set the diagonal to zero and look for the largest cell. In the depth-3 tree it is 37: bamboo sharks called spadenose. More bamboo sharks are lost this way than found, 37 against 23.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+classes = ["spadenose", "milk", "bamboo", "hammerhead", "ganges"]
+tree = np.array([[261,   7,  0,  0, 0],
+                 [ 11, 181,  0,  8, 0],
+                 [ 37,  12, 23,  0, 0],
+                 [  5,  35,  0, 16, 1],
+                 [  0,   0,  0,  3, 0]])
+mistakes = tree.copy()
+np.fill_diagonal(mistakes, 0)                     # keep only the errors
+i, j = np.unravel_index(mistakes.argmax(), mistakes.shape)
+print("largest error:", mistakes.max(), "true", classes[i], "called", classes[j])
+
+# boosting, 100 trees of depth 3
+boost = np.array([[251,   3, 13,  1, 0],
+                  [  7, 178,  2, 13, 0],
+                  [ 31,  12, 29,  0, 0],
+                  [  5,  30,  0, 19, 3],
+                  [  0,   0,  0,  1, 2]])
+found, labelled = boost[4, 4], boost[:, 4].sum()
+recall, precision = found / boost[4].sum(), found / labelled
+print("Ganges: recall", round(recall, 2), " precision", round(precision, 2),
+      f"({found} of {labelled} labels right)")</code></pre>
+  <pre class="out">largest error: 37 true bamboo called spadenose
+Ganges: recall 0.67  precision 0.4 (2 of 5 labels right)</pre>
+  <p><b>In practice.</b> Scikit-learn can normalise the matrix for you. <code>confusion_matrix(y_true, y_pred, normalize="true")</code> gives row shares, so the diagonal is recall. When classes are very unequal, show row shares, because counts hide the small rows.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>In the depth-3 tree, 35 hammerheads were labelled milk. In which row and column is that count?</summary><p>Row hammerhead (true class), column milk (predicted class).</p></details>
     <details><summary>The lazy model always says "spadenose". What is its accuracy on these 600 records, and what is its recall for the Ganges shark?</summary><p>It gets 268 of 600, which is 44.7%, and its recall for the Ganges shark is 0. Its whole matrix is the first column.</p></details>
+    <details><summary>A confusion matrix is divided by its column totals. What does its diagonal show?</summary><p>The precision of a label: of the sharks given that label, the share that have it in fact. Dividing by row totals gives recall instead.</p></details>
   </div>
 </section>
 
@@ -323,6 +395,8 @@ print(np.round(cm.diagonal() / cm.sum(axis=0), 3))  # precision: diagonal over c
   <p class="cap"><b>The depth-3 tree and the boosted model differ by 0.4 points on one seed, but the boosted model alone moves by 2.7 points across five seeds.</b> Switch the seed: the logistic model and the boosted model swap places on seed 4. The models are trained on the made-up catch table to name the species.</p>
   <p>Start with the first row, the baseline. Always guessing spadenose is right 44.7% of the time, so a model that scores 50% has learned little. Next compare the train and test columns. The tree with no depth limit scores 100% on the data it learned from and about 72% on new data. It memorised the table. The boosted model also scores 100% on its training data but about 79% on new data. A big gap between the two columns means the training score is not worth reporting alone.</p>
   <p>Then read the spread. The five runs differ only in the shuffling of the table before it is cut into folds. The depth-3 tree moves by less than a point and boosting by more than two, so a gap of 0.4 points between them tells you little. Finally read the column that matches your question. If a Ganges shark matters, the overall accuracy is the wrong column.</p>
+  <p>Put numbers on those two warnings. Averaged over the five seeds, the tree with no depth limit falls from 1.000 on its training data to 0.723 on new data, a gap of 0.277. The depth-3 tree falls from 0.827 to 0.803, a gap of 0.024, so it did not memorise the table. For the spread, the five boosting scores have a standard deviation of 0.011. The mean of five runs has a standard error of \(0.011/\sqrt{5} = 0.005\), so the 0.010 gap to the tree is about 2 standard errors. That is suggestive. It does not settle the question.</p>
+  <p>The five runs also reshuffle one table, so their spread understates the noise. A single score on 600 records has a standard error of \(\sqrt{0.8\times0.2/600} = 0.016\) from the finite table alone (<a href="../t7-probability/#noise">0.7</a>). That is larger than the gap. Two models graded on the same records share much of this noise, though, and the paired comparison of <a href="../t7-probability/#test">0.7</a> measures their gap more tightly.</p>
   <div class="eqn" id="rt-eqn" role="img" aria-label="Mean and spread of the five runs of two models"></div>
   <p class="math">\[ \bar{x} = \frac{1}{m}\sum_{i=1}^{m} x_i, \qquad s = \sqrt{\frac{1}{m-1}\sum_{i=1}^{m}(x_i - \bar{x})^2} \]</p>
   <ul class="math-notes">
@@ -339,6 +413,26 @@ print(round(tree.mean() - boost.mean(), 4))</code></pre>
   <pre class="out">tree 0.803 0.0014 0.8017 0.805
 boost 0.793 0.0111 0.7767 0.8033
 0.01</pre>
+  <pre class="code" data-run><code>import numpy as np
+
+# training score and five test scores per model (made-up table)
+rows = {"depth-3 tree":   (0.8267, [0.8017, 0.805, 0.8017, 0.8033, 0.8033]),
+        "tree, no limit": (1.0,    [0.705, 0.74, 0.7083, 0.735, 0.725])}
+for name, (train, test) in rows.items():
+    test_mean = np.mean(test)
+    gap = train - test_mean
+    print(f"{name}: train {train:.3f}, test {test_mean:.3f}, gap {gap:.3f}")
+
+boost = np.array([0.7983, 0.8, 0.7867, 0.8033, 0.7767])
+se_boost = boost.std(ddof=1) / np.sqrt(5)
+se_one = np.sqrt(0.8 * 0.2 / 600)
+print("standard error of the boosting mean:", round(se_boost, 4))
+print("noise of one score on 600 records  :", round(se_one, 4))</code></pre>
+  <pre class="out">depth-3 tree: train 0.827, test 0.803, gap 0.024
+tree, no limit: train 1.000, test 0.723, gap 0.277
+standard error of the boosting mean: 0.0049
+noise of one score on 600 records  : 0.0163</pre>
+  <p><b>In practice.</b> When a paper gives one number, ask whether it is a mean or the best of several runs, and how large the test set is.</p>
   <div class="debug">
     <p><b>Debug tip.</b> When two scores are close, repeat the experiment with other seeds before you pick a winner. If the gap is smaller than the spread between runs, report both models as equal on that measure.</p>
   </div>
@@ -351,6 +445,7 @@ boost 0.793 0.0111 0.7767 0.8033
     <p class="recall-h">Quick quiz</p>
     <details><summary>Model A scores 0.84 and model B scores 0.82, both averaged over five runs with a spread of 0.03. Can you say A is better?</summary><p>No. The gap of 0.02 is smaller than the typical spread of 0.03 between runs of one model, so a few more runs could reverse the order.</p></details>
     <details><summary>A table lists only training accuracy. What is missing?</summary><p>The test or validation score. Training accuracy can reach 100% for a model that has memorised the table, as the tree with no depth limit shows.</p></details>
+    <details><summary>A table gives the best of ten runs for a new model and one run for the baseline. What is wrong?</summary><p>The comparison is unfair. The best of ten runs picks the luckiest result, so it exceeds a typical run. Report the mean and spread of the same number of runs for both models.</p></details>
   </div>
 </section>
 
