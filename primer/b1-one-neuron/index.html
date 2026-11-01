@@ -110,6 +110,7 @@ table.mx td { padding: 2px 8px; text-align: right; font-size: 15.5px; color: var
     <p>With \(w_2 = 0\), \(z = w_1 x_1 + b\) has no \(x_2\) in it, so the stripes become vertical and the output ignores \(x_2\). ReLU changes only the half of the map where \(z\) is negative, which turns flat at 0. The half where \(z\) is positive looks the same as with no activation. Doubling the three dials leaves the dashed line where it was, because \(z = 0\) at the same points. The stripes move closer together, so the output switches from near 0 to near 1 over a shorter distance.</p>
   </details>
   <p>The straight stripes have a reason. The output depends on the input only through \(z\), and \(z\) is constant along any line \(w_1 x_1 + w_2 x_2 = \text{const}\). So a single level of the output, such as \(a = 0.5\), is always a straight line. That is the decision boundary of <a href="../a3-logistic-regression/#boundary">A3</a>, and it is why one neuron can only cut the plane with a line.</p>
+  <p>The right angle between the arrow and the dashed line is easy to check with numbers. Take the starting dials \(\mathbf{w} = (1.5, -1.0)\) and \(b = 0.3\). The points \((0, 0.3)\) and \((1, 1.8)\) both lie on the line. The first has \(z = 1.5 \times 0 - 1.0 \times 0.3 + 0.3 = 0\). The second has \(z = 1.5 \times 1 - 1.0 \times 1.8 + 0.3 = 0\). The step between them is \((1, 1.5)\), and its dot product with \(\mathbf{w}\) is \(1.5 \times 1 + (-1.0) \times 1.5 = 0\). A step along the line has no component along \(\mathbf{w}\), which is what a right angle means (<a href="../t5-vectors-matrices/#dot">0.5</a>). The distance from the origin to the line is \(|b| / \lVert\mathbf{w}\rVert = 0.3 / 1.80 = 0.17\). So the bias alone does not fix where the line is: a larger weight vector brings the line closer to the origin for the same bias.</p>
   <p class="math">\[ z = w_1 x_1 + w_2 x_2 + b = \mathbf{w}\cdot\mathbf{x} + b \qquad\qquad a = g(z) \]</p>
   <ul class="math-notes">
     <li><b>\(x_1, x_2\)</b> are the inputs, collected in the vector \(\mathbf{x}\). <b>\(w_1, w_2\)</b> are the weights, collected in \(\mathbf{w}\). The product \(\mathbf{w}\cdot\mathbf{x}\) is the dot product of <a href="../t5-vectors-matrices/#dot">0.5</a>.</li>
@@ -126,7 +127,7 @@ table.mx td { padding: 2px 8px; text-align: right; font-size: 15.5px; color: var
     <p><b>Where it breaks.</b> The artificial neuron is a formula. It has no timing, no chemistry and no living cell. Most activations give a smooth number and do not fire or stay quiet. The name stays because the picture of inputs, weights and one output is useful.</p>
   </div>
   <div class="debug">
-    <p><b>Debug tip.</b> If a sigmoid neuron outputs 0 or 1 for all inputs, print \(z\). A large \(|z|\) means the sigmoid is saturated, and the usual cause is inputs on a large scale, such as lengths in centimetres next to depths in metres. Scale the inputs first (<a href="../a2-linear-regression/#scaling">A2</a>).</p>
+    <p><b>Debug tip.</b> If a sigmoid neuron outputs 0 or 1 for all inputs, print \(z\). A large \(|z|\) means the sigmoid is saturated, and the usual cause is inputs on a large scale, such as lengths in centimetres next to depths in metres. Scale the inputs first (<a href="../a2-linear-regression/#scaling">A2</a>). Suppose Tag 4127's length and girth go in unscaled. Then \(z = 4.732 \times 44.0 - 0.1215 \times 12.4 + 2.481 = 209.2\). The sigmoid gives 1.000 for this shark and for all the others.</p>
   </div>
   <pre class="code" data-run><code>import numpy as np
 
@@ -154,11 +155,35 @@ print(f"z = {z:.2f}, output a = {a:.3f}")       # 3. the neuron's output</code><
     <span class="t c-teal"><b>0.994</b><i>output a</i></span><span class="op">=</span><span class="op">&sigma;(</span><span class="t"><b>5.08</b><i>weighted sum z</i></span><span class="op">)</span>
   </div>
   <p>The products are 2.671 and \(-0.070\), and the sum with the bias is 5.082. The neuron says "adult" with a probability of 99.4%, and it is wrong: Tag 4127 is a juvenile. The weights were fitted to spadenose sharks, which mature at about 35 cm, while bamboo sharks mature at about 53 cm. A neuron describes the data it was fitted on, and gives a confident answer outside it (<a href="../a3-logistic-regression/#boundary">A3</a>).</p>
-  <p class="used"><b>In practice:</b> inputs are scaled to a mean of 0 and a spread of 1. Weights start small and random, with a typical size of 0.1 to 1. The bias starts at 0. A weight means something only next to the scale of its input: 0.5 per centimetre is a large weight, and 0.5 per spread is a small one. Compare the size of two weights only after scaling.</p>  <p class="used"><b>Used in:</b> a network is many such neurons wired in rows (<a href="#layer">section 4</a>) and in stacks (<a href="../b2-non-linearity/#bend">B2</a>). My diabetes screening app runs a small neural network, and my <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">project primer</a> has a one-unit figure on glucose and BMI.</p>
+  <p>Another way to read the neuron: the weights are votes, and the bias sets how many votes it takes to say yes. For Tag 4127 the length votes \(+2.671\), the girth votes \(-0.070\), and the bias adds \(+2.481\), so length decides the answer. The picture breaks when the inputs interact. A neuron adds its votes and never multiplies them. It can give length one vote and depth another, but the vote of length cannot change with the depth. Cases of that kind need more than one neuron (<a href="../b2-non-linearity/#one">B2</a>).</p>
+  <p>A third neuron reads the clinic's Pima rows. This is a published dataset of 768 women of Pima heritage, measured in the United States, and not data from Mumbai. Woman A has a glucose of 158 mg/dL and a BMI of 31.6. The 614 training women have a mean glucose of 120.9 with a spread of 32.0, and a mean BMI of 32.0 with a spread of 7.7. So her scaled inputs are \((158 - 120.9)/32.0 = 1.16\) and \((31.6 - 32.0)/7.7 = -0.05\). Take the dials of the unit in my <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">project primer</a>, with a ReLU activation:</p>
+  <div class="eqn" role="img" aria-label="Output for Woman A: ReLU of 1.5 times 1.16 plus 0.8 times minus 0.05 plus minus 1.0 is 0.70">
+    <span class="t c-teal"><b>0.70</b><i>output a</i></span><span class="op">=</span><span class="op">ReLU(</span><span class="t c-coral"><b>1.5</b><i>weight on glucose</i></span><span class="op">&times;</span><span class="t c-navy"><b>1.16</b><i>scaled glucose</i></span><span class="op">+</span><span class="t c-coral"><b>0.8</b><i>weight on BMI</i></span><span class="op">&times;</span><span class="t c-navy"><b>&minus;0.05</b><i>scaled BMI</i></span><span class="op">+</span><span class="t c-sand"><b>&minus;1.0</b><i>bias</i></span><span class="op">)</span>
+  </div>
+  <p>The sum inside is \(1.74 - 0.04 - 1.00 = 0.70\). It is positive, so ReLU passes it on unchanged. Now swap in the dials that training finds for a sigmoid neuron on the 614 women: weights 1.11 and 0.65, bias \(-0.83\). The sum is \(z = 1.287 - 0.032 - 0.83 = 0.425\) and \(\sigma(0.425) = 0.605\). Her glucose, 1.16 spreads above the mean, drives the sum. Her BMI is close to the mean and hardly moves it. This neuron gives Woman A a probability of about 60% for diabetes, and she did have diabetes. Over the 614 women that tuned it, it calls 468 right (76.2%), against 65.3% for always saying "no". The same inputs with another activation give another kind of number: 0.70 is a score, and 0.605 is a probability.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+# Woman A: glucose 158 mg/dL, BMI 31.6 (a published Pima row, not Mumbai data)
+x = np.array([158.0, 31.6])
+# mean and spread of glucose and BMI over the 614 training women
+mean, spread = np.array([120.855, 31.983]), np.array([32.035, 7.741])
+xs = (x - mean) / spread  # scale, as in A2
+print("scaled inputs:", np.round(xs, 3))
+
+z = np.array([1.5, 0.8]) @ xs - 1.0  # the ReLU dials
+print(f"ReLU dials:    z = {z:.3f}, output = {max(0.0, z):.3f}")
+z = np.array([1.11, 0.65]) @ xs - 0.83  # dials found for a sigmoid
+print(f"sigmoid dials: z = {z:.3f}, output = {1 / (1 + np.exp(-z)):.3f}")</code></pre>
+  <pre class="out">scaled inputs: [ 1.16  -0.049]
+ReLU dials:    z = 0.700, output = 0.700
+sigmoid dials: z = 0.425, output = 0.605</pre>
+
+  <p class="used"><b>In practice:</b> inputs are scaled to a mean of 0 and a spread of 1. Weights start small and random, with a typical size of 0.1 to 1. The bias starts at 0. A weight means something only next to the scale of its input: 0.5 per centimetre is a large weight, and 0.5 per spread is a small one. Compare the size of two weights only after scaling. In the neuron for Tag 4127 the weights are 4.732 on length and \(-0.1215\) on girth, so length counts about 39 times more.</p>  <p class="used"><b>Used in:</b> a network is many such neurons wired in rows (<a href="#layer">section 4</a>) and in stacks (<a href="../b2-non-linearity/#bend">B2</a>). My diabetes screening app runs a small neural network, and my <a href="https://rayhaan1345.github.io/projects/diabetes-screening/primer/">project primer</a> has a one-unit figure on glucose and BMI.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A neuron has \(w_1 = 2\), \(w_2 = -1\), \(b = -1\) and no activation. What is its output for \(x = (1, 3)\)?</summary><p>\(z = 2 \times 1 + (-1) \times 3 + (-1) = -2\). With no activation the output is \(a = z = -2\).</p></details>
     <details><summary>You add 5 to the bias. Does the line \(z = 0\) move, turn, or stay?</summary><p>It moves, parallel to itself. The direction depends only on \(w_1\) and \(w_2\), so the line does not turn. The bias slides it along \(\mathbf{w}\).</p></details>
+    <details><summary>In the ReLU neuron for Woman A, the weight on glucose changes from 1.5 to \(-1.5\) and the other dials stay as they were. What is her output?</summary><p>\(z = -1.5 \times 1.16 + 0.8 \times (-0.05) - 1.0 = -1.74 - 0.04 - 1.00 = -2.78\). ReLU turns a negative sum into 0, so the neuron is switched off for her.</p></details>
   </div>
 </section>
 
@@ -182,7 +207,9 @@ print(f"z = {z:.2f}, output a = {a:.3f}")       # 3. the neuron's output</code><
   </div>
   <p class="cap"><b>The sigmoid's slope is at most 0.25 and falls below 0.01 when \(|z|\) passes 4.6. At \(z = 8\) it is 0.0003, while ReLU's slope is still 1.</b></p>
   <p>Drag \(z\) from the left end to the right end with the sigmoid chosen. The navy curve is the output, and the dashed sand curve is its slope. The slope peaks at \(z = 0\) and drops close to 0 in both tails. A neuron in a tail is saturated: a large change in the weights moves \(z\), but the output hardly responds, so learning is slow. At \(z = 8\) the sigmoid's slope is 0.0003, about 750 times smaller than the 0.25 it has at \(z = 0\). An update that would take one step at \(z = 0\) takes hundreds there. The tanh has the same problem in its tails, though its slope peaks at 1 instead of 0.25. In fact \(\tanh z = 2\sigma(2z) - 1\): it is the sigmoid stretched to run from \(-1\) to 1 and sharpened by a factor of 2 (<a href="../t3-algebra-functions/#families">0.3</a>).</p>
+  <p>Here are the slopes at \(z = 2\), worked out. The sigmoid gives \(\sigma(2) = 0.881\), so its slope is \(0.881 \times 0.119 = 0.105\). The tanh gives \(\tanh 2 = 0.964\), so its slope is \(1 - 0.964^2 = 0.071\). For GELU, \(\Phi(2) = 0.9772\) and \(\varphi(2) = 0.0540\), so the slope is \(0.9772 + 2 \times 0.0540 = 1.085\). ReLU has a slope of 1. A small nudge to \(z\) therefore moves a sigmoid output by 10.5% of the nudge, a tanh output by 7.1%, and a ReLU output by all of it. Tanh starts steeper than the sigmoid (1 against 0.25 at \(z = 0\)) and falls faster, so it saturates sooner. The 750 above is the same arithmetic at \(z = 8\). There \(\sigma(8) = 0.999665\), so \(1 - \sigma(8) = 0.000335\). The slope is \(0.999665 \times 0.000335 = 0.000335\), and \(0.25 / 0.000335 = 746\).</p>
   <p>ReLU has a slope of 1 for all positive \(z\), so it never saturates on that side. Its price is the other side: for negative \(z\) the slope is 0, and a neuron that sees only negative sums gets no signal at all. GELU is the smooth cousin. It multiplies \(z\) by \(\Phi(z)\), the chance that a standard normal value falls below \(z\) (<a href="../t7-probability/#normal">0.7</a>). Large positive \(z\) passes almost unchanged. Large negative \(z\) is squashed to almost 0. The corner at 0 is rounded. Hendrycks and Gimpel proposed it in 2016, and the original GPT and BERT language models use it (<a href="../d5-transformer/#block">D5</a>). The step has slope 0 wherever it is defined, so gradient descent has no slope to follow, and the perceptron of the next section uses its own rule.</p>
+  <p>How does a ReLU unit die? Suppose its weights are \((0.5, 0.5)\) and one large update pushes its bias to \(-3\). The sum \(0.5 x_1 + 0.5 x_2 - 3\) is positive only when \(x_1 + x_2 > 6\). For two independent inputs, scaled to a spread of 1, the total \(x_1 + x_2\) has a spread of about 1.4. So 6 is more than four spreads out, and fewer than one input in 10,000 switches the unit on. With no input on there is no slope, no update and no way back. A variant called leaky ReLU keeps a small slope, such as 0.01, on the negative side, so that a unit cannot die completely.</p>
   <div class="act-wrap"><table class="act-table" aria-label="The six activations with their slopes">
     <thead><tr><th>activation</th><th>output \(g(z)\)</th><th>slope \(g'(z)\)</th><th>output at \(z = 1\)</th><th>slope at \(z = 1\)</th></tr></thead>
     <tbody>
@@ -240,11 +267,34 @@ tanh      [-0.964  0.     0.964]
 ReLU      [0. 0. 2.]
 GELU      [-0.046  0.     1.954]</pre>
   <p>The table is the figure in numbers: at \(z = -2\) the tanh and sigmoid are near their lower ends, ReLU is 0, and GELU is a little below 0.</p>
+  <p>You can check the slope formulas of the table without calculus. Move \(z\) a tiny step up and a tiny step down, take the change in the output and divide by the size of the two steps. The result matches the formulas: 0.1966 and 0.4200 at \(z = 1\), and 0.105 and 0.071 at \(z = 2\) for the sigmoid and the tanh.</p>
+  <pre class="code" data-run><code>import numpy as np
+from math import erf, sqrt
+
+sigmoid = lambda z: 1 / (1 + np.exp(-z))
+gelu = lambda z: z * 0.5 * (1 + erf(z / sqrt(2)))
+relu = lambda z: max(0.0, z)
+acts = {"sigmoid": sigmoid, "tanh": np.tanh, "ReLU": relu, "GELU": gelu}
+
+h = 1e-5  # slope = change in output for a tiny change in z
+for z in (1.0, 2.0, 8.0):
+    row = [f"{name} {(f(z + h) - f(z - h)) / (2 * h):.4f}" for name, f in acts.items()]
+    print(f"z = {z:.0f}:  " + "  ".join(row))
+ratio = 0.25 / (sigmoid(8) * (1 - sigmoid(8)))
+print("sigmoid slope at 0 over slope at 8:", round(ratio))
+print("GELU(-1) =", round(gelu(-1.0), 3))</code></pre>
+  <pre class="out">z = 1:  sigmoid 0.1966  tanh 0.4200  ReLU 1.0000  GELU 1.0833
+z = 2:  sigmoid 0.1050  tanh 0.0707  ReLU 1.0000  GELU 1.0852
+z = 8:  sigmoid 0.0003  tanh 0.0000  ReLU 1.0000  GELU 1.0000
+sigmoid slope at 0 over slope at 8: 746
+GELU(-1) = -0.159</pre>
+
   <p class="used"><b>Used in:</b> the slopes in this section are the factors that backpropagation multiplies together (<a href="../b4-backpropagation/#backward">B4</a>). Saturated and dead units explain why deep networks need care with their start and their normalisation (<a href="../b6-deep-networks/#signal">B6</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>At \(z = 0\), which has the larger slope: the sigmoid or tanh?</summary><p>The tanh: its slope is 1 at \(z = 0\), against 0.25 for the sigmoid.</p></details>
     <details><summary>A ReLU neuron has \(z = -3\) for the shark you are looking at. What happens to the weights if you train on that shark alone?</summary><p>The weights do not change. The slope is 0, so the shark sends no signal back to them.</p></details>
+    <details><summary>What is GELU at \(z = -1\), and how does it differ from ReLU there?</summary><p>\(\Phi(-1) = 0.1587\), so GELU\((-1) = -1 \times 0.1587 = -0.159\). ReLU gives 0. GELU lets a small negative value through, and its slope there is slightly negative (\(-0.083\)).</p></details>
   </div>
 </section>
 
@@ -280,6 +330,56 @@ GELU      [-0.046  0.     1.954]</pre>
     <li><b>\(x_j\)</b> is input \(j\) after scaling. A wrong call on a shark adds or subtracts a multiple of that shark's input vector to the weights, so the dashed line turns towards the shark.</li>
     <li>For the sigmoid the update of <a href="../a3-logistic-regression/#train">A3</a> has the same form, with the soft difference \(y - p\) in place of \(y - \hat{y}\).</li>
   </ul>
+  <p>Where do the dials end up for the sigmoid? Training the neuron on all 272 sharks gives a weight of \(-2.84\) on length, a weight of \(-0.92\) on depth, and a bias of \(-2.06\). Both weights are negative, so short, shallow sharks look like bamboo sharks, and length matters about three times more than depth. Try Tag 1224, a milk shark of 67.8 cm found at 39.4 m. Its scaled inputs are 0.513 and 1.073:</p>
+  <div class="eqn" role="img" aria-label="Chance of bamboo for Tag 1224: the sigmoid of minus 2.84 times 0.513 plus minus 0.92 times 1.073 plus minus 2.06 is 0.011">
+    <span class="t c-teal"><b>0.011</b><i>chance of bamboo</i></span><span class="op">=</span><span class="op">&sigma;(</span><span class="t c-coral"><b>&minus;2.84</b><i>weight on length</i></span><span class="op">&times;</span><span class="t c-navy"><b>0.513</b><i>scaled length</i></span><span class="op">+</span><span class="t c-coral"><b>&minus;0.92</b><i>weight on depth</i></span><span class="op">&times;</span><span class="t c-navy"><b>1.073</b><i>scaled depth</i></span><span class="op">+</span><span class="t c-sand"><b>&minus;2.06</b><i>bias</i></span><span class="op">)</span>
+  </div>
+  <p>The sum is \(-1.46 - 0.99 - 2.06 = -4.50\), and \(\sigma(-4.50) = 0.011\). The neuron says "milk" with 99% confidence, and it is right. For Tag 4127 the scaled inputs \((-1.45, -1.87)\) give \(z = 4.11 + 1.73 - 2.06 = 3.78\) and a bamboo chance of 0.978. The neuron is right again.</p>
+  <p>The headline score hides a difference. Of the 200 milk sharks the neuron calls 194 right. Of the 72 bamboo sharks it calls only 55 right, about 76%. Of its 23 mistakes, 17 are bamboo sharks called milk. The neuron beats the lazy answer "milk", yet it misses one bamboo shark in four (<a href="../a4-grading-models/#matrix">A4</a>). The score is also measured on the 272 sharks that tuned the dials. Fitting on four fifths of the sharks and scoring on the other fifth, five times over, gives 247 right, or 90.8%. That is a little below 91.5% (<a href="../a4-grading-models/#cv">A4</a>). The code below reads <code>catch.csv</code> of the shark data and does all of this.</p>
+  <pre class="code"><code>import numpy as np, pandas as pd
+
+d = pd.read_csv("catch.csv")
+d = d[d.species.isin(["milk", "bamboo"])]  # 200 milk, 72 bamboo (made up)
+X = d[["length_cm", "depth_m"]].to_numpy()
+y = (d.species == "bamboo").to_numpy().astype(float)
+
+def fit(X, y, steps=20000, eta=0.5):
+    mean, spread = X.mean(axis=0), X.std(axis=0)
+    Z = (X - mean) / spread  # scale both inputs
+    w, b = np.zeros(2), 0.0
+    for _ in range(steps):  # log loss gradient descent, as in A3
+        p = 1 / (1 + np.exp(-(Z @ w + b)))
+        w -= eta * Z.T @ (p - y) / len(y)
+        b -= eta * np.mean(p - y)
+    return w, b, mean, spread
+
+w, b, mean, spread = fit(X, y)
+call = ((X - mean) / spread) @ w + b > 0
+print("weights", w.round(2), "bias", round(b, 2))
+print("right:", (call == y).sum(), "of", len(y))
+print("milk right:", (~call &amp; (y == 0)).sum(), "of", int((y == 0).sum()),
+      "  bamboo right:", (call &amp; (y == 1)).sum(), "of", int(y.sum()))
+for tag in (4127, 1224):
+    r = d[d.record_id == tag].iloc[0]
+    z = w @ ((np.array([r.length_cm, r.depth_m]) - mean) / spread) + b
+    p = 1 / (1 + np.exp(-z))
+    print(f"Tag {tag} ({r.species}): z = {z:.2f}, chance of bamboo = {p:.3f}")
+
+order = np.random.default_rng(0).permutation(len(y))
+folds = np.array_split(order, 5)  # fit on 4/5, score on 1/5
+right = 0
+for test in folds:
+    train = np.setdiff1d(np.arange(len(y)), test)
+    wf, bf, mf, sf = fit(X[train], y[train])
+    right += ((((X[test] - mf) / sf) @ wf + bf > 0) == y[test]).sum()
+print("5-fold score:", right, "of", len(y), f"= {right / len(y):.3f}")</code></pre>
+  <pre class="out">weights [-2.84 -0.92] bias -2.06
+right: 249 of 272
+milk right: 194 of 200   bamboo right: 55 of 72
+Tag 4127 (bamboo): z = 3.78, chance of bamboo = 0.978
+Tag 1224 (milk): z = -4.50, chance of bamboo = 0.011
+5-fold score: 247 of 272 = 0.908</pre>
+
   <div class="break">
     <p><b>Common belief.</b> Train a perceptron for long enough and it settles on the best line.</p>
     <p><b>Why it fails.</b> The rule changes the weights whenever some shark is called wrong. When the classes overlap, as here, some shark is always wrong, so the weights never stop moving. The score keeps wobbling. When one line can separate the two classes with no mistakes, the rule is guaranteed to stop. When no such line exists, it cannot stop.</p>
@@ -312,11 +412,22 @@ for epoch in range(1, 21):
 epoch 2: 1 mistakes, w = [-0.17  -0.024], b = 0.00
 epoch 3: 0 mistakes, w = [-0.17  -0.024], b = 0.00</pre>
   <p>With eight sharks that one line can separate, the rule stops after three passes. With the 272 sharks of the figure it never stops, as the debug tip warns.</p>
+  <p>Here is the first pass of that printout, step by step. All the dials start at 0, so shark 1 (58 cm, 14 m, scaled to \((0.033, -0.222)\)) has \(z = 0\). A step neuron calls \(z \ge 0\) a 1, and the label is 0, so the call is wrong. Sharks 2 and 4 are wrong in turn. The other five are called right and leave the dials as they are.</p>
+  <div class="act-wrap"><table class="act-table" aria-label="The three updates of the first pass">
+    <thead><tr><th>shark</th><th>score \(z\)</th><th>call</th><th>label</th><th>\(\mathbf{w}\) after</th><th>\(b\) after</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>0.000</td><td>1</td><td>0</td><td>(\(-0.003\), 0.022)</td><td>\(-0.10\)</td></tr>
+      <tr><td>2</td><td>\(-0.085\)</td><td>0</td><td>1</td><td>(\(-0.118\), 0.071)</td><td>0.00</td></tr>
+      <tr><td>4</td><td>\(-0.025\)</td><td>0</td><td>1</td><td>(\(-0.167\), \(-0.046\))</td><td>0.10</td></tr>
+    </tbody>
+  </table></div>
+  <p>Take shark 2 (49 cm, 20 m, scaled to \((-1.147, 0.489)\)). Its score is \(-0.003 \times (-1.147) + 0.022 \times 0.489 - 0.10 = -0.085\), so the call is 0 while the label is 1. The update adds \(0.1 \times 1\) times the shark's inputs: \(w_1 = -0.003 + 0.1 \times (-1.147) = -0.118\) and \(w_2 = 0.022 + 0.1 \times 0.489 = 0.071\). The bias goes from \(-0.10\) to 0. A fix for one shark can break another, so a second pass checks them all again.</p>
   <p class="used"><b>Used in:</b> the perceptron rule is the oldest learning rule for a neuron (Rosenblatt, 1958). Its failure on XOR is the reason for hidden layers (<a href="../b2-non-linearity/#one">B2</a>). The log-loss update behind the sigmoid neuron is the one that <a href="../b4-backpropagation/#backward">B4</a> sends back through a whole network.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A perceptron calls a juvenile shark "adult". Its label is 0 and its call is 1. In which direction does the update move the weights?</summary><p>\(y - \hat{y} = -1\), so the weights move by \(-\eta\) times the shark's inputs. That lowers the shark's score \(z\), which pushes the call towards 0.</p></details>
     <details><summary>Why does the sigmoid neuron settle on one answer when the classes overlap, while the perceptron keeps moving?</summary><p>Log loss has a lowest point, and the update shrinks to 0 there because the sigmoid's push \(p - y\) averages to 0. The perceptron update is a fixed step whenever any shark is called wrong, so it never shrinks to 0 while some sharks stay wrong.</p></details>
+    <details><summary>For Tag 4127 the trained neuron gives \(p = 0.978\) and the label is 1. What is \(p - y\), and how does it compare with the \(-0.447\) at the starting dials?</summary><p>\(p - y = 0.978 - 1 = -0.022\), about 20 times smaller than \(-0.447\). The neuron is nearly right about this shark, so the shark moves the dials very little.</p></details>
   </div>
 </section>
 
@@ -351,6 +462,10 @@ epoch 3: 0 mistakes, w = [-0.17  -0.024], b = 0.00</pre>
     <span class="t c-navy"><b>&minus;0.60</b><i>neuron 3</i></span><span class="op">=</span><span class="op">&minus;1.0 &times; 0.8 + 0.5 &times; 0.4 + 0</span>
   </div>
   <p>With the sigmoid the outputs are 0.750, 0.574 and 0.354. With ReLU they are 1.10, 0.30 and 0: neuron 3 is switched off for this input, but it may be on for another. A wider example: a layer of 8 neurons that reads 6 shark measurements has \(8 \times 6 + 8 = 56\) numbers.</p>
+  <p>Now give the layer two inputs at once, \(\mathbf{x}_1 = (0.8, 0.4)\) and \(\mathbf{x}_2 = (-0.5, 0.9)\), as the two rows of a matrix \(X\). The product \(XW^\top + \mathbf{b}\) has one row of three sums per input. Here \(W^\top\) is \(W\) with its rows and columns swapped.</p>
+  <p class="math">\[ \begin{aligned} XW^\top + \mathbf{b} &= \begin{pmatrix} 0.8 & 0.4 \\ -0.5 & 0.9 \end{pmatrix} \begin{pmatrix} 1.5 & 0.5 & -1.0 \\ -1.0 & 1.0 & 0.5 \end{pmatrix} + \begin{pmatrix} 0.3 & -0.5 & 0 \end{pmatrix} \\ &= \begin{pmatrix} 1.10 & 0.30 & -0.60 \\ -1.35 & 0.15 & 0.95 \end{pmatrix} \end{aligned} \]</p>
+  <p>The first row is the case above. For the second input the first neuron gives \(1.5 \times (-0.5) - 1.0 \times 0.9 + 0.3 = -1.35\). The second gives \(0.5 \times (-0.5) + 1.0 \times 0.9 - 0.5 = 0.15\). The third gives \(-1.0 \times (-0.5) + 0.5 \times 0.9 + 0 = 0.95\). With ReLU this input switches neuron 1 off and neuron 3 on, the opposite of the first input. With the sigmoid the outputs are 0.206, 0.537 and 0.721. Which neurons are on depends on where the input lies, so a layer describes different inputs in different ways.</p>
+  <p>The count grows fast with the number of inputs, and that limits this kind of layer. A layer of 100 neurons that reads a small 64 by 64 grey photo has 4,096 inputs and \(100 \times 4096 + 100 = 409{,}700\) numbers. A weight belongs to one pixel position, so a shark shifted by ten pixels is a new input to the layer. Photo models use a layer that shares weights across positions (<a href="../c1-convolution/#pixels">C1</a>).</p>
   <p class="used"><b>In practice:</b> layers are rarely as narrow as three. Widths from a few dozen to a few thousand are common, because a graphics card multiplies one large matrix faster than many small ones. Inputs go in as a batch of sharks, one row per shark, so the product becomes \(X W^\top + \mathbf{b}\) (<a href="../t5-vectors-matrices/#products">0.5</a>). A layer's outputs mean little one at a time. They are useful as a group, which the next chapter builds on.</p>
   <p class="math">\[ \mathbf{z} = W\mathbf{x} + \mathbf{b} \qquad \mathbf{a} = g(\mathbf{z}) \qquad \text{number of parameters} = n\,(d + 1) \]</p>
   <ul class="math-notes">
@@ -381,11 +496,35 @@ print("numbers in the layer:", W.size + b.size)</code></pre>
 z = [ 1.1  0.3 -0.6]
 a = [0.75  0.574 0.354]
 numbers in the layer: 9</pre>
+  <p>The same layer on a batch is one line of code. Row \(i\) of the result has the three sums for input \(i\). In \(X\) and in the result, the first dimension counts inputs.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+W = np.array([[1.5, -1.0], [0.5, 1.0], [-1.0, 0.5]])  # the layer of section 4
+b = np.array([0.3, -0.5, 0.0])
+X = np.array([[0.8, 0.4], [-0.5, 0.9]])  # two inputs, one per row
+
+Z = X @ W.T + b  # all sums for both inputs at once
+print("X", X.shape, "W.T", W.T.shape, "Z", Z.shape)
+print("z =\n", Z)
+print("sigmoid =\n", np.round(1 / (1 + np.exp(-Z)), 3))
+print("ReLU =\n", np.maximum(0, Z))</code></pre>
+  <pre class="out">X (2, 2) W.T (2, 3) Z (2, 3)
+z =
+ [[ 1.1   0.3  -0.6 ]
+ [-1.35  0.15  0.95]]
+sigmoid =
+ [[0.75  0.574 0.354]
+ [0.206 0.537 0.721]]
+ReLU =
+ [[1.1  0.3  0.  ]
+ [0.   0.15 0.95]]</pre>
+
   <p class="used"><b>Used in:</b> a network is a stack of such layers, and <a href="../b2-non-linearity/#bend">B2</a> shows why a stack needs an activation between its layers. The five outputs of the species classifier in <a href="../a3-logistic-regression/#softmax">A3</a> are a layer of five neurons.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A layer has 4 neurons and 6 inputs. What are the dimensions of \(W\), and how many numbers does the layer have?</summary><p>\(W\) has 4 rows and 6 columns. The layer has \(4 \times 6 + 4 = 28\) numbers: 24 weights and 4 biases.</p></details>
     <details><summary>Two neurons in a layer have identical weights and biases. What does the layer gain from the second one?</summary><p>It gains no new information. Both give the same output for all inputs, so the second adds a copy of the first.</p></details>
+    <details><summary>A layer of 8 neurons reads a 64 by 64 grey photo, flattened to 4,096 inputs. How many numbers does it have?</summary><p>\(8 \times 4096 + 8 = 32{,}776\): 32,768 weights and 8 biases.</p></details>
   </div>
 </section>
 

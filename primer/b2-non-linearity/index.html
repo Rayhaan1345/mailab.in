@@ -94,7 +94,7 @@ input.mi { width: 3.6em; font: inherit; font-size: 15px; padding: 2px 4px; text-
     <div class="readout"><span>Right: <b id="on-acc">0</b></span><span>Wrong: <b id="on-wrong">0</b></span><span>Best any straight line can do here: <b id="on-best">0</b></span></div>
     <p class="status" id="on-status" aria-live="polite"></p>
   </div>
-  <p class="cap"><b>The best straight line gets 100% of the two blobs, about 75% to 80% of the XOR points (which random points you draw changes it a little) and about 70% of the circles.</b></p>
+  <p class="cap"><b>The best straight line gets 100% of the two blobs, about 70% to 80% of the XOR points (which random points you draw changes it) and about 70% of the circles.</b></p>
   <p>Navy circles are class 0 and coral diamonds are class 1. The two sliders place a line, and the coral shading is the side that the neuron calls 1. A dark ring marks a point called wrong. Press "Find the best line" and the computer tries 360 directions, and for any direction it picks the best position of the cut. The boxes under the plot give the dials of the neuron that draws your line. The line \(\cos\theta\; x + \sin\theta\; y = c\) is where \(z = 0\), for the weights \((\cos\theta, \sin\theta)\) and the bias \(-c\). So all you see here is one neuron, with the activation left out because it does not move the line (<a href="../b1-one-neuron/#neuron">B1</a>).</p>
   <p class="math">\[ z = w_1 x + w_2 y + b \qquad \text{call 1 when } z \ge 0 \qquad (w_1, w_2, b) = (\cos\theta,\ \sin\theta,\ -c) \]</p>
   <ul class="math-notes">
@@ -109,15 +109,16 @@ input.mi { width: 3.6em; font: inherit; font-size: 15px; padding: 2px 4px; text-
     <li>Steps 2 and 3 say that one number is both at least 0 and below 0. No weights and bias exist.</li>
   </ol>
   <p>Minsky and Papert analysed this limit of single-layer perceptrons in their 1969 book <i>Perceptrons</i>, and XOR is the smallest example. The circles have the same flaw, seen as a picture. Take two ring points on opposite sides, such as \((0.8, 0)\) and \((-0.8, 0)\). If one side of a line contains both, it also contains all the points between them, because a straight line cannot bend away from the segment. The midpoint \((0, 0)\) is in the disc, which is class 0. So no side of any line contains all the ring points and none of the disc points. The XOR proof and the circle argument both use one fact: a flat side contains the middle of any two of its points.</p>
+  <p>That fact has a short proof. The score \(z = w_1 x + w_2 y + b\) is linear. So the score at the midpoint of two points \(A\) and \(B\) is the average of their scores: \(z\bigl(\tfrac{A+B}{2}\bigr) = \tfrac{1}{2}z(A) + \tfrac{1}{2}z(B)\). If both scores are at least 0, so is the average. Try \(\mathbf{w} = (0.5, 1)\) and \(b = 1\) on the ring points \((0.8, 0)\) and \((-0.8, 0)\). Their scores are 1.4 and 0.6, and the midpoint \((0, 0)\) scores 1.0, the average of the two. The two ring points and the centre of the disc fall on the same side. Any weights give an average in the same way, because the rule does not depend on them.</p>
   <div class="break">
     <p><b>Common belief.</b> If a neuron scores badly, give it more data or train it for longer.</p>
-    <p><b>Why it fails.</b> Training only searches over lines. The best line is already in the search, and the search finds it quickly. After that the score cannot rise, and 75% for XOR is the ceiling.</p>
+    <p><b>Why it fails.</b> Training only searches over lines. The best line is already in the search, and the search finds it quickly. After that the score cannot rise, and for XOR it stays near 70%.</p>
     <p><b>Better account.</b> Change what the model can express: add an input that bends the problem (next section), or add more neurons with a bend between them (the last two sections).</p>
   </div>
   <div class="debug">
     <p><b>Debug tip.</b> If training accuracy stalls at a number that is not close to 100% and does not move when you train longer, ask whether any straight line could do better. Plot the two classes. Corners, rings and spirals are the usual reasons.</p>
   </div>
-  <p class="used"><b>In practice:</b> a straight-line model is the first baseline to try (<a href="../a1-what-is-a-model/#lazy">A1</a>, <a href="../a3-logistic-regression/#train">A3</a>). If it already scores near 100%, a network adds cost and no benefit. If it stalls well below, the data has a bend in it. The brute-force search below is a quick way to learn a line's ceiling.</p>
+  <p class="used"><b>In practice:</b> a straight-line model is the first baseline to try (<a href="../a1-what-is-a-model/#lazy">A1</a>, <a href="../a3-logistic-regression/#train">A3</a>). If it already scores near 100%, a network adds cost and no benefit. If it stalls well below, the data has a bend in it. Tables from measurements seldom look as clean as XOR. A bend shows up as a curve or as an interaction. In a curve, the effect of an input changes along its range. In an interaction, the effect of one input depends on the value of another. Plot the mistakes of the linear model against the inputs to find a curve. For an interaction, plot them against the product of two inputs. XOR looks flat against either input alone. The brute-force search below is a quick way to learn a line's ceiling.</p>
   <pre class="code" data-run><code>import numpy as np
 
 rng = np.random.default_rng(1)
@@ -133,11 +134,48 @@ for a, c in zip(angles, cuts):
     best = max(best, acc)
 print(f"best of 20,000 lines on XOR: {best:.3f}")</code></pre>
   <pre class="out">best of 20,000 lines on XOR: 0.730</pre>
-  <p>The best of 20,000 random lines scores 0.73. The ceiling is about 0.75: a line can get three of the four corner regions right, and the random scatter moves the score a little either way.</p>
+  <p>The best of 20,000 random lines scores 0.73. A search that tries 360 directions and the best cut along that direction can do a little better, and the figure uses it. With only the four corners a line gets 3 of 4, or 75%. With points spread over the square the ceiling is lower, as the next printout shows. The figure above keeps its points off the axes and adds a little noise. Its 200 points give 71% to 80%, and a large sample of them gives about 70%.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+def best_line(x, y):
+    """Best share right over 360 directions, with the best cut in each."""
+    n, best = len(y), 0.0
+    for angle in np.linspace(0, 2 * np.pi, 360, endpoint=False):
+        s = x @ np.array([np.cos(angle), np.sin(angle)])  # position along this direction
+        below1 = np.cumsum(y[np.argsort(s)])[:-1]         # class 1 points below each possible cut
+        k = np.arange(1, n)                               # number of points below the cut
+        right = (k - below1) + (y.sum() - below1)         # below the cut called 0, above called 1
+        best = max(best, right.max() / n)
+    return best
+
+def xor_data(n, seed):
+    x = np.random.default_rng(seed).uniform(-1, 1, size=(n, 2))
+    return x, (x[:, 0] * x[:, 1] &lt; 0).astype(int)
+
+rng = np.random.default_rng(2)
+blob_class = np.r_[np.zeros(100), np.ones(100)].astype(int)
+blobs = rng.normal(0, 0.17, (200, 2)) + np.where(blob_class[:, None] == 1, 0.5, -0.5)
+radius = np.r_[np.sqrt(rng.uniform(0, 1, 100)) * 0.42, rng.uniform(0.65, 0.95, 100)]
+angle = rng.uniform(0, 2 * np.pi, 200)
+circles = np.c_[radius * np.cos(angle), radius * np.sin(angle)]
+
+print("two blobs:                ", best_line(blobs, blob_class))
+print("XOR, the 200 points above:", best_line(*xor_data(200, 1)))
+seven = [best_line(*xor_data(200, s)) for s in range(2, 9)]
+print("XOR, seven more draws:    ", np.round(seven, 3))
+print("XOR, 20,000 points:       ", np.round(best_line(*xor_data(20000, 0)), 3))
+print("circles:                  ", best_line(circles, blob_class))</code></pre>
+  <pre class="out">two blobs:                 1.0
+XOR, the 200 points above: 0.735
+XOR, seven more draws:     [0.725 0.715 0.735 0.735 0.7   0.72  0.7  ]
+XOR, 20,000 points:        0.669
+circles:                   0.73</pre>
+  <p>The two blobs score 100%. On the 200 XOR points above the best line gets 73.5%, and seven more draws of 200 points give 70% to 73.5%. On 20,000 points it gets 66.9%, about two thirds. A line chosen on 200 points scores higher on those points than on new ones, because it also fits their quirks. The same happens to any model that is scored on the data that tuned it, even a model with two dials (<a href="../a4-grading-models/#splits">A4</a>). The circles score 73% on these 200 points.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A friend trains a sigmoid neuron on the circles for a million steps and gets 70%. What would a billion steps give?</summary><p>About 70% again. The best line is already found, so the score is capped by the model and not by training time.</p></details>
     <details><summary>Which points do the circles and XOR arguments both use to show that no line works?</summary><p>The midpoint of two points on the same side. In XOR it is \((0.5, 0.5)\) between the two class 1 corners, and for the circles it is the centre between two ring points. The midpoint lies on the same side as both, but belongs to the other class.</p></details>
+    <details><summary>A neuron scores two points \(z = 0.6\) and \(z = 0.2\). What is the score at their midpoint, and on which side of the line is it?</summary><p>The average of the two scores, \((0.6 + 0.2)/2 = 0.4\). It is positive, so the midpoint is on the same side as both points. This is true for any weights, because the score is linear.</p></details>
   </div>
 </section>
 
@@ -178,6 +216,7 @@ print(f"best of 20,000 lines on XOR: {best:.3f}")</code></pre>
     <li><b>\(c\)</b> is the height of the plane. The radius of the cut is \(\sqrt{c}\). With the points of this figure, any \(c\) between 0.19 and 0.41 works, so the best choice is the middle, 0.30.</li>
     <li>For point A = (0.30, 0.20): \(z = 0.09 + 0.04 = 0.13\), below 0.30, so class 0. For point B = (0.80, \(-0.50\)): \(z = 0.64 + 0.25 = 0.89\), above 0.30, so class 1.</li>
   </ul>
+  <p>The smallest case has one input. Four made-up points lie on a line at \(x = -0.8, -0.3, 0.2, 0.9\), and the class is 1 when the point is far from 0, meaning \(|x| > 0.5\). So \(-0.8\) and \(0.9\) are class 1, and \(-0.3\) and \(0.2\) are class 0. No single cut on the line separates them, since class 1 points lie at both ends. Lift the points to \(z = x^2\), which gives \(0.64, 0.09, 0.04, 0.81\). Now a cut at \(z = 0.25\) puts the two class 1 points above it and the two class 0 points below. In the lifted picture that is one flat cut, and on the original line it is the pair of cuts at \(x = \pm 0.5\). The circles use the same idea with two inputs.</p>
   <p>The same trick works on XOR. Give the four corners the coordinates \((\pm 1, \pm 1)\) and add the product \(z = x\,y\) as a feature. The corners \((1,1)\) and \((-1,-1)\) get \(z = +1\), and \((1,-1)\) and \((-1,1)\) get \(z = -1\). The classes are now two layers: class 1 is the lower layer, \(z = -1\). The neuron with weights \((0, 0, -1)\) and bias 0 separates them, since \(s = -x\,y\) is positive where the signs differ. The inputs "x, y, x², y², xy" in the playground of the last section try this on a network.</p>
   <div class="break">
     <p><b>Common belief.</b> Lifting adds information, so the new dimension makes the problem easier because it contains more data.</p>
@@ -188,6 +227,8 @@ print(f"best of 20,000 lines on XOR: {best:.3f}")</code></pre>
     <p><b>Debug tip.</b> Scale a lifted feature like any input. The values of \(x^2 + y^2\) run from 0 to 1, but a squared length in centimetres can reach thousands, and a neuron that reads it saturates (<a href="../a2-linear-regression/#scaling">A2</a>).</p>
   </div>
   <p class="used"><b>In practice:</b> you have lifted before. In <a href="../a2-linear-regression/#loglog">A2</a>, taking the log of both length and weight turned a curve into a straight line: log length is a feature. Engineers add features when they know the physics, such as a squared distance, a ratio or a log. Add one at a time and check them on held-out data. When the right feature is not obvious, as for photos or words, the network has to find it, which is the last section.</p>
+  <p>The log feature of A2 is a lift you can compute. The published length-weight law of the spadenose shark is \(W = 0.0044\,L^{2.923}\), with \(W\) in grams (<a href="../t3-algebra-functions/#families">0.3</a>, <a href="../a2-linear-regression/#loglog">A2</a>). Take logarithms: \(\ln W = \ln 0.0044 + 2.923 \ln L = -5.426 + 2.923 \ln L\). In the plane of \(\ln L\) and \(\ln W\) this is a straight line. For Tag 3305, \(L = 41\) cm, so \(\ln L = 3.714\). Then \(\ln W = -5.426 + 2.923 \times 3.714 = 5.429\), and \(W = e^{5.429} = 228\) g. That is the 0.228 kg of the table. A linear model on \(\ln L\) matches this curve, and a linear model on \(L\) does not.</p>
+  <p>The number of lifted features grows quickly. With \(d\) inputs, the squares and the products of pairs number \(d + d(d-1)/2\). For 6 measurements that is \(6 + 15 = 21\) new columns, and for 60 inputs it is 1,830. Past a few dozen inputs, choosing features by hand stops being practical, which is when hidden layers pay off.</p>
   <pre class="code" data-run><code>import numpy as np
 
 rng = np.random.default_rng(5)
@@ -212,10 +253,33 @@ print("one neuron on (x, y, x^2+y^2):", round(fit(lifted), 3))</code></pre>
   <pre class="out">one neuron on (x, y):         0.545
 one neuron on (x, y, x^2+y^2): 1.0</pre>
   <p>One neuron on the plain inputs gets 54.5%, little better than a guess. With the single added feature it gets all 200 right. The second line of code shows the whole idea: the new column is the only change.</p>
+  <p>The same test on XOR, with the product as the new column, shows the lift working on a second pattern.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+rng = np.random.default_rng(3)
+x = rng.uniform(-1, 1, size=(200, 2))    # 200 made-up points
+y = (x[:, 0] * x[:, 1] &lt; 0).astype(int)  # XOR: class 1 when the signs differ
+
+def fit(F, steps=5000, eta=1.0):  # logistic regression, as in A3
+    F = (F - F.mean(axis=0)) / F.std(axis=0)
+    w, b = np.zeros(F.shape[1]), 0.0
+    for _ in range(steps):
+        p = 1 / (1 + np.exp(-(F @ w + b)))
+        w -= eta * F.T @ (p - y) / len(y)
+        b -= eta * (p - y).mean()
+    return np.mean((F @ w + b > 0) == y)
+
+product = x[:, 0] * x[:, 1]  # the new feature z = x * y
+print("one neuron on (x, y):        ", fit(x))
+print("one neuron on (x, y, x * y): ", fit(np.c_[x, product]))</code></pre>
+  <pre class="out">one neuron on (x, y):         0.63
+one neuron on (x, y, x * y):  1.0</pre>
+  <p>Plain inputs give 63%, a little above a guess. With the product column the same neuron scores 100%, because the sign of \(x\,y\) is the class.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>At full lift, a ring point has \(x = 0.6\) and \(y = -0.7\). What is its height, and is it above a plane at \(c = 0.30\)?</summary><p>\(z = 0.36 + 0.49 = 0.85\). It is above 0.30, so it is called class 1 (ring).</p></details>
     <details><summary>The plane is at \(c = 0.49\). What is the radius of the cut seen from above, and which ring points does the neuron get wrong?</summary><p>The radius is \(\sqrt{0.49} = 0.70\). A ring point with radius under 0.70 has a height under 0.49 and is called inner, so it is wrong. In this figure, the points of the ring that lie closer than 0.70 to the centre are the errors.</p></details>
+    <details><summary>XOR corners get the feature \(z = x\,y\), and a neuron has weights \((0, 0, -1)\) and bias 0. What is its score \(s\) at the corner \((-1, 1)\), and what class does it call?</summary><p>\(z = (-1)(1) = -1\), so \(s = -z = +1\). The score is positive, so the neuron calls class 1. That is right, since the signs of \(x\) and \(y\) differ.</p></details>
   </div>
 </section>
 
@@ -255,6 +319,8 @@ one neuron on (x, y, x^2+y^2): 1.0</pre>
   </ul>
   <p>The numbers in the boxes show it. Here \(W^{[1]} = \begin{pmatrix}1&1\\1&1\end{pmatrix}\), \(\mathbf{b}^{[1]} = (0, -1)\), \(W^{[2]} = (1, -2)\) and \(b^{[2]} = 0\). The product is \(W^{[2]}W^{[1]} = (1\cdot 1 + (-2)\cdot 1,\; 1\cdot 1 + (-2)\cdot 1) = (-1, -1)\). The new bias is \(W^{[2]}\mathbf{b}^{[1]} + b^{[2]} = 1\cdot 0 + (-2)\cdot(-1) + 0 = 2\). So the whole network is \(y = -x_1 - x_2 + 2\), as the caption says. A bigger case: a network with 6 inputs, two hidden layers of 10 and one output has \((6\cdot 10 + 10) + (10 \cdot 10 + 10) + (10 + 1) = 191\) numbers. With no bend between the layers, the 191 numbers do the work of 7: six weights and a bias.</p>
   <p>These numbers are the standard XOR network from Goodfellow, Bengio and Courville's book on deep learning. With ReLU the first hidden unit computes \(\max(0, x_1 + x_2)\) and the second \(\max(0, x_1 + x_2 - 1)\). The output subtracts the second unit twice from the first. The result is a tent: it rises from 0 to 1 as \(x_1 + x_2\) goes from 0 to 1, then falls back to 0 at 2. Class 1 is the band where the tent is above 0.5, between two parallel lines. XOR needed two lines, in two steps, which is what <a href="../t4-discrete-maths/#logic">0.4</a> said it would take.</p>
+  <p>Follow three inputs through the network by hand. Both rows of \(W^{[1]}\) are \((1, 1)\), so both hidden sums depend on \(s = x_1 + x_2\) alone: the first is \(s\) and the second is \(s - 1\). At \((0.5, 0.5)\), \(s = 1\). The sums are \((1, 0)\), ReLU leaves them as they are, and the output is \(1 - 2 \times 0 = 1\). At \((0.25, 0.25)\), \(s = 0.5\). The sums are \((0.5, -0.5)\), ReLU turns the second into 0, and the output is 0.5. At \((0.75, 0.75)\), \(s = 1.5\). The sums are \((1.5, 0.5)\), both positive, and the output is \(1.5 - 2 \times 0.5 = 0.5\).</p>
+  <p>The point \((0.5, 0.5)\) is the midpoint of the two class 1 corners and also of the two class 0 corners. That is why no line works. A line gives the midpoint the average score of the class 1 pair, which must be at least 0. It gives the midpoint the average score of the class 0 pair too, which must be below 0. The network gives it 1, which is the value at the class 1 corners, while the class 0 corners average to 0. A bend breaks the averaging rule of section 1. Along the diagonal the output climbs from 0 at \(s = 0\) to 1 at \(s = 1\) and falls to 0 at \(s = 2\). From \(s = 0\) to \(s = 1\) it is one flat plane, and after \(s = 1\) it is another. A ReLU network is a patchwork of planes, joined where a hidden unit switches on or off.</p>
   <div class="break">
     <p><b>Common belief.</b> More layers mean a more powerful network.</p>
     <p><b>Why it fails.</b> With no bend between them, extra layers add numbers and add no power: the 191 numbers above do the work of 7. Even with a bend, a layer helps only if the problem has a layered structure to find.</p>
@@ -285,10 +351,35 @@ print("W2 @ W1 =", W2 @ W1, "  W2 @ b1 + b2 =", W2 @ b1 + b2)</code></pre>
 without bend:  [2. 1. 1. 0.]
 W2 @ W1 = [[-1. -1.]]   W2 @ b1 + b2 = [2.]</pre>
   <p>The first output row is XOR. The second is the plane \(2 - x_1 - x_2\), and the last line gives its two numbers, the weights \((-1, -1)\) and the bias 2.</p>
+  <p>The collapse works for any numbers. The next block builds three random layers with 29 numbers and multiplies them into one layer of 4 numbers. The two agree on five random inputs. Then it puts a ReLU after the first layer, and the agreement is gone.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+rng = np.random.default_rng(0)
+W1, b1 = rng.normal(size=(4, 3)), rng.normal(size=4)  # layer 1: 3 inputs, 4 units
+W2, b2 = rng.normal(size=(2, 4)), rng.normal(size=2)  # layer 2: 2 units
+W3, b3 = rng.normal(size=(1, 2)), rng.normal(size=1)  # layer 3: 1 output
+x = rng.normal(size=(5, 3))                           # five inputs, one per row
+
+W = W3 @ W2 @ W1                                   # multiply the three matrices
+b = W3 @ (W2 @ b1 + b2) + b3                       # and fold the biases in
+three = ((x @ W1.T + b1) @ W2.T + b2) @ W3.T + b3  # three layers, no bend
+print("one layer matches three layers:", np.allclose(three, x @ W.T + b))
+three_count = sum(a.size for a in (W1, b1, W2, b2, W3, b3))
+print("numbers: three layers", three_count, " one layer", W.size + b.size)
+
+relu = lambda v: np.maximum(0, v)
+# the same layers with a ReLU after layer 1
+bent = (relu(x @ W1.T + b1) @ W2.T + b2) @ W3.T + b3
+print("with a ReLU, one layer still matches:", np.allclose(bent, x @ W.T + b))</code></pre>
+  <pre class="out">one layer matches three layers: True
+numbers: three layers 29  one layer 4
+with a ReLU, one layer still matches: False</pre>
+
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A layer has weights \(W^{[1]} = \begin{pmatrix}2&0\\0&3\end{pmatrix}\), no bias, and no activation. The next layer has \(W^{[2]} = (1, 1)\). What single layer is it?</summary><p>\(W^{[2]}W^{[1]} = (1\cdot 2 + 1\cdot 0,\; 1\cdot 0 + 1\cdot 3) = (2, 3)\). The network is \(y = 2x_1 + 3x_2\).</p></details>
     <details><summary>Why can ReLU between the layers not be folded into the matrix product?</summary><p>The product rule needs a linear map between the matrices. ReLU keeps positive values and cuts negative ones, so what reaches layer 2 depends on the signs of the hidden sums, and no single matrix does that for all inputs.</p></details>
+    <details><summary>In the XOR network, what is the output at the input \((0.2, 0.1)\)?</summary><p>\(s = 0.3\), so the hidden sums are \((0.3, -0.7)\). ReLU gives \((0.3, 0)\), and the output is \(0.3 - 2 \times 0 = 0.3\). It falls between the class 0 value of 0 and the class 1 value of 1.</p></details>
   </div>
 </section>
 
@@ -337,6 +428,36 @@ W2 @ W1 = [[-1. -1.]]   W2 @ b1 + b2 = [2.]</pre>
     <li>The update is mini-batch gradient descent. The gradients come from backpropagation, which <a href="../b4-backpropagation/#backward">B4</a> explains. Here it runs as a black box.</li>
   </ul>
   <p>Why does it work? A hidden unit with tanh or sigmoid is a soft step across a line, and with ReLU it is a ramp. The output unit adds a weighted sum of these steps or ramps. Three steps placed around the disc make a bump with three sides, and more units make the bump rounder. A known theorem of the 1980s says that one hidden layer with enough units can approximate any continuous function on a bounded region (Cybenko, 1989, for sigmoid units). It does not say how many units are enough or how to find the weights. Training does that, and it can fail, as the XOR starts show.</p>
+  <p>How many pieces of plane can a layer of ReLU units use? One unit makes one bend line. A number \(n\) of lines cut the plane into at most \(1 + n + n(n-1)/2\) pieces. The bend lines of a layer of \(n\) ReLU units are such lines (Pascanu, Mont&uacute;far and Bengio, 2013). Four units give at most 11, and the XOR network of section 3 has two parallel lines, so it uses 3. The score before the final sigmoid is a flat plane inside a piece. More units give more and smaller pieces, which is how a patchwork follows a curve.</p>
+  <p>You can build a working network by hand, to see the idea without training. Use four ReLU units on the circles of this chapter. Unit 1 reads \(x - 0.44\), unit 2 reads \(-x - 0.44\), unit 3 reads \(y - 0.44\) and unit 4 reads \(-y - 0.44\). A unit is 0 while the point is within 0.44 of the centre along its axis, and positive beyond. The output adds the four values and calls class 1 when the total is above 0. Disc points have a radius of at most 0.42, so no coordinate reaches 0.44 and the total is 0. Ring points have a radius of at least 0.65, so the larger coordinate is at least \(0.65/\sqrt{2} = 0.46\), and the total is positive.</p>
+  <p>Point A = (0.30, 0.20) gives four zeros and class 0. Point B = (0.80, \(-0.50\)) gives hidden values \((0.36, 0, 0, 0.06)\), a total of 0.42, and class 1. The network cuts a square out of the plane, and it has \(4 \times 3 + 5 = 17\) numbers, the count from above. Training finds a rounder cut, but the idea is the same.</p>
+  <pre class="code" data-run><code>import numpy as np
+
+rng = np.random.default_rng(5)
+n = 200
+disc = np.sqrt(rng.uniform(0, 1, n // 2)) * 0.42  # radii of the disc points
+ring = rng.uniform(0.65, 0.95, n // 2)            # radii of the ring points
+radius = np.r_[disc, ring]
+angle = rng.uniform(0, 2 * np.pi, n)
+X = np.c_[radius * np.cos(angle), radius * np.sin(angle)]
+y = np.r_[np.zeros(n // 2), np.ones(n // 2)]
+
+W1 = np.array([[1, 0], [-1, 0], [0, 1], [0, -1]], float)  # four hidden units: right, left, up, down
+b1 = np.full(4, -0.44)                                    # a unit switches on beyond 0.44 from the centre
+W2, b2 = np.ones(4), 0.0                                  # the output adds the four hidden values
+
+H = np.maximum(0, X @ W1.T + b1)  # hidden layer with ReLU
+score = H @ W2 + b2
+print("numbers in the network:", W1.size + b1.size + W2.size + 1)
+print("share right:", np.mean((score > 0) == y))
+for name, p in [("A (0.30, 0.20)", [0.30, 0.20]), ("B (0.80, -0.50)", [0.80, -0.50])]:
+    h = np.maximum(0, W1 @ np.array(p) + b1)
+    print(name, "hidden =", h.round(2), " total =", round(h.sum(), 2))</code></pre>
+  <pre class="out">numbers in the network: 17
+share right: 1.0
+A (0.30, 0.20) hidden = [0. 0. 0. 0.]  total = 0.0
+B (0.80, -0.50) hidden = [0.36 0.   0.   0.06]  total = 0.42</pre>
+
   <div class="break">
     <p><b>Common belief.</b> The network has learned what a circle is.</p>
     <p><b>Why it fails.</b> Look at the hidden maps. They are straight stripes or bent sheets, and the ring is built from a few of them, so the boundary is a polygon with rounded corners. Outside the data, where the network never saw points, the stripes keep going in straight lines, and the map there is a guess with no support.</p>
@@ -366,10 +487,12 @@ print("numbers in the network:", W1.size + b1.size + W2.size + b2.size)</code></
 Tag 1224 (milk): hidden = [ 0.74 -0.44  1.  ], chance of bamboo = 0.001
 numbers in the network: 13</pre>
   <p>This is a two-layer forward pass: scale, one matrix product, tanh, a second matrix product, sigmoid. The weights come from training offline on the 272 made-up milk and bamboo sharks. The network gets 90.4% right. The single neuron of <a href="../b1-one-neuron/#fit">B1</a> got 91.5%. When one line is nearly enough, the extra units add numbers to fit and no gain.</p>
+  <p>Here are the steps for Tag 4127 (44.0 cm, found at 0.4 m). The scaled inputs are \(-1.446\) and \(-1.872\). The first hidden sum is \(2.49 \times (-1.446) + 1.73 \times (-1.872) - 2.18 = -9.02\). The second is \(2.83 \times (-1.446) - 0.16 \times (-1.872) - 1.75 = -5.54\). The third is \(1.52 \times (-1.446) + 0.37 \times (-1.872) + 2.00 = -0.89\). The tanh turns them into \(-1.00\), \(-1.00\) and \(-0.71\). The output sum is \(-2.58 \times (-1.00) - 1.94 \times (-1.00) - 3.72 \times (-0.71) - 2.22\), which is \(2.58 + 1.94 + 2.65 - 2.22 = 4.95\). Then \(\sigma(4.95) = 0.993\). The first two units are saturated at \(-1\) for this shark, so they act as switches that are fully off. Only the third unit, at \(-0.71\), still varies.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A network has 2 inputs, hidden layers of 5 and 3, and 1 output. How many numbers does it have?</summary><p>\((2 \cdot 5 + 5) + (5 \cdot 3 + 3) + (3 \cdot 1 + 1) = 15 + 18 + 4 = 37\).</p></details>
     <details><summary>You see a loss stuck at 0.69 on circles with one hidden layer of 4 ReLU units. Name two things to try.</summary><p>Press "Restart with new weights", since some starts leave units dead. Or raise the learning rate a little, or switch the units to tanh. If the activation were "none", the fix would be to put a bend back.</p></details>
+    <details><summary>In the hand-built network, what happens to the point \((0.5, 0.1)\), which lies in the gap between the disc and the ring?</summary><p>Unit 1 gives \(0.5 - 0.44 = 0.06\), and the other three give 0. The total is 0.06, so the network calls it ring (class 1). The data has no points in the gap, so the answer there is a side effect of where the four cuts lie.</p></details>
   </div>
 </section>
 
@@ -419,6 +542,7 @@ numbers in the network: 13</pre>
     <li>Olah, C. (2014). Neural networks, manifolds, and topology. <a href="https://colah.github.io/posts/2014-03-NN-Manifolds-Topology/">colah.github.io</a>. Hidden layers reshape the data until a line can separate it.</li>
     <li>Cybenko, G. (1989). Approximation by superpositions of a sigmoidal function. <i>Mathematics of Control, Signals, and Systems</i>, 2(4), 303&ndash;314. <a href="https://doi.org/10.1007/BF02551274">doi:10.1007/BF02551274</a>. One hidden layer of sigmoid units can approximate any continuous function on a bounded region (the paper states it for the unit cube). Only the abstract was read, and the bibliographic details were checked in Crossref.</li>
     <li>Minsky, M. and Papert, S. (1969). <i>Perceptrons: An Introduction to Computational Geometry</i>. MIT Press. The analysis of what single-layer perceptrons cannot compute, with XOR as the smallest example. Publication details checked in Open Library; the book itself was not opened.</li>
+    <li>Pascanu, R., Mont&uacute;far, G. and Bengio, Y. (2013). On the number of response regions of deep feed forward networks with piece-wise linear activations. arXiv:1312.6098. <a href="https://arxiv.org/abs/1312.6098">arxiv.org/abs/1312.6098</a>. Source of the one-layer count in section 4. The regions of a layer of rectifier units are those of an arrangement of lines, at most \(\sum_{j=0}^{d}\binom{n}{j}\) for \(n\) units and \(d\) inputs (Zaslavsky, 1975). Read in its ar5iv version, and checked by counting the regions of random units.</li>
   </ol>
 </section>
 

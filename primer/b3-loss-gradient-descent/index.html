@@ -85,8 +85,10 @@ ol.steps li { margin: 6px 0; }
   </div>
   <p class="cap"><b>For Tag 4127, a juvenile, at a score of +5 the network says "adult" with probability 0.993. Cross-entropy gives a loss of 5.01 and a push of 0.99. Squared error gives a loss of 0.99 and a push of 0.013, about 75 times smaller.</b></p>
   <p>Start with the first task. Tag 3305 weighs 0.228 kg, and a network that says 0.300 kg is 0.072 kg too high. The squared error is \(0.072^2 = 0.0052\) and the push is \(2 \times 0.072 = 0.144\). The loss is a parabola and the push a straight line, so a bigger mistake always gets a bigger push. For a number there is no trouble.</p>
+  <p>The one caveat for numbers is the size of the targets. A hammerhead of 53.889 kg predicted 10% too high is off by 5.389 kg, a squared error of 29.04. The same 10% miss on Tag 3305 is 0.0228 kg, a squared error of 0.0005. The big shark counts about 56,000 times more, so a fit would chase the largest animals. Scaling the target to a spread of 1, as this chapter does, keeps the numbers small but multiplies all the errors by the same factor, so the ratio stays. The usual remedy is to predict the log of the weight (<a href="../a2-linear-regression/#loglog">A2</a>). In logs a 10% miss costs \((\ln 1.1)^2 = 0.0091\) for a shark of any size.</p>
   <p>The second task is the one from <a href="../a3-logistic-regression/#logloss">A3</a>, now seen from the point of view of a network. Choose "juvenile" and move the score to +5. The loss curves are the left panel, and the pushes the right one. Cross-entropy keeps pushing with a size close to 1 as the network gets more wrong. Squared error pushes with a size that rises, peaks and then falls back to nearly 0, because the sigmoid is flat out there. Try "adult" with a score of −5 and the picture is mirrored.</p>
   <p>The third task has five scores and softmax (<a href="../t7-probability/#softmax">0.7</a>). The made-up scores 2.4, 1.2, 0.5, −0.4 and −1.8 give probabilities 0.655, 0.197, 0.098, 0.040 and 0.010. If the true species is the hammerhead, the loss is \(-\ln 0.040 = 3.22\), and the pushes \(p_k - y_k\) are 0.655, 0.197, 0.098, \(-0.960\) and 0.010. The true species has a negative push, so its score is raised. The others have positive pushes and fall. The five pushes add up to 0: the probability that is taken away from the wrong species is given to the right one.</p>
+  <p>A loss is also an average over many examples. Take the four sharks of <a href="#batches">section 3</a> at the start of <a href="#landscape">section 2</a>, \((w, b) = (-4, 2)\). Tags 3305 and 3363 are mature, and Tags 2193 and 3462 are immature. The model gives them a chance of being mature of 0.757, 0.987, 0.765 and 0.996. The probability it gives to the true answer is then 0.757, 0.987, \(1 - 0.765 = 0.235\) and \(1 - 0.996 = 0.004\). Taking \(-\ln\) of these gives 0.279, 0.014, 1.449 and 5.597, with a mean of \(L = 1.835\). Tag 3462 alone supplies 76% of the total. For all 268 sharks the mean at this start is 2.965. The loss is dominated by confident mistakes, so training attends to them first.</p>
   <p class="math">\[ \ell_{\text{sq}} = (\hat{y} - y)^2 \qquad \frac{\partial \ell}{\partial \hat{y}} = 2\,(\hat{y} - y) \]</p>
   <p class="math">\[ \ell_{\text{CE}} = -\bigl[\,y\ln p + (1-y)\ln(1-p)\,\bigr],\quad p = \sigma(z) \qquad \frac{\partial \ell}{\partial z} = p - y \]</p>
   <p class="math">\[ \ell_{\text{CE}} = -\sum_{k=1}^{K} y_k \ln p_k = -\ln p_t,\quad p_k = \frac{e^{z_k}}{\sum_j e^{z_j}} \qquad \frac{\partial \ell}{\partial z_k} = p_k - y_k \qquad L = \frac{1}{m}\sum_{i=1}^{m}\ell_i \]</p>
@@ -133,11 +135,36 @@ push, cross-entropy: 0.993  push, squared error: 0.013
 probabilities: [0.655 0.197 0.098 0.04  0.01 ]
 cross-entropy: 3.223
 push p - y:    [ 0.655  0.197  0.098 -0.96   0.01 ] sum: 0.0</pre>
+
+  <pre class="code" data-run><code>import numpy as np
+
+# four sharks of the made-up table: tags 3305, 3363, 2193, 3462 (length in cm; 1 = mature)
+length = np.array([41.0, 34.2, 40.9, 31.4])
+y = np.array([1, 1, 0, 0])
+# scaled with the mean and spread of the 268 spadenose sharks
+x = (length - 39.138) / 8.614
+
+w, b = -4.0, 2.0                     # the confidently wrong start of section 2
+p = 1 / (1 + np.exp(-(w * x + b)))   # chance of "mature"
+p_true = np.where(y == 1, p, 1 - p)  # probability given to the true answer
+loss = -np.log(p_true)
+print("chance of mature:   ", p.round(3))
+print("given to the truth: ", p_true.round(4))
+print("loss per shark:     ", loss.round(3), " mean:", round(loss.mean(), 3))
+print("product of the four:", f"{p_true.prod():.2e}")
+print("-ln(product) / 4:   ", round(-np.log(p_true.prod()) / 4, 3))</code></pre>
+  <pre class="out">chance of mature:    [0.757 0.987 0.765 0.996]
+given to the truth:  [0.7568 0.9865 0.2347 0.0037]
+loss per shark:      [0.279 0.014 1.449 5.597]  mean: 1.835
+product of the four: 6.50e-04
+-ln(product) / 4:    1.835</pre>
+  <p>The last line of this printout shows why cross-entropy is the natural loss for probabilities. The product of the four probabilities, 0.00065, is the chance that the model gave to all four true answers together. The mean of \(-\ln\) is \(-\ln(0.00065)/4 = 1.835\), the same number. So minimising the mean cross-entropy makes the labels in the table as likely as possible under the model, the idea of <a href="../t7-probability/#crossent">0.7</a>.</p>
   <p class="used"><b>Used in:</b> the push \(p - y\) is the number that backpropagation starts from (<a href="../b4-backpropagation/#backward">B4</a>). Cross-entropy over a vocabulary is the loss that trains language models (<a href="../d3-next-token/#loss">D3</a>).</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>A network gives probability 0.25 to the true species out of five. What is the cross-entropy, and what would a model that guesses with equal probabilities score?</summary><p>\(-\ln 0.25 = 1.386\). A uniform guess gives 0.2 to the true species, so \(-\ln 0.2 = \ln 5 = 1.609\). The network is a little better than a guess.</p></details>
     <details><summary>The scores of a three-class network give probabilities (0.7, 0.2, 0.1) and the true class is the second. What are the three pushes?</summary><p>\(p - y = (0.7 - 0,\; 0.2 - 1,\; 0.1 - 0) = (0.7, -0.8, 0.1)\). They add up to 0, and the true class has the only negative push.</p></details>
+    <details><summary>A two-class network shows a loss of 3.0 at step 0. What does \(\ln 2\) tell you, and what could explain 3.0?</summary><p>A network that guesses gives \(\ln 2 = 0.69\). A loss of 3.0 means the network starts out confidently wrong, as the start \((-4, 2)\) of <a href="#landscape">section 2</a> does (2.965). Check the labels, the loss function and the starting weights.</p></details>
   </div>
 </section>
 
@@ -178,6 +205,8 @@ push p - y:    [ 0.655  0.197  0.098 -0.96   0.01 ] sum: 0.0</pre>
   <p class="cap"><b>From the start (−4, 2) at \(\eta = 0.5\), cross-entropy has a loss of 0.28 after 50 steps and calls 90% of the sharks right. Squared error is then at 0.38 and 60%. It stays at the always-adult answer, 67.5%, from step 100 to about step 400, and leaves the plateau near step 414.</b></p>
   <p>The model is \(p = \sigma(w x + b)\). Here \(x\) is the length scaled to a mean of 0 and a spread of 1, and the label is 1 for a mature shark. At the start, \(w = -4\) says that longer sharks are less likely to be mature, which is backwards. A map shows the loss for all pairs \((w, b)\): the darker the shade, the higher the loss, and the thin lines are contours. The open circle is the start. The \(\times\) is the valley floor, at \(w \approx 4.6\) and \(b \approx 2.5\). It is the best sigmoid of <a href="../a3-logistic-regression/#sigmoid">A3</a>, with a steepness of 0.535 per cm and a midpoint of 34.5 cm, written in scaled units. Press "Run 300 steps" and watch the two paths. A path crosses the contour lines at right angles, because the gradient points straight uphill (<a href="../t6-gradients/#gradient">0.6</a>). Click either map to choose a new start, or switch to the 3D view and rotate the surface.</p>
   <p>Here is the first step by hand. For cross-entropy the gradient at \((-4, 2)\) is \((\partial L/\partial w, \partial L/\partial b) = (-0.682, -0.004)\). With \(\eta = 0.5\) the weight moves from \(-4\) to \(-4 - 0.5 \times (-0.682) = -3.659\), and the bias from 2 to 2.002. For squared error the gradient is \((-0.050, -0.062)\), a vector 8.5 times shorter, and \(w\) moves only to \(-3.975\). Both gradients lead downhill, but they differ: the squared error one is shorter and points in another direction. The reason is the factor \(p(1-p)\), which multiplies the term of a single shark. At this start the model gives almost all juveniles a probability near 1 and about a third of the adults a probability below 0.2. So \(p(1-p)\) is below 0.1 for about two sharks in three.</p>
+  <p>One shark shows the factor at work. Tag 3462 is immature, with a scaled length of \(-0.898\), and the model gives it \(p = 0.996\). Its term in the cross-entropy gradient on \(w\) is \((p - y)\,x = 0.996 \times (-0.898) = -0.895\). Its term in the squared error gradient is \(2\,(p - y)\,p(1-p)\,x = 2 \times 0.996 \times 0.0037 \times (-0.898) = -0.0066\), about 135 times smaller. The loss still sees this shark as a big mistake, and the squared error gradient hardly hears it.</p>
+  <p>The second step starts at \((-3.659, 2.002)\). The new cross-entropy gradient is \((-0.671, 0.008)\), so the weight moves to \(-3.659 + 0.5 \times 0.671 = -3.323\) and the bias to 1.998. The loss falls from 2.965 to 2.735 after the first step and to 2.511 after the second. Squared error falls from 0.568 to 0.565 and then to 0.562. The cross-entropy steps are about 0.34 long, and the squared error steps about 0.04 long, the length of the gradient times \(\eta\).</p>
   <p class="math">\[ \frac{\partial L_{\text{CE}}}{\partial w} = \frac{1}{m}\sum_{i=1}^{m}(p_i - y_i)\,x_i \qquad \frac{\partial L_{\text{sq}}}{\partial w} = \frac{1}{m}\sum_{i=1}^{m}2\,(p_i - y_i)\,p_i(1 - p_i)\,x_i \qquad \begin{pmatrix} w \\ b \end{pmatrix} \leftarrow \begin{pmatrix} w \\ b \end{pmatrix} - \eta\,\nabla L \]</p>
   <ul class="math-notes">
     <li><b>\(p_i = \sigma(w x_i + b)\)</b> is the model's probability for shark \(i\), <b>\(y_i\)</b> its label and <b>\(x_i\)</b> its scaled length. The bias slopes are the same sums with \(x_i\) left out. The first formula is derived in <a href="../a3-logistic-regression/#train">A3</a>.</li>
@@ -195,6 +224,43 @@ push p - y:    [ 0.655  0.197  0.098 -0.96   0.01 ] sum: 0.0</pre>
   </div>
   <p class="used"><b>In practice:</b> you never see this picture for a full-size network, which has millions of weights. You see the loss curve, and you check it against what you know. A flat start is a warning sign: it may be a plateau, a dead unit, or a learning rate that is too small. Starting weights are small random numbers so that the start is not on a plateau (<a href="../b6-deep-networks/#signal">B6</a>). Li and colleagues (2018) drew two-dimensional slices through the loss of neural networks to compare landscapes.</p>
 
+  <p>Why does the walk slow down near the valley floor? Near a minimum the loss along one direction looks like \(\tfrac{1}{2}k\,(w - w^{*})^{2}\), where \(k\) is the curvature (<a href="../t6-gradients/#curvature">0.6</a>) and \(w^{*}\) is the floor. A gradient step gives \(w - \eta k\,(w - w^{*})\), so the gap to the floor is multiplied by \(1 - \eta k\). Take a gap of 3 and \(k = 1\). With \(\eta = 0.5\) the gaps are 3, 1.5, 0.75, 0.375. With \(\eta = 1.5\) they are 3, \(-1.5\), 0.75, \(-0.375\): the path bounces and still shrinks. With \(\eta = 2.5\) they are 3, \(-4.5\), 6.75, \(-10.1\), and the path blows up. So \(\eta\) must stay below \(2/k\).</p>
+  <p>The cross-entropy of this chapter's neuron has a steep direction and a flat one. At the valley floor the table of curvatures has the values 0.0914 and 0.0072, as the printout below shows. The largest safe \(\eta\) is \(2/0.0914 = 22\). With \(\eta = 0.5\) the flat direction shrinks its gap by \(1 - 0.5 \times 0.0072 = 0.9964\) per step, a time constant of about 280 steps. That is why the last stretch to the floor is slow, and why a larger \(\eta\) helps here. To choose \(\eta\) on a new problem, try 0.001, 0.01, 0.1 and 1 for 100 steps apiece and keep the largest one whose loss still falls steadily.</p>
+  <pre class="code"><code>import numpy as np, pandas as pd
+
+d = pd.read_csv("catch.csv")
+d = d[d.species == "spadenose"]  # the 268 spadenose sharks (made up)
+x = ((d.length_cm - d.length_cm.mean()) / d.length_cm.std(ddof=0)).to_numpy()
+y = d.mature.to_numpy().astype(float)
+
+def gradients(w, b):
+    p = 1 / (1 + np.exp(-(w * x + b)))
+    ce = np.array([np.mean((p - y) * x), np.mean(p - y)])
+    sq = 2 * (p - y) * p * (1 - p)  # squared error has the extra factor p (1 - p)
+    return ce, np.array([np.mean(sq * x), np.mean(sq)])
+
+for name, which in (("cross-entropy", 0), ("squared error", 1)):
+    w, b = -4.0, 2.0
+    print(name)
+    for step in range(1, 4):
+        g = gradients(w, b)[which]
+        w, b = w - 0.5 * g[0], b - 0.5 * g[1]
+        print(f"  step {step}: gradient ({g[0]:.3f}, {g[1]:.3f}) -> (w, b) = ({w:.3f}, {b:.3f})")
+
+p = 1 / (1 + np.exp(-(4.61 * x + 2.48)))  # the valley floor of the cross-entropy
+f = p * (1 - p)
+# the table of curvatures (second slopes) of the loss
+H = np.array([[np.mean(f * x * x), np.mean(f * x)], [np.mean(f * x), np.mean(f)]])
+print("curvatures at the valley floor:", np.linalg.eigvalsh(H).round(4))</code></pre>
+  <pre class="out">cross-entropy
+  step 1: gradient (-0.682, -0.004) -> (w, b) = (-3.659, 2.002)
+  step 2: gradient (-0.671, 0.008) -> (w, b) = (-3.323, 1.998)
+  step 3: gradient (-0.659, 0.022) -> (w, b) = (-2.994, 1.987)
+squared error
+  step 1: gradient (-0.050, -0.062) -> (w, b) = (-3.975, 2.031)
+  step 2: gradient (-0.051, -0.063) -> (w, b) = (-3.950, 2.063)
+  step 3: gradient (-0.051, -0.063) -> (w, b) = (-3.924, 2.094)
+curvatures at the valley floor: [0.0072 0.0914]</pre>
   <h3 class="sub-h3">A network's landscape has more than one valley</h3>
   <p>A single neuron has one valley. A network with a hidden unit has more. Take the smallest network that bends: one input \(x\), one tanh hidden unit and one output, \(f(x) = w_2 \tanh(w_1 x)\), with no biases. Here it predicts the scaled weight of a spadenose shark from its scaled length, with squared error. The map below has \(w_1\) across and \(w_2\) up.</p>
   <div class="card" id="vy">
@@ -216,6 +282,43 @@ push p - y:    [ 0.655  0.197  0.098 -0.96   0.01 ] sum: 0.0</pre>
     <li>At \(w_1 = 0\) the factor \(\tanh(w_1 x)\) is 0, so the first slope is 0. At \(w_2 = 0\) the factor \(w_2\) is 0, so the second slope is 0. At the origin both vanish.</li>
   </ul>
   <p>Two things follow. A bad start can be a stuck start: all weights at 0 is the classic example (<a href="../b6-deep-networks/#signal">B6</a>). And weights are not unique. Two networks trained from different starts can have different weights and the same function. So comparing the weights of two training runs is not a safe way to compare the networks. At a learning rate of 0.3 or more, this narrow valley makes the path bounce from side to side and settle at a higher loss, the \(\eta < 2/k\) limit of <a href="../t6-gradients/#curvature">0.6</a>.</p>
+  <p>Here are the two slopes for one shark. Tag 3305 has a scaled length of 0.216 and a scaled weight of 0.016. At \((w_1, w_2) = (1.5, 2)\) the hidden value is \(\tanh(1.5 \times 0.216) = 0.313\), and the output is \(f = 2 \times 0.313 = 0.627\). The error is \(f - t = 0.611\), so \(2\,(f - t) = 1.222\). The slope on \(w_2\) is \(1.222 \times 0.313 = 0.383\). The slope on \(w_1\) is \(1.222 \times 2 \times (1 - 0.313^2) \times 0.216 = 0.477\). Both are positive, so this shark asks for both weights to shrink, since the network predicts too heavy a shark. Over all 268 sharks the slopes at this point are 0.510 and 0.924.</p>
+  <p>The saddle is not a trap for starts near it. Only a start at the origin itself has a zero gradient. At \(\eta = 0.3\) a start at \((0.01, 0.01)\) leaves it and reaches a loss under 0.2 in 14 steps, while a start at \((0, 0)\) stays for ever. The gradient is small near the saddle and grows as the walk moves away, so the walk speeds up as it leaves.</p>
+  <pre class="code"><code>import numpy as np, pandas as pd
+
+d = pd.read_csv("catch.csv")
+d = d[d.species == "spadenose"]
+x = ((d.length_cm - d.length_cm.mean()) / d.length_cm.std(ddof=0)).to_numpy()
+kg = d.weight_kg
+t = ((kg - kg.mean()) / kg.std(ddof=0)).to_numpy()  # scaled weight
+
+def loss_and_grad(w1, w2, x, t):  # f(x) = w2 * tanh(w1 * x), squared error
+    th = np.tanh(w1 * x)
+    e = 2 * (w2 * th - t)
+    slopes = np.array([np.mean(e * w2 * (1 - th ** 2) * x), np.mean(e * th)])
+    return np.mean((w2 * th - t) ** 2), slopes
+
+i = (d.record_id == 3305).to_numpy()  # one shark: Tag 3305
+l, g = loss_and_grad(1.5, 2.0, x[i], t[i])
+print("Tag 3305 at (1.5, 2): squared error", round(l, 3), " slopes", g.round(3))
+print("all 268 sharks:       slopes", loss_and_grad(1.5, 2.0, x, t)[1].round(3))
+
+# on the saddle, next to it, and the start of the figure
+for start in [(0.0, 0.0), (0.01, 0.01), (1.5, 2.0)]:
+    w1, w2 = start
+    for step in range(1, 401):
+        g = loss_and_grad(w1, w2, x, t)[1]
+        w1, w2 = w1 - 0.3 * g[0], w2 - 0.3 * g[1]
+        if loss_and_grad(w1, w2, x, t)[0] &lt; 0.2:
+            break
+    final = loss_and_grad(w1, w2, x, t)[0]
+    print(f"start {start}: loss {final:.3f} after {step} steps, at ({w1:.2f}, {w2:.2f})")</code></pre>
+  <pre class="out">Tag 3305 at (1.5, 2): squared error 0.374  slopes [0.477 0.383]
+all 268 sharks:       slopes [0.51  0.924]
+start (0.0, 0.0): loss 1.000 after 400 steps, at (0.00, 0.00)
+start (0.01, 0.01): loss 0.191 after 14 steps, at (0.92, 1.20)
+start (1.5, 2.0): loss 0.198 after 3 steps, at (1.17, 1.48)</pre>
+
   <div class="debug">
     <p><b>Debug tip.</b> If the loss does not move from step 0 and the gradient norm is 0, look for weights that are all 0, or a dead ReLU layer. If the loss falls and then rises or oscillates, lower the learning rate. Print the gradient norm along with the loss.</p>
   </div>
@@ -223,6 +326,7 @@ push p - y:    [ 0.655  0.197  0.098 -0.96   0.01 ] sum: 0.0</pre>
     <p class="recall-h">Quick quiz</p>
     <details><summary>At a point the gradient is \((-0.5, 0.2)\) and \(\eta = 0.1\). Where does the next step go, starting from \((1, 1)\)?</summary><p>\((1, 1) - 0.1 \times (-0.5, 0.2) = (1.05, 0.98)\). The point moves to the right and slightly down.</p></details>
     <details><summary>Why does squared error with a sigmoid output crawl from a confidently wrong start, and what fixes it?</summary><p>Its gradient has the factor \(p(1-p)\), which is near 0 when the network is sure of its answer, so the step is tiny. Cross-entropy cancels that factor and keeps a slope there. A larger \(\eta\) also helps but needs tuning.</p></details>
+    <details><summary>A weight is 2 away from the floor, where the curvature is \(k = 0.5\). Where is the gap after one step with \(\eta = 1.5\), and with \(\eta = 5\)?</summary><p>The gap is multiplied by \(1 - \eta k\). For \(\eta = 1.5\) the factor is \(1 - 0.75 = 0.25\), so the gap becomes 0.5. For \(\eta = 5\) the factor is \(1 - 2.5 = -1.5\), so the gap becomes \(-3\): the weight jumps past the floor and ends farther away. The limit is \(2/k = 4\).</p></details>
   </div>
 </section>
 
@@ -251,6 +355,37 @@ push p - y:    [ 0.655  0.197  0.098 -0.96   0.01 ] sum: 0.0</pre>
   <p class="cap"><b>With \(B = 16\) one epoch of 268 sharks is 17 steps: 16 full batches and a last batch of 12. With \(B = 268\) an epoch is a single step, and with \(B = 1\) it is 268.</b></p>
   <p>A square is a shark, coral if it is mature and navy if not. The squares are laid out in the shuffled order for this epoch. Press "One step" or "Play". The outlined squares are the batch for this step, and the faded squares have been used. Move the batch size and see the counts change. When the last batch has run, the epoch ends, the sharks are shuffled again, and the next epoch starts. Notice the share of mature sharks in the outlined batch. In the whole table it is 67.5%. A batch of 4 may be 25% or 100% mature, and a batch of 128 is always close to 67.5%. That spread is where the noise of the next section comes from.</p>
   <p>Here is one batch with numbers. Take the model at \((w, b) = (-4, 2)\) and four sharks: Tag 3305 (41.0 cm, mature), Tag 3363 (34.2 cm, mature), Tag 2193 (40.9 cm, immature) and Tag 3462 (31.4 cm, immature). Their scaled lengths are 0.216, \(-0.573\), 0.205 and \(-0.898\). The model gives them \(p = 0.757, 0.987, 0.765, 0.996\), so \(p - y = -0.243, -0.013, 0.765, 0.996\). Multiply these by the lengths to get \(-0.053, 0.008, 0.157, -0.895\). The batch gradient on \(w\) is their average, \(-0.196\), and on \(b\) it is the average of the \(p - y\), \(0.376\). The gradient from all 268 sharks is \((-0.682, -0.004)\). The four sharks agree on the sign for \(w\) but get the bias wrong: that is noise.</p>
+  <p>Why is the batch gradient right on average? Draw one shark at random from the 268, with probability 1/268 for any given shark. The expected value of its gradient is \(\tfrac{1}{268}\sum_i g_i\), the full gradient. A batch of \(B\) is the average of \(B\) such draws, and an average of values that all have this expected value has it too. So the batch gradient is right on average. The next printout draws five batches of 16 from one shuffle. Their gradients on \(w\) are \(-1.07, -0.73, -0.58, -0.62, -0.46\), with a mean of \(-0.69\), against \(-0.68\) for all 268. The bias gradients run from \(-0.10\) to \(0.30\), and the batch with 50% mature sharks has the largest. That is the noise of the next section. Shuffling again at the start of an epoch changes which sharks share a batch. The noise then differs from one epoch to the next, and the path does not repeat one zigzag.</p>
+  <pre class="code"><code>import numpy as np, pandas as pd
+
+d = pd.read_csv("catch.csv")
+d = d[d.species == "spadenose"]
+x = ((d.length_cm - d.length_cm.mean()) / d.length_cm.std(ddof=0)).to_numpy()
+y = d.mature.to_numpy().astype(float)
+w, b = -4.0, 2.0  # the confidently wrong start
+
+def gradient(idx):
+    p = 1 / (1 + np.exp(-(w * x[idx] + b)))
+    return np.array([np.mean((p - y[idx]) * x[idx]), np.mean(p - y[idx])])
+
+print("all 268:         ", gradient(np.arange(len(x))).round(3))
+order = np.random.default_rng(0).permutation(len(x))  # one shuffle
+for k in range(5):
+    idx = order[16 * k: 16 * (k + 1)]
+    print(f"batch {k + 1} of 16:    ", gradient(idx).round(3), " mature share", y[idx].mean())
+
+by_length = np.argsort(x)  # the table sorted from short to long
+print("mature share of the shortest 16 sharks:", y[by_length[:16]].mean())
+print("mature share of the longest 16 sharks: ", y[by_length[-16:]].mean())</code></pre>
+  <pre class="out">all 268:          [-0.682 -0.004]
+batch 1 of 16:     [-1.072 -0.015]  mature share 0.625
+batch 2 of 16:     [-0.729  0.135]  mature share 0.625
+batch 3 of 16:     [-0.58 -0.1 ]  mature share 0.75
+batch 4 of 16:     [-0.62   0.298]  mature share 0.5
+batch 5 of 16:     [-0.456 -0.048]  mature share 0.75
+mature share of the shortest 16 sharks: 0.0
+mature share of the longest 16 sharks:  1.0</pre>
+  <p>The last line of the printout explains the advice to shuffle. In a table sorted by length, the first 16 sharks are all immature and the last 16 are all mature. Taken in order, the first batches would push the model to call all the sharks immature, and the last batches would push it back.</p>
   <p class="math">\[ \theta \leftarrow \theta - \eta\,\frac{1}{|\mathcal{B}|}\sum_{i\in\mathcal{B}} \nabla \ell_i(\theta) \qquad \text{steps per epoch} = \left\lceil \frac{m}{B}\right\rceil \qquad \text{updates after } E \text{ epochs} = E\left\lceil \frac{m}{B}\right\rceil \]</p>
   <ul class="math-notes">
     <li><b>\(\theta\)</b> means all the weights (here \(w\) and \(b\)). <b>\(\mathcal{B}\)</b> is the set of examples in the current batch and \(|\mathcal{B}|\) its size, which is \(B\) except for a short last batch.</li>
@@ -265,11 +400,12 @@ push p - y:    [ 0.655  0.197  0.098 -0.96   0.01 ] sum: 0.0</pre>
   <div class="debug">
     <p><b>Debug tip.</b> Shuffle. If the table is sorted, for example by species or by length, all the batches contain one kind of shark and the gradient jumps from step to step. Shuffle at the start of an epoch, and make sure that labels and inputs are shuffled together. A last batch that is smaller than the others is normal. A batch of size 1 will make some losses and normalisation layers fail.</p>
   </div>
-  <p class="used"><b>In practice:</b> typical batch sizes for networks are 16 to 256, limited by memory on the graphics card. Photos take much more memory than rows of a table, so a batch of photos is often smaller. Report progress in epochs, since one epoch is the same amount of data for all batch sizes.</p>
+  <p class="used"><b>In practice:</b> typical batch sizes for networks are 16 to 256, limited by memory on the graphics card. Photos take much more memory than rows of a table, so a batch of photos is often smaller. Report progress in epochs, since one epoch is the same amount of data for all batch sizes. With \(B = 100\) an epoch is 3 steps, of 100, 100 and 68 sharks. Some libraries can drop the short last batch, and some losses need it kept.</p>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The table has 600 records and the batch size is 128. How many steps is an epoch, and how large is the last batch?</summary><p>\(\lceil 600/128 \rceil = 5\) steps. Four full batches use 512 records, so the last batch has \(600 - 512 = 88\).</p></details>
     <details><summary>Why is the mini-batch gradient correct on average, though wrong for one batch?</summary><p>An example's gradient is drawn from the table at random, and the average of the loss over the table is the average of the examples' losses. The average of many random batches is the full gradient, but one batch scatters around it.</p></details>
+    <details><summary>A table sorted by length is used in order, with \(B = 16\) and no shuffling. What goes wrong in the first few batches?</summary><p>The shortest sharks are all immature, so the first batches contain no mature shark. Their gradient pushes the model to call all the sharks immature. Later batches, with the longest sharks, push the other way. The path swings, and the end of an epoch is wherever the last batches left it.</p></details>
   </div>
 </section>
 
@@ -301,13 +437,37 @@ push p - y:    [ 0.655  0.197  0.098 -0.96   0.01 ] sum: 0.0</pre>
   </div>
   <p class="cap"><b>From the start (−4, 2) at \(\eta = 0.3\), after 10 epochs a batch of 16 has taken 170 steps and has a loss of about 0.25, close to the valley floor's 0.232. A batch of 268 has taken 10 steps and is still at about 1.7. The noise of the gradient halves when the batch size is multiplied by 4.</b></p>
   <p>Slide the batch size from 268 down to 1. At 268 the path is a short smooth curve with only 10 dots, one per epoch, and it has barely left the start. At 16 the path is a rough line of 170 steps that reaches the valley. At 1 the path is a jagged zigzag of 2,680 steps that jitters around the valley floor, because a single shark pushes the weights hard in its own direction. The noise dots in the lower plot stop at \(B = 128\), since for \(B = 268\) the batch is the whole table and the noise is 0. Now switch the loss plot to "against steps". The big batches look good per step, since the steps are steady. But a step with 268 sharks costs 268 gradients, and a step with 16 costs 16. So the fair comparison is per epoch, as the first view shows, and in epochs the small batches win.</p>
-  <p>The dots in the lower plot show how the noise shrinks. At the valley floor the average gradient is almost 0, but single sharks disagree: the spread of one shark's contribution is \(\sigma = 0.153\). The average of \(B\) sharks has spread \(\sigma/\sqrt{B}\), which is 0.076 for 4 sharks, 0.037 for 16 and 0.017 for 64. Quadrupling the batch halves the noise. Here is why, in three lines. The \(B\) values have variance \(\sigma^2\) apiece. The variance of their sum is \(B\sigma^2\), when the draws are independent. Dividing the sum by \(B\) divides the variance by \(B^2\), so the average has variance \(\sigma^2/B\) and spread \(\sigma/\sqrt{B}\). This is the standard error of <a href="../t7-probability/#noise">0.7</a>.</p>
+  <p>The dots in the lower plot show how the noise shrinks. At the valley floor the average gradient is almost 0, but single sharks disagree: the spread of one shark's contribution is \(\sigma = 0.153\). The average of \(B\) sharks has spread \(\sigma/\sqrt{B}\), times a small correction that the formula below explains. The spread is 0.076 for 4 sharks, 0.037 for 16 and 0.017 for 64. Without the correction the last two would read 0.038 and 0.019. Quadrupling the batch halves the noise. Here is why, in three lines. The \(B\) values have variance \(\sigma^2\) apiece. The variance of their sum is \(B\sigma^2\), when the draws are independent. Dividing the sum by \(B\) divides the variance by \(B^2\), so the average has variance \(\sigma^2/B\) and spread \(\sigma/\sqrt{B}\). This is the standard error of <a href="../t7-probability/#noise">0.7</a>.</p>
   <p class="math">\[ \operatorname{Var}\!\Bigl(\frac{1}{B}\sum_{j=1}^{B} g_j\Bigr) = \frac{\sigma^{2}}{B} \qquad \text{spread of the batch gradient} \approx \frac{\sigma}{\sqrt{B}}\sqrt{\frac{m - B}{m - 1}} \]</p>
   <ul class="math-notes">
     <li><b>\(g_j\)</b> is the gradient contribution of one example, here \((p_j - y_j)\,x_j\) for the weight \(w\), and <b>\(\sigma\)</b> its spread over the table.</li>
     <li>The second factor is a correction for drawing without putting back. It is close to 1 for small \(B\) and 0 for \(B = m\), where the batch is the whole table and there is no noise.</li>
     <li>The formula assumes the draws are independent, which is nearly true when \(B\) is much smaller than \(m\). In the figure the dots follow the formula.</li>
   </ul>
+  <p>What does this noise do to the path? A step is \(\eta\) times the gradient, so noise in the gradient becomes jitter in the weight. At the valley floor and \(\eta = 0.3\), a batch of 1 moves \(w\) by a random amount of about \(0.3 \times 0.153 = 0.046\) per step. A batch of 16 moves it by \(0.3 \times 0.037 = 0.011\). The B = 1 path jumps about four times as far around the floor as the B = 16 path. Its final loss therefore varies more from one shuffle to the next. Lowering \(\eta\) late in training shrinks the jitter in proportion (<a href="../b5-optimisers/#schedule">B5</a>). The printout draws 4000 random batches at four sizes and compares their spread with the formula.</p>
+  <pre class="code"><code>import numpy as np, pandas as pd
+
+d = pd.read_csv("catch.csv")
+d = d[d.species == "spadenose"]
+x = ((d.length_cm - d.length_cm.mean()) / d.length_cm.std(ddof=0)).to_numpy()
+y = d.mature.to_numpy().astype(float)
+m = len(x)
+
+p = 1 / (1 + np.exp(-(4.61 * x + 2.48)))  # the model at the valley floor
+g = (p - y) * x                           # the push of each shark on w
+print(f"one shark: mean {g.mean():.4f}, spread {g.std():.3f}")
+
+rng = np.random.default_rng(0)
+for B in (1, 4, 16, 64):
+    batches = [g[rng.choice(m, B, replace=False)].mean() for _ in range(4000)]
+    formula = g.std() / np.sqrt(B) * np.sqrt((m - B) / (m - 1))
+    print(f"B = {B:2d}: spread of 4000 batches {np.std(batches):.3f}, formula {formula:.3f}, "
+          f"jitter at eta 0.3: {0.3 * formula:.3f}")</code></pre>
+  <pre class="out">one shark: mean -0.0001, spread 0.153
+B =  1: spread of 4000 batches 0.152, formula 0.153, jitter at eta 0.3: 0.046
+B =  4: spread of 4000 batches 0.074, formula 0.076, jitter at eta 0.3: 0.023
+B = 16: spread of 4000 batches 0.037, formula 0.037, jitter at eta 0.3: 0.011
+B = 64: spread of 4000 batches 0.017, formula 0.017, jitter at eta 0.3: 0.005</pre>
   <div class="break">
     <p><b>Common belief.</b> A bigger batch is always better, because its gradient is more accurate.</p>
     <p><b>Why it fails.</b> A more accurate gradient costs more per step, and gives fewer steps per epoch. After 10 epochs the full-batch run has taken 10 steps and is still near the start. The run with a batch of 16 has taken 170 and is at the valley. In one large study of image networks, batches of 2 to 32 gave the best test results (Masters and Luschi, 2018). Larger batches are still used when a graphics card runs them in parallel.</p>
@@ -356,6 +516,7 @@ epoch 10: 170 steps, loss 0.259, w = 2.81, b = 1.74</pre>
   <div class="recall">
     <p class="recall-h">Quick quiz</p>
     <details><summary>The noise of a batch gradient is 0.15 at \(B = 1\). Roughly what is it at \(B = 25\), and at \(B = 100\)?</summary><p>\(0.15/\sqrt{25} = 0.03\) and \(0.15/\sqrt{100} = 0.015\). To halve the noise again, the batch has to grow by a factor of 4.</p></details>
+    <details><summary>At \(\eta = 0.3\) the weight jitters by 0.011 per step with \(B = 16\). How can you halve the jitter, and what does it cost?</summary><p>Make the batch 4 times larger, \(B = 64\), since the noise falls like \(1/\sqrt{B}\). That costs 4 times the gradients per step. Or halve \(\eta\) to 0.15. That costs speed, since all the steps are half as long.</p></details>
     <details><summary>Run A uses \(B = 16\) for 10 epochs and run B uses \(B = 268\) for 10 epochs. Which has taken more steps, and which has used more data?</summary><p>Run A has taken 170 steps and run B only 10. Both have used the same data: 10 passes over the 268 sharks. That is why epochs are the fair measure of work.</p></details>
   </div>
 </section>
