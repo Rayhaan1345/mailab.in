@@ -10,52 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-code { overflow-wrap: anywhere; }
-.math { position: relative; }
-.refs li { overflow-wrap: anywhere; }
-.card .bar .label { margin-right: 4px; }
-.card .bar { row-gap: 8px; }
-.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
-.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
-.card .bar select, .card .controls select { font: inherit; font-size: 14.5px; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
-.card .bar label:has(select) { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
-.mini-note { max-width: 46em; font-size: 14.5px; color: var(--muted); margin: 6px 0 0; }
-.tbl { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; margin: 6px 0 0; }
-.tbl th, .tbl td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; vertical-align: top; }
-.tbl th:first-child, .tbl td:first-child { text-align: left; }
-.tbl th { font-weight: 500; color: var(--muted); }
-.tbl td.gap { color: var(--coral); font-weight: 600; }
-.tbl .cell-note { font-size: 12.5px; color: var(--muted); }
-.tbl.words td, .tbl.words th { text-align: left; font-feature-settings: normal; }
-.tbl.words td:first-child { white-space: nowrap; color: var(--ink); font-weight: 600; }
-.counts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.counts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (max-width: 760px) { .counts.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } .counts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } .counts.three span { font-size: 12.5px; } }
-.bridge { max-width: 46em; margin: 16px 0; padding: 8px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--sand); border-radius: 0 6px 6px 0; background: var(--paper); }
-.bridge p { margin: 5px 0; color: var(--ink-2); }
-.bridge b { color: var(--ink); }
-.vbar { display: grid; grid-template-columns: 150px 1fr 52px; align-items: center; gap: 8px; margin: 5px 0; font-size: 14.5px; color: var(--ink-2); }
-.vbar .tr { height: 16px; border-radius: 3px; background: var(--rule); overflow: hidden; }
-.vbar .fl { height: 100%; border-radius: 3px; }
-.vbar b { color: var(--ink); text-align: right; font-feature-settings: "tnum" 1, "lnum" 1; }
-@media (max-width: 600px) { .vbar { grid-template-columns: 110px 1fr 46px; } .hide-s { display: none; } .tbl { font-size: 13px; } .tbl th, .tbl td { padding: 4px 4px; } }
-#pv-table tr[data-i] { cursor: pointer; }
-#pv-table tr.uniq td { background: color-mix(in srgb, var(--coral) 18%, transparent); }
-#pv-table tr.homo td { background: color-mix(in srgb, var(--sand) 22%, transparent); }
-#pv-table tr.pick td { box-shadow: inset 0 2px 0 var(--ink), inset 0 -2px 0 var(--ink); font-weight: 600; }
-#pv-table td, #pv-table th { text-align: left; padding: 3px 8px; }
-#pv-table td:last-child, #pv-table td:nth-last-child(2), #pv-table th:last-child, #pv-table th:nth-last-child(2) { text-align: right; }
-#pv-table s { color: var(--muted); }
-.plot.bias { min-height: 760px; }
-.legend-line { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 0 0; font-size: 14px; color: var(--ink-2); }
-.legend-line span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--c, var(--navy)); border: 2px solid var(--c, var(--navy)); }
-.legend-line span.ring::before { background: none; }
-.legend-line span.sq::before { border-radius: 2px; }
-.card .group { border-radius: 16px; }
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="f1-fairness.css?v=56713ced">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <meta name="robots" content="noindex">
 <link rel="canonical" href="https://mailab.in/primer/f1-fairness/">
@@ -104,8 +60,8 @@ code { overflow-wrap: anywhere; }
     <div class="bar"><span class="label">Try a visitor</span><span id="mi-bar"></span></div>
     <div class="controls" id="mi-controls"></div>
     <div class="plot" id="mi-plot" role="img" aria-label="Scatter of age and BMI for the 768 Pima women, navy for no diabetes and coral for diabetes, with a star for a visitor, a box around the women nearby, and dotted lines at BMI 23 and 27.5. Few Pima women have a low BMI."></div>
-    <div class="legend-line"><span style="--c: var(--navy)">no diabetes</span><span class="sq" style="--c: var(--coral)">diabetes</span><span style="--c: var(--teal)">visitor and neighbourhood box</span></div>
-    <div class="controls" id="mi-controls2" style="margin-top: 12px"></div>
+    <div class="legend-line"><span class="tint-navy">no diabetes</span><span class="sq tint-coral">diabetes</span><span class="tint-teal">visitor and neighbourhood box</span></div>
+    <div class="controls mt-12" id="mi-controls2"></div>
     <div class="counts four">
       <div><b id="mi-p">0%</b><span>the model's chance of diabetes for the visitor</span></div>
       <div class="on"><b id="mi-ps">0%</b><span>the same evidence where the share with diabetes is the one you chose</span></div>
@@ -117,7 +73,7 @@ code { overflow-wrap: anywhere; }
   <p class="cap"><b>Few Pima women look like a 45-year-old with a BMI of 24: only 9 lie within 5 years and 3 BMI points, and about 1 woman in 10 has a lower BMI than that.</b> The model still prints a chance (17%) and does not say how little it has seen. The three made-up visitors are not people; the dotted lines mark BMI 23 and 27.5, the extra action points proposed by a WHO expert consultation for Asian populations.</p>
   <p>A dot is a woman in the training data. The star is a visitor and the teal box is the neighbourhood: the women within 5 years of age and 3 BMI points. Drag the BMI down towards 22 and the box leaves the cloud. The count of women in it drops to single figures, yet the model returns a number for any input. A new input far from the training data is called extrapolation, and a logistic regression extrapolates along a straight line in the log-odds. The line is only a guess outside the data.</p>
   <p>The BMI case has a known reason to worry. A WHO expert consultation reviewed the evidence and reported in 2004 that Asian populations differ from European ones in how BMI relates to body fat and health risk. Many Asian people are at high risk of type 2 diabetes at a BMI below 25. The consultation proposed extra action points at 23 and 27.5 and did not set one cut-off for all Asians (WHO Expert Consultation, 2004). The Pima women are neither of those groups, and their mean BMI is 32.5. The model learned its BMI slope in a population where a BMI of 24 is rare. The Pima table cannot tell you how that slope would change in another population.</p>
-  <h3 class="sub-h3" style="margin: 22px 0 8px; font-size: 19px; font-weight: 600">The same disease, a different place</h3>
+  <h3 class="sub-h3 sub-h3">The same disease, a different place</h3>
   <p>The table compares the training sample with a clinic in Mumbai. The clinic is a story. Its entries say what is known and what you would have to count before using the model there.</p>
   <table class="tbl words" aria-label="The Pima sample compared with a Mumbai clinic">
     <thead><tr><th></th><th>Pima sample (the data)</th><th>A Mumbai clinic (the story)</th></tr></thead>
@@ -268,7 +224,7 @@ group 1: base rate 0.60, sensitivity 0.67, precision 0.80, false positive rate 0
       <div><b id="bi-nd">0</b><span>score gap, doctor minus nurse</span></div>
       <div><b id="bi-rho">0</b><span>rank agreement with the he &minus; she direction</span></div>
     </div>
-    <div class="vbar" style="margin-top: 12px"><span>A classifier guesses the side of a word</span><span class="tr"><span class="fl" id="bi-v1" style="display: block; width: 100%; background: var(--teal)"></span></span><b id="bi-v1n">100%</b></div>
+    <div class="vbar mt-12"><span>A classifier guesses the side of a word</span><span class="tr"><span class="fl" id="bi-v1" style="display: block; width: 100%; background: var(--teal)"></span></span><b id="bi-v1n">100%</b></div>
     <p class="mini-note" id="bi-near"></p>
     <p class="status" id="bi-status" aria-live="polite"></p>
   </div>
@@ -333,13 +289,13 @@ teacher -0.1</pre>
       <div><b id="pv-groups">0</b><span>different groups</span></div>
       <div class="miss"><b id="pv-rev">0</b><span>rows whose diagnosis an outsider learns</span></div>
     </div>
-    <div class="legend-line"><span class="sq" style="--c: var(--coral)">alone in the group</span><span class="sq" style="--c: var(--sand)">group where all rows share one diagnosis</span></div>
+    <div class="legend-line"><span class="sq tint-coral">alone in the group</span><span class="sq tint-sand">group where all rows share one diagnosis</span></div>
     <p class="status" id="pv-status" aria-live="polite"></p>
   </div>
   <p class="cap"><b>With age in single years, sex and neighbourhood, all 24 rows of this made-up table are alone in their group, so a neighbour who knows those three facts about a person reads off the diagnosis.</b> With ten-year age bands and three zones, 11 rows are still alone. Dropping age gives groups of two or more, at the price of a table that cannot say how age and diabetes go together. The patients, columns and diagnoses are made up and are not data from any clinic.</p>
   <p>Release the table as it comes, with names removed. Click a row to play a neighbour who knows that person's age, sex and area. The matching rows are shaded, and the status line says what the neighbour learns. Then coarsen the columns. Widen the age bands, merge neighbourhoods into zones, drop a column. The group sizes grow and the coral rows disappear. But look at the last box. A group of three people who all have diabetes tells the neighbour the diagnosis even though no row is unique. The sand shading marks these groups.</p>
   <p>Latanya Sweeney (2000) showed how little is needed. She used 1990 US census summary data. She estimated that 87% of the US population (216 million of 248 million) had a combination of 5-digit ZIP code, gender and date of birth that was likely unique. Coarser places gave lower numbers: 53% for city, gender and date of birth, and 18% for county. She also bought the voter list of Cambridge, Massachusetts. It held name, address, ZIP code, birth date and gender, which are columns that health records released without names often keep. The two tables can be linked on those columns. The voter list had 365,000 possible combinations of gender, ZIP code and birth date for 54,805 voters. When combinations outnumber people by that much, most people are alone in theirs. The term <i>k</i>-anonymity comes from Sweeney (2002). A release has it when a person's information cannot be told apart from that of at least <i>k</i> &minus; 1 others.</p>
-  <h3 class="sub-h3" style="margin: 22px 0 8px; font-size: 19px; font-weight: 600">The same count on the Pima table</h3>
+  <h3 class="sub-h3 sub-h3">The same count on the Pima table</h3>
   <p>The Pima file has no names. It has eight measurements per woman. How many of the 768 women are the only one with their values of age, pregnancies and BMI? Tick the columns to find out. The women are people in a published study, and the count says only how much a few measurements reveal. It does not name anyone.</p>
   <div class="card" id="pu">
     <div class="bar"><span id="pu-bar"></span></div>

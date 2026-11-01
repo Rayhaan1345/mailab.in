@@ -1,0 +1,31 @@
+/* Styles for this chapter only. Shared styles are in primer/lib/css. */
+
+.card .controls.togs { display: block; }
+.card .controls.togs .btn { margin-left: 8px; }
+.panel { max-width: 46em; margin: 6px 0 0; padding: 4px 14px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.panel p { margin: 7px 0; color: var(--ink-2); font-size: 15.5px; }
+.panel b { color: var(--ink); }
+.quad { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 18px; margin-top: 10px; }
+.quad .plot { min-height: 230px; }
+.lbl { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.diag { margin: 10px 0 0; font-size: 15px; color: var(--ink-2); }
+.diag select { font: inherit; font-size: 14.5px; max-width: 100%; padding: 2px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.verdict { font-weight: 600; }
+table.sym { width: 100%; max-width: 46em; border-collapse: collapse; margin: 10px 0 16px; font-size: 14.5px; }
+table.sym th, table.sym td { padding: 6px 8px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; color: var(--ink-2); }
+table.sym th { font-weight: 500; color: var(--muted); }
+table.sym td:first-child { color: var(--ink); font-weight: 600; }
+.ck-row { display: block; margin: 3px 0; padding: 4px 8px; border-radius: 4px; color: var(--ink-2); cursor: pointer; }
+.ck-row:hover { background: var(--mark); }
+.ck-row input { accent-color: var(--teal); margin-right: 8px; }
+.ck-res { margin: 10px 0; padding: 6px 12px; border: 1px solid var(--rule); border-left: 3px solid var(--teal); border-radius: 0 6px 6px 0; background: var(--bg); }
+.ck-res.fail { border-left-color: var(--coral); }
+.ck-res p { margin: 4px 0; color: var(--ink-2); font-size: 15px; }
+.ck-res pre.code, .ck-res pre.out { font-size: 12.5px; }
+.ck-badge { margin-left: 8px; padding: 0 8px; border-radius: 999px; background: var(--mark); font-size: 13px; color: var(--ink); }
+.ck-res.fail .ck-badge { background: color-mix(in srgb, var(--coral) 16%, transparent); }
+#cl-svg { max-width: 540px; margin: 0 auto; cursor: crosshair; touch-action: none; }
+@media (max-width: 760px) {
+  .quad { grid-template-columns: minmax(0, 1fr); }
+  table.sym { font-size: 13.5px; }
+}

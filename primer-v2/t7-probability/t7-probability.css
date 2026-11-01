@@ -1,0 +1,10 @@
+/* Styles for this chapter only. Shared styles are in primer/lib/css. */
+
+.card .bar .label { margin-right: 4px; }
+.card svg { max-width: 100%; }
+.card svg.dg { display: block; width: 100%; max-width: 440px; height: auto; margin: 0 auto 10px; }
+.dg text { fill: var(--ink-2); font-family: "Spectral", Georgia, serif; font-size: 14px; }
+.dg line, .dg path { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+.dg .head { fill: var(--muted); stroke: none; }
+.dg .q { stroke-dasharray: 5 4; }
+.dg .heat text { fill: var(--coral); font-weight: 600; }

@@ -137,8 +137,8 @@
     function cumPlot(d) {
       var n = 60, xs = [], cum = [], a = 0; for (var j = 0; j < n; j++) { a += d.rows[j].base; xs.push(j + 1); cum.push(a * 100); }
       var shapes = [];
-      if (P < 1) shapes.push({ type: "line", x0: 1, x1: n, y0: P * 100, y1: P * 100, line: { color: "#c2563a", width: 1.5, dash: "dot" } });
-      if (K > 0 && K <= n) shapes.push({ type: "line", x0: K + 0.5, x1: K + 0.5, y0: 0, y1: 100, line: { color: "#3b4f82", width: 1.5, dash: "dot" } });
+      if (P < 1) shapes.push({ type: "line", x0: 1, x1: n, y0: P * 100, y1: P * 100, line: { color: Kit.css("coral"), width: 1.5, dash: "dot" } });
+      if (K > 0 && K <= n) shapes.push({ type: "line", x0: K + 0.5, x1: K + 0.5, y0: 0, y1: 100, line: { color: Kit.css("navy"), width: 1.5, dash: "dot" } });
       Kit.plot(id + "-cum", function (Pl) { return [{ type: "scatter", mode: "lines+markers", x: xs, y: cum, line: { color: Pl.teal, width: 2 }, marker: { size: 4, color: Pl.teal }, hovertemplate: "top %{x} tokens have %{y:.1f}% of the probability<extra></extra>" }]; },
         { margin: { l: 46, r: 10, t: 6, b: 44 }, xaxis: { title: { text: "tokens, most likely first", standoff: 8 } }, yaxis: { title: { text: "probability so far, %" }, range: [0, 102] }, shapes: shapes });
     }
@@ -216,7 +216,7 @@
       var xs = WIN.rows.map(function (r) { return r[0]; }), ys = WIN.rows.map(function (r) { return r[1] * 100; });
       Kit.plot(chart, function (P) { return [{ type: "scatter", mode: "lines+markers", x: xs, y: ys, line: { color: P.navy, width: 2 }, marker: { size: 5, color: P.navy }, hovertemplate: "%{x} tokens seen: %{y:.1f}%<extra></extra>" },
         { type: "scatter", mode: "markers", x: [w], y: [ys[w - 1]], marker: { size: 14, color: P.coral, line: { color: P.ink, width: 1.5 } }, hoverinfo: "skip" }]; },
-        { margin: { l: 50, r: 10, t: 8, b: 48 }, xaxis: { title: { text: "tokens the model can see (w)", standoff: 8 }, range: [0, n + 1] }, yaxis: { title: { text: "probability of ▁ 4, %" }, range: [0, 48] }, shapes: [{ type: "line", x0: n - 4 + 0.5, x1: n - 4 + 0.5, y0: 0, y1: 48, line: { color: "#8f98a2", width: 1.5, dash: "dot" } }], annotations: [{ x: n - 4 + 0.5, y: 46, text: "window reaches \u2581Tag", showarrow: false, xanchor: "right", font: { size: 11 } }] });
+        { margin: { l: 50, r: 10, t: 8, b: 48 }, xaxis: { title: { text: "tokens the model can see (w)", standoff: 8 }, range: [0, n + 1] }, yaxis: { title: { text: "probability of ▁ 4, %" }, range: [0, 48] }, shapes: [{ type: "line", x0: n - 4 + 0.5, x1: n - 4 + 0.5, y0: 0, y1: 48, line: { color: Kit.css("muted"), width: 1.5, dash: "dot" } }], annotations: [{ x: n - 4 + 0.5, y: 46, text: "window reaches \u2581Tag", showarrow: false, xanchor: "right", font: { size: 11 } }] });
     }
     draw();
     Kit.onTheme(draw);

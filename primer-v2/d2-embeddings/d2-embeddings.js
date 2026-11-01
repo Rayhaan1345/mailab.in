@@ -111,7 +111,7 @@
         return [{ type: "heatmap", z: cos, x: T, y: T, zmin: 0, zmax: 1, colorscale: [[0, P.paper], [1, P.teal]], showscale: false, xgap: 1, ygap: 1,
           hovertemplate: "%{y} and %{x}: %{z:.2f}<extra></extra>", text: cos.map(function (r) { return r.map(function (v) { return v.toFixed(2); }); }), texttemplate: "%{text}", textfont: { size: 10, color: P.ink } }];
       }, { margin: { l: 70, r: 8, t: 8, b: 70 }, xaxis: { tickangle: -40, side: "bottom", automargin: true }, yaxis: { autorange: "reversed", automargin: true }, shapes: [
-        { type: "rect", xref: "x", yref: "y", x0: b - 0.5, x1: b + 0.5, y0: a - 0.5, y1: a + 0.5, line: { color: "#c2563a", width: 3 } }] });
+        { type: "rect", xref: "x", yref: "y", x0: b - 0.5, x1: b + 0.5, y0: a - 0.5, y1: a + 0.5, line: { color: Kit.css("coral"), width: 3 } }] });
     }
     draw();
     hookClick(Kit.$("co-heat"), function (e) { var p = e.points[0]; a = T.indexOf(p.y); b = T.indexOf(p.x); draw(); });
@@ -197,7 +197,7 @@
     Kit.plot("an-acc", function (P) {
       return [{ type: "bar", orientation: "h", x: secs.map(function (s) { return s[1] * 100; }), y: secs.map(function (s) { return pretty[s[0]] || s[0]; }), text: secs.map(function (s) { return Math.round(s[1] * 100) + "%"; }), textposition: "outside", cliponaxis: false,
         marker: { color: secs.map(function (s) { return s[0] === "city-in-state" ? P.coral : P.navy; }) }, hovertemplate: "%{y}: %{x:.0f}% right (of " + "%{customdata} questions)<extra></extra>", customdata: secs.map(function (s) { return s[2]; }) }];
-    }, { margin: { l: 150, r: 34, t: 6, b: 56 }, xaxis: { title: { text: "answered right, %", standoff: 12 }, range: [0, 112] }, yaxis: { automargin: true, tickfont: { size: 12 } }, shapes: [{ type: "line", x0: W.analogy_test.overall * 100, x1: W.analogy_test.overall * 100, y0: -0.5, y1: secs.length - 0.5, line: { color: "#8f98a2", dash: "dot", width: 1.5 } }] });
+    }, { margin: { l: 150, r: 34, t: 6, b: 56 }, xaxis: { title: { text: "answered right, %", standoff: 12 }, range: [0, 112] }, yaxis: { automargin: true, tickfont: { size: 12 } }, shapes: [{ type: "line", x0: W.analogy_test.overall * 100, x1: W.analogy_test.overall * 100, y0: -0.5, y1: secs.length - 0.5, line: { color: Kit.css("muted"), dash: "dot", width: 1.5 } }] });
     Kit.onTheme(function () { draw(-1); });
   }
 

@@ -10,59 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-.card .bar { row-gap: 8px; }
-.bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; }
-.check { display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; color: var(--ink-2); cursor: pointer; }
-.check input { accent-color: var(--teal); }
-canvas.fig { display: block; width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); }
-.pane-h { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
-.key { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 4px 0 0; font-size: 13.5px; }
-.key span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
-.key i { display: inline-block; width: 24px; height: 0; border-top: 3px solid var(--ink-2); }
-.key i.dash { border-top-style: dashed; } .key i.dot { border-top-style: dotted; }
-.key em { font-style: normal; }
-.hintline { font-size: 14.5px; color: var(--muted); padding: 4px 0; }
-.eqs { margin: 10px 0 0; }
-.tbl { overflow-x: auto; }
-table.arch { border-collapse: collapse; width: 100%; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; }
-table.arch th, table.arch td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: middle; }
-table.arch th { font-weight: 500; color: var(--muted); }
-table.arch tr[data-i] { cursor: pointer; }
-table.arch tr[data-i]:hover td { background: var(--mark); }
-table.arch tr.sel td { background: var(--mark); font-weight: 600; }
-table.arch tr.bad td { color: var(--coral); }
-table.arch input.nf { width: 4.2em; font: inherit; font-size: 14px; padding: 1px 4px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
-table.arch button.x { font: inherit; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; }
-table.arch button.x:hover { color: var(--coral); }
-.rd-top { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 150px) minmax(0, 1fr); gap: 16px 22px; align-items: start; }
-#rd-in { max-width: 170px; }
-canvas.pad { display: block; width: 100%; max-width: 300px; height: auto; aspect-ratio: 1; border-radius: 4px; touch-action: none; cursor: crosshair; }
-.pb { display: grid; grid-template-columns: 1.3em minmax(0, 1fr) 3em; gap: 6px; align-items: center; padding: 1px 4px; cursor: pointer; border-radius: 4px; font-size: 14.5px; }
-.pb .d { text-align: right; font-feature-settings: "tnum" 1, "lnum" 1; }
-.pb .tr { display: block; height: 12px; background: var(--rule); border-radius: 3px; overflow: hidden; }
-.pb .fill { display: block; height: 100%; width: 0; background: var(--navy); }
-.pb.top .fill { background: var(--teal); }
-.pb.top .d, .pb.top .v { font-weight: 700; color: var(--ink); }
-.pb.pick { outline: 2px solid var(--coral); }
-.pb .v { font-feature-settings: "tnum" 1, "lnum" 1; color: var(--ink-2); }
-#rd-ans { margin: 8px 0 0; font-size: 15.5px; color: var(--ink-2); }
-.mapgrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
-.mapgrid figure { margin: 0; }
-.mapgrid figcaption { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
-canvas.kern { width: 34px; height: 34px; margin: 0 auto 4px; }
-.rf-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
-.rf-grid canvas { max-width: 360px; cursor: pointer; }
-.lm-grid { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
-@media (max-width: 760px) {
-  .group { border-radius: 18px; }
-  .rd-top, .rf-grid, .lm-grid { grid-template-columns: minmax(0, 1fr); }
-  .mapgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  canvas.pad { max-width: 100%; }
-}
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="c2-cnns.css?v=6e68cf8c">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <meta name="robots" content="noindex">
 <link rel="canonical" href="https://mailab.in/primer/c2-cnns/">
@@ -196,7 +145,7 @@ pass 2: last loss 0.045, test accuracy 0.974</pre>
       <div><p class="pane-h">What the network sees</p><canvas class="fig" id="rd-in" width="28" height="28" role="img" aria-label="The drawing as 28 by 28 grey values"></canvas></div>
       <div><p class="pane-h">Probabilities. Click a bar for its working.</p><div id="rd-bars"></div><p id="rd-ans" aria-live="polite"></p></div>
     </div>
-    <p class="pane-h" id="rd-h1" style="margin-top:14px"></p>
+    <p class="pane-h mt-14" id="rd-h1"></p>
     <div class="mapgrid" id="rd-c1"></div>
     <p class="pane-h" id="rd-h2"></p>
     <div class="mapgrid" id="rd-c2"></div>
@@ -453,7 +402,7 @@ moved right by 4 squares: test accuracy 0.594</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
 <script src="../assets/kit.js?v=e92d596e" defer></script>
-<script src="c2-cnns.js?v=0aeb2b0c" defer></script>
+<script src="c2-cnns.js?v=3fe58127" defer></script>
 <a id="primer-preview-pill" href="https://mailab.in/primer/c2-cnns/" style="position:fixed;right:14px;bottom:14px;z-index:2147483647;display:block;margin:0;padding:7px 13px;border:1px solid #5b6470;border-radius:999px;background:#fffdf7;background-image:none;color:#14181c;font:13px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:0;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:none;">Preview v2 &middot; open current version</a>
 </body>
 </html>

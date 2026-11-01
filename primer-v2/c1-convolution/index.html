@@ -10,52 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-.card .bar { row-gap: 8px; }
-.bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; }
-.check { display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; color: var(--ink-2); cursor: pointer; }
-.check input { accent-color: var(--teal); }
-.check.ch-0 { color: var(--coral); } .check.ch-1 { color: var(--link-hover); } .check.ch-2 { color: var(--navy); }
-canvas.fig { display: block; width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); }
-canvas.fig.photo { image-rendering: auto; }
-.px-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px 24px; align-items: start; }
-.px-grid canvas { max-width: 440px; cursor: crosshair; touch-action: auto; }
-.px-read { margin: 0 0 8px; font-size: 15px; color: var(--ink-2); min-height: 3em; }
-.mag table { border-collapse: collapse; margin: 0 0 10px; }
-.mag td { width: 3.1em; height: 2.3em; text-align: center; font-size: 14px; border: 1px solid var(--rule); font-feature-settings: "tnum" 1, "lnum" 1; }
-.mag td.mid { outline: 3px solid var(--coral); outline-offset: -3px; font-weight: 600; }
-.pane-h { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
-.ch-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-.ch-grid canvas { cursor: crosshair; }
-.ch-grid figcaption { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); }
-.ch-grid figure { margin: 0; }
-.credit { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
-.slide-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
-.slide-top canvas { max-width: 380px; cursor: pointer; }
-table.g3 { border-collapse: collapse; background: var(--bg); }
-table.g3 td { width: 3.1em; height: 2.2em; padding: 0; text-align: center; border: 1px solid var(--rule); font-size: 14px; font-feature-settings: "tnum" 1, "lnum" 1; }
-table.g3.inp input { width: 100%; height: 100%; box-sizing: border-box; border: 0; background: transparent; text-align: center; font: inherit; font-size: 14px; color: var(--ink); padding: 0; -moz-appearance: textfield; }
-table.g3.inp td { width: 3.4em; }
-table.g3.pix td { color: var(--ink); }
-table.g3.prd td { color: var(--ink-2); }
-.seq { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 8px; margin: 14px 0 0; }
-.seq .gh { font-size: 12.5px; color: var(--muted); margin: 0 0 3px; text-align: center; max-width: 11em; }
-.seq .opx { font-size: 22px; color: var(--ink-2); }
-.seq .res .big { min-width: 3.2em; padding: 6px 12px; border: 2px solid var(--coral); border-radius: 8px; font-size: 24px; font-weight: 600; text-align: center; font-feature-settings: "tnum" 1, "lnum" 1; background: var(--bg); }
-.seq .res .big.pos { border-color: var(--teal); color: var(--link-hover); } .seq .res .big.neg { color: var(--coral); }
-.sz-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px 22px; align-items: center; }
-.sz-grid svg { max-width: 520px; }
-.eqs { margin: 10px 0 0; }
-.hintline { font-size: 14.5px; color: var(--muted); padding: 4px 0; }
-pre.out.data::before { content: "the 5 by 5 image"; }
-@media (max-width: 760px) {
-  .group { border-radius: 18px; }
-  .px-grid, .slide-top, .sz-grid { grid-template-columns: minmax(0, 1fr); }
-  .ch-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="c1-convolution.css?v=24852252">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <meta name="robots" content="noindex">
 <link rel="canonical" href="https://mailab.in/primer/c1-convolution/">
@@ -467,7 +423,7 @@ shift  1: [[0, 9], [8, 0]] same as before: False</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
 <script src="../assets/kit.js?v=e92d596e" defer></script>
-<script src="c1-convolution.js?v=e3a000ca" defer></script>
+<script src="c1-convolution.js?v=4a70cce3" defer></script>
 <a id="primer-preview-pill" href="https://mailab.in/primer/c1-convolution/" style="position:fixed;right:14px;bottom:14px;z-index:2147483647;display:block;margin:0;padding:7px 13px;border:1px solid #5b6470;border-radius:999px;background:#fffdf7;background-image:none;color:#14181c;font:13px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:0;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:none;">Preview v2 &middot; open current version</a>
 </body>
 </html>

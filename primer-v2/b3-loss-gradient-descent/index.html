@@ -10,23 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-.pl-sub { margin: 10px 0 2px; font-size: 14px; color: var(--ink-2); }
-.pl-sub b { color: var(--ink); }
-.ro-line { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 10px 0 0; font-size: 15px; color: var(--ink-2); }
-.ro-line b { color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
-.ro-line .tag { font-family: "Spectral SC", Georgia, serif; letter-spacing: 0.03em; color: var(--muted); }
-.ro-line .teal b { color: var(--teal); } .ro-line .cor b { color: var(--coral); }
-#st-svg { display: block; width: 100%; }
-.sub-h3 { margin: 30px 0 4px; font-size: 20px; font-weight: 600; }
-ol.steps { max-width: 46em; margin: 0 0 14px; padding-left: 1.4em; color: var(--ink-2); }
-ol.steps li { margin: 6px 0; }
-.dv-step { max-width: 46em; margin: 0 0 10px; padding: 6px 14px; border-left: 3px solid var(--teal); background: var(--bg); border-radius: 0 6px 6px 0; }
-.dv-step p { margin: 6px 0; color: var(--ink-2); }
-.dv-step .math { margin: 6px 0; }
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="b3-loss-gradient-descent.css?v=9e3f7f93">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <meta name="robots" content="noindex">
 <link rel="canonical" href="https://mailab.in/primer/b3-loss-gradient-descent/">
@@ -79,7 +64,7 @@ ol.steps li { margin: 6px 0; }
       <div><p class="pl-sub" id="co-lt"></p><div class="plot" id="co-left" role="img" aria-label="The loss against the network's output, with a dot for the current output"></div></div>
       <div><p class="pl-sub" id="co-rt"></p><div class="plot" id="co-right" role="img" aria-label="The push on the output against the network's output, with a dot for the current output"></div></div>
     </div>
-    <div class="eqn" id="co-eqn" aria-live="polite" style="margin-top:12px"></div>
+    <div class="eqn mt-12" id="co-eqn" aria-live="polite"></div>
     <p class="status" id="co-status" aria-live="polite"></p>
   </div>
   <p class="cap"><b>For Tag 4127, a juvenile, at a score of +5 the network says "adult" with probability 0.993. Cross-entropy gives a loss of 5.01 and a push of 0.99. Squared error gives a loss of 0.99 and a push of 0.013, about 75 times smaller.</b></p>
@@ -190,9 +175,9 @@ product of the four: 6.50e-04
     <div class="ro-line"><span class="tag">Step</span><b id="ld-step">0</b>
       <span class="teal"><span class="tag">Cross-entropy</span> loss <b id="ld-ce-loss">0</b>, right <b id="ld-ce-acc">0</b>, (w, b) <b id="ld-ce-wb">0</b>, gradient size <b id="ld-gn-ce">0</b></span></div>
     <div class="ro-line"><span class="cor"><span class="tag">Squared error</span> loss <b id="ld-mse-loss">0</b>, right <b id="ld-mse-acc">0</b>, (w, b) <b id="ld-mse-wb">0</b>, gradient size <b id="ld-gn-mse">0</b></span></div>
-    <p class="pl-sub" style="margin-top:12px"><b>Share of sharks called right</b> against the step number</p>
+    <p class="pl-sub mt-12"><b>Share of sharks called right</b> against the step number</p>
     <div class="plot short" id="ld-acc" role="img" aria-label="The share of the 268 sharks called right against the step, for cross-entropy in teal and squared error in coral, with a dotted line at the always-adult answer"></div>
-    <p class="pl-sub" style="margin-top:12px"><b>The next cross-entropy update, with the numbers of the figure.</b></p>
+    <p class="pl-sub mt-12"><b>The next cross-entropy update, with the numbers of the figure.</b></p>
     <div class="eqn" aria-live="polite">
       <span class="t c-coral"><b id="ld-eq-w">0</b><i>new w</i></span><span class="op">=</span><span class="t"><b id="ld-eq-w0">0</b><i>current w</i></span><span class="op">&minus;</span><span class="t"><b id="ld-eq-eta">0</b><i>learning rate \(\eta\)</i></span><span class="op">&times;</span><span class="t c-navy"><b id="ld-eq-g">0</b><i>\(\partial L/\partial w\)</i></span>
     </div>
@@ -345,7 +330,7 @@ start (1.5, 2.0): loss 0.198 after 3 steps, at (1.17, 1.48)</pre>
     <div class="controls" id="st-controls"></div>
     <div class="bar" id="st-bar"></div>
     <svg id="st-svg" role="img" aria-label="The 268 sharks as small squares in the shuffled order of this epoch, coral for mature and navy for immature. The squares in the current batch are outlined and the squares already used are faded"></svg>
-    <div class="eqn" aria-live="polite" style="margin-top:12px">
+    <div class="eqn mt-12" aria-live="polite">
       <span class="t c-teal"><b id="st-eq-n">17</b><i>steps per epoch \(\lceil m/B \rceil\)</i></span><span class="op">=</span><span class="op">&lceil;</span><span class="t"><b id="st-eq-m">268</b><i>sharks \(m\)</i></span><span class="op">&divide;</span><span class="t c-coral"><b id="st-eq-b">16</b><i>batch size \(B\)</i></span><span class="op">&rceil;</span>
     </div>
     <div class="readout"><span>Epoch: <b id="st-epoch">1</b></span><span>Step: <b id="st-step">0 of 17</b></span><span>Updates so far: <b id="st-updates">0</b></span><span>Sharks in this batch: <b id="st-batch">0</b></span><span>Mature in this batch: <b id="st-share">none yet</b></span></div>
@@ -426,9 +411,9 @@ mature share of the longest 16 sharks:  1.0</pre>
       <div><p class="pl-sub"><b>The path</b> from the start (−4, 2); coral dots mark the ends of epochs</p><div class="plot tall" id="nz-map" role="img" aria-label="Cross-entropy contour map with the path of mini-batch gradient descent from the start to the valley, with a dot at the end of each epoch"></div></div>
       <div><p class="pl-sub"><b>Loss</b> for five batch sizes; the chosen one is thick</p><div class="plot tall" id="nz-loss" role="img" aria-label="The cross-entropy loss against epochs or steps for batch sizes 1, 4, 16, 64 and 268, with the chosen batch size highlighted"></div></div>
     </div>
-    <p class="pl-sub" style="margin-top:12px"><b>The noise of the gradient on \(w\)</b> at the valley floor, from 400 random batches at eight sizes (dots) and by formula (dashed)</p>
+    <p class="pl-sub mt-12"><b>The noise of the gradient on \(w\)</b> at the valley floor, from 400 random batches at eight sizes (dots) and by formula (dashed)</p>
     <div class="plot short" id="nz-noise" role="img" aria-label="The spread of the mini-batch gradient against the batch size on log axes, falling like one over the square root of the batch size"></div>
-    <div class="eqn" aria-live="polite" style="margin-top:12px">
+    <div class="eqn mt-12" aria-live="polite">
       <span class="t c-sand"><b id="nz-s1">0</b><i>spread for \(B = 1\), \(\sigma\)</i></span><span class="op">&divide;</span><span class="t"><b id="nz-sq">0</b><i>\(\sqrt{B}\) for \(B\) = <span id="nz-b">0</span></i></span><span class="op">&asymp;</span><span class="t c-navy"><b id="nz-theo">0</b><i>formula</i></span><span class="op">vs sampled</span><span class="t c-teal"><b id="nz-sb">0</b><i>spread of batches</i></span>
     </div>
     <div class="readout"><span>Steps per epoch: <b id="nz-per">0</b></span><span>Steps in all: <b id="nz-steps">0</b></span><span>Loss at the end: <b id="nz-final">0</b></span></div>

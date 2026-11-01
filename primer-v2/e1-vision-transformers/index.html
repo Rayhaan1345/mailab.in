@@ -10,47 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-.bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; }
-.check { display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; color: var(--ink-2); cursor: pointer; }
-.check input, .card input[type=range] { accent-color: var(--teal); }
-.card canvas { display: block; max-width: 100%; border-radius: 4px; }
-.card canvas:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.cvs { margin: 0 auto; }
-.eqs { margin: 10px 0 0; }
-.eqn .op.wrap { white-space: normal; }
-.credit { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
-.pane-h { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
-.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 22px; align-items: start; }
-.pair { display: flex; flex-wrap: wrap; gap: 12px 16px; justify-content: center; }
-.em-flow { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 14px 24px; align-items: start; }
-.em-col { margin: 0 0 12px; }
-.em-col canvas#em-patch { width: 96px; height: 96px; image-rendering: pixelated; border: 1px solid var(--rule); }
-.em-col canvas#em-x { width: 240px; max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--rule); }
-.em-line { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--rule); font-size: 14px; color: var(--ink-2); }
-.em-line canvas.em-f { width: 36px; height: 36px; image-rendering: pixelated; border: 1px solid var(--rule); flex: 0 0 auto; }
-.em-t { flex: 1 1 auto; }
-.em-z { flex: 0 0 4.2em; text-align: right; color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; font-size: 16px; }
-.em-bar { position: relative; flex: 0 0 90px; height: 10px; border: 1px solid var(--rule); background: var(--paper); }
-.em-bar::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; border-left: 1px solid var(--muted); }
-.em-bar i { position: absolute; top: 0; bottom: 0; }
-.toplist { margin: 0 0 8px; font-size: 15px; color: var(--ink-2); }
-.toplist ol { margin: 4px 0 0; padding-left: 1.3em; }
-.toplist li span { color: var(--muted); font-feature-settings: "tnum" 1; }
-.cl-grid, .vq-grid { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 14px 24px; align-items: start; }
-.cl-grid svg { width: 100%; max-width: 420px; height: auto; }
-.vq-ins { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 10px 0 0; font-size: 14px; color: var(--ink-2); }
-.vq-ins canvas { width: 64px; height: 64px; image-rendering: pixelated; border: 1px solid var(--rule); }
-.bridge { max-width: 46em; margin: 12px 0 18px; padding: 8px 14px; border-left: 3px solid var(--teal); background: var(--paper); border-radius: 0 6px 6px 0; font-size: 15px; color: var(--ink-2); }
-.bridge p { margin: 5px 0; }
-.bridge b { color: var(--ink); }
-@media (max-width: 760px) {
-  .group { border-radius: 18px; }
-  .two, .em-flow, .cl-grid, .vq-grid { grid-template-columns: minmax(0, 1fr); }
-}
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="e1-vision-transformers.css?v=e1c8bd38">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <meta name="robots" content="noindex">
 <link rel="canonical" href="https://mailab.in/primer/e1-vision-transformers/">
@@ -175,7 +136,7 @@ True
       </div>
     </div>
     <p class="status" id="em-status" aria-live="polite"></p>
-    <p class="pane-h" style="margin-top:10px">Sizes for a patch side P (the live numbers above are for P = 16)</p>
+    <p class="pane-h mt-10">Sizes for a patch side P (the live numbers above are for P = 16)</p>
     <div class="eqn eqs" id="em-dims"></div>
     <div class="eqn eqs" id="em-count"></div>
     <p class="status" id="em-note"></p>
@@ -251,7 +212,7 @@ True
     <div class="bar" id="sh-bar"></div>
     <div class="controls" id="sh-controls"></div>
     <div class="two">
-      <div><canvas id="sh-cv" role="img" aria-label="The photo with patches moved"></canvas><div class="toplist" id="sh-top" style="margin-top:8px"></div></div>
+      <div><canvas id="sh-cv" role="img" aria-label="The photo with patches moved"></canvas><div class="toplist mt-8" id="sh-top"></div></div>
       <div><div class="plot" id="sh-plot" role="img" aria-label="Share of photos whose top call is unchanged against the number of patches moved, for ViT-B/16 and ResNet-18"></div></div>
     </div>
     <div class="readout" id="sh-read"></div>
@@ -417,7 +378,7 @@ print(round(float(D.mean()), 2))                        # even attention, averag
     <canvas id="rc-cv" class="cvs" role="img" aria-label="Two copies of the photo showing what a CNN window and a ViT block can reach"></canvas>
     <p class="status" id="rc-status" aria-live="polite"></p>
     <div class="eqn eqs" id="rc-eq"></div>
-    <div class="bar" id="rc-bar" style="margin-top:12px"></div>
+    <div class="bar mt-12" id="rc-bar"></div>
     <div class="two">
       <div><p class="pane-h">Mean attention distance of the 144 heads of ViT-B/16, against the farthest reach of a CNN stack</p><div class="plot" id="rc-plot1" role="img" aria-label="Mean attention distance of the heads of ViT-B/16 by block, with the farthest reach of stacked 3 by 3 layers"></div></div>
       <div><p class="pane-h">Share of attention that falls inside the window, mean over heads</p><div class="plot" id="rc-plot2" role="img" aria-label="Share of attention inside a small window around the query patch, by block"></div></div>
@@ -470,7 +431,7 @@ print(12 * block + 590592 + 768 + 197 * d + 2 * d + (d * 1000 + 1000))</code></p
   <div class="card" id="vq-box">
     <div class="bar" id="vq-bar"></div>
     <div class="pair"><div><p class="pane-h">Original, 28 &times; 28 patches of 8 &times; 8</p><canvas id="vq-orig" role="img" aria-label="Original photo"></canvas></div><div><p class="pane-h">Rebuilt from codes</p><canvas id="vq-rec" role="img" aria-label="Photo rebuilt from codes"></canvas></div></div>
-    <div class="vq-grid" style="margin-top:12px">
+    <div class="vq-grid mt-12">
       <div><p class="pane-h">The code book (dark tiles are unused for this photo)</p><canvas id="vq-book" role="img" aria-label="The code book as a grid of small patches"></canvas></div>
       <div><div class="vq-ins"><span>patch</span><canvas id="vq-p" role="img" aria-label="The chosen patch magnified"></canvas><span>nearest code</span><canvas id="vq-c" role="img" aria-label="Its nearest code magnified"></canvas></div>
         <div class="eqn eqs" id="vq-eq"></div></div>
@@ -581,7 +542,7 @@ print(np.log2(len(book)))                      # bits per token</code></pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js" defer></script>
 <script src="../assets/kit.js?v=e92d596e" defer></script>
-<script src="e1-vision-transformers.js?v=91a98047" defer></script>
+<script src="e1-vision-transformers.js?v=e52b02d5" defer></script>
 <a id="primer-preview-pill" href="https://mailab.in/primer/e1-vision-transformers/" style="position:fixed;right:14px;bottom:14px;z-index:2147483647;display:block;margin:0;padding:7px 13px;border:1px solid #5b6470;border-radius:999px;background:#fffdf7;background-image:none;color:#14181c;font:13px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:0;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:none;">Preview v2 &middot; open current version</a>
 </body>
 </html>

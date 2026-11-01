@@ -10,47 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Spectral+SC:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<link rel="stylesheet" href="../assets/kit.css?v=29a77a45">
-<style>
-/* Local additions for this chapter only. */
-code { overflow-wrap: anywhere; }
-.math { position: relative; }
-.refs li { overflow-wrap: anywhere; }
-.card .bar .label { margin-right: 4px; }
-.card .bar { row-gap: 8px; }
-.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
-.card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
-.mini-note { max-width: 46em; font-size: 14.5px; color: var(--muted); margin: 6px 0 0; }
-.sub-h3 { margin: 22px 0 8px; font-size: 19px; font-weight: 600; }
-.tbl { width: 100%; border-collapse: collapse; font-size: 14.5px; font-feature-settings: "tnum" 1, "lnum" 1; margin: 6px 0 0; }
-.tbl th, .tbl td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; vertical-align: top; }
-.tbl th:first-child, .tbl td:first-child { text-align: left; }
-.tbl th { font-weight: 500; color: var(--muted); }
-.tbl tr.pick td { background: var(--mark); color: var(--ink); font-weight: 600; }
-.tbl td.okc { color: var(--link-hover); font-weight: 600; }
-.tbl td.nocc { color: var(--coral); }
-.tbl.words td, .tbl.words th { text-align: left; font-feature-settings: normal; }
-.tbl.words td:first-child { white-space: nowrap; color: var(--ink); font-weight: 600; }
-.counts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.counts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (max-width: 760px) { .counts.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } .counts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } .counts.three span { font-size: 12.5px; } }
-@media (max-width: 600px) { .tbl { font-size: 13px; } .tbl th, .tbl td { padding: 4px 4px; } }
-.bridge { max-width: 46em; margin: 16px 0; padding: 8px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--sand); border-radius: 0 6px 6px 0; background: var(--paper); }
-.bridge p { margin: 5px 0; color: var(--ink-2); }
-.bridge b { color: var(--ink); }
-.legend-line { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 0 0; font-size: 14px; color: var(--ink-2); }
-.legend-line span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--c, var(--navy)); border: 2px solid var(--c, var(--navy)); }
-.legend-line span.sq::before { border-radius: 2px; }
-.card .group { border-radius: 16px; }
-#qz-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; margin: 10px 0 0; max-width: 520px; }
-#qz-grid .dg { text-align: center; border: 1.5px solid var(--rule); border-radius: 6px; padding: 3px 2px 1px; background: var(--paper); }
-#qz-grid .dg canvas { width: 100%; max-width: 40px; height: auto; display: block; margin: 0 auto; image-rendering: pixelated; background: #fff; }
-#qz-grid .dg span { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
-#qz-grid .dg.bad { border-color: var(--coral); background: color-mix(in srgb, var(--coral) 16%, transparent); }
-#qz-grid .dg.bad span { color: var(--coral); }
-#lp-svg { max-width: 100%; }
-#aim-svg { max-width: 640px; margin: 0 auto; }
-</style>
+<link rel="stylesheet" href="../assets/kit.css?v=5086ffb6">
+<link rel="stylesheet" href="f2-robots.css?v=ec406f84">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <meta name="robots" content="noindex">
 <link rel="canonical" href="https://mailab.in/primer/f2-robots/">
