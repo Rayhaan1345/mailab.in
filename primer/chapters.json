@@ -359,7 +359,7 @@
    "title": "Vision transformers and image tokens",
    "blurb": "Photos cut into patches.",
    "part": "E",
-   "live": false
+   "live": true
   },
   {
    "id": "e2",
@@ -368,7 +368,7 @@
    "title": "Encoders and CLIP",
    "blurb": "Photos and captions in one space.",
    "part": "E",
-   "live": false
+   "live": true
   },
   {
    "id": "e3",
