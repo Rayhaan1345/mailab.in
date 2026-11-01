@@ -104,3 +104,12 @@ code { overflow-wrap: anywhere; }
 pre code { overflow-wrap: normal; }
 .card .bar { row-gap: 8px; }
 .card input[type=checkbox], .card .bar input[type=range] { accent-color: var(--teal); }
+
+/* Python syntax colours (Kit.highlightPython). Colours come from the palette and are mixed towards the ink colour so that
+   each reaches 4.5:1 on the code background in light and dark mode. Weight and style carry meaning too, never colour alone. */
+.tok-k { color: var(--navy); font-weight: 600; }
+.tok-s { color: color-mix(in srgb, var(--teal) 75%, var(--ink)); }
+.tok-n { color: color-mix(in srgb, var(--coral) 80%, var(--ink)); }
+.tok-c { color: var(--muted); font-style: italic; }
+.tok-b { color: color-mix(in srgb, var(--sand) 65%, var(--ink)); }
+.tok-f { color: var(--ink); font-weight: 600; }

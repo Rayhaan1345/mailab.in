@@ -178,9 +178,35 @@ var Kit = (function () {
       out.textContent = buf.join("\n") || "(no output)";
     }, function () { out.textContent = "Python could not load. Check your connection."; });
   }
+  // Python syntax colouring for pre.code. A small scanner, no library: strings, comments, numbers, keywords, built-ins,
+  // and the names after def and class. The text of the block is unchanged, so copy and Run still read the same code.
+  var PY_KEYWORDS = "and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield True False None".split(" ");
+  var PY_BUILTINS = "abs all any bool dict dir divmod enumerate filter float format frozenset getattr hasattr id input int isinstance iter len list map max min next object open ord pow print range repr reversed round set setattr slice sorted str sum super tuple type vars zip self cls Exception ValueError KeyError TypeError IndexError ZeroDivisionError".split(" ");
+  var PY_KW = {}, PY_BI = {};
+  PY_KEYWORDS.forEach(function (w) { PY_KW[w] = 1; });
+  PY_BUILTINS.forEach(function (w) { PY_BI[w] = 1; });
+  var PY_TOKEN = /(?:[rRbBfFuU]{1,2})?("""|''')[\s\S]*?(?:\1|$)|(?:[rRbBfFuU]{1,2})?(?:"(?:\\.|[^"\\\n])*"?|'(?:\\.|[^'\\\n])*'?)|#[^\n]*|[A-Za-z_]\w*|\d[\d_]*(?:\.\d*)?(?:[eE][+-]?\d+)?j?|\.\d+(?:[eE][+-]?\d+)?|@[A-Za-z_][\w.]*|[\s\S]/g;
+  function escapeHtml(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function highlightPython(src) {
+    var out = "", prev = "", m, t, cls;
+    PY_TOKEN.lastIndex = 0;
+    while ((m = PY_TOKEN.exec(src)) !== null) {
+      t = m[0]; cls = "";
+      if (t.charAt(0) === "#") cls = "c";
+      else if (/^(?:[rRbBfFuU]{1,2})?["']/.test(t)) cls = "s";
+      else if (/^[A-Za-z_]/.test(t)) cls = prev === "def" || prev === "class" ? "f" : PY_KW[t] ? "k" : PY_BI[t] ? "b" : "";
+      else if (/^(?:\d|\.\d)/.test(t)) cls = "n";
+      else if (t.length > 1 && t.charAt(0) === "@") cls = "b";
+      out += cls ? '<span class="tok-' + cls + '">' + escapeHtml(t) + "</span>" : escapeHtml(t);
+      if (/^[A-Za-z_]/.test(t)) prev = t; else if (!/^\s+$/.test(t)) prev = "";
+    }
+    return out;
+  }
+
   function mountCode() {
     document.querySelectorAll("pre.code").forEach(function (pre) {
       var code = pre.querySelector("code") || pre;
+      if (code !== pre && !code.hasAttribute("data-hl")) { code.innerHTML = highlightPython(code.textContent); code.setAttribute("data-hl", "py"); }
       var copy = html("button", { type: "button", class: "kit-copy" }, pre, "copy");
       copy.addEventListener("click", function () {
         var t = code.textContent;
