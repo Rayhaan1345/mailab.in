@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tokenisation | How AI Learns</title>
-<meta name="description" content="How text becomes the whole numbers a language model reads: characters, words and pieces, byte-pair encoding one merge at a time, vocabularies, special tokens, and why Hindi and Marathi cost more tokens than English.">
+<meta name="description" content="How text becomes the whole numbers a language model reads: characters, words and pieces, byte-pair encoding one merge at a time, vocabularies, special tokens, and why GPT-2's tokenizer needs more tokens for the invented Hindi and Marathi messages than for the English ones.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,12 +26,12 @@
 <header class="hero">
   <p class="kicker">Part D &middot; Chapter 1</p>
   <h1>Tokenisation</h1>
-  <p class="subtitle">How text becomes the whole numbers a language model reads, and why some languages cost more</p>
+  <p class="subtitle">How text becomes the whole numbers a language model reads, and why GPT-2's tokenizer needs more tokens for the Hindi and Marathi messages than for the English ones</p>
 </header>
 
 <div class="tldr">
-  <p>A language model never sees letters. It sees a list of whole numbers, one per token. This chapter builds a tokenizer from scratch with byte-pair encoding, one merge at a time. Then it looks at two tokenizers in current use. Under GPT-2's tokenizer, a short fisherman's report that takes 23 tokens in English takes 117 tokens in Hindi.</p>
-  <p>For SharkCam this matters because the messages arrive in four languages, and tokens set the cost in memory, time and money. All sixteen messages are invented. The Hindi, Marathi and Hinglish texts have not yet been checked by a native speaker.</p>
+  <p>A language model reads whole numbers, one per token. This chapter builds a tokenizer with byte-pair encoding, one merge at a time, and compares two tokenizers in use. Under GPT-2's tokenizer, the English meaning of one invented report takes 23 tokens and its Hindi text 117.</p>
+  <p>All sixteen messages are invented. The Hindi, Marathi and Hinglish texts have not yet been checked by a native speaker.</p>
 </div>
 <p class="youneed"><b>You will need:</b> <a href="../t2-algorithms/#lookup">dictionary lookup</a> (0.2), <a href="../t1-python/#containers">dictionaries and tuples in Python</a> (0.1) and a feel for <a href="../t2-algorithms/#bigo">Big-O</a> (0.2).</p>
 
@@ -52,49 +52,65 @@
 <!-- ============================ 1. units ============================ -->
 <section id="units" aria-labelledby="units-h">
   <h2 id="units-h">Characters, words or pieces?</h2>
-  <p class="ask"><b>Guess first.</b> A model must read the sentence &ldquo;Two sharkcams filmed hammerheads at Sassoon Dock.&rdquo; You can cut it into letters, into whole words, or into something in between. Which cut gives the shortest list, which needs the biggest dictionary, and which fails on a word it has never seen?</p>
-  <dl class="terms">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> A model must read the sentence &ldquo;Two sharkcams filmed hammerheads at Sassoon Dock.&rdquo; You can cut it into characters, whole words or pieces of words. Which cut gives the fewest units, which needs the biggest vocabulary (the list of all units the model can use), and which fails on a word it has never seen?</p>
+    <p class="claim">A token is one unit of text that has its own number, and the tokenizer is the program that cuts text into tokens. Cut into characters, the sentence gives the most tokens, but the vocabulary is small and no word is unknown. Cut into words, it gives the fewest tokens, but the vocabulary grows with the data. A word that is missing from it becomes &lt;unk&gt;, a placeholder that hides which word was there. Pieces are parts of words or whole common words. GPT-2&rsquo;s pieces can write any text, so none of its tokens is unknown.</p>
+    <div class="card" id="un">
+      <ol class="try"><li>Switch the first sentence between Characters, Words and GPT-2 pieces: the counts are 49, 8 and 12 tokens, and Words shows 3 &lt;unk&gt; chips.</li><li>Press Tag 4128: Words turns 4128 into &lt;unk&gt;, and GPT-2 pieces cut it into &#9601;4 and 128.</li><li>Press Hindi with GPT-2 pieces: 21 characters become 34 tokens, and the coral chips are bytes in hex, only parts of a character.</li></ol>
+    <div class="bar" id="un-bar"></div>
+    <div class="toks" id="un-toks" role="img" aria-label="The chosen sentence cut into tokens, with the number of tokens and how many are unknown"></div>
+    <div class="readout" id="un-read"></div>
+    <p class="status" id="un-status" aria-live="polite"></p>
+  </div>
+    <p class="cap"><b>The first sentence is 49 characters, 8 words with 3 unknown, or 12 GPT-2 pieces with none unknown.</b> The sentences are made up.</p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Count the cost of length.</b> Attention is a step of the model, covered later, that compares the tokens of a text with one another. For n tokens it makes about n &times; n comparisons, so in its usual form its cost grows like n<sup>2</sup>. The first sentence has n = 49 characters but n = 12 GPT-2 pieces.</p>
+    <div class="eqn" role="img" aria-label="For the first sentence, 49 squared is 2,401 comparisons for characters and 12 squared is 144 for pieces, which is 16.7 times as many"><span class="t c-sand"><b>n<sup>2</sup></b><i>comparisons</i></span><span class="op">:</span><span class="t c-navy"><b>49<sup>2</sup> = 2,401</b><i>49 characters</i></span><span class="op">&divide;</span><span class="t c-teal"><b>12<sup>2</sup> = 144</b><i>12 pieces</i></span><span class="op">=</span><span class="t c-coral"><b>16.7</b><i>times as many</i></span></div>
+    <p>The ratio is the square of the length ratio, since 49 &divide; 12 is about 4.1 and 4.1<sup>2</sup> is about 17. Words give the shortest sequence, 8 tokens, but fail differently. The figure&rsquo;s word list has 79 entries, the words and signs of the four English messages, so it lacks &ldquo;sharkcams&rdquo;, &ldquo;filmed&rdquo; and &ldquo;hammerheads&rdquo;, and all three become &lt;unk&gt;. New words, names, numbers and typos keep appearing, so no word list is complete. A short algorithm learns the pieces from text instead, and the next section runs it.</p>
+    <div class="break">
+      <p><b>Common belief.</b> A tokenizer splits text into words.</p>
+      <p><b>Why it fails.</b> Tokens can be pieces of different sizes, and GPT-2&rsquo;s pieces keep common words whole (&ldquo;&#9601;at&rdquo;, &ldquo;&#9601;Dock&rdquo;) and split rare words into known parts (&ldquo;&#9601;shark&rdquo; + &ldquo;c&rdquo; + &ldquo;ams&rdquo;). The number 4128 becomes &ldquo;&#9601;4&rdquo; and &ldquo;128&rdquo;, and &ldquo;sharkcamera&rdquo; becomes &ldquo;&#9601;shark&rdquo; and &ldquo;camera&rdquo;. A Devanagari character can be cut into bytes. The mark &#9601; means a space before the piece, so &ldquo;&#9601;shark&rdquo; and &ldquo;shark&rdquo; are different tokens.</p>
+      <p><b>Better account.</b> A token is whatever piece the vocabulary contains, so a word may be one token or several and counting words predicts the token count badly.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>A word-level model reads &ldquo;Tag 4128&rdquo;. What does it do with 4128?</summary><p>If 4128 is not in its vocabulary, it replaces the number with &lt;unk&gt;, so the model cannot tell which tag was meant. A piece-level tokenizer writes it as known pieces.</p></details>
+      <details><summary>Why not use one token per character?</summary><p>The vocabulary stays small, but the token sequence is long. Attention makes about n &times; n comparisons, so its cost grows with the square of the length.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">terms, longer sequences, spelling variants, used in</span> <span class="deeper-time">about 1 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
     <div><dt>token</dt><dd>one unit of text that gets its own number</dd></div>
     <div><dt>tokenizer</dt><dd>the program that cuts text into tokens and looks up their numbers</dd></div>
     <div><dt>vocabulary</dt><dd>the list of all tokens a model knows</dd></div>
     <div><dt>piece (subword)</dt><dd>a token that is a part of a word, or a whole common word</dd></div>
     <div><dt>unknown token</dt><dd>a placeholder for text the vocabulary cannot write</dd></div>
   </dl>
-  <p class="claim">Letters never fail but make long lists. Words make short lists but cannot read a new word. Pieces fall in between: short lists, no unknown words, and a vocabulary that has to be learned from text.</p>
-  <div class="card" id="un">
-    <div class="bar" id="un-bar"></div>
-    <div class="toks" id="un-toks" role="img" aria-label="The chosen sentence cut into tokens, with the number of tokens and how many are unknown"></div>
-    <div class="readout" id="un-read"></div>
-    <p class="status" id="un-status" aria-live="polite"></p>
-  </div>
-  <p class="cap"><b>The first sentence is 49 character tokens, 8 word tokens with 3 of them unknown, and 12 GPT-2 pieces with none unknown.</b> The word list here has only the 79 words and signs of the four English messages, so it is a small version of a full word list. The sentences are made up.</p>
-  <p>Switch between the three cuts for a sentence. Characters give the longest list, and a model pays for length. Attention, which D4 covers, compares all pairs of tokens, so a list five times longer costs about 25 times as much in that step (<a href="../t2-algorithms/#bigo">0.2</a>). Words give the shortest list, but look at the second sentence. The number 4128 is not in the list, so a word-level model has no way to read it. Names, typos and new spellings arrive forever. Hinglish is written in Latin letters, and writers spell it in their own ways, so one word may appear as <i>chhoti</i> and <i>choti</i>.</p>
-  <p>Pieces solve both problems. GPT-2's pieces keep common words whole (&ldquo;&#9601;at&rdquo;, &ldquo;&#9601;Dock&rdquo;) and split rare ones into known parts (&ldquo;&#9601;shark&rdquo; + &ldquo;c&rdquo; + &ldquo;ams&rdquo;). The mark &#9601; means a space before the piece, because GPT-2 treats &ldquo;&#9601;shark&rdquo; and &ldquo;shark&rdquo; as different tokens. The pieces are not chosen by hand. A short algorithm learns them from text, and the next section runs it.</p>
-  <div class="break">
-    <p><b>Common belief.</b> A tokenizer splits text into words.</p>
-    <p><b>Why it fails.</b> Tokens are pieces of any size. The number 4128 became &ldquo;&#9601;4&rdquo; and &ldquo;128&rdquo;. The word &ldquo;sharkcamera&rdquo; became &ldquo;&#9601;shark&rdquo; and &ldquo;camera&rdquo;. A Devanagari letter can be cut into bytes.</p>
-    <p><b>Better account.</b> A token is whatever piece the vocabulary contains. One word may be one token or several, and counting words predicts the token count badly.</p>
-  </div>
-  <p class="used"><b>Used in:</b> the sequence length <i>n</i> that attention works on (<a href="../d4-self-attention/#mask">D4</a>), and the cost of long inputs (<a href="../d6-long-context/#cost">D6</a>).</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>A word-level model reads the report &ldquo;Tag 4128&rdquo;. What does it do with 4128?</summary><p>If 4128 is not in its list, it replaces the number with the unknown token, so the model never learns which tag was meant. A piece-level tokenizer writes it as known pieces.</p></details>
-    <details><summary>Why not simply use one token per character, always?</summary><p>The vocabulary stays tiny, but the sequence gets long. Attention compares all pairs of tokens, so the cost grows with the square of the length.</p></details>
-  </div>
+      <h4>Longer sequences, larger vocabularies, spelling variants</h4>
+      <p>Because the cost grows like n<sup>2</sup>, a sequence five times longer costs about 25 times as much in the attention step (<a href="../t2-algorithms/#bigo">0.2</a>). A character vocabulary for English needs about 100 letters, digits and signs, while Unicode lists over 100,000 characters in all. The word list of the figure is a small version of a full word list. Names, numbers, typos and new spellings keep arriving, so a word vocabulary keeps growing. Hinglish is written in Latin letters, and writers spell it in their own ways, so one word may appear as <i>chhoti</i> and <i>choti</i>, which a word list treats as two different words.</p>
+      <h4>Where this is used</h4>
+      <p class="used"><b>Used in:</b> the sequence length <i>n</i> that attention works on (<a href="../d4-self-attention/#mask">D4</a>), and the cost of long inputs (<a href="../d6-long-context/#cost">D6</a>).</p>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 2. bpe ============================ -->
 <section id="bpe" aria-labelledby="bpe-h">
   <h2 id="bpe-h">Byte-pair encoding, one merge at a time</h2>
-  <p class="ask"><b>Guess first.</b> Words start as rows of single letters. At a step you may glue one pair of neighbouring symbols into a new symbol, in all the places it occurs. The pair &ldquo;ha&rdquo; appears inside shark, sharks, sharkcam and hammerhead. Which pair would you glue first to make the corpus shorter, and when would you stop?</p>
-  <dl class="terms">
-    <div><dt>pair</dt><dd>two symbols next to one another inside a word</dd></div>
-    <div><dt>merge</dt><dd>replacing all occurrences of a pair by one new symbol, which joins the vocabulary</dd></div>
-    <div><dt>byte-pair encoding (BPE)</dt><dd>training a tokenizer by merging the most frequent pair, again and again</dd></div>
-    <div><dt>merge list</dt><dd>the merges in the order they were learned</dd></div>
-  </dl>
-  <p class="claim">Byte-pair encoding starts from single characters and merges the most frequent neighbouring pair, so common words become one token and rare words stay in pieces.</p>
-  <div class="card" id="tr">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> Words start as rows of single characters, and in one step you may glue two neighbouring symbols into one new symbol, in all the places where the pair occurs. The pair &ldquo;ha&rdquo; appears inside shark, sharks, sharkcam, hammerhead and hammerheads. Which pair would you glue first to make the corpus, the training text, shorter, and when would you stop?</p>
+    <p class="claim">Byte-pair encoding (BPE) is an algorithm that learns the pieces from the corpus, here a made-up corpus of 15 words with counts. It counts the pairs of neighbouring symbols, weighted by how often their word occurs, and merges the most frequent pair into one new symbol. A merge shortens the corpus by the number of times the pair occurred, so the most frequent pair shortens it most. The algorithm repeats this for a number of merges that a person chooses in advance. Common words become single tokens early, while rare words stay in pieces for longer.</p>
+    <div class="card" id="tr">
+      <ol class="try"><li>Press Reset, then Step: the coral pair h + a (29 times) becomes ha, and the corpus falls from 408 to 379 pieces.</li><li>Press Step four more times: shark becomes the single piece &#9601;shark (&#9601; marks the space before the word).</li><li>Drag Merges done to 30: the corpus is 99 pieces long, but bamboo is still in five pieces.</li></ol>
     <div class="bar" id="tr-bar"></div>
     <div class="controls" id="tr-controls"></div>
     <div class="tr-grid">
@@ -112,24 +128,54 @@
     <div class="readout" id="tr-read"></div>
     <p class="status" id="tr-status" aria-live="polite"></p>
   </div>
-  <p class="cap"><b>Five merges turn &ldquo;shark&rdquo; into one token. After 30 merges the corpus is 99 pieces long instead of 408, but &ldquo;bamboo&rdquo; is still in five pieces because it is rare.</b> Press Step to do one merge, Play to watch them run, and Back to undo. The word counts are made up.</p>
-  <p>Read the figure in four steps. First, the words are cut into characters, with &#9601; marking the space before it. Second, the plot counts all neighbouring pairs, weighted by how often its word occurs. Third, the most frequent pair is glued together in all words, and the new symbol joins the vocabulary. Fourth, the loop repeats. The dashed outlines in the corpus show where the next merge will happen. When two pairs tie, the one met first in the table wins. Training stops after a chosen number of merges. In this tiny corpus all words are single pieces after 44 merges, so the vocabulary would only be the word list. A production tokenizer stops much earlier, at a size chosen in advance.</p>
-  <p>The first merge is &ldquo;h&rdquo; + &ldquo;a&rdquo; with a count of 29, and the working is the equation box. Its terms are the words that contain &ldquo;ha&rdquo;: shark 10, sharks 7, sharkcam 5, hammerhead 4 and hammerheads 3. Take a second example by hand. The pair &ldquo;e&rdquo; + &ldquo;r&rdquo; is merged eighth with a count of 9. It occurs once in hammerhead (4), once in hammerheads (3) and once in diver (2), and \(4 + 3 + 2 = 9\). Pair counts change as merges happen, because a merge removes old pairs and creates new ones. That is why the plot is redrawn after a merge.</p>
-  <p class="math">\[ \mathrm{count}(a,b) \;=\; \sum_{w} f(w)\; c_w(a,b) \qquad\qquad (a^{*}, b^{*}) \;=\; \operatorname*{arg\,max}_{(a,b)} \; \mathrm{count}(a,b) \]</p>
-  <ul class="math-notes">
+    <p class="cap"><b>Five merges turn &ldquo;shark&rdquo; into one token; after 30 merges the corpus has 99 pieces instead of 408, but &ldquo;bamboo&rdquo; still has five.</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Take the first merge.</b> The pair h + a occurs once in five words: shark, which occurs 10 times in the corpus, sharks (7), sharkcam (5), hammerhead (4) and hammerheads (3). A word counts as often as it occurs, so the pair has a count of 29, the highest of all pairs, and ha joins the vocabulary.</p>
+    <div class="eqn" role="img" aria-label="The pair h and a occurs 29 times: shark 10, plus sharks 7, plus sharkcam 5, plus hammerhead 4, plus hammerheads 3"><span class="t c-sand"><b>count</b><i>of the pair h + a</i></span><span class="op">:</span><span class="t c-navy"><b>10</b><i>shark</i></span><span class="op">+</span><span class="t c-navy"><b>7</b><i>sharks</i></span><span class="op">+</span><span class="t c-navy"><b>5</b><i>sharkcam</i></span><span class="op">+</span><span class="t c-navy"><b>4</b><i>hammerhead</i></span><span class="op">+</span><span class="t c-navy"><b>3</b><i>hammerheads</i></span><span class="op">=</span><span class="t c-coral"><b>29</b><i>count of h + a</i></span></div>
+    <p><b>After a merge the counts change.</b> The row &#9601; s h a r k becomes &#9601; s ha r k. The pairs s + h, h + a and a + r disappear and the pairs s + ha and ha + r appear, which is why the plot is drawn again after a merge. Merge 2 is &#9601; + s with a count of 22 (shark 10, sharks 7, sharkcam 5). Bamboo occurs 3 times, which is low in this corpus, so its pairs have low counts and are merged late.</p>
+    <div class="break">
+      <p><b>Analogy.</b> Text-message shorthand: people shorten the phrases they type most, such as &ldquo;lol&rdquo;, so common phrases take few symbols.</p>
+      <p><b>Where it breaks.</b> People shorten with meaning in mind, while BPE uses counts alone, so a piece such as &ldquo;&#9601;hammerh&rdquo; can appear because it was frequent, whatever its meaning. Pieces often look like word parts, as with the plural &ldquo;s&rdquo;, because word parts repeat.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>After the merge &ldquo;h&rdquo; + &ldquo;a&rdquo;, is the pair &ldquo;s&rdquo; + &ldquo;h&rdquo; still in &ldquo;shark&rdquo;?</summary><p>No. The row is now &ldquo;&#9601; s ha r k&rdquo;, so the pairs are &ldquo;&#9601;s&rdquo;, &ldquo;s ha&rdquo;, &ldquo;ha r&rdquo; and &ldquo;r k&rdquo;. A merge removes old pairs and makes new ones.</p></details>
+      <details><summary>Does training need the labels or meanings of words?</summary><p>No. It counts neighbouring pairs in raw text, so it needs no labels.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">terms, second merge, equation, code, history</span> <span class="deeper-time">about 4 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
+    <div><dt>pair</dt><dd>two symbols next to one another inside a word</dd></div>
+    <div><dt>merge</dt><dd>replacing all occurrences of a pair by one new symbol, which joins the vocabulary</dd></div>
+    <div><dt>byte-pair encoding (BPE)</dt><dd>training a tokenizer by merging the most frequent pair, again and again</dd></div>
+    <div><dt>merge list</dt><dd>the merges in the order they were learned</dd></div>
+  </dl>
+      <h4>How to read the figure</h4>
+      <p>Read the figure in four steps. First, the words are cut into characters, with &#9601; marking the space before the word. Second, the plot counts all neighbouring pairs, weighted by how often their word occurs. Third, the most frequent pair is glued together in all words, and the new symbol joins the vocabulary. Fourth, the loop repeats. The dashed outlines in the corpus show where the next merge will happen. When two pairs tie, the one met first in the table wins. Training stops after a chosen number of merges. In this tiny corpus all 15 words are single pieces after 44 merges and no pair is left. A production tokenizer stops much earlier, at a vocabulary size chosen in advance. Press Step to do one merge, Play to watch them run, and Back to undo. The word counts are made up.</p>
+      <h4>A second example</h4>
+      <p>Take a second example by hand. The pair &ldquo;e&rdquo; + &ldquo;r&rdquo; is merged eighth with a count of 9. It occurs once in hammerhead (4), once in hammerheads (3) and once in diver (2), and \(4 + 3 + 2 = 9\). The equation box of the figure shows the same kind of sum for the pair that is merged next.</p>
+      <h4>The counts as an equation</h4>
+      <p class="math">\[ \mathrm{count}(a,b) \;=\; \sum_{w} f(w)\; c_w(a,b) \qquad\qquad (a^{*}, b^{*}) \;=\; \operatorname*{arg\,max}_{(a,b)} \; \mathrm{count}(a,b) \]</p>
+      <ul class="math-notes">
     <li><b>\(w\)</b> is a distinct word, <b>\(f(w)\)</b> is how often it occurs in the corpus, and <b>\(c_w(a,b)\)</b> is how many times the symbol \(a\) is directly followed by \(b\) inside \(w\).</li>
     <li><b>\((a^{*}, b^{*})\)</b> is the pair with the largest count. It becomes the new symbol \(a^{*}b^{*}\).</li>
     <li>The vocabulary size is the alphabet size plus the number of merges. Here \(43 + 44 = 87\).</li>
   </ul>
-  <p>Why does counting words with their frequencies work? Scanning ten copies of &ldquo;shark&rdquo; finds the same pair ten times, so counting the word once and multiplying by 10 gives the same total, much faster. Practical implementations do this. The method is greedy: it never looks ahead. The pieces &ldquo;&#9601;sha&rdquo; and &ldquo;&#9601;shar&rdquo; were useful stepping stones, but after &ldquo;&#9601;shark&rdquo; forms they no longer appear in any word. They stay in the vocabulary anyway. The method began as a way to compress data (Gage, 1994). Sennrich, Haddow and Birch (2016) brought it to machine translation to cope with rare words. The same algorithm trains GPT-2's tokenizer, with bytes as the alphabet (256 byte symbols, 50,000 merges and one special token make its 50,257 entries).</p>
-  <div class="break">
-    <p><b>Analogy.</b> Text-message shorthand. People shorten the phrases they type most, such as &ldquo;lol&rdquo;, so the common phrases take few symbols.</p>
-    <p><b>Where it breaks.</b> People choose shorthand by meaning. BPE chooses by counts alone, so a piece such as &ldquo;&#9601;hammerh&rdquo; can appear because it was frequent. Its meaning plays no part. Pieces often look like word parts, as with the plural &ldquo;s&rdquo;, only because word parts repeat.</p>
-  </div>
-  <div class="debug">
+      <h4>Why counting words works, and what BPE leaves behind</h4>
+      <p>Why does counting words with their frequencies work? Scanning ten copies of &ldquo;shark&rdquo; finds the same pair ten times, so counting the word once and multiplying by 10 gives the same total, much faster. Practical implementations do this. The method is greedy: it never looks ahead. The pieces &ldquo;&#9601;sha&rdquo; and &ldquo;&#9601;shar&rdquo; were useful stepping stones, but after &ldquo;&#9601;shark&rdquo; forms they no longer appear in any word. They stay in the vocabulary anyway: of the 44 merged pieces, 15 are whole words and 29 are stepping stones, so the vocabulary of 87 is larger than the list of 15 words. The method began as a way to compress data (Gage, 1994). Sennrich, Haddow and Birch (2016) brought it to machine translation to cope with rare words. The same algorithm trains GPT-2&rsquo;s tokenizer, with bytes as the alphabet (256 byte symbols, 50,000 merges and one special token make its 50,257 entries).</p>
+      <h4>Common mistakes</h4>
+      <div class="debug">
     <p><b>Debug tip.</b> If two runs on the same text give different vocabularies, check how ties are broken. Production trainers fix a rule (here: first seen). A tie broken at random would give a different tokenizer from one run to the next, and a model works only with the tokenizer it was trained with.</p>
   </div>
-  <pre class="code" data-run><code>from collections import Counter
+      <h4>In Python</h4>
+      <pre class="code" data-run><code>from collections import Counter
 
 words = {"shark": 10, "sharks": 7, "hammerhead": 4, "dock": 5, "docks": 3}   # made-up counts
 corpus = {w: ["▁"] + list(w) for w in words}   # start from characters; ▁ marks the space before a word
@@ -156,31 +202,26 @@ for step in range(1, 4):
     corpus = {w: merge(p, best) for w, p in corpus.items()}
     print(f"merge {step}: {best[0]} + {best[1]} -&gt; {best[0] + best[1]}  ({n} times)")
 print(corpus["sharks"], corpus["hammerhead"])</code></pre>
-  <pre class="out">merge 1: h + a -> ha  (21 times)
+      <pre class="out">merge 1: h + a -> ha  (21 times)
 merge 2: ▁ + s -> ▁s  (17 times)
 merge 3: ▁s + ha -> ▁sha  (17 times)
 ['▁sha', 'r', 'k', 's'] ['▁', 'ha', 'm', 'm', 'e', 'r', 'h', 'e', 'a', 'd']</pre>
-  <p>This corpus is smaller than the one in the figure, so its counts differ (21 instead of 29 for &ldquo;ha&rdquo;). The first merges still match.</p>
-  <p class="used"><b>Used in:</b> all modern language models. The next sections use the merges to cut new text (<a href="#apply">3</a>) and give the pieces their numbers (<a href="#vocab">4</a>).</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>After the merge &ldquo;h&rdquo; + &ldquo;a&rdquo;, is the pair &ldquo;s&rdquo; + &ldquo;h&rdquo; still in &ldquo;shark&rdquo;?</summary><p>No. The row is now &ldquo;&#9601; s ha r k&rdquo;, so the pairs are &ldquo;&#9601;s&rdquo;, &ldquo;s ha&rdquo;, &ldquo;ha r&rdquo; and &ldquo;r k&rdquo;. A merge removes old pairs and makes new ones.</p></details>
-    <details><summary>Does training need the labels or meanings of words?</summary><p>No. It only counts neighbouring pairs in raw text, so it needs no labels.</p></details>
-  </div>
+      <p>This corpus is smaller than the one in the figure, so its counts differ (21 instead of 29 for &ldquo;ha&rdquo;). The first merges still match.</p>
+      <h4>Where this is used</h4>
+      <p class="used"><b>Used in:</b> many language models, GPT-2 among them. The next sections use the merges to cut new text (<a href="#apply">3</a>) and give the pieces their numbers (<a href="#vocab">4</a>).</p>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 3. apply ============================ -->
 <section id="apply" aria-labelledby="apply-h">
   <h2 id="apply-h">Using the merges on new text</h2>
-  <p class="ask"><b>Guess first.</b> You trained 44 merges. Someone now types &ldquo;hammerheads at the dock&rdquo;. Does the tokenizer need the training corpus, or only the merge list? What will it do with &ldquo;at&rdquo;, which never appeared in training?</p>
-  <dl class="terms">
-    <div><dt>encode</dt><dd>turn text into tokens, using the merge list</dd></div>
-    <div><dt>pre-tokenise</dt><dd>split text into words and signs first, so merges never join two words</dd></div>
-    <div><dt>byte fallback</dt><dd>writing a character that is not in the alphabet as its UTF-8 bytes</dd></div>
-    <div><dt>&lt;unk&gt;</dt><dd>the unknown token, used when no fallback exists</dd></div>
-  </dl>
-  <p class="claim">To tokenise new text, split it into words, break the words into characters, then apply the merges in the order they were learned.</p>
-  <div class="card" id="lv">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> You trained 44 merges, and someone now types &ldquo;hammerheads at the dock&rdquo;. Does the tokenizer need the training corpus, or only the merge list (the merges in the order they were learned)? What will it do with &ldquo;at&rdquo;, which never appeared in training?</p>
+    <p class="claim">To encode new text, which means to turn it into tokens, the tokenizer splits the text into words and breaks the words into characters. It then applies the merges in the order they were learned, and it needs the merge list but not the training corpus. Splitting into words first keeps a merge from joining the end of one word to the start of the next. A character that is not in the alphabet (its starting symbols) needs a rule. Byte fallback writes it as its bytes, the numbers a computer stores for it, and the other choice replaces it with &lt;unk&gt;.</p>
+    <div class="card" id="lv">
+      <ol class="try"><li>Drag Merges used to 0: the text is 24 tokens, 20 letters and 4 &#9601; marks.</li><li>Press Use all 44: 8 tokens remain, &#9601;hammerheads and &#9601;dock whole but &ldquo;at&rdquo; and &ldquo;the&rdquo; in characters (&#9601; a t, &#9601;t h e).</li><li>Press the preset छोटी बांस शार्क: Write as bytes gives 42 tokens (3 per character, 3 &#9601; marks), and Use &lt;unk&gt; gives 16.</li></ol>
     <div class="bar" id="lv-bar"></div>
     <div class="controls" id="lv-controls"></div>
     <label class="vlab label-block" for="lv-text">Type some text</label>
@@ -193,36 +234,59 @@ merge 3: ▁s + ha -> ▁sha  (17 times)
     <div class="readout" id="lv-read"></div>
     <p class="status" id="lv-status" aria-live="polite"></p>
   </div>
-  <p class="cap"><b>With no merges the text &ldquo;hammerheads at the dock&rdquo; takes 24 tokens. With all 44 merges it takes 8.</b> The small number under a token is its ID, the subject of the next section. The merges come from the trainer above, so the slider and the trainer stay in step.</p>
-  <p>Slide the merges from 0 to 44 and watch the text shrink. Words from the training corpus collapse quickly. &ldquo;Hammerheads&rdquo; is one token once its merges are done. &ldquo;At&rdquo; and &ldquo;the&rdquo; never appeared in training, so they stay as letters. Only the merge &ldquo;&#9601;&rdquo; + &ldquo;t&rdquo; helps, so &ldquo;the&rdquo; becomes &ldquo;&#9601;t&rdquo;, &ldquo;h&rdquo; and &ldquo;e&rdquo;. A tokenizer trained on SharkCam notes would cut ordinary English into many pieces, in the same way GPT-2's tokenizer, trained on mostly English text, cuts Devanagari (section 7). Now try the Hindi preset. With byte fallback, a Devanagari letter becomes three byte tokens and no information is lost. With &lt;unk&gt;, all letters become the same placeholder, and the model cannot tell them apart.</p>
-  <p>The merges must be applied in the order they were learned. Take the two merges &ldquo;&#9601;&rdquo; + &ldquo;s&rdquo; and then &ldquo;&#9601;s&rdquo; + &ldquo;ha&rdquo;. The second needs the first. Applying them out of order would never produce &ldquo;&#9601;sha&rdquo;. Most tokenizers in use also split text into words with a pattern before merging, as the figure does. A merge then never joins the end of one word to the start of the next.</p>
-  <div class="break">
-    <p><b>Common belief.</b> A tokenizer looks up words in a dictionary of words.</p>
-    <p><b>Why it fails.</b> The dictionary contains pieces. A word it has never seen is built from pieces by the merge list, so no word is ever missing. Only the pieces are looked up.</p>
-    <p><b>Better account.</b> The merge list is a recipe for cutting text. The vocabulary, covered next, gives the pieces their numbers.</p>
+    <p class="cap"><b>With no merges the text &ldquo;hammerheads at the dock&rdquo; takes 24 tokens, and with all 44 merges it takes 8.</b> The small number under a token is its ID.</p>
   </div>
-  <div class="debug">
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Apply the merges to &ldquo;hammerheads&rdquo;.</b> The word starts as 12 symbols, &#9601; h a m m e r h e a d s. Eleven of the 44 merges apply to it, in the order they were learned. They are merge 1 (h + a), merge 8 (e + r) and merge 18 (&#9601; + ha). Merges 19 to 25 add m, m, er, h, e, a and d one by one, and merge 29 is &#9601;hammerhead + s.</p>
+    <div class="eqn" role="img" aria-label="Twelve symbols minus eleven merges leaves one token, hammerheads"><span class="t c-sand"><b>length</b><i>of the word</i></span><span class="op">:</span><span class="t c-navy"><b>12</b><i>symbols at the start</i></span><span class="op">&minus;</span><span class="t c-coral"><b>11</b><i>merges that apply</i></span><span class="op">=</span><span class="t c-teal"><b>1</b><i>token, &#9601;hammerheads</i></span></div>
+    <p>A merge joins two symbols into one, so here the word shrinks by one symbol per merge, from 12 symbols to one token. The word &ldquo;at&rdquo; was not in the training corpus, and no merge joins &#9601; with a or a with t, so it stays in three tokens, &#9601; a t. For &ldquo;the&rdquo; only merge 7 (&#9601; + t) applies, which gives &#9601;t h e. The order of the merges matters: merge 3 (&#9601;s + ha) joins symbols that merges 1 and 2 made, so applied before them it would have no pair to join.</p>
+    <div class="break">
+      <p><b>Common belief.</b> A tokenizer looks up words in a dictionary of words.</p>
+      <p><b>Why it fails.</b> The vocabulary contains pieces, and a word the tokenizer has never seen is built from pieces by the merge list; with byte fallback any text can be written.</p>
+      <p><b>Better account.</b> The merge list is a recipe for cutting text, and the vocabulary, covered next, gives the pieces their numbers.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>How many tokens does &ldquo;at&rdquo; take in the toy tokenizer, and why?</summary><p>Three: &#9601;, a and t. The pairs &#9601;a and at never occur in the training corpus, so no merge joins them.</p></details>
+      <details><summary>Does byte fallback lose information?</summary><p>No. A character outside the alphabet is written as its bytes, and the bytes rebuild the character. It costs more tokens. The option to make letters lower case first does remove capitals.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">terms, splitting into words, debug tip, used in</span> <span class="deeper-time">about 2 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
+    <div><dt>encode</dt><dd>turn text into tokens, using the merge list</dd></div>
+    <div><dt>pre-tokenise</dt><dd>split text into words and signs first, so merges never join two words</dd></div>
+    <div><dt>byte fallback</dt><dd>writing a character that is not in the alphabet as its UTF-8 bytes</dd></div>
+    <div><dt>&lt;unk&gt;</dt><dd>the unknown token, used when no fallback exists</dd></div>
+  </dl>
+      <h4>What the figure shows</h4>
+      <p>Slide the merges from 0 to 44 and watch the text shrink. Words from the training corpus collapse quickly, and &ldquo;hammerheads&rdquo; is one token once its merges are done. &ldquo;At&rdquo; and &ldquo;the&rdquo; never appeared in training, so they stay as letters, except that the merge &#9601; + t turns &ldquo;the&rdquo; into &ldquo;&#9601;t&rdquo;, &ldquo;h&rdquo; and &ldquo;e&rdquo;. A tokenizer trained on SharkCam notes would cut ordinary English into many pieces, in the same way that GPT-2&rsquo;s tokenizer, probably trained on mostly English text, cuts Devanagari (<a href="#languages">section 7</a>). With the Hindi preset and byte fallback, a Devanagari character becomes three byte tokens and no information is lost. With &lt;unk&gt;, all characters become the same placeholder, and the model cannot tell them apart. The slider and the trainer above share one setting, so the merges stay in step.</p>
+      <h4>Splitting into words first</h4>
+      <p>Most tokenizers in use also split text into words with a pattern before merging, as the figure does. A merge then never joins the end of one word to the start of the next.</p>
+      <h4>Common mistakes</h4>
+      <div class="debug">
     <p><b>Debug tip.</b> A stray space changes the tokens. In GPT-2, &ldquo;&#9601;shark&rdquo; is token 21027 but &ldquo;shark&rdquo; without a space is two tokens, 1477 and 668. When a prompt behaves oddly, print the tokens, not the text. A model trained with one tokenizer also cannot read the IDs of another, so always load the tokenizer that belongs to the model.</p>
   </div>
-  <p class="used"><b>Used in:</b> any call to a language model. A prompt is charged by its number of tokens (<a href="#languages">section 7</a>).</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>Why does &ldquo;the&rdquo; stay as three tokens in the toy tokenizer?</summary><p>No merge ever joined those letters, because the word &ldquo;the&rdquo; is not in the training corpus. The merge list only knows the pairs it counted.</p></details>
-    <details><summary>Does byte fallback lose information?</summary><p>No. Any character can be written as bytes, so the text can be rebuilt. It only costs more tokens.</p></details>
-  </div>
+      <h4>Where this is used</h4>
+      <p class="used"><b>Used in:</b> any call to a language model. Many services charge a prompt by its number of tokens (<a href="#languages">section 7</a>).</p>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 4. vocabulary ============================ -->
 <section id="vocab" aria-labelledby="vocab-h">
   <h2 id="vocab-h">Vocabulary and IDs</h2>
-  <p class="ask"><b>Guess first.</b> A model works on numbers. GPT-2's vocabulary has 50,257 tokens. If you stored it as a list and scanned it to find a token's number, about how many comparisons would one lookup need on average? What would a dictionary need?</p>
-  <dl class="terms">
-    <div><dt>ID</dt><dd>the whole number that names a token, its position in the vocabulary</dd></div>
-    <div><dt>vocabulary</dt><dd>a dictionary from token to ID, plus the list from ID back to token</dd></div>
-    <div><dt>decode</dt><dd>turn IDs back into text</dd></div>
-  </dl>
-  <p class="claim">A vocabulary is a dictionary from token to ID and a list from ID back to token, so a lookup takes one step.</p>
-  <div class="card" id="vc">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> A model works on numbers, and GPT-2&rsquo;s vocabulary has 50,257 tokens. Suppose you stored the vocabulary as a list and scanned it from the start, and all tokens were equally likely. About how many comparisons would one lookup need on average, and how many would a dictionary need?</p>
+    <p class="claim">The vocabulary gives a token an ID, a whole number. A dictionary, such as Python&rsquo;s dict, maps the token to its ID and finds a key in about one step on average, however many keys it has. A list of tokens maps an ID back to its token by position, which is also one step. Encoding looks tokens up in the dictionary, and decoding reads the list, whereas scanning the list to find a token would be much slower.</p>
+    <div class="card" id="vc">
+      <ol class="try"><li>With 5 or more merges set above, the first box shows &#9601;shark with ID 307: a list scan would need 308 comparisons, a dictionary 1 step.</li><li>Type 307 in the first box: it returns &#9601;shark, read by position in one step.</li><li>At 5 merges, &ldquo;sharks at the dock&rdquo; encodes to 14 IDs and decodes to the same text.</li></ol>
     <div class="vc-grid">
       <div>
         <p class="vlab m-b4">The toy vocabulary, with the merges chosen above (click a row)</p>
@@ -239,16 +303,47 @@ merge 3: ▁s + ha -> ▁sha  (17 times)
       </div>
     </div>
   </div>
-  <p class="cap"><b>A list scan needs one comparison per position it passes, so a token with ID 307 costs 308 comparisons. A dictionary needs one step.</b> The vocabulary changes with the merge slider above, so IDs of merged tokens depend on how many merges you did.</p>
-  <p>The layout follows common practice. IDs 0 to 3 are special tokens (section 5 explains them). Then come 256 byte tokens for the fallback, then the alphabet, then the merges in the order they were learned. To encode, the tokenizer looks up the tokens in the dictionary. To decode, it uses the IDs as positions in the list and joins the pieces. This is the dictionary lookup of <a href="../t2-algorithms/#lookup">0.2</a>. Python's <code>dict</code> finds a key in about one comparison however large it is, while a list needs about half its length.</p>
-  <div class="eqn" role="img" aria-label="With V equal to 50,257, a list scan needs about 25,129 comparisons per token, so a text of 1,000 tokens needs about 25 million comparisons, against 1,000 for a dictionary"><span class="t c-navy"><b>(50,257 + 1) &divide; 2</b><i>average list scan</i></span><span class="op">=</span><span class="t c-coral"><b>25,129</b><i>comparisons per token</i></span><span class="op">&times;</span><span class="t c-navy"><b>1,000</b><i>tokens in a text</i></span><span class="op">=</span><span class="t c-coral"><b>25,129,000</b><i>comparisons</i></span><span class="op">vs</span><span class="t c-teal"><b>1,000</b><i>with a dictionary</i></span></div>
-  <p class="math">\[ \text{list scan: } \frac{V+1}{2} \text{ comparisons on average} \qquad \text{dictionary: } \approx 1 \qquad \text{ID} \to \text{token: } 1 \]</p>
-  <ul class="math-notes">
+    <p class="cap"><b>A list scan needs one comparison per position it passes, so ID 307 costs 308 comparisons, and a dictionary needs one step.</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>The toy vocabulary has a fixed layout.</b> IDs 0 to 3 are special tokens, which mark structure. IDs 4 to 259 are the 256 byte values, and IDs 260 to 302 are the 43 symbols of the alphabet. The merged tokens follow in the order of the merges, so the n-th merge has the ID 302 + n. For &#9601;shark, the fifth merge, that is 302 + 5 = 307, however many merges you use above.</p>
+    <div class="eqn" role="img" aria-label="With V equal to 50,257, a list scan needs about 25,129 comparisons per token if all tokens are equally likely, so a text of 1,000 tokens needs about 25 million comparisons, against 1,000 for a dictionary"><span class="t c-navy"><b>(50,257 + 1) &divide; 2</b><i>average list scan</i></span><span class="op">=</span><span class="t c-coral"><b>25,129</b><i>comparisons per token</i></span><span class="op">&times;</span><span class="t c-navy"><b>1,000</b><i>tokens in a text</i></span><span class="op">=</span><span class="t c-coral"><b>25,129,000</b><i>comparisons</i></span><span class="op">vs</span><span class="t c-teal"><b>1,000</b><i>with a dictionary</i></span></div>
+    <p>Here V = 50,257 is the vocabulary size, so a scan may pass up to V positions. Suppose the token you look for is equally likely to be at any of them. A scan then needs 1 comparison for the first position, 2 for the second and V for the last, which averages (V + 1) &divide; 2. Frequent tokens have small IDs, so a scan over text would stop earlier, but its cost still grows with V.</p>
+    <div class="break">
+      <p><b>Common belief.</b> Token IDs have meaning, so nearby IDs are similar words.</p>
+      <p><b>Why it fails.</b> An ID is a position in a list that follows the order of the merges. &ldquo;&#9601;shark&rdquo; (21027) and &ldquo;&#9601;sharks&rdquo; (27476) are far apart in GPT-2.</p>
+      <p><b>Better account.</b> An ID is a name, and meaning comes later from the embedding, a list of numbers that the model learns for an ID, which is the next chapter.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>For a text of 1,000 tokens and GPT-2&rsquo;s vocabulary of 50,257, about how many comparisons do a list scan and a dictionary need?</summary><p>About 25,129 per token, so 25,129,000 for the text, against about 1,000 for a dictionary.</p></details>
+      <details><summary>What ID does the 10th merged token have in the toy vocabulary?</summary><p>The ID is 302 + 10 = 312, which is the token &#9601;div.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">terms, layout, binary search, GPT-2 IDs, code</span> <span class="deeper-time">about 3 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
+    <div><dt>ID</dt><dd>the whole number that names a token, its position in the vocabulary</dd></div>
+    <div><dt>vocabulary</dt><dd>a dictionary from token to ID, plus the list from ID back to token</dd></div>
+    <div><dt>decode</dt><dd>turn IDs back into text</dd></div>
+  </dl>
+      <h4>Layout and lookups</h4>
+      <p>The layout is that of this toy vocabulary. Tokenizers in use differ: in GPT-2 the special token &lt;|endoftext|&gt; has the last ID, 50256. IDs 0 to 3 are special tokens (<a href="#special">section 5</a> explains them). Then come 256 byte tokens for the fallback, then the alphabet, then the merges in the order they were learned. To encode, the tokenizer looks up the tokens in the dictionary. To decode, it uses the IDs as positions in the list and joins the pieces. This is the dictionary lookup of <a href="../t2-algorithms/#lookup">0.2</a>. Python&rsquo;s <code>dict</code> finds a key in about one comparison on average however large it is, while a list needs about half its length. The merge sliders choose which merged tokens exist, but not their IDs.</p>
+      <h4>Binary search and the symbols</h4>
+      <p class="math">\[ \text{list scan: } \frac{V+1}{2} \text{ comparisons on average} \qquad \text{dictionary: } \approx 1 \qquad \text{ID} \to \text{token: } 1 \]</p>
+      <ul class="math-notes">
     <li><b>\(V\)</b> is the vocabulary size. For GPT-2, \(V = 50{,}257\).</li>
     <li>A sorted list with binary search (<a href="../t2-algorithms/#search">0.2</a>) would need at most \(\lfloor\log_2 V\rfloor + 1 = 16\) comparisons. A dictionary still wins, and needs no sorting.</li>
   </ul>
-  <p>Here are some GPT-2 IDs, found with the tokenizer: &ldquo;&#9601;shark&rdquo; is 21027, &ldquo;&#9601;sharks&rdquo; is 27476, &ldquo;&#9601;Dock&rdquo; is 36444, &ldquo;&#9601;bamboo&rdquo; is 37252 and &ldquo;&#9601;the&rdquo; is 262. Common words got small IDs because their merges were learned early. The IDs have no meaning by themselves: 21027 is not close in meaning to 21028. The model turns an ID into a list of learned numbers, an embedding, which is the next chapter (<a href="../d2-embeddings/#onehot">D2</a>).</p>
-  <pre class="code" data-run><code># a toy vocabulary: token -&gt; ID
+      <h4>Some GPT-2 IDs</h4>
+      <p>Here are some GPT-2 IDs, found with the tokenizer: &ldquo;&#9601;shark&rdquo; is 21027, &ldquo;&#9601;sharks&rdquo; is 27476, &ldquo;&#9601;Dock&rdquo; is 36444, &ldquo;&#9601;bamboo&rdquo; is 37252 and &ldquo;&#9601;the&rdquo; is 262. In GPT-2 the IDs of merged tokens follow the order of the merges, so common words got small IDs, because their merges were learned early. The IDs have no meaning by themselves: &ldquo;&#9601;shark&rdquo; and &ldquo;&#9601;sharks&rdquo; are close in meaning but far apart in ID. The model turns an ID into a list of learned numbers, an embedding, which is the next chapter (<a href="../d2-embeddings/#onehot">D2</a>).</p>
+      <h4>In Python</h4>
+      <pre class="code" data-run><code># a toy vocabulary: token -&gt; ID
 vocab = {"&lt;pad&gt;": 0, "&lt;unk&gt;": 1, "&lt;bos&gt;": 2, "&lt;eos&gt;": 3, "▁shark": 4, "s": 5, "▁dock": 6, "▁at": 7}
 inverse = {i: t for t, i in vocab.items()}          # ID -&gt; token, to read the model's answer
 
@@ -257,141 +352,210 @@ ids = [vocab.get(t, vocab["&lt;unk&gt;"]) for t in tokens]  # unknown pieces bec
 print(ids)
 print("".join(inverse[i] for i in ids if i &gt; 3).replace("▁", " "))
 print(vocab.get("▁hammerhead", vocab["&lt;unk&gt;"]))</code></pre>
-  <pre class="out">[2, 4, 5, 7, 6, 3]
+      <pre class="out">[2, 4, 5, 7, 6, 3]
  sharks at dock
 1</pre>
-  <div class="break">
-    <p><b>Common belief.</b> Token IDs have meaning, so nearby IDs are similar words.</p>
-    <p><b>Why it fails.</b> An ID is only a position in a list that came from training order. &ldquo;&#9601;shark&rdquo; (21027) and &ldquo;&#9601;sharks&rdquo; (27476) are far apart.</p>
-    <p><b>Better account.</b> An ID is a name. Meaning is added later by the embedding table, which gives all IDs learned vectors.</p>
-  </div>
-  <p class="used"><b>Used in:</b> the embedding table has one row per ID (<a href="../d2-embeddings/#onehot">D2</a>), and the model's output has one score per ID (<a href="../d3-next-token/#distribution">D3</a>).</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>Why is decoding (ID to token) even cheaper than encoding?</summary><p>An ID is already a position in a list, so reading the token is one index step, with no hashing.</p></details>
-    <details><summary>What is the unknown token ID for, if byte fallback exists?</summary><p>Tokenizers without byte fallback need it for any character outside the alphabet. Byte-level tokenizers such as GPT-2's do not need it for text.</p></details>
-  </div>
+      <h4>Where this is used</h4>
+      <p class="used"><b>Used in:</b> the embedding table has one row per ID (<a href="../d2-embeddings/#onehot">D2</a>), and the model's output has one score per ID (<a href="../d3-next-token/#distribution">D3</a>).</p>
+      <h4>More questions</h4>
+      <div class="recall">
+        <details><summary>Why does decoding (ID to token) need no dictionary?</summary><p>An ID is already a position in a list, so reading the token is one index step, with no hashing.</p></details>
+        <details><summary>What is the unknown token ID for, if byte fallback exists?</summary><p>Tokenizers without byte fallback need it for any character outside the alphabet. Byte-level tokenizers such as GPT-2&rsquo;s do not need it for text.</p></details>
+      </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 5. special ============================ -->
 <section id="special" aria-labelledby="special-h">
   <h2 id="special-h">Special tokens</h2>
-  <p class="ask"><b>Guess first.</b> Four reports are processed together, as one rectangle of numbers. They have 27, 179, 193 and 44 tokens. What must be added so that the rows have the same length, and how can the model tell the filler from the text?</p>
-  <dl class="terms">
-    <div><dt>special token</dt><dd>a vocabulary entry that marks structure instead of standing for text</dd></div>
-    <div><dt>padding (&lt;pad&gt;)</dt><dd>filler that makes short rows as long as the longest one</dd></div>
-    <div><dt>start and end (&lt;bos&gt;, &lt;eos&gt;)</dt><dd>tokens that mark where a text begins and ends</dd></div>
-    <div><dt>chat tokens</dt><dd>tokens that mark who is speaking in a conversation</dd></div>
-  </dl>
-  <p class="claim">Special tokens are vocabulary entries that mark structure: where text starts and ends, which slots are padding and who is speaking.</p>
-  <div class="card" id="sp">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> Four reports are processed together, as one rectangle of numbers, and under GPT-2&rsquo;s tokenizer they have 27, 179, 193 and 44 tokens. What must be added so that the rows have the same length, and how can the model tell the filler from the text?</p>
+    <p class="claim">A model reads a batch, several texts processed together, as a rectangle of numbers, so all rows need the same length. The short rows are filled up with padding, the special token &lt;pad&gt;. A mask, a list that marks the padding slots, tells attention (the step in which tokens are compared, covered later in this part) to skip them. Special tokens are vocabulary entries that mark structure and are not part of the text. They include padding, start and end tokens that mark where a text begins and ends, and chat tokens that mark who is speaking.</p>
+    <div class="card" id="sp">
+      <ol class="try"><li>The four rows are the reports m03, m07, m11 and m15; coral marks start and end, teal the text, outlined slots the padding: 329 of 780 slots, or 42%.</li><li>Press Qwen2.5: the longest row falls from 195 to 120 slots, and the padding to 35%.</li><li>Press No padding: the rows keep their own lengths and no longer form a rectangle.</li></ol>
     <div class="bar" id="sp-bar"></div>
     <svg id="sp-svg" role="img" aria-label="Four reports in four languages as rows of tokens, padded to the same length with outlined filler slots"></svg>
     <div class="readout" id="sp-read"></div>
     <p class="status" id="sp-status" aria-live="polite"></p>
   </div>
-  <p class="cap"><b>Padding the young-hammerhead reports to the longest one wastes 42% of the slots under GPT-2, because the English report is 27 tokens and the Marathi report is 193.</b> The reports are the invented messages m03, m07, m11 and m15, counted with the two tokenizers.</p>
-  <p>Switch the tokenizer to Qwen2.5 and the padding share falls, because its tokens for Hindi and Marathi are fewer. A model reads a batch as a rectangle, so all rows must have the same length. The short rows get <i>&lt;pad&gt;</i> tokens. A mask tells attention to skip them (<a href="../d4-self-attention/#mask">D4</a>). Compute spent on padding is wasted, so training code often groups reports of similar length into the same batch.</p>
-  <p>Other special tokens give the text edges. GPT-2 has just one, <code>&lt;|endoftext|&gt;</code> with ID 50256. It marks both the start and the end of a document. Qwen2.5's tokenizer has this token (151643). It also has <code>&lt;|im_start|&gt;</code> (151644) and <code>&lt;|im_end|&gt;</code> (151645), which mark the beginning and end of a turn in a chat, together with a role such as &ldquo;user&rdquo;. A model learns to emit the end token when a reply is finished, and generation stops there (<a href="../d3-next-token/#loop">D3</a>).</p>
-  <div class="break">
-    <p><b>Common belief.</b> Padding is harmless, because it is only filler.</p>
-    <p><b>Why it fails.</b> A pad slot is an ordinary token with an ID. If attention is not told to skip it, the model reads it as part of the text, and short reports get different results when they are batched with long ones.</p>
-    <p><b>Better account.</b> Padding is safe only together with a mask. It also costs compute, so batch similar lengths together.</p>
+    <p class="cap"><b>Padding the four young-hammerhead reports to the longest one makes 42% of the slots padding under GPT-2, because the Marathi report has 193 tokens and the English one 27.</b></p>
   </div>
-  <div class="debug">
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Count the padding.</b> With the start and end tokens added, the four rows have 29, 181, 195 and 46 slots. The longest row, the Marathi one, has 195, so the batch has 4 &times; 195 = 780 slots. The rows use 29 + 181 + 195 + 46 = 451 of them, and the other 780 &minus; 451 = 329 slots are padding.</p>
+    <div class="eqn" role="img" aria-label="Four rows of 195 slots make 780 slots; the reports use 451, so 329 slots are padding, which is 42 percent"><span class="t c-sand"><b>slots</b><i>in the batch</i></span><span class="op">:</span><span class="t c-navy"><b>4 &times; 195 = 780</b><i>slots in the batch</i></span><span class="op">&minus;</span><span class="t c-teal"><b>451</b><i>slots used by reports</i></span><span class="op">=</span><span class="t c-coral"><b>329</b><i>padding slots: 329 &divide; 780 = 42%</i></span></div>
+    <p>The model still processes the padding slots, so the compute spent on them is wasted, and training code often groups reports of similar length into one batch. Other special tokens mark the edges of a text. GPT-2 has <code>&lt;|endoftext|&gt;</code>, which marks the start and the end of a document, and Qwen2.5 adds <code>&lt;|im_start|&gt;</code> and <code>&lt;|im_end|&gt;</code>, which mark the beginning and end of a turn in a chat. A model learns to produce the end token when a reply is finished, and generation stops there.</p>
+    <div class="break">
+      <p><b>Common belief.</b> Padding is harmless, because it is filler that adds no information to the text.</p>
+      <p><b>Why it fails.</b> A pad slot has a token with an ID. If attention is not told to skip it, the model reads it as part of the text, and a short report can get different results when it is batched with long ones.</p>
+      <p><b>Better account.</b> Padding is safe when a mask hides it, but it also costs compute, so batch similar lengths together.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>Four rows have 10, 20, 30 and 40 tokens. How many slots are padding if the batch is padded to 40?</summary><p>Slots total 4 &times; 40 = 160. Message tokens total 100. Padding is 60 slots, or 37.5%.</p></details>
+      <details><summary>What does the mask do, and what does it not save?</summary><p>The mask tells attention to skip the padding slots, so the padding does not change the result. The padding slots are still processed, so the compute spent on them is not saved.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">terms, Qwen2.5 padding, token IDs, debug tip</span> <span class="deeper-time">about 1 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
+    <div><dt>special token</dt><dd>a vocabulary entry that marks structure instead of standing for text</dd></div>
+    <div><dt>padding (&lt;pad&gt;)</dt><dd>filler that makes short rows as long as the longest one</dd></div>
+    <div><dt>start and end (&lt;bos&gt;, &lt;eos&gt;)</dt><dd>tokens that mark where a text begins and ends</dd></div>
+    <div><dt>chat tokens</dt><dd>tokens that mark who is speaking in a conversation</dd></div>
+  </dl>
+      <h4>Another tokenizer, less padding</h4>
+      <p>Switch the tokenizer to Qwen2.5 and the padding share falls to 35%, because its tokens for Hindi and Marathi are fewer. For all four topics of the figure the share is lower under Qwen2.5 than under GPT-2. A model reads a batch as a rectangle, so all rows must have the same length. The short rows get <i>&lt;pad&gt;</i> tokens. A mask tells attention to skip them (<a href="../d4-self-attention/#mask">D4</a>).</p>
+      <h4>The special tokens of the two tokenizers</h4>
+      <p>Other special tokens give the text edges. GPT-2 has just one, <code>&lt;|endoftext|&gt;</code> with ID 50256. It marks both the start and the end of a document. Qwen2.5&rsquo;s tokenizer has this token (151643). It also has <code>&lt;|im_start|&gt;</code> (151644) and <code>&lt;|im_end|&gt;</code> (151645), which mark the beginning and end of a turn in a chat, together with a role such as &ldquo;user&rdquo;. A model learns to emit the end token when a reply is finished, and generation stops there (<a href="../d3-next-token/#loop">D3</a>).</p>
+      <h4>Common mistakes</h4>
+      <div class="debug">
     <p><b>Debug tip.</b> If a model never stops talking, check that the end token is added to the training text and that generation stops on it. If results change when you batch, check the padding mask first.</p>
   </div>
-  <p class="used"><b>Used in:</b> attention masks (<a href="../d4-self-attention/#mask">D4</a>), the generation loop (<a href="../d3-next-token/#loop">D3</a>) and chat assistants (<a href="../d7-assistants/#prompt">D7</a>).</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>Four rows have 10, 20, 30 and 40 tokens. How many slots are padding if the batch is padded to 40?</summary><p>Slots total 4 &times; 40 = 160. Message tokens total 100. Padding is 60 slots, or 37.5%.</p></details>
-  </div>
+      <h4>Where this is used</h4>
+      <p class="used"><b>Used in:</b> attention masks (<a href="../d4-self-attention/#mask">D4</a>), the generation loop (<a href="../d3-next-token/#loop">D3</a>) and chat assistants (<a href="../d7-assistants/#prompt">D7</a>).</p>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 6. bytes ============================ -->
 <section id="bytes" aria-labelledby="bytes-h">
   <h2 id="bytes-h">Bytes, characters and scripts</h2>
-  <p class="ask"><b>Guess first.</b> The letter &ldquo;s&rdquo; takes one byte in a computer file. How many bytes does the Devanagari letter &ldquo;&#2358;&rdquo; (sha) take?</p>
-  <dl class="terms">
-    <div><dt>Unicode</dt><dd>a table that gives all characters a number, its code point</dd></div>
-    <div><dt>UTF-8</dt><dd>the usual way to store code points as one to four bytes</dd></div>
-    <div><dt>byte</dt><dd>a number from 0 to 255</dd></div>
-    <div><dt>byte-level BPE</dt><dd>BPE whose alphabet is the 256 byte values, so any text can be tokenised</dd></div>
-  </dl>
-  <p class="claim">In UTF-8 an English letter takes one byte and a Devanagari letter takes three. A byte-level tokenizer therefore starts from a text two to three times longer for Hindi and Marathi.</p>
-  <div class="card" id="by">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> The letter &ldquo;s&rdquo; takes one byte in a computer file. How many bytes does the Devanagari character &ldquo;&#2358;&rdquo; (sha) take?</p>
+    <p class="claim">A byte is a number from 0 to 255. UTF-8, the usual way to store text, writes a code point (the number that Unicode gives a character) as one to four bytes. An English letter takes one byte and a Devanagari character takes three. A byte-level tokenizer uses the 256 byte values as its alphabet, so it can write any text. For Hindi and Marathi the starting row is longer, 2.5 to 2.6 bytes per character in these messages, and merges have to shorten it.</p>
+    <div class="card" id="by">
+      <ol class="try"><li>The table lists the 11 characters of &#2358;&#2366;&#2352;&#2381;&#2325; shark: a Devanagari character takes 3 UTF-8 bytes (E0 A4 B6 for &#2358;), the space and letters 1, so 21 bytes, 1.91 per character.</li><li>Press Hindi m05 and then Marathi m09: 77 characters need 193 bytes (2.51 per character) and 74 characters need 194 bytes (2.62).</li><li>Press English m01: 170 characters and 170 bytes, 1.00 per character.</li></ol>
     <div class="bar" id="by-bar"></div>
     <label class="vlab label-block" for="by-text">Type any text</label>
     <input class="txt" id="by-text" type="text" value="&#2358;&#2366;&#2352;&#2381;&#2325; shark" autocomplete="off" spellcheck="false">
     <div id="by-table" role="img" aria-label="Table of characters with their Unicode code points and UTF-8 bytes"></div>
     <div class="readout" id="by-read"></div>
   </div>
-  <p class="cap"><b>Message m01 in English is 170 characters and 170 bytes. The Hindi message m05 is 77 characters but 193 bytes, and the Marathi message m09 is 74 characters and 194 bytes.</b> Digits, spaces and the sign &ldquo;&#2404;&rdquo; also appear in those counts, so the average is 2.5 bytes per character, a little under 3.</p>
-  <p>Press the preset buttons to see the difference. The code point of &ldquo;s&rdquo; is U+0073, below 128, so one byte is enough. Devanagari lives at U+0900 to U+097F, in the range that UTF-8 stores with three bytes. A tokenizer built on bytes, as GPT-2's is, therefore starts from a long row of bytes and must learn merges to bring it back to a reasonable length. GPT-2 learned many merges for English and few for Devanagari, because its training text was mostly English. Radford and colleagues chose bytes so that the model can write any string, with no unknown token. That choice is why the Hindi preset in section 1 was cut into hex pieces such as <code>E0 A4</code>. These are the first two bytes of a letter, and they are not a letter.</p>
-  <div class="break">
-    <p><b>Common belief.</b> A character is one byte, so the length of a text in characters is also its length in bytes.</p>
-    <p><b>Why it fails.</b> That is true for English letters. Message m05 has 77 characters and 193 bytes.</p>
-    <p><b>Better account.</b> A character can take one to four bytes in UTF-8. A byte-level tokenizer starts from the bytes, so count them with <code>len(text.encode("utf-8"))</code>.</p>
+    <p class="cap"><b>English m01 has 170 characters and 170 bytes, Hindi m05 has 77 characters and 193 bytes, and Marathi m09 has 74 characters and 194 bytes.</b></p>
   </div>
-  <pre class="code" data-run><code>for text in ["shark", "शार्क"]:
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Count the bytes of the Hindi message m05.</b> It has 77 characters: 58 Devanagari characters, which take 3 bytes, and 19 others (15 spaces and 4 digits), which take 1 byte. That gives 58 &times; 3 + 19 &times; 1 = 193 bytes, or 193 &divide; 77 = 2.51 bytes per character, below 3 because the spaces and digits take one byte.</p>
+    <div class="eqn" role="img" aria-label="58 Devanagari characters of 3 bytes make 174 bytes, plus 19 other characters of 1 byte make 19 bytes, which is 193 bytes"><span class="t c-sand"><b>bytes</b><i>of message m05</i></span><span class="op">:</span><span class="t c-navy"><b>58 &times; 3 = 174</b><i>bytes of Devanagari characters</i></span><span class="op">+</span><span class="t c-sand"><b>19 &times; 1 = 19</b><i>bytes of spaces and digits</i></span><span class="op">=</span><span class="t c-coral"><b>193</b><i>bytes in m05</i></span></div>
+    <p>The code point of s is U+0073, below 128, so one byte is enough. The Devanagari code points run from U+0900 to U+097F, and UTF-8 stores code points from U+0800 to U+FFFF in three bytes. For example, &#2358; is U+0936 and its bytes are 224, 164 and 182, written E0 A4 B6 in hex (base 16). A byte-level tokenizer such as GPT-2&rsquo;s starts from these bytes, so it can write any string with no unknown token. A token can then be a part of a character, such as the hex piece E0 A4 in the first figure.</p>
+    <div class="break">
+      <p><b>Common belief.</b> A character is one byte, so the length of a text in characters is also its length in bytes.</p>
+      <p><b>Why it fails.</b> That is true for English letters, but message m05 has 77 characters and 193 bytes.</p>
+      <p><b>Better account.</b> A character takes one to four bytes in UTF-8, and a byte-level tokenizer starts from the bytes, so count bytes, not characters.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>Message m09 has 60 Devanagari characters, 12 spaces and 2 full stops. How many UTF-8 bytes does it have?</summary><p>It has 60 &times; 3 + 14 &times; 1 = 194 bytes. The Devanagari characters take 3 bytes and the spaces and full stops 1 byte.</p></details>
+      <details><summary>If a byte-level tokenizer had no merges for Devanagari, how many tokens would m09 need?</summary><p>It would need 194, one per byte. GPT-2 used 118, so its merges joined some bytes, to about 1.6 bytes per token.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">terms, GPT-2 and bytes, Python, debug tip</span> <span class="deeper-time">about 2 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
+    <div><dt>Unicode</dt><dd>a table that gives all characters a number, its code point</dd></div>
+    <div><dt>UTF-8</dt><dd>the usual way to store code points as one to four bytes</dd></div>
+    <div><dt>byte</dt><dd>a number from 0 to 255</dd></div>
+    <div><dt>byte-level BPE</dt><dd>BPE whose alphabet is the 256 byte values, so any text can be tokenised</dd></div>
+  </dl>
+      <h4>Reading the figure</h4>
+      <p>Press the preset buttons to see the difference. Spaces, ASCII digits and full stops take one byte, which lowers the average from 3 to 2.51 bytes per character for the Hindi messages and 2.60 for the Marathi messages (the sign &#2404; is Devanagari and takes three bytes). GPT-2 learned many merges for English and few for Devanagari, probably because its training text was mostly English. Radford and colleagues chose bytes so that the model can write any string, with no unknown token. That choice is why the Hindi preset in <a href="#units">section 1</a> was cut into hex pieces such as <code>E0 A4</code>. These are the first two bytes of a character, and they are not a character. Tokenizers also differ in numbers: GPT-2 writes &ldquo;&#9601;80&rdquo; as one token, while Qwen2.5 cuts numbers into single digits and writes it as &#9601;, 8 and 0.</p>
+      <h4>In Python</h4>
+      <pre class="code" data-run><code>for text in ["shark", "शार्क"]:
     b = text.encode("utf-8")
     print(f"{text}: {len(text)} characters, {len(b)} bytes")
     print("   bytes in hex:", b.hex(" "))</code></pre>
-  <pre class="out">shark: 5 characters, 5 bytes
+      <pre class="out">shark: 5 characters, 5 bytes
    bytes in hex: 73 68 61 72 6b
 शार्क: 5 characters, 15 bytes
    bytes in hex: e0 a4 b6 e0 a4 be e0 a4 b0 e0 a5 8d e0 a4 95</pre>
-  <div class="debug">
+      <h4>Common mistakes</h4>
+      <div class="debug">
     <p><b>Debug tip.</b> <code>len(text)</code> counts characters, and <code>len(text.encode("utf-8"))</code> counts bytes. A byte-level tokenizer cares about the second number, so do not estimate tokens from character counts, least of all for Hindi, Marathi or emoji.</p>
   </div>
-  <p class="used"><b>Used in:</b> the cost comparison across languages in the next section.</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>The Marathi report m09 has 74 characters and 194 bytes. If a byte-level tokenizer had no merges for Devanagari, how many tokens would it need?</summary><p>It would need 194, one per byte. GPT-2 used 118, so its merges joined some bytes, but only about 1.6 bytes per token.</p></details>
-  </div>
+      <h4>Where this is used</h4>
+      <p class="used"><b>Used in:</b> the cost comparison across languages in the next section.</p>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 7. languages ============================ -->
 <section id="languages" aria-labelledby="languages-h">
   <h2 id="languages-h">Why some languages cost more</h2>
-  <p class="ask"><b>Guess first.</b> A fisherman's report in English takes 23 tokens. The same report in Hindi, cut by GPT-2's tokenizer, takes about how many: 25, 50 or 100? And in Hinglish, which is Hindi written in Latin letters?</p>
-  <dl class="terms">
-    <div><dt>fertility</dt><dd>tokens per word, a measure of how finely a language is cut</dd></div>
-    <div><dt>cost ratio \(\rho\)</dt><dd>tokens of a text divided by tokens of its English meaning</dd></div>
-    <div><dt>context window</dt><dd>the most tokens a model can read at once (GPT-2: 1,024; <a href="../d3-next-token/#context">D3</a>)</dd></div>
-  </dl>
-  <p class="claim">Under GPT-2's tokenizer the Hindi and Marathi reports take about five times the tokens of their English meaning, and the Hinglish reports about one and a third times.</p>
-  <div class="card" id="lg">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> Under GPT-2&rsquo;s tokenizer, the English meaning (a translation) of an invented researcher&rsquo;s report (Tag 4127 at Juhu) takes 45 tokens. The report&rsquo;s Hindi text is cut into tokens too, and so is its Hinglish text (Hindi written in Latin letters). Guess the token count of the Hindi text (50, 100 or 200), and say whether the Hinglish text takes more or fewer tokens than 45.</p>
+    <p class="claim">The number of tokens depends on the language, the script and the tokenizer. The cost ratio of a message is its number of tokens divided by the number of tokens of its English meaning. Under GPT-2&rsquo;s tokenizer the mean cost ratio is 5.5 for the four Hindi messages, 4.9 for the four Marathi messages and 1.35 for the four Hinglish messages. All sixteen messages are invented, and the Hindi, Marathi and Hinglish texts have not yet been checked by a native speaker.</p>
+    <div class="card" id="lg">
+      <ol class="try"><li>Compare the bars: the Hindi and Marathi rows are longest, and coral pieces are parts of characters shown in hex.</li><li>The working under the rows is for the Hindi row: 227 &divide; 45 = 5.0 and 227 &divide; 32 = 7.1.</li><li>Press Qwen2.5: Hindi falls to 146 tokens and Marathi to 154.</li></ol>
     <div class="bar" id="lg-bar"></div>
     <div id="lg-rows" role="img" aria-label="Four versions of the same report in English, Hindi, Marathi and Hinglish, cut into tokens by the chosen tokenizer, with token counts and cost ratios"></div>
     <div class="eqs"><div class="eqn" id="lg-eqn" aria-live="polite"></div></div>
     <div class="plot" id="lg-plot" role="img" aria-label="Bar chart of the cost ratio of the twelve Hindi, Marathi and Hinglish messages under the chosen tokenizer"></div>
     <p class="status" id="lg-status"></p>
   </div>
-  <p class="cap"><b>For the reports on Tag 4127, GPT-2 uses 40 tokens in English, 227 in Hindi, 236 in Marathi and 50 in Hinglish. Qwen2.5 cuts Hindi to 146 and Marathi to 154.</b> Coral hatched pieces are parts of a letter, shown in hex. Counts were computed offline with the two tokenizers.</p>
-  <p class="flagline"><b>Check before reuse.</b> The Hindi, Marathi and Hinglish texts were written for this primer and have not yet been checked by a native speaker. The English meaning of a message is given in the data file (<a href="data/tokens.json">tokens.json</a>) and is the baseline for the cost ratio. The counts illustrate how two tokenizers cut these texts. They do not measure how fishers write.</p>
-  <p>Compare the four rows for one topic, then press the other tokenizer button. The two tokenizers are open ones: GPT-2 (OpenAI, MIT licence) and Qwen2.5 (Alibaba Cloud, Apache-2.0 licence for the 0.5B model used here). Both use byte-level BPE. Qwen2.5 has 151,643 ordinary tokens (Qwen Team, 2024). Four causes add up. First, the merges were learned from text that was mostly English, so English words became single tokens and Devanagari words did not. Second, a Devanagari letter is three bytes (section 6), so even a letter without merges starts with three tokens. Third, Hinglish is written in Latin letters, and writers spell it in their own ways, so words such as <i>lagbhag</i> and <i>chhoti</i> are cut into three pieces. Fourth, Marathi joins endings onto words. The report m11 writes <i>वर्सोव्याजवळ</i> (&ldquo;near Versova&rdquo;) as one word. The tokenizer has seen few long words like it, so it cuts it into many pieces.</p>
-  <p>The working below the rows follows your click on a row. For the Hindi report m06, the box shows 227 tokens against 45 for its English meaning, a cost ratio of \(\rho = 5.0\). Its fertility is 7.1 tokens per word. In a window of 1,024 tokens, the Hindi report fits 4 times and the English one 22 times. A second worked case is m09: 118 tokens against 27 gives \(\rho = 4.4\), and Qwen2.5 brings the same message to \(72 / 31 = 2.3\).</p>
-  <p class="math">\[ \rho \;=\; \frac{n_{\text{text}}}{n_{\text{English meaning}}} \qquad\qquad \text{fertility} \;=\; \frac{n_{\text{tokens}}}{n_{\text{words}}} \]</p>
-  <ul class="math-notes">
+    <p class="cap"><b>GPT-2 cuts the Tag 4127 messages into 40 tokens in English, 227 in Hindi, 236 in Marathi and 50 in Hinglish; Qwen2.5 gives 146 for Hindi and 154 for Marathi.</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Take the Hindi message m06.</b> Under GPT-2 it takes 227 tokens, and its English meaning takes 45 (the figure&rsquo;s English row, 40 tokens, is a separate message). The cost ratio &rho; (rho) is the first number divided by the second, so &rho; = 227 &divide; 45 = 5.0. The message has 32 words, so its fertility, the tokens per word, is 227 &divide; 32 = 7.1. GPT-2&rsquo;s context window, the most tokens it reads at once, is 1,024, which fits 4 messages like m06 but 22 like its English meaning.</p>
+    <div class="eqn" role="img" aria-label="227 tokens divided by 45 tokens is a cost ratio of 5.0; 227 tokens divided by 32 words is 7.1 tokens per word"><span class="t c-sand"><b>GPT-2</b><i>Hindi m06</i></span><span class="op">:</span><span class="t c-coral"><b>227</b><i>tokens, Hindi m06</i></span><span class="op">&divide;</span><span class="t c-navy"><b>45</b><i>tokens, its English meaning</i></span><span class="op">=</span><span class="t c-teal"><b>5.0</b><i>cost ratio &rho;</i></span><span class="op">|</span><span class="t c-coral"><b>227</b><i>tokens</i></span><span class="op">&divide;</span><span class="t c-navy"><b>32</b><i>words</i></span><span class="op">=</span><span class="t c-teal"><b>7.1</b><i>tokens per word</i></span></div>
+    <p><b>There are four likely causes.</b> First, GPT-2&rsquo;s merges were probably learned from mostly English text, so English words became single tokens. Second, a Devanagari character is three bytes (<a href="#bytes">bytes section</a>), so a character without merges starts as three tokens. Third, many Hinglish words are not English words: <i>lagbhag</i> and <i>chhoti</i> are both cut into three pieces. Fourth, Marathi joins endings onto words: message m11 begins with <i>वर्सोव्याजवळ</i> (&ldquo;near Versova&rdquo;), one word that GPT-2 cuts into 23 pieces.</p>
+    <div class="break">
+      <p><b>Common belief.</b> A token is about four characters, or three quarters of a word.</p>
+      <p><b>Why it fails.</b> That rule fits English: in the four English messages GPT-2 averages 4.1 characters per token. For the Hindi and Marathi messages it is between 0.6 and 0.7, and for Hinglish 2.8.</p>
+      <p><b>Better account.</b> Count tokens with the tokenizer of the model you will call.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>The Hinglish message m14 takes 50 tokens, and its English meaning takes 45. What is &rho;?</summary><p>&rho; = 50 &divide; 45 = 1.1. Hinglish costs about 11% more tokens than its English meaning for this message, far less than Hindi in its own script (5.0 for m06).</p></details>
+      <details><summary>Give two likely reasons Marathi messages take more tokens than English ones.</summary><p>The merges were probably learned from mostly English text, so there are few Devanagari merges, and a Devanagari character starts as three bytes. Long Marathi words with attached endings are also cut into many pieces.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">terms, tokenizers, formulas, studies, debug tip</span> <span class="deeper-time">about 3 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
+    <div><dt>fertility</dt><dd>tokens per word, a measure of how finely a language is cut</dd></div>
+    <div><dt>cost ratio \(\rho\)</dt><dd>tokens of a text divided by tokens of its English meaning</dd></div>
+    <div><dt>context window</dt><dd>the most tokens a model can read at once (GPT-2: 1,024; <a href="../d3-next-token/#context">D3</a>)</dd></div>
+  </dl>
+      <h4>Check before reuse</h4>
+      <p class="flagline"><b>Check before reuse.</b> The Hindi, Marathi and Hinglish texts were written for this primer and have not yet been checked by a native speaker. The English meaning of a message is given in the data file (<a href="data/tokens.json">tokens.json</a>) and is the baseline for the cost ratio. The counts illustrate how two tokenizers cut these texts. They do not measure how fishers write.</p>
+      <h4>The two tokenizers</h4>
+      <p>Compare the four rows for one topic, then press the other tokenizer button. The two tokenizers are open ones: GPT-2 (OpenAI, MIT licence) and Qwen2.5 (Alibaba Cloud, Apache-2.0 licence for the 0.5B model used here). Both use byte-level BPE. The counts were computed offline with the two tokenizers. Qwen2.5 has 151,643 ordinary tokens (Qwen Team, 2024). Writers also spell Hinglish in their own ways (<i>chhoti</i>, <i>choti</i>), and whether that raises the token count is an open question that the exercises return to. The Marathi word of m11 is long because Marathi joins endings onto words, and GPT-2&rsquo;s merges probably have few pieces for long words like it.</p>
+      <h4>Another worked case</h4>
+      <p>A second worked case is m09: 118 tokens against 27 gives \(\rho = 4.4\), and Qwen2.5 brings the same message to \(72 / 31 = 2.3\). The working below the rows in the figure follows your click on a row.</p>
+      <h4>The formulas</h4>
+      <p class="math">\[ \rho \;=\; \frac{n_{\text{text}}}{n_{\text{English meaning}}} \qquad\qquad \text{fertility} \;=\; \frac{n_{\text{tokens}}}{n_{\text{words}}} \]</p>
+      <ul class="math-notes">
     <li><b>\(n_{\text{text}}\)</b> is the number of tokens of the message in its own language and <b>\(n_{\text{English meaning}}\)</b> is the number for its English meaning.</li>
     <li>\(\rho = 1\) means the language is as cheap as English. The values in the chart are for this tokenizer and these twelve short messages only.</li>
   </ul>
-  <p>Why does it matter? A model reads at most a fixed number of tokens at once, so a Hindi report uses up the window five times faster. Commercial services charge by the token. Ahia and colleagues (2023) tested 22 languages and showed that the same content costs very different amounts in OpenAI's API. Petrov and colleagues (2023) found gaps of up to about 15 times between languages, even with tokenizers meant for many languages. The fix is a tokenizer trained on balanced text, which Qwen2.5 partly shows: its Hindi ratio is about 3.1 against 5.5. Qwen2.5 also writes the digits one by one, so its English counts are a little higher than GPT-2's. A larger vocabulary costs more, because the embedding table gets a row per token (<a href="../d2-embeddings/#onehot">D2</a>).</p>
-  <div class="break">
-    <p><b>Common belief.</b> A token is about four letters, or three quarters of a word.</p>
-    <p><b>Why it fails.</b> That rule is a measured average for English. In the four English messages GPT-2 averages 4.1 characters per token. For the Hindi and Marathi messages it is between 0.6 and 0.7 characters per token, and for Hinglish 2.8.</p>
-    <p><b>Better account.</b> The number of tokens depends on the language, the script and the tokenizer. Count with the tokenizer of the model you will call.</p>
-  </div>
-  <div class="debug">
+      <h4>Why it matters</h4>
+      <p>Why does it matter? A model reads at most a fixed number of tokens at once, so a Hindi report uses up the window about five times faster. Many commercial services charge by the token. Ahia and colleagues (2023) tested 22 languages and showed that the same content costs very different amounts in OpenAI&rsquo;s API. Petrov and colleagues (2023) found gaps of up to about 15 times between languages, even with tokenizers meant for many languages. A possible fix is a tokenizer trained on more balanced text. The mean cost ratio of the four Hindi messages is about 3.1 under Qwen2.5 against 5.5 under GPT-2, but Qwen2.5 also has three times the vocabulary, so these counts do not show which difference matters. Qwen2.5 cuts numbers into single digits, which accounts for the extra tokens of its four English messages (42, 45, 29 and 31 against 37, 40, 27 and 27): all of them in m02, m03 and m04, and four of the five in m01. In m03, for example, the number 80 takes 3 tokens against 1. A larger vocabulary has a cost, because the embedding table gets a row per token (<a href="../d2-embeddings/#onehot">D2</a>). For SharkCam this matters because the messages arrive in four languages, and the number of tokens affects the cost in memory, time and money.</p>
+      <h4>Common mistakes</h4>
+      <div class="debug">
     <p><b>Debug tip.</b> If a prompt in Hindi or Marathi is cut off or costs more than you planned, count its tokens with the model's own tokenizer before anything else. An estimate from words can be off by a factor of five.</p>
   </div>
-  <p class="used"><b>Used in:</b> the context window (<a href="../d3-next-token/#context">D3</a>) and the loss per token (<a href="../d3-next-token/#perplexity">D3</a>), where the same Hindi and Marathi reports look surprisingly easy. This chapter explains why.</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>The Hinglish report m14 takes 50 tokens, and its English meaning takes 45. What is \(\rho\), and what does it say?</summary><p>\(\rho = 50/45 = 1.1\). Hinglish costs about 10% more than English for this report, far less than Hindi in its own script (5.0 for m06).</p></details>
-    <details><summary>Give two reasons a Marathi report takes more tokens than the English one.</summary><p>The tokenizer learned few Devanagari merges from English-heavy text, and a Devanagari letter starts as three bytes. Long words with attached endings are cut into many pieces.</p></details>
-  </div>
+      <h4>Where this is used</h4>
+      <p class="used"><b>Used in:</b> the context window (<a href="../d3-next-token/#context">D3</a>) and the loss per token (<a href="../d3-next-token/#perplexity">D3</a>), where the same Hindi and Marathi reports look surprisingly easy. This chapter explains why.</p>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ exercises ============================ -->

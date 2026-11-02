@@ -26,12 +26,11 @@
 <header class="hero">
   <p class="kicker">Part C &middot; Chapter 3</p>
   <h1>When the water changes</h1>
-  <p class="subtitle">Why a model that works in clear water can fail 10 m down, and three ways to prepare for it or adapt: augmentation, new statistics and test-time training</p>
+  <p class="subtitle">Why a model that works in clear water can fail 10 m down, and three ways to prepare for it or adapt: augmentation, re-estimated statistics and test-time training</p>
 </header>
 
 <div class="tldr">
-  <p>A model is trained in one world and used in another. For SharkCam the world changes with depth: water removes red light first, darkens the picture and adds haze. This is domain shift. The chapter measures it on a pretrained ResNet-18 and on a small digit reader, then tries three defences. Augmentation trains on simulated water. Test-time adaptation re-estimates the stored normalisation statistics on unlabeled new images. Test-time training also updates a few weights while the model is used.</p>
-  <p>The results include a negative one. Re-estimating statistics rescued the digit reader. On ResNet-18 with 14 photos it collapsed the shark confidence, even where the water had not changed. The chapter says what is known and not known about why. The depth effect comes from a simple model of light in water with an assumed particle term. It does not measure Mumbai water. Photos are credited under the figures.</p>
+  <p>Domain shift is a difference between the data met in use and the training data. For SharkCam, depth is one source: water removes red light first, darkens a photo and adds haze. We test augmentation, re-estimated batch-norm statistics and test-time training against it. One result is negative. The depth model is simple, not a measurement of Mumbai water. Photos are credited under the figures.</p>
 </div>
 <p class="youneed"><b>You will need:</b> <a href="../b6-deep-networks/#norm">batch norm and its stored averages</a> (B6), <a href="../c1-convolution/#channels">colour channels</a> (C1), <a href="../c2-cnns/">CNNs</a> (C2) and the <a href="../a4-grading-models/#splits">test set</a> idea (A4).</p>
 
@@ -46,18 +45,13 @@
   </ol>
 </nav>
 
-<!-- ============================ 1. water ============================ -->
 <section id="water" aria-labelledby="water-h">
   <h2 id="water-h">The water changes the photo</h2>
-  <p class="ask"><b>Guess first.</b> SharkCam photographs a shark 10 m under water, where most of the red light is gone and the picture is hazy. A network trained on clear photos was confident at the surface that it saw a shark. At 10 m, will its confidence be lower, the same or higher?</p>
-  <dl class="terms">
-    <div><dt>domain shift</dt><dd>the data met in use differ from the data the model was trained on</dd></div>
-    <div><dt>attenuation coefficient \(K\)</dt><dd>how fast light of one colour fades with depth, per metre; this \(K\) is a different quantity from the keys of attention (<a href="../d4-self-attention/#qkv">D4</a>)</dd></div>
-    <div><dt>haze</dt><dd>light scattered by particles into the camera, which lowers contrast</dd></div>
-    <div><dt>shark-class confidence</dt><dd>here, the summed probability of three ImageNet classes: great white shark, tiger shark and hammerhead</dd></div>
-  </dl>
-  <p class="claim">Water changes a photo in a predictable way, and a network that never saw that change can lose its footing, gain false confidence, or both.</p>
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> A ResNet-18 network trained on ImageNet web photos gives a clear photo of the Kuala Lumpur milk sharks a shark-class confidence of 0.97, the summed probability of three ImageNet classes (great white shark, tiger shark and hammerhead). SharkCam photographs sharks 10 m down, where most red light is gone and the picture is hazy. At 10 m, will the confidence for this photo be lower, similar or higher?</p>
+    <p class="claim">Domain shift means that the data met in use differ from the data a model was trained on. A test set drawn from the same conditions as the training set cannot show such a shift, so its accuracy can differ greatly from the accuracy in use. In this figure the photo still shows the same animal while its pixels change with depth, a case usually called covariate shift. The figure changes the pixels by a simple law, yet the network&rsquo;s confidence can fall, stay high or rise, depending on the photo.</p>
   <div class="card" id="v1">
+      <ol class="try"><li>Drag the depth slider from 0 to 10 m on the milk sharks photo: the coral dot moves along the navy curve from 0.97 to 0.73.</li><li>Choose the spadenose photo and drag to 10 m: its curve rises from 0.70 to 1.00 for the same animal.</li><li>The dashed sand line is the mean of the three photos without a shark. It dips to 0.05 at 7.5 m, then rises to 0.46 at 30 m.</li></ol>
     <div class="bar" id="v1-bar"></div>
     <div class="controls" id="v1-controls"></div>
     <div class="vw">
@@ -67,32 +61,55 @@
     <div class="eqn eqs" id="v1-eqn"></div>
     <div class="readout" id="v1-read"></div>
   </div>
-  <p class="cap"><b>For the Jarvis Island hammerhead the network stays above 0.85 down to 30 m. For the Kuala Lumpur milk sharks it falls from 0.97 at 5 m to 0.49 at 15 m. The three photos without a shark rise from an average of 0.06 at 5 m to 0.46 at 30 m.</b> The coral dot is the slider position. Confidence is a number from 0 to 1. The curves were computed offline for 61 depths from 0 to 30 m.</p>
-  <p>The classifier is ResNet-18 trained on ImageNet, a set of web photos in 1,000 classes (He et al., 2016, for the architecture). It was not trained for SharkCam. Its three shark classes are summed, so the curve says how strongly the network sees some ImageNet shark. It does not say which species. The eight photos are examples, not statistics.</p>
-  <p>Move through the photos in turn. The curves show four things. The hammerhead photos keep a high confidence for a long way down, although the colours are far from the surface. The milk sharks of Kuala Lumpur lose confidence early. The spadenose shark on a white board gets <i>more</i> shark-like with depth, from 0.70 at the surface to 0.998 at 10 m, although the animal is the same. And the photos with no shark, a sea turtle and a clownfish, climb to 0.61 and 0.44 at 30 m. One possible reading is that blue haze is part of what the network learned to call a shark, since sharks are photographed under water and the water looks blue-green. This was not tested directly. A cue of this kind is the spurious cue of <a href="../b9-explaining/#shortcut">B9</a>.</p>
-  <p>The light itself follows a simple law. A colour is multiplied by a factor that falls exponentially with depth, and the factor falls fastest for red.</p>
-  <p class="math">\[ I_c(z) = I_c(0)\; e^{-K_c\, z} \]</p>
-  <ul class="math-notes">
-    <li><b>\(c\)</b> is a colour (red, green or blue) and <b>\(z\)</b> is the depth in metres.</li>
-    <li><b>\(I_c(z)\)</b> is the light of colour \(c\) that is left at depth \(z\), and <b>\(I_c(0)\)</b> is its value at the surface.</li>
-    <li><b>\(K_c\)</b> is the attenuation coefficient of colour \(c\) in units per metre: 0.54 for red, 0.256 for green and 0.209 for blue. Pure water absorbs 0.34, 0.0565 and 0.0092 per metre (Pope and Fry, 1997). The rest, 0.20 per metre for all colours, represents particles. <b>This 0.20 is an assumption.</b> It was chosen so that the mean of the three values, 0.335 per metre, matches the attenuation of the made-up dive log. No Mumbai measurement was found.</li>
-  </ul>
-  <p>The boxes under the figure evaluate the law at the slider depth. At 10 m red keeps \(e^{-0.54 \times 10} = e^{-5.4} = 0.0045\) of its surface light, green \(e^{-2.56} = 0.077\) and blue \(e^{-2.09} = 0.124\). At 5 m the factors are 0.067, 0.278 and 0.352. Red is below 1% after \(\ln(100)/0.54 = 8.5\) m. Haze also lowers the contrast of the picture. <code>depth.py</code> combines the law with a veil of scattered light and a camera that brightens a dark scene.</p>
-  <p class="math">\[ \begin{aligned} \text{out}_c &= G\; e^{-K_c z}\Big( (1 - V)\, J_c + V\, W_c \Big) \\ V &= 1 - e^{-\kappa z} \end{aligned} \]</p>
-  <ul class="math-notes">
-    <li><b>\(J_c\)</b> is the colour of the scene at the surface (in linear light) and <b>\(\text{out}_c\)</b> what the camera records. <b>\(W_c\)</b> is the colour of the veil, a blue-green (0.08, 0.50, 0.55).</li>
-    <li><b>\(V\)</b> is the share of haze, which grows from 0 as \(1 - e^{-\kappa z}\). The haze rate \(\kappa = 0.06\) per metre is chosen by eye, as is the veil colour.</li>
-    <li><b>\(G\)</b> is the gain of the camera's automatic exposure. It gives back 60% of the darkening, another number chosen by eye.</li>
-  </ul>
-  <p>This is the structure of the classic underwater image model (Jaffe, 1990), which <code>depth.py</code> cites. It is a simple model. Light travels from the surface to the animal and from the animal to the camera, and the second trip depends on the distance to the animal, which the code ignores. Akkaynak and Treibitz (2018) show that natural water needs different coefficients for direct and scattered light. Treat the pictures as an illustration of the kind of change, not as a prediction for Mumbai. Benchmarks such as ImageNet-C (Hendrycks and Dietterich, 2019) test models against many corruptions of this general kind, though not this one.</p>
-  <div class="break">
-    <p><b>Common belief.</b> A model that is right in clear water stays right a little deeper, with slightly lower confidence.</p>
-    <p><b>Why it fails.</b> The curves are not smooth declines. One photo falls early, one keeps its confidence to 30 m, one rises, and the photos with no shark gain confidence at depth. The change moves the inputs into a range the network never saw, and what it does there is not under control.</p>
-    <p><b>Better account.</b> Domain shift changes the statistics of the inputs, and the response of a model can be anything. Measure it under the shift you expect, on positives and on negatives.</p>
+    <p class="cap"><b>At 10 m the confidence has fallen for the Kuala Lumpur milk sharks (0.97 to 0.73), risen for the spadenose shark (0.70 to 1.00) and stayed above 0.85 for the Jarvis Island hammerhead.</b></p>
   </div>
-  <div class="debug">
-    <p><b>Debug tip.</b> When you test a model against a change, plot its score against the amount of change and include negatives. A curve of only the sharks would look reassuring here. The dashed line, the false alarms, shows that at 30 m the average for the non-sharks is 0.46, against 0.68 for the five sharks.</p>
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Take red light at 10 m.</b> Light of colour <i>c</i> keeps the share e<sup>&minus;<i>K</i><sub><i>c</i></sub><i>z</i></sup> of its surface value at depth <i>z</i> metres. <i>K</i><sub><i>c</i></sub> is the attenuation coefficient, the rate per metre at which colour <i>c</i> fades. For red <i>K</i> = 0.54, so at 10 m red keeps e<sup>&minus;5.4</sup> = 0.0045 of its surface light. It falls below 1% at <i>z</i> = ln(100)/0.54 = 8.5 m.</p>
+    <div class="eqn" role="img" aria-label="The light of colour c left at depth z equals the surface light times e to the power minus K z. For red at 10 m the share left is 0.0045."><span class="t c-teal"><b>\(I_c(z)\)</b><i>light at depth z</i></span><span class="op">=</span><span class="t c-navy"><b>\(I_c(0)\)</b><i>surface light</i></span><span class="op">&times;</span><span class="t c-coral"><b>\(e^{-K_c z}\)</b><i>share left (red, 10 m: 0.0045)</i></span></div>
+    <p>The three coefficients are model settings: the absorption of pure water plus an assumed 0.20 per metre for particles, not a measurement of Mumbai water. Haze, light scattered into the camera, lowers contrast; the figure adds it with the share <i>V</i> = 1 &minus; e<sup>&minus;0.06<i>z</i></sup> (0.45 at 10 m), a rate chosen by eye.</p>
+    <div class="break">
+      <p><b>Common belief.</b> A model that is right in clear water stays right a little deeper, with slightly lower confidence.</p>
+      <p><b>Why it fails.</b> The confidence does not follow one decline: it falls early for the Kuala Lumpur milk sharks, stays above 0.85 for the Jarvis Island hammerhead and rises for the spadenose shark. Fitting to ImageNet photos does not specify how ResNet-18 responds to other inputs, so its response can differ between photos.</p>
+      <p><b>Better account.</b> A domain shift changes the inputs of a model, so its confidence can move in either direction; measure it under the expected shift, on photos with and without a shark.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>At what depth does blue light fall to 1% of its surface value, with <i>K</i> = 0.209 per metre?</summary><p><i>z</i> = ln(100)/0.209 = 4.605/0.209 = 22.0 m, so blue reaches 1% deeper than green (18.0 m) and red (8.5 m).</p></details>
+      <details><summary>The curve for the spadenose photo rises with depth. Does that show that the network detects this shark better?</summary><p>No, because the animal is the same while the water differs. A likely reason, not tested here, is that the network responds to the look of hazy blue water, which may go with sharks in its training photos. The rise of the three photos without a shark fits this reading.</p></details>
+    </div>
   </div>
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">photo details, symbols, haze model, Python</span> <span class="deeper-time">about 5 min</span></summary>
+    <div class="deeper-body">
+      <h4>About the network and the figure</h4>
+      <p>The classifier is ResNet-18 trained on ImageNet, a set of web photos in 1,000 classes (He et al., 2016, for the architecture). It was not trained for SharkCam. Its three shark classes are summed, so the curve says how strongly the network responds to some ImageNet shark class. It does not say which species. The eight photos are examples, not statistics.</p>
+    <p>The coral dot is the slider position. Confidence is a number from 0 to 1. The curves were computed offline for 61 depths from 0 to 30 m.</p>
+      <h4>What the curves show</h4>
+    <p>Move through the photos in turn. The curves show four things. The hammerhead photos keep a high confidence for a long way down, although the colours are far from the surface. The Jarvis Island photo stays above 0.85 to 30 m, and the Costa Rica photo is at 0.99 at 20 m and 0.48 at 30 m. The milk sharks of Kuala Lumpur lose confidence early, from 0.97 at 5 m to 0.49 at 15 m. The spadenose shark on a white board gets a higher confidence with depth, from 0.70 at the surface to 0.998 at 10 m, although the animal is the same. And the photos with no shark, a sea turtle and a clownfish, climb to 0.61 and 0.44 at 30 m.</p>
+    <p>The dolphin photo behaves differently. The network gives it 0.90 at the surface (top call: great white shark, 0.90) and 0.19 at 5 m. The mean of the three photos without a shark is 0.30 at 0 m because of the dolphin photo, then 0.06 at 5 m and 0.46 at 30 m, against 0.68 for the five sharks at 30 m. One possible reading is that blue haze is part of what the network learned to call a shark, since sharks are photographed under water and the water looks blue-green. This was not tested directly. A cue of this kind is the spurious cue of <a href="../b9-explaining/#shortcut">B9</a>.</p>
+      <h4>Symbols and the values of K</h4>
+    <p>This <i>K</i> is a different quantity from the keys of attention (<a href="../d4-self-attention/#qkv">D4</a>).</p>
+      <ul class="math-notes">
+        <li><b>\(c\)</b> is a colour (red, green or blue) and <b>\(z\)</b> is the depth in metres.</li>
+        <li><b>\(I_c(z)\)</b> is the light of colour \(c\) that is left at depth \(z\), and <b>\(I_c(0)\)</b> is its value at the surface.</li>
+        <li><b>\(K_c\)</b> is the attenuation coefficient of colour \(c\) in units per metre: 0.54 for red, 0.256 for green and 0.209 for blue. Pure water absorbs 0.34, 0.0565 and 0.0092 per metre (Pope and Fry, 1997). The rest, 0.20 per metre for all colours, represents particles. <b>This 0.20 is an assumption.</b> It was chosen so that the mean of the three values, 0.335 per metre, matches the attenuation of the made-up dive log. No Mumbai measurement was found.</li>
+      </ul>
+      <h4>The law at other depths</h4>
+    <p>The light itself follows a simple law in this model. A colour is multiplied by a factor that falls exponentially with depth, and the factor falls fastest for red. The boxes under the figure evaluate the law at the slider depth. At 10 m red keeps e<sup>&minus;5.4</sup> = 0.0045 of its surface light, green (<i>K</i> = 0.256) keeps e<sup>&minus;2.56</sup> = 0.077 and blue (<i>K</i> = 0.209) keeps e<sup>&minus;2.09</sup> = 0.124. At 5 m the factors are 0.067, 0.278 and 0.352. Red is below 1% after ln(100)/0.54 = 8.5 m. Haze also lowers the contrast of the picture. <code>depth.py</code> combines the law with a veil of scattered light and a camera that brightens a dark scene.</p>
+      <h4>The full picture model</h4>
+      <p class="math">\[ \begin{aligned} \text{out}_c &= G\; e^{-K_c z}\Big( (1 - V)\, J_c + V\, W_c \Big) \\ V &= 1 - e^{-\kappa z} \end{aligned} \]</p>
+      <ul class="math-notes">
+        <li><b>\(J_c\)</b> is the colour of the scene at the surface (in linear light) and <b>\(\text{out}_c\)</b> what the camera records. <b>\(W_c\)</b> is the colour of the veil, a blue-green (0.08, 0.50, 0.55).</li>
+        <li><b>\(V\)</b> is the share of haze, which grows from 0 as \(1 - e^{-\kappa z}\). The haze rate \(\kappa = 0.06\) per metre is chosen by eye, as is the veil colour.</li>
+        <li><b>\(G\)</b> is the gain of the camera's automatic exposure. It gives back 60% of the darkening, another number chosen by eye.</li>
+      </ul>
+      <p>This is the structure of the classic underwater image model (Jaffe, 1990), which <code>depth.py</code> cites. It is a simple model. Light travels from the surface to the animal and from the animal to the camera, and the second trip depends on the distance to the animal, which the code ignores. Akkaynak and Treibitz (2018) show that natural water needs different coefficients for direct and scattered light. Treat the pictures as an illustration of the kind of change, not as a prediction for Mumbai. Benchmarks such as ImageNet-C (Hendrycks and Dietterich, 2019) test models against many corruptions of this general kind, though not this one.</p>
+      <h4>Common mistakes</h4>
+    <div class="debug">
+      <p><b>Debug tip.</b> When you test a model against a change, plot its confidence against the amount of change and include negatives. A plot of the sharks alone would hide the false alarms. The dashed line, the false alarms, shows that at 30 m the average for the non-sharks is 0.46, against 0.68 for the five sharks.</p>
+    </div>
+      <h4>In Python</h4>
   <pre class="code"><code>import torch, torchvision, torchvision.transforms as T
 from PIL import Image
 from depth import degrade                      # primer/data/sharks/depth.py
@@ -110,24 +127,17 @@ for z in (0, 10, 20):
   <pre class="out"> 0 m  shark confidence 0.97  top call: tiger shark (0.62)
 10 m  shark confidence 0.73  top call: hammerhead (0.38)
 20 m  shark confidence 0.38  top call: hammerhead (0.28)</pre>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>At what depth does blue light fall to 1% of its surface value with K = 0.209 per metre?</summary><p>\(z = \ln(100)/0.209 = 4.605/0.209 = 22.0\) m. Red does it at 8.5 m and green at 18.0 m.</p></details>
-    <details><summary>The curve for the spadenose photo rises with depth. Does that mean the network sees the shark better?</summary><p>No evidence for that. The animal is the same, and the change in the picture is the water. The more likely explanation is that the network responds to the look of murky blue water, which is a cue and not the shark.</p></details>
-  </div>
+    </div>
+  </details>
 </section>
 
-<!-- ============================ 2. augment ============================ -->
 <section id="augment" aria-labelledby="augment-h">
   <h2 id="augment-h">Training for water you can imagine</h2>
-  <p class="ask"><b>Guess first.</b> You train a digit reader on pictures made at random depths between 0 and 15 m, with slightly different water in the pictures. Then you test it in a brown river water that it never saw. Will it do better than a reader trained on clear digits only, about the same, or worse?</p>
-  <dl class="terms">
-    <div><dt>data augmentation</dt><dd>training on altered copies of the examples, such as shifted, flipped or murky ones (<a href="../b7-continual-learning/#reg">B7</a> first meets it as noise on the inputs)</dd></div>
-    <div><dt>training range</dt><dd>the set of changes the augmentation can produce, here depths of 0 to 15 m in blue-green water</dd></div>
-    <div><dt>water type</dt><dd>one setting of the attenuation coefficients, the haze and the veil colour</dd></div>
-  </dl>
-  <p class="claim">Augmentation teaches a network to ignore the changes you can simulate, and it helps only as far as the simulation covers the water you meet.</p>
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> A digit reader is trained on pictures made at random depths between 0 and 15 m, in slightly varied blue-green water. It is then tested at 4 m in a made-up brown water that it did not see in training. Will it be more accurate than a reader trained on clean digits, about as accurate, or less accurate?</p>
+    <p class="claim">Data augmentation means training on altered copies of the examples, such as shifted, flipped or murky ones. Here a program gives a training image its own random depth, attenuation coefficients and haze rate. Such training can make a network less sensitive to the changes the program simulates, because it meets them during training. Whether it helps for a water outside those changes is tested below, because a program simulates the changes that its author chose to include.</p>
   <div class="card" id="ag">
+      <ol class="try"><li>The eight photos and the eight digits under them are random draws; the caption of a photo gives its depth and its attenuation coefficients <i>K</i> (red, green, blue). Press New draw for eight more.</li><li>Drag Variety to 0 and the coefficients become equal in all eight draws, because Variety scales the random changes, while the depths still differ. Drag Deepest water drawn to 25 for murkier draws.</li></ol>
     <div class="bar" id="ag-bar"></div>
     <div class="controls" id="ag-controls"></div>
     <p class="pane-h">Training photos with random water of their own (eight draws)</p>
@@ -136,8 +146,11 @@ for z in (0, 10, 20):
     <div class="aggrid d8" id="ag-digits"></div>
     <p class="credit" id="ag-credit"></p>
   </div>
-  <p class="cap"><b>A training image gets its own depth, its own colour loss and its own haze, so the network meets a spread of waters instead of one.</b> The captions give the depth and the three attenuation coefficients (red, green, blue) of the draw. Press New draw for eight more.</p>
-  <p>A training image receives a random depth between 0 and the deepest water on the slider. The three attenuation coefficients are multiplied by \(e^{0.2\,g}\) with \(g\) a random normal number, so the water is sometimes clearer in red or greener than the standard one. The haze rate is multiplied by a number between 0.6 and 1.4, and the exposure share varies from 0.3 to 0.9. For photos, a random flip and crop is added. The variety slider scales all of these random changes, and 0 gives one fixed water. The row of digits shows the same draws applied to handwritten tag numbers, which is the training set of the next experiment.</p>
+    <p class="cap"><b>A training image gets its own depth, colour loss and haze, so the network meets a spread of waters instead of one.</b></p>
+  </div>
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>The recipe.</b> A program draws a depth <i>z</i> between 0 and 15 m for a training image. It multiplies the three attenuation coefficients by e<sup>0.2<i>g</i></sup>, where <i>g</i> is a random normal number, so the factor lies between 0.82 and 1.22 when <i>g</i> is between &minus;1 and 1. One small CNN is trained for 4 epochs on clean handwritten digits (MNIST), another on batches that are half clean and half under random water. Both are tested on the 10,000 MNIST test digits.</p>
   <div class="card" id="ca">
     <div class="bar" id="ca-bar"></div>
     <div class="controls" id="ca-controls"></div>
@@ -146,18 +159,43 @@ for z in (0, 10, 20):
     <div class="strip" id="ca-digits"></div>
     <div class="eqn eqs" id="ca-eqn"></div>
   </div>
-  <p class="cap"><b>In blue-green water the reader trained on random water stays near 98% to 20 m, while the clean-trained reader is at chance (10%) by 10 m. In a made-up brown water it never saw, the augmented reader is at 52.6% at 4 m, worse than the 86.9% of the clean-trained reader.</b> The shaded band marks the depths used in training. A line is one trained network tested on all 10,000 MNIST test digits.</p>
-  <p>The experiment: a small CNN with batch norm, on 3-channel versions of the digits (white strokes on black, so that the colour law has something to act on). One network is trained for 4 passes on clean digits (MNIST, LeCun et al., 1998). The other is trained for 4 passes with half of the images in a batch clean and half under random water from 0 to 15 m. Both are tested on the 10,000 test digits. One test uses the standard water, the blue-green water of <code>depth.py</code>. The other uses water B, a brownish type invented for this chapter, with attenuation (0.30, 0.50, 0.85) per metre and a tan veil. Think of muddy runoff after rain. It is a made-up water, chosen to differ from the training family. No river was measured.</p>
-  <p>In blue-green water the clean-trained reader gives 98.6% at 0 m, 68.6% at 2 m and 10.6% at 10 m. The augmented reader gives 98.3% at 0 m, 98.0% at 10 m, 97.4% at 20 m, beyond its 15 m training range, and 93.7% at 30 m. In brown water the clean-trained reader gives 91.3% at 2 m and 86.9% at 4 m. The augmented reader gives 96.8% at 2 m, then 52.6% at 4 m, 17.9% at 6 m and chance from 8 m. These numbers come from a single trained network of the two kinds, so differences of one or two points would not mean much. These gaps are large.</p>
-  <div class="break">
-    <p><b>Common belief.</b> Augmentation makes a model safe against any change in the input.</p>
-    <p><b>Why it fails.</b> In the brown water the augmented network is worse than the one that saw no murky images at all, from 4 m to 10 m. The training family changed the colours in a blue-green way, and the network learned to expect that family.</p>
-    <p><b>Better account.</b> Augmentation buys reliability inside the family of changes you simulate. Outside the family it can be as bad as no augmentation, or worse. Choose the augmentation from the changes you expect, and test on a change you did not include.</p>
+    <p>In blue-green water the reader trained on random water gives 98.0% at 10 m and 97.4% at 20 m, beyond its training range (the shaded band). The clean-trained reader gives 10.6% at 10 m, close to chance (10%). Water B is the made-up brown water of the second button, <i>K</i> = 0.30, 0.50 and 0.85 per metre (red, green, blue), far outside the random draws, and a curve is one trained network.</p>
+    <div class="break">
+      <p><b>Common belief.</b> Augmentation makes a model safe against any change in the input.</p>
+      <p><b>Why it fails.</b> In water B the augmented reader is less accurate than the clean-trained one from 4 m to 12 m (52.6% against 86.9% at 4 m), possibly because the training draws are blue-green and brown water is outside them.</p>
+      <p><b>Better account.</b> Augmentation can make a model more reliable within the family of changes it simulates, but outside the family it can be as bad as no augmentation, or worse, so test on a change that the training did not include.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>Why is the augmented reader still at 97.4% at 20 m, beyond its training depths of 0 to 15 m?</summary><p>A likely reason is that water at 20 m is the same family of change with a larger depth <i>z</i>: less red and more haze, with the same coefficients <i>K</i>. The network handled that direction up to 15 m. At 30 m it falls to 93.7%, as the change goes further out. This reason was not tested.</p></details>
+      <details><summary>Name one change that this augmentation would not be expected to help with.</summary><p>Water with different colours, like the brown water B, or a lens that is fogged or scratched, because the random draws do not produce these changes.</p></details>
+    </div>
   </div>
-  <p><b>Practical notes.</b> Apply augmentation to training images only. Augmented copies of a test image in the training set are a leak, in the sense of <a href="../a4-grading-models/#leak">A4</a>. Typical image augmentations are flips, crops, small turns and changes of brightness, contrast and colour. Their strength is a setting to test on a validation set.</p>
-  <div class="debug">
-    <p><b>Debug tip.</b> Look at a grid of augmented images before training, as in the panel above. If you cannot read the digit or see the shark, the network cannot either. Water so thick that no digit or shark can be seen teaches the network to guess.</p>
-  </div>
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">draw rules, experiment details, notes, Python</span> <span class="deeper-time">about 5 min</span></summary>
+    <div class="deeper-body">
+      <h4>How a training image is drawn</h4>
+      <p>A training image receives a random depth between 0 and the deepest water on the slider. The three attenuation coefficients are multiplied by \(e^{0.2\,g}\) with \(g\) a random normal number, so the water is sometimes clearer in red or greener than the standard one. The haze rate is multiplied by a number between 0.6 and 1.4, and the exposure share varies from 0.3 to 0.9. For photos, a random flip and crop is added. The variety slider scales all of these random changes, and 0 gives one fixed water. The row of digits shows the same draws applied to handwritten tag numbers, which shows what the digit reader trains on in the next experiment.</p>
+      <h4>The experiment in detail</h4>
+      <p>The experiment: a small CNN with batch norm, on 3-channel versions of the digits (white strokes on black, so that the colour law has something to act on). One network is trained for 4 passes on clean digits (MNIST, LeCun et al., 1998). The other is trained for 4 passes with half of the images in a batch clean and half under random water from 0 to 15 m. Both are tested on the 10,000 test digits. One test uses the standard water, the blue-green water of <code>depth.py</code>. The other uses water B, a brownish type invented for this chapter, with attenuation (0.30, 0.50, 0.85) per metre and a tan veil. Think of muddy runoff after rain. It is a made-up water, chosen to differ from the training family. No river was measured.</p>
+      <h4>More numbers</h4>
+    <p>In blue-green water the reader trained on random water stays near 98% to 20 m, while the clean-trained reader is at chance (10%) by 10 m. In a made-up brown water it never saw, the augmented reader is at 52.6% at 4 m, worse than the 86.9% of the clean-trained reader. The shaded band in the figure marks the depths used in training. A line is one trained network tested on all 10,000 MNIST test digits.</p>
+      <p>In blue-green water the clean-trained reader gives 98.6% at 0 m, 68.6% at 2 m and 10.6% at 10 m. The augmented reader gives 98.3% at 0 m, 98.0% at 10 m, 97.4% at 20 m, beyond its 15 m training range, and 93.7% at 30 m. In brown water the clean-trained reader gives 91.3% at 2 m and 86.9% at 4 m. The augmented reader gives 96.8% at 2 m, then 52.6% at 4 m, 17.9% at 6 m and near chance from 8 m. These numbers come from a single trained network of the two kinds, so differences of one or two points would not mean much. These gaps are large.</p>
+      <h4>Why the brown water breaks the augmented reader</h4>
+    <p>In the brown water the augmented network is worse than the one that saw no murky images at all, from 4 m to 12 m: 52.6%, 17.9%, 12.3% and 11.5% at 4, 6, 8 and 10 m, against 86.9%, 81.6%, 73.0% and 55.1%, and 11% against 28.7% at 12 m. The training family changed the colours in a blue-green way. A likely reason is that the network learned to expect that family, but this was not isolated.</p>
+      <h4>Practical notes</h4>
+      <p><b>Practical notes.</b> Apply augmentation to training images only. Augmented copies of a test image in the training set are a leak, in the sense of <a href="../a4-grading-models/#leak">A4</a>. Typical image augmentations are flips, crops, small turns and changes of brightness, contrast and colour. Their strength is a setting to test on a validation set.</p>
+      <h4>Terms</h4>
+    <ul>
+      <li><b>training range</b>: the set of changes the augmentation can produce, here depths of 0 to 15 m in blue-green water.</li>
+      <li><b>water type</b>: one setting of the attenuation coefficients, the haze and the veil colour.</li>
+      <li>Data augmentation first appears in <a href="../b7-continual-learning/#reg">B7</a> as noise on the inputs.</li>
+    </ul>
+      <h4>Common mistakes</h4>
+      <div class="debug">
+        <p><b>Debug tip.</b> Look at a grid of augmented images before training, as in the panel above. If you cannot read the digit or see the shark, the network cannot either. Water so thick that no digit or shark can be seen teaches the network to guess.</p>
+      </div>
+      <h4>In Python</h4>
   <pre class="code" data-run><code>import numpy as np
 K = np.array([0.54, 0.256, 0.209])               # per metre for red, green, blue (assumed particle term included)
 
@@ -182,25 +220,18 @@ for _ in range(3):
 depth  9.6 m  K [0.526 0.291 0.213]  haze rate 0.075  white becomes [0.02 0.33 0.72]
 depth 13.7 m  K [0.701 0.309 0.182]  haze rate 0.081  white becomes [0.   0.25 1.52]
 depth 12.2 m  K [0.544 0.161 0.2  ]  haze rate 0.071  white becomes [0.01 0.91 0.59]</pre>
-  <p>A white pixel at 5 m comes out as (0.14, 0.66, 0.85). The red is mostly gone, and green and blue are bright because of the haze and the exposure gain. A value above 1, like the 1.52 for blue, is cut to 1 when the picture is saved.</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>Why is the augmented digit reader still at 97.4% at 20 m, when it was trained only up to 15 m?</summary><p>Water at 20 m is a stronger version of the same change: less red, more haze and the same colours. The network learned to handle that direction of change. At 30 m it starts to fall (93.7%), because the change is further out.</p></details>
-    <details><summary>Name one case where the augmentation of this section would not help SharkCam.</summary><p>Water with different colours, like the brown water B, or a camera whose lens is fogged or scratched. Both change the pictures in ways the training family never produced.</p></details>
-  </div>
+      <p>A white pixel at 5 m comes out as (0.14, 0.66, 0.85). The red is mostly gone, and green and blue are bright because of the haze and the exposure gain. A value above 1, like the 1.52 for blue, is cut to 1 when the picture is saved.</p>
+    </div>
+  </details>
 </section>
 
-<!-- ============================ 3. adapt ============================ -->
 <section id="adapt" aria-labelledby="adapt-h">
   <h2 id="adapt-h">Adapting to water you cannot predict</h2>
-  <p class="ask"><b>Guess first.</b> A batch-norm layer stores a mean and a variance per channel, measured on the training photos. In murky water the numbers that flow into the layer change. To put the network back on track without any labels, could you change only the stored statistics, or must you change weights too? And how many new images would you need: a handful, or thousands?</p>
-  <dl class="terms">
-    <div><dt>test-time adaptation</dt><dd>changing a model while it is used, with unlabeled inputs</dd></div>
-    <div><dt>stored statistics</dt><dd>the running mean and variance per channel that batch norm keeps for use after training (<a href="../b6-deep-networks/#norm">B6</a>)</dd></div>
-    <div><dt>pool</dt><dd>the unlabeled new images that the new statistics are computed from</dd></div>
-  </dl>
-  <p class="claim">Re-estimating the stored statistics on unlabeled new images needs no labels and no gradient steps. It rescued a digit reader whose shift is mostly in colour and contrast. It collapsed the shark confidence of a pretrained network when the pool was only 14 photos.</p>
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> A batch-norm layer subtracts a stored mean from the values of a channel (one filter&rsquo;s map of values) and divides by the square root of a stored variance, both measured on the training photos. In murky water at 10 m, will a channel&rsquo;s variance in the first layer of ResNet-18 be larger than the stored variance, similar or smaller?</p>
+    <p class="claim">Test-time adaptation means changing a model while it is used, with unlabeled inputs. The simplest form is re-estimating. A pool of unlabeled new images is run through the network, and the stored mean and variance (the layer&rsquo;s statistics) are replaced by those measured on the pool. This needs no labels, because the pool alone gives the mean and variance, and no gradient steps. Whether it helps depends on the shift and on the pool, since the new statistics describe the pool.</p>
   <div class="card" id="bn">
+      <ol class="try"><li>A dot is one channel, with its stored value on the horizontal axis and its value on 14 photos at the chosen depth on the vertical axis. Dots on the dotted line would mean no change.</li><li>With the first layer and 10 m chosen, most variance dots lie far below the line.</li><li>Choose the last layer: the median variance ratio in the readout is 0.61 at 10 m, against 0.07 in the first layer.</li></ol>
     <div class="bar" id="bn-bar"></div>
     <div class="bn2">
       <div><p class="pane-h">Mean per channel</p><div class="plot" id="bn-mean" role="img" aria-label="Mean of the channels on the new images against the stored mean"></div></div>
@@ -209,16 +240,11 @@ depth 12.2 m  K [0.544 0.161 0.2  ]  haze rate 0.071  white becomes [0.01 0.91 0
     <div class="eqn eqs" id="bn-eqn"></div>
     <div class="readout" id="bn-read"></div>
   </div>
-  <p class="cap"><b>In the first layer of ResNet-18 the median channel variance on the murky photos falls from 81% of the stored value at 0 m to 7% at 10 m. In the last layer it falls from 90% to 61%.</b> A dot is one channel. Dots on the dotted line would mean no change. Click a dot to see its numbers below.</p>
-  <p>This is what the layer sees now, against what it stored. The images are 14 photos with 16 random crops per photo (the pool of the next figures), passed through ResNet-18 with its stored statistics. The first layer reads pixels, so its variance follows the contrast of the picture, and haze removes contrast: the cloud of dots moves below the line. The last layer reads features of the whole picture. Its dots scatter around the line even at 0 m, probably because 14 photos are not a sample of ImageNet. This difference will matter in a moment.</p>
-  <p>Batch norm normalises a value with a mean and a variance, and its layers keep a stored pair for a channel. Re-estimation replaces the stored pair by the pair measured on the new images.</p>
-  <p class="math">\[ \begin{aligned} \hat{x} &= \gamma\,\frac{x - \mu}{\sqrt{\mathrm{var} + \epsilon}} + \beta \\ \mu_{\text{new}} &= \frac{1}{N}\sum_{i=1}^{N} x_i, \qquad \mathrm{var}_{\text{new}} = \frac{1}{N}\sum_{i=1}^{N}\big(x_i - \mu_{\text{new}}\big)^2 \\ \mu &= (1-\alpha)\,\mu_{\text{train}} + \alpha\,\mu_{\text{new}} \end{aligned} \]</p>
-  <ul class="math-notes">
-    <li><b>\(x\)</b> is one value of one channel. The \(N\) values in the sums are those of that channel over all new images and all positions in them.</li>
-    <li><b>\(\gamma\)</b> and <b>\(\beta\)</b> are the learned scale and shift of the layer. They stay as trained.</li>
-    <li><b>\(\mu_{\text{train}}\)</b> is the stored mean, and the variance is mixed in the same way. <b>\(\alpha\)</b> is the share of the new statistics: 0 keeps the stored ones and 1 uses only the new ones. <b>\(\epsilon\)</b> is a small constant, \(10^{-5}\) in PyTorch.</li>
-  </ul>
-  <p>A worked example with made-up numbers. A channel has stored mean 2 and variance 4, so a standard deviation of 2. In murky water the channel has mean 0.5 and variance 0.25, standard deviation 0.5. A value \(x = 1\) is normalised to \((1 - 2)/2 = -0.5\) with the stored statistics, and to \((1 - 0.5)/0.5 = +1\) with the new ones. The next layer receives numbers that differ by 1.5 standard deviations, from one value. With \(\alpha = 0.25\) the mean is \(0.75 \times 2 + 0.25 \times 0.5 = 1.625\). No labels are used anywhere, and no weight is learned by gradient descent.</p>
+    <p class="cap"><b>The median channel variance on the 14 photos falls from 81% of the stored value at 0 m to 7% at 10 m in the first layer, and from 90% to 61% in the last.</b></p>
+  </div>
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Take one channel with made-up numbers.</b> Batch norm turns a value <i>x</i> into (<i>x</i> &minus; &mu;)/&radic;var, where &mu; is the mean of the channel and var its variance. The stored values are &mu; = 2 and var = 4, and in murky water the channel has mean 0.5 and variance 0.25. Then <i>x</i> = 1 becomes (1 &minus; 2)/&radic;4 = &minus;0.5 with the stored values and (1 &minus; 0.5)/&radic;0.25 = +1 with values re-estimated on the pool. The figures below test this on a digit reader and on ResNet-18.</p>
   <div class="card" id="cb">
     <div class="bar" id="cb-bar"></div>
     <div class="controls" id="cb-controls"></div>
@@ -227,9 +253,6 @@ depth 12.2 m  K [0.544 0.161 0.2  ]  haze rate 0.071  white becomes [0.01 0.91 0
     <div class="strip" id="cb-digits"></div>
     <div class="eqn eqs" id="cb-eqn"></div>
   </div>
-  <p class="cap"><b>Re-estimating the statistics on 256 unlabeled murky digits lifts the clean-trained reader from 68.6% to 98.3% at 2 m and from 10.6% to 87.2% at 10 m. In the brown water it also rescues the augmented reader, from 52.6% to 97.8% at 4 m.</b> The teal line is the mean of 5 random pools, and the spread between pools is at most 0.3 points.</p>
-  <p>On the digit reader the result is strong. The statistics were re-estimated on 256 unlabeled murky training digits and the network was tested on the 10,000 test digits. In blue-green water the augmented reader gains no accuracy from it (98.0% against 98.0% at 10 m). In brown water adaptation works where augmentation failed, with no knowledge of the water. It does not cure all cases: at 20 m in blue-green water the clean-trained reader reaches only 36.2%. Here are four more measurements, all on this digit model at 10 m in blue-green water. Pools of 2, 8 and 256 images give 84.3%, 87.2% and 87.3% (single pools, while the chart shows the mean of five), so digits need almost no images. A pool of only the digit 1 gives 81.7%, against 86.9% for a fair mix. Mixing the new statistics with the stored ones gives 13.7% at \(\alpha = 0.25\), 39.2% at 0.5, 80.4% at 0.75 and 87.3% at 1. There is no safe halfway when the stored values are far off. And on clean digits, re-estimating changes the accuracy from 98.56% to 98.60%.</p>
-  <p>Now the same idea on shark photos. The switch below sets which statistics ResNet-18 uses. There are three choices, all computed offline. The first uses the stored statistics. The second mixes in 25% new ones. The third uses the statistics of a pool of 14 photos with 16 random crops per photo, made at the chosen depth.</p>
   <div class="card" id="v2">
     <div class="bar" id="v2-bar"></div>
     <div class="controls" id="v2-controls"></div>
@@ -240,17 +263,55 @@ depth 12.2 m  K [0.544 0.161 0.2  ]  haze rate 0.071  white becomes [0.01 0.91 0
     <div class="eqn eqs" id="v2-eqn"></div>
     <div class="readout" id="v2-read"></div>
   </div>
-  <p class="cap"><b>On these photos, re-estimating all statistics pushes the average shark confidence of the five sharks from 0.89 down to 0.08 at 15 m, and the non-sharks to about 0. Mixing in 25% of the new statistics changes little: 0.84.</b> The adapted network is quieter and no better. At 0 m, where the world has not changed, re-estimating already lowers the average for the five sharks from 0.91 to 0.32.</p>
-  <p>This is a negative result, and the number at 0 m shows it before any depth is involved. In the code below, re-estimating on a pool made at 0 m takes the milk sharks of Kuala Lumpur from 0.97 to 0.00. It takes the Jarvis Island hammerhead from 1.00 to 0.70. What was measured: ResNet-18 and a pool of 14 photos with 16 random crops per photo, which makes 224 images. The test photos are among them. The test images were five shark photos and three non-shark photos, and there was one run. A likely reason is that 14 photos are not a fair sample of the world that ResNet-18's stored statistics describe, which has 1,000 classes. The cause was not isolated. The collapse stays the same under three variations. At 0 m the average shark confidence falls from 0.91 to 0.15 with a shuffled pool. It falls to 0.11 with the pool passed as one batch of 224 and to 0.06 with the 14 photos alone and no random crops. So the order of the batches and the random crops are not the cause.</p>
-  <p>Several remedies are known, including mixing and larger and more varied pools (Schneider et al., 2020; Nado et al., 2020). Mixing 25% was too weak to matter here. A larger pool was not tried, because the photo set has only 14 pictures. There is also a second reading, which was not tested. The stored network may have called murky blue pictures sharks partly because of the haze, the spurious cue of the last section. Normalising the haze away would then remove that cue along with the confidence.</p>
-  <div class="break">
-    <p><b>Common belief.</b> Adapting to the new images can only help, because the model gets to see them.</p>
-    <p><b>Why it fails.</b> On the digits, adaptation was close to harmless on clean digits (98.56% to 98.60%) and gave large gains. On ResNet-18 with 14 photos it changed the answers at 0 m, where the stored statistics were right. A likely reason is that statistics from a small or odd pool replace good stored numbers with poor ones.</p>
-    <p><b>Better account.</b> Re-estimating statistics helps under three conditions. The shift is mainly in the statistics. The new images are a fair and large enough sample of the new world. A check on source-like images shows no harm. The method was developed and tested with large batches of varied images (Li et al., 2016; Schneider et al., 2020).</p>
+    <div class="break">
+      <p><b>Common belief.</b> Adapting to the new images can only help, because the model gets to see them.</p>
+      <p><b>Why it fails.</b> In the digit-reader figure, re-estimating on 256 unlabeled murky digits lifts the clean-trained reader from 10.6% to 87.2% at 10 m. On clean digits it changes the accuracy from 98.56% to 98.60%. In the shark-photo figure at 0 m, where the water is unchanged, a pool of 14 photos changes ResNet-18&rsquo;s answers, so depth is not the cause. The confidence for the Kuala Lumpur milk sharks falls from 0.97 to 0.00.</p>
+      <p><b>Better account.</b> Re-estimating can help under three conditions: the shift is mainly in the statistics, the pool is a fair and large enough sample of the new images, and a check on unchanged images shows no harm. A likely reason for ResNet-18 is that 14 photos do not sample its 1,000-class world fairly; this was not isolated.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>A channel has stored mean 3 and variance 9, and mean 1 and variance 1 on new images. What does <i>x</i> = 2 become under the stored and the new values?</summary><p>Stored: (2 &minus; 3)/&radic;9 = &minus;0.33. New: (2 &minus; 1)/&radic;1 = +1. The two values differ by 1.33.</p></details>
+      <details><summary>Which check on unchanged images warns about ResNet-18 with this pool, and what does it show?</summary><p>Re-estimate on a pool made at 0 m and compare the answers with the stored network. The confidence for the Kuala Lumpur milk sharks falls from 0.97 to 0.00, so harm appears at 0 m, where depth plays no role.</p></details>
+    </div>
   </div>
-  <div class="debug">
-    <p><b>Debug tip.</b> Before you trust an adaptation method, run it where the world has not changed. Adapt on clean images and compare the answers with the stored model on clean images. The digit reader passes (98.56% to 98.60%). ResNet-18 on 14 photos fails (milk sharks 0.97 to 0.00). The check is short and would have saved a dive.</p>
-  </div>
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">formulas, digit and ResNet details, Python</span> <span class="deeper-time">about 8 min</span></summary>
+    <div class="deeper-body">
+      <h4>What the first figure shows</h4>
+    <p>This is what the layer sees now, against what it stored. The images are 14 photos with 16 random crops per photo (the pool of the next figures), passed through ResNet-18 with its stored statistics. The first layer reads pixels, so its variance follows the contrast of the picture, and haze removes contrast: a likely reason why the cloud of dots moves below the line. The last layer reads features of the whole picture. Its dots scatter around the line even at 0 m, probably because 14 photos are not a sample of ImageNet. This difference will matter in a moment.</p>
+      <h4>The full formulas</h4>
+      <p>Batch norm normalises a value with a mean and a variance, and its layers keep a stored pair for a channel. Re-estimation replaces the stored pair by the pair measured on the new images.</p>
+      <p class="math">\[ \begin{aligned} \hat{x} &= \gamma\,\frac{x - \mu}{\sqrt{\mathrm{var} + \epsilon}} + \beta \\ \mu_{\text{new}} &= \frac{1}{N}\sum_{i=1}^{N} x_i, \qquad \mathrm{var}_{\text{new}} = \frac{1}{N}\sum_{i=1}^{N}\big(x_i - \mu_{\text{new}}\big)^2 \\ \mu &= (1-\alpha)\,\mu_{\text{train}} + \alpha\,\mu_{\text{new}} \end{aligned} \]</p>
+      <ul class="math-notes">
+        <li><b>\(x\)</b> is one value of one channel. The \(N\) values in the sums are those of that channel over all new images and all positions in them.</li>
+        <li><b>\(\gamma\)</b> and <b>\(\beta\)</b> are the learned scale and shift of the layer. They stay as trained.</li>
+        <li><b>\(\mu_{\text{train}}\)</b> is the stored mean, and the variance is mixed in the same way. <b>\(\alpha\)</b> is the share of the new statistics: 0 keeps the stored ones and 1 uses only the new ones. <b>\(\epsilon\)</b> is a small constant, \(10^{-5}\) in PyTorch.</li>
+      </ul>
+      <h4>A mix, with the made-up numbers</h4>
+    <p>With &alpha; = 0.25 the mean of the made-up channel becomes 0.75 &times; 2 + 0.25 &times; 0.5 = 1.625. The two normalised values, &minus;0.5 and +1, differ by 1.5, so the next layer receives different numbers for the same value <i>x</i> = 1. No labels are used anywhere, and no weight is learned by gradient descent.</p>
+      <h4>The digit reader in more detail</h4>
+    <p>Re-estimating the statistics on 256 unlabeled murky digits lifts the clean-trained reader from 68.6% to 98.3% at 2 m and from 10.6% to 87.2% at 10 m. In the brown water it also rescues the augmented reader, from 52.6% to 97.8% at 4 m. The teal line is the mean of 5 random pools, and the standard deviation between pools is at most 0.32 points.</p>
+    <p>On the digit reader the result is strong. The statistics were re-estimated on 256 unlabeled murky training digits and the network was tested on the 10,000 test digits. In blue-green water the augmented reader gains no accuracy from it at 10 m (98.0% against 98.0%). In brown water adaptation works where augmentation failed, with no knowledge of the water. It does not cure all cases: at 20 m in blue-green water the clean-trained reader reaches only 36.2%. Here are four more measurements, all on this digit model at 10 m in blue-green water. Pools of 2, 8 and 256 images give 84.3%, 87.2% and 87.3% (means of 8 pools per size, with standard deviations of 2.4, 0.5 and 0.3 points, while the chart shows the mean of 5 pools), so in this example a pool of 8 images is nearly as good as one of 256. A pool of only the digit 1 gives 81.7%, against 86.9% for a fair mix, both single pools of 256 images. Mixing the new statistics with the stored ones, again with one pool, gives 13.7% at &alpha; = 0.25, 39.2% at 0.5, 80.4% at 0.75 and 87.3% at 1, so in this example a halfway mix is far worse than the new statistics alone. And on clean digits, re-estimating changes the accuracy from 98.56% to 98.60%.</p>
+      <h4>ResNet-18 with a pool of 14 photos</h4>
+      <p>Now the same idea on shark photos. The switch in the shark-photo figure sets which statistics ResNet-18 uses. There are three choices, all computed offline. The first uses the stored statistics. The second mixes in 25% new ones. The third uses the statistics of a pool of 14 photos with 16 random crops per photo, made at the chosen depth.</p>
+    <p>On these photos, re-estimating all statistics pushes the average shark confidence of the five sharks from 0.89 down to 0.08 at 15 m, and the non-sharks to about 0. Mixing in 25% of the new statistics changes little: 0.84. For a detector that reports a shark above a fixed confidence, the sharks would be missed more often after re-estimating, while the false alarms of the three non-shark photos would disappear. At 0 m, where the world has not changed, re-estimating already lowers the average for the five sharks from 0.91 to 0.32.</p>
+    <p>This is a negative result, and the number at 0 m shows it before any depth is involved. In the code below, re-estimating on a pool made at 0 m takes the milk sharks of Kuala Lumpur from 0.97 to 0.00. It takes the Jarvis Island hammerhead from 1.00 to 0.70. What was measured: ResNet-18 and a pool of 14 photos with 16 random crops per photo, which makes 224 images. The test photos are among them. The test images were five shark photos and three non-shark photos, and there was one run. A likely reason is that 14 photos are not a fair sample of the world that ResNet-18's stored statistics describe, which has 1,000 classes. The cause was not isolated. The collapse remains under three variations. At 0 m the average shark confidence falls from 0.91 to 0.15 with a shuffled pool, to 0.11 with the pool passed as one batch of 224 and to 0.06 with the 14 photos alone and no random crops. So in these single runs the order of the batches and the random crops do not explain it.</p>
+    <p>Several remedies are known, including mixing and larger and more varied pools (Schneider et al., 2020; Nado et al., 2020). Mixing 25% was too weak to matter here. A pool of more different photos was not tried, because the photo set has only 14 pictures. There is also a second reading, which was not tested. The stored network may have called murky blue pictures sharks partly because of the haze, the spurious cue of the first section. Normalising the haze away would then remove that cue along with the confidence. A likely reason for the 14-photo failure is that statistics from a small or odd pool replace good stored numbers with poor ones. The cited methods (Li et al., 2016; Schneider et al., 2020) were tested on large sets of varied images, not on 14 photos.</p>
+      <h4>More questions</h4>
+    <div class="recall">
+      <details><summary>Why does a pool of 14 photos fail on ResNet-18 but a pool of 8 digits work on the digit reader?</summary><p>A possible reason, not tested directly: digits are a small, simple world with ten classes, one size, centred, and nearly the same statistics from any handful. The stored statistics of ResNet-18 describe a world of 1,000 classes of photos, and 14 photos are not a fair sample of it.</p></details>
+    </div>
+      <h4>Terms</h4>
+    <ul>
+      <li><b>stored statistics</b>: the running mean and variance per channel that batch norm keeps for use after training (<a href="../b6-deep-networks/#norm">B6</a>).</li>
+      <li><b>test-time adaptation</b>: changing a model while it is used, with unlabeled inputs.</li>
+      <li><b>pool</b>: the unlabeled new images that the new statistics are computed from.</li>
+    </ul>
+      <h4>Common mistakes</h4>
+    <div class="debug">
+      <p><b>Debug tip.</b> Before you trust an adaptation method, run it where the world has not changed. Adapt on clean images and compare the answers with the stored model on clean images. The digit reader passes (98.56% to 98.60%). ResNet-18 on 14 photos fails (milk sharks 0.97 to 0.00). The check takes one pass over clean images.</p>
+    </div>
+      <h4>In Python</h4>
   <pre class="code"><code>import copy, torch, torch.nn as nn
 
 def reestimate(model, images, alpha=1.0):
@@ -286,53 +347,76 @@ for z in (0, 10):
  0 m  hammerhead-1  shark confidence: stored 1.00, re-estimated 0.70
 10 m  milk-2        shark confidence: stored 0.73, re-estimated 0.00
 10 m  hammerhead-1  shark confidence: stored 0.99, re-estimated 0.04</pre>
-  <p>The code assumes <code>model</code>, <code>photos</code>, <code>files</code>, <code>tf</code>, <code>aug</code> and <code>degrade</code> from the previous block. Here <code>aug</code> is a random resized crop, a flip and normalisation. Setting <code>momentum = None</code> makes PyTorch use a plain average of all batches, instead of the exponential average that stays near the old values. Calling <code>.train()</code> is the step that makes the layer use batch statistics. Forgetting <code>torch.no_grad()</code> only wastes memory here. Forgetting to switch back to <code>.eval()</code> means that the answer for an image depends on the other images of its batch.</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>A channel has stored mean 3 and variance 9. On new images its mean is 1 and its variance 1. What does the value x = 2 become under the two, ignoring \(\epsilon\), \(\gamma\) and \(\beta\)?</summary><p>Stored: \((2 - 3)/3 = -0.33\). New: \((2 - 1)/1 = +1\). The two normalised values differ by 1.33 standard deviations.</p></details>
-    <details><summary>Why does a pool of 14 photos fail on ResNet-18 but a pool of 8 digits work on the digit reader?</summary><p>Digits are a small, simple world: ten classes, one size, centred, and nearly the same statistics from any handful. The stored statistics of ResNet-18 describe a world of 1,000 classes of photos, and 14 photos are not a fair sample of it. This reason was not tested directly.</p></details>
-  </div>
+      <p>The code assumes <code>model</code>, <code>photos</code>, <code>files</code>, <code>tf</code>, <code>aug</code> and <code>degrade</code> from the previous block. Here <code>aug</code> is a random resized crop, a flip and normalisation. Setting <code>momentum = None</code> makes PyTorch use a plain average of all batches, instead of the exponential average that stays near the old values. Calling <code>.train()</code> is the step that makes the layer use batch statistics. Forgetting <code>torch.no_grad()</code> only wastes memory here. Forgetting to switch back to <code>.eval()</code> means that the answer for an image depends on the other images of its batch.</p>
+    </div>
+  </details>
 </section>
 
-<!-- ============================ 4. ttt ============================ -->
 <section id="ttt" aria-labelledby="ttt-h">
   <h2 id="ttt-h">Test-time training: update some weights</h2>
-  <p class="ask"><b>Guess first.</b> Re-estimating statistics changes only averages. Suppose the network may also change a few of its weights while SharkCam dives, with no labels. What could it use as a loss? And how often should it update: after a single frame, after a block of frames, or never during the dive?</p>
-  <dl class="terms">
-    <div><dt>test-time training</dt><dd>updating some weights while the model is used, with a loss computed from the inputs alone</dd></div>
-    <div><dt>entropy \(H\)</dt><dd>how spread out the predicted probabilities are: 0 for one sure class, \(\ln 10 = 2.30\) for ten equal classes (<a href="../t7-probability/#crossent">0.7</a>)</dd></div>
-    <div><dt>chunk</dt><dd>a block of frames that is read before one update</dd></div>
-    <div><dt>fast weights</dt><dd>weights that change during use, while the others stay fixed</dd></div>
-  </dl>
-  <p class="claim">Test-time training turns use into a loop: read a chunk, update a few weights with a loss that needs no labels, then predict with the updated model.</p>
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> A digit reader trained on clean digits works through a stream of digit images, called frames, that get deeper under water, and no labels arrive. Suppose it may change a few of its weights while it works. What could it use as a loss without labels, and how often should it update: after one frame, after a block of frames, or leave the weights fixed?</p>
+    <p class="claim">In this chapter, test-time training means updating some weights while the model is used, with a loss computed from the inputs alone. The loop reads a chunk (a block of 200 frames), updates a few weights, and then predicts the next chunk. The loss is the entropy <i>H</i> of the predicted probabilities. It is low for a confident prediction (0 for one sure class) and high for an unsure one (ln 10 = 2.30 for ten equal classes). Low entropy does not mean a correct prediction, because a network can be confident and wrong.</p>
   <div class="card" id="lp">
+      <ol class="try"><li>Press Play: the 8,000 frames get deeper from 0 to 12 m over 40 chunks, and Read, Update and Predict light up in turn while the three accuracy lines grow one chunk at a time.</li><li>The navy line, a frozen copy that never changes, falls as the water deepens, because the digits differ more and more from its clean training digits. The sand line updates only the stored statistics, and the teal line also the scale and shift of the batch-norm layers.</li></ol>
     <div class="bar" id="lp-bar"></div>
     <svg id="lp-svg" role="img" aria-label="The loop: read a chunk of frames, update the statistics and a few weights, predict the next chunk"></svg>
     <div class="plot" id="lp-plot" role="img" aria-label="Accuracy per chunk for a frozen network and two updating networks"></div>
     <div class="key" id="lp-key"></div>
     <div class="eqn eqs" id="lp-eqn"></div>
   </div>
-  <p class="cap"><b>On a stream of 8,000 digits that get deeper from 0 to 12 m, the frozen network falls from 99% on the first chunk to 11% on the last. Updating the statistics alone keeps the average at 92.6%, and also updating the scale and shift with one entropy step per chunk lifts it to 97.3%.</b> Press Play: the three stages light up in turn and the chart grows one chunk at a time. The digits are the test digits of the last figure, in blue-green water.</p>
-  <p>The stream has 40 chunks of 200 digits. Chunk \(t\) is made at depth \(12\,t/39\) metres. The network is the digit reader with batch norm, trained on clean digits. The frozen copy never changes. The other two copies follow the loop. They predict the next chunk with what they learned from the earlier chunks, so no chunk helps to label itself. Then they read the new chunk. The first moves the stored statistics toward the chunk's own statistics (an exponential average with weight 0.5). The second does that and also takes one Adam step on the scale and shift of the batch-norm layers. These are 96 of the network's 20,874 numbers. The step lowers the entropy of its predictions on the chunk.</p>
-  <p class="math">\[ \begin{aligned} H(\mathbf{p}) &= -\sum_{k} p_k \ln p_k \\ \theta &\leftarrow \theta - \eta\,\frac{\partial H}{\partial \theta}, \qquad \theta = \{\gamma,\ \beta\} \ \text{of the batch-norm layers} \end{aligned} \]</p>
-  <ul class="math-notes">
-    <li><b>\(\mathbf{p}\)</b> is the vector of ten class probabilities for one frame, and <b>\(H\)</b> is averaged over the frames of the chunk.</li>
-    <li><b>\(\theta\)</b> is the set of weights that are allowed to change, and <b>\(\eta\)</b> is the step size (0.01, used with Adam, <a href="../b5-optimisers/#adam">B5</a>).</li>
-    <li>Low entropy means a confident prediction. The loss needs no label, which is why it can run during use.</li>
-  </ul>
-  <p>Worked values. For probabilities (0.9, 0.05, 0.05) the entropy is \(-(0.9 \ln 0.9 + 2 \times 0.05 \ln 0.05) = 0.095 + 0.300 = 0.394\). A one-hot answer has entropy 0, and ten equal probabilities have \(\ln 10 = 2.303\). The step moves the scale and shift so that predictions become more confident. This is the idea of Tent (Wang et al., 2021). It does not know whether the confident answer is right. Tent as published normalises a batch with its own statistics and predicts in the same pass. The loop here predicts a chunk with what earlier chunks taught, which is a stricter test. Sun et al. (2020) use a different label-free loss: they train on a self-supervised task using the test input itself before predicting.</p>
-  <p>Read the chart with two cautions. First, the step size matters. Two values were tried, 0.001 and 0.01, and the larger one is shown. With 0.001 the average over the stream is 93.8% and the last 10 chunks average 87.4%. With 0.01 they are 97.3% and 96.8%. The value was chosen by looking at this same stream, so 97.3% is optimistic. No other values were tried, and in the field there is no labelled stream to tune on. Second, one stream and one trained network is one trial.</p>
-  <div class="break">
-    <p><b>Common belief.</b> A deployed model keeps learning from the images it sees.</p>
-    <p><b>Why it fails.</b> Normally the weights do not change after training. The frozen line in the chart is what that looks like: it does not recover as the water gets deeper. The other two lines change only because someone designed a loop with a loss, a step size and a rule for which weights may move.</p>
-    <p><b>Better account.</b> Learning during use is a design choice with risks. Entropy minimisation rewards confidence, so a wrong but confident answer can be reinforced. A sensible loop keeps a frozen copy to compare against, updates few weights, and starts afresh for a new dive.</p>
+    <p class="cap"><b>The frozen network falls from 99% to 11% accuracy over the stream. Updating the statistics gives a mean accuracy of 92.6%, and also the scale and shift 97.3%.</b></p>
   </div>
-  <div class="bridge">
-    <p><b>Bridge to my project.</b> My work uses a loop of the same kind on a language model. In-Place Test-Time Training, a method from ByteDance Seed (Feng and others), treats the down projection of selected MLP blocks as fast weights. It updates them chunk by chunk as the model reads, with a target built from the input. Generation never pauses: an update happens in the step that completes a chunk. At MBZUAI, in Prof. Salman Khan's group, I am porting the method from text models to a Qwen vision-language model, so that it can adapt to an input after deployment. My motivation is the question of this chapter: recognising a shark when the water, light and animals change between dives. The update differs from the entropy step above, and the weights that move are the down projections of selected MLP blocks. My <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">primer</a> explains the update step by step, and the <a href="https://rayhaan1345.github.io/projects/in-place-ttt/">project page</a> has the study. Test-time training for long text comes back in <a href="../d6-long-context/#ttt">D6</a>.</p>
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Take the probabilities 0.9, 0.05 and 0.05.</b> Their entropy is <i>H</i> = &minus;(0.9 ln 0.9 + 2 &times; 0.05 ln 0.05) = 0.0948 + 0.2996 = 0.394, well below ln 10 = 2.30. A step that lowers <i>H</i> makes the predictions more confident, and computing <i>H</i> needs no label, so the loss can run during use.</p>
+    <p class="math">\[ H(\mathbf{p}) = -\sum_{k} p_k \ln p_k, \qquad \theta \leftarrow \theta - \eta\,\frac{\partial H}{\partial \theta} \]</p>
+    <p>Here <b>p</b> is the vector of ten class probabilities for one frame, and <i>H</i> is averaged over the frames of a chunk. The set &theta; contains the weights allowed to move: the learned scale &gamma; and shift &beta; of the batch-norm layers, 96 of the network&rsquo;s 20,874 weights. The step size &eta; = 0.01 is used with Adam, which rescales the plain step written here. A network predicts a chunk before it reads that chunk, so no chunk helps to label itself. The step size was chosen on this same stream, so 97.3% is optimistic.</p>
+    <div class="break">
+      <p><b>Common belief.</b> A deployed model keeps learning from the images it sees.</p>
+      <p><b>Why it fails.</b> Usually the weights do not change after training. The frozen line shows the result: it falls from 99% to 11% as the water deepens. The other two lines change because a person designed a loop: both update statistics, and the teal line also updates weights using a loss and a step size.</p>
+      <p><b>Better account.</b> Learning during use is a design choice with risks. Entropy minimisation rewards confidence, not correctness, so a wrong but confident answer can be reinforced.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>Why does the loop predict a chunk before it reads that chunk?</summary><p>If a chunk helped to set the weights that label it, a wrong confident answer could reinforce itself at once, so predicting first keeps the test fair.</p></details>
+      <details><summary>Entropy minimisation made the digit reader better. Name one way it could make a reader worse.</summary><p>If the first answers are wrong but confident, lowering the entropy makes the network more sure of its mistakes, because confidence is not accuracy.</p></details>
+    </div>
   </div>
-  <div class="debug">
-    <p><b>Debug tip.</b> Keep two predictions for all frames, one from a frozen copy and one from the updating model, and log how often they disagree and how the entropy moves. A sudden rise of disagreement or a fall of the entropy to nearly 0 means the loop is locking onto its own answers. Reset the model at the start of a dive.</p>
-  </div>
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">stream details, caveats, my project, Python</span> <span class="deeper-time">about 5 min</span></summary>
+    <div class="deeper-body">
+      <h4>The stream and the loop</h4>
+      <p>The stream has 40 chunks of 200 digits. Chunk \(t\), counting from 0, is made at depth \(12\,t/39\) metres. The network is the digit reader with batch norm, trained on clean digits. The frozen copy never changes. The other two copies follow the loop. They predict the next chunk with what they learned from the earlier chunks, so no chunk helps to label itself. Then they read the new chunk. The first moves the stored statistics toward the chunk's own statistics (an exponential average with weight 0.5). The second does that and also takes one Adam step on the scale and shift of the batch-norm layers. These are 96 of the network's 20,874 weights. The step lowers the entropy of its predictions on the chunk.</p>
+    <p>The digits are the test digits of the digit-reader figures, in blue-green water. A frame is one digit image of the stream.</p>
+      <h4>Symbols</h4>
+      <p class="math">\[ \begin{aligned} H(\mathbf{p}) &= -\sum_{k} p_k \ln p_k \\ \theta &\leftarrow \theta - \eta\,\frac{\partial H}{\partial \theta}, \qquad \theta = \{\gamma,\ \beta\} \ \text{of the batch-norm layers} \end{aligned} \]</p>
+      <ul class="math-notes">
+        <li><b>\(\mathbf{p}\)</b> is the vector of ten class probabilities for one frame, and <b>\(H\)</b> is averaged over the frames of the chunk.</li>
+        <li><b>\(\theta\)</b> is the set of weights that are allowed to change, and <b>\(\eta\)</b> is the step size (0.01, used with Adam, <a href="../b5-optimisers/#adam">B5</a>).</li>
+        <li>Low entropy means a confident prediction. The loss needs no label, which is why it can run during use.</li>
+      </ul>
+      <h4>Worked values and related methods</h4>
+    <p>The step moves the scale and shift so that predictions become more confident. This is the idea of Tent (Wang et al., 2021). It does not know whether the confident answer is right. Tent as published normalises a batch with its own statistics and predicts in the same pass. The loop here predicts a chunk with what earlier chunks taught, which is a stricter test. Sun et al. (2020) use a different label-free loss: they train on a self-supervised task using the test input itself before predicting. The literature often calls such methods test-time adaptation; this chapter uses the name test-time training for the loop that updates weights.</p>
+      <h4>How much to trust the chart</h4>
+      <p>Read the chart with two cautions. First, the step size matters. Two values were tried, 0.001 and 0.01, and the larger one is shown. With 0.001 the average over the stream is 93.8% and the last 10 chunks average 87.4%. With 0.01 they are 97.3% and 96.8%. The value was chosen by looking at this same stream, so 97.3% is optimistic. No other values were tried, and in the field there is no labelled stream to tune on. Second, one stream and one trained network is one trial.</p>
+      <h4>Why the loop predicts first</h4>
+    <p>The same order is used in In-Place TTT, where a chunk is read with the weights from before its own update. Test-time training for long text comes back in <a href="../d6-long-context/#ttt">D6</a>.</p>
+      <h4>Terms</h4>
+    <ul>
+      <li><b>entropy <i>H</i></b>: how spread out the predicted probabilities are: 0 for one sure class, ln 10 = 2.30 for ten equal classes (<a href="../t7-probability/#crossent">0.7</a>).</li>
+      <li><b>chunk</b>: a block of frames that is read before one update.</li>
+      <li><b>fast weights</b>: weights that change during use, while the others stay fixed.</li>
+    </ul>
+      <h4>Bridge to my project</h4>
+      <div class="bridge">
+        <p><b>Bridge to my project.</b> My work uses a loop of the same kind on a language model. In-Place Test-Time Training, a method from ByteDance Seed (Feng and others), treats the down projection of selected MLP blocks as fast weights. It updates them chunk by chunk as the model reads, with a target built from the input. Generation never pauses: an update happens in the step that completes a chunk. At MBZUAI, in Prof. Salman Khan's group, I am porting the method from text models to a Qwen vision-language model, so that it can adapt to an input after deployment. My motivation is the question of this chapter: recognising a shark when the water, light and animals change between dives. The update differs from the entropy step above, and the weights that move are the down projections of selected MLP blocks. My <a href="https://rayhaan1345.github.io/projects/in-place-ttt/primer/">primer</a> explains the update step by step, and the <a href="https://rayhaan1345.github.io/projects/in-place-ttt/">project page</a> has the study. Test-time training for long text comes back in <a href="../d6-long-context/#ttt">D6</a>.</p>
+      </div>
+      <h4>Common mistakes</h4>
+    <div class="debug">
+      <p><b>Debug tip.</b> Keep two predictions for all frames, one from a frozen copy and one from the updating model, and log how often they disagree and how the entropy moves. A sudden rise of disagreement or a fall of the entropy to nearly 0 can mean that the loop is locking onto its own answers. Reset the model at the start of a dive. A safer loop also updates few weights.</p>
+    </div>
+      <h4>In Python</h4>
   <pre class="code"><code># the core of the script that made the chart
 def run(mode, lr=0.01):
     m = copy.deepcopy(clean_model)                        # a fresh copy for a new dive
@@ -359,12 +443,9 @@ print(sum(p.numel() for p in clean_model.parameters()), len(torch.cat([p.flatten
 stats     0.926
 tent 0.01 0.973
 20874 96</pre>
-  <p>The code assumes <code>clean_model</code> (the digit reader trained on clean digits), <code>chunk(t)</code> (200 test digits at depth \(12\,t/39\)), <code>accuracy</code> and <code>bn_params</code> (the scale and shift of the batch-norm layers). The first three lines printed are the mean accuracy over the stream. They are for the frozen copy, the copy that only updates statistics and the copy that also updates the scale and shift with step size 0.01. The last line counts all numbers of the network and the 96 that may move.</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>Why does the loop predict the next chunk with the model from before the chunk was read?</summary><p>If a chunk helped to set the weights that label it, a wrong confident answer could reinforce itself immediately. Predicting first keeps the test fair. The same order is used in In-Place TTT, where a chunk is read with the weights from before its own update.</p></details>
-    <details><summary>Entropy minimisation made the digit reader better. Name one way it could make a reader worse.</summary><p>If the first answers are wrong but confident, lowering the entropy makes the network more sure of its mistakes. Confidence is not accuracy.</p></details>
-  </div>
+      <p>The code assumes <code>clean_model</code> (the digit reader trained on clean digits), <code>chunk(t)</code> (200 test digits at depth \(12\,t/39\)), <code>accuracy</code> and <code>bn_params</code> (the scale and shift of the batch-norm layers). The first three lines printed are the mean accuracy over the stream. They are for the frozen copy, the copy that only updates statistics and the copy that also updates the scale and shift with step size 0.01. The last line counts all weights of the network and the 96 that may move.</p>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ exercises ============================ -->

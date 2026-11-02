@@ -30,8 +30,7 @@
 </header>
 
 <div class="tldr">
-  <p>This chapter teaches no new method. It puts the book together. SharkCam takes a photo, a handwritten tag and a short message about a shark. It has to end with a record, a species call, an answer to a question and a decision. You will see which chapter built which part, follow Tag 4127 through all of it, and collect the ways the system breaks.</p>
-  <p>Then you recall six equations from memory and run one short program that joins two stages. You see which chapters support my projects. You also get a short list of what the book left out, with a free source for the topics.</p>
+  <p>This chapter teaches no new method. It joins the models of the book into one system, SharkCam, follows Tag 4127 through it, and collects the ways it breaks, including one short program that joins two stages. You then recall six equations, see which chapters my projects use, and read a list of eight topics the book left out, with a free source for them.</p>
 </div>
 <p class="youneed"><b>You will need:</b> the chapters this one joins. A link follows the claims, so you can open the chapter and check them. Most useful to have read first are <a href="../a4-grading-models/">A4</a> for grading a model, <a href="../c3-domain-shift/">C3</a> for murky water, <a href="../e2-clip/">E2</a> for CLIP, <a href="../f1-fairness/">F1</a> for fairness and <a href="../f2-robots/">F2</a> for the robot.</p>
 
@@ -51,121 +50,198 @@
 <!-- ============================ 1. the whole system ============================ -->
 <section id="system" aria-labelledby="system-h">
   <h2 id="system-h">The whole system</h2>
-  <p class="ask"><b>Guess first.</b> SharkCam's robot has about a quarter of a second to point its camera at a shark. Which of these can run inside that loop on a Raspberry Pi: a small photo model, the image encoder of CLIP, or a vision-language model?</p>
-  <dl class="terms">
-    <div><dt>stage</dt><dd>one box of the system, with a fixed input and a fixed output</dd></div>
-    <div><dt>interface</dt><dd>what a stage takes in and what it gives out; the next stage depends on both</dd></div>
-    <div><dt>failure mode</dt><dd>the usual way a stage goes wrong, and the test that would show it</dd></div>
-    <div><dt>runs on</dt><dd>the robot, inside the loop with a deadline, or a shore computer that works after the dive</dd></div>
-  </dl>
-  <p class="claim">SharkCam is ten stages joined by the numbers they pass on. A join can fail even when the models on both sides of it are fine.</p>
-  <div class="card" id="sys">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> In this example, SharkCam's robot has about a quarter of a second to point its camera at a shark, while a shore computer can take longer. Of the ten stages in the diagram, how many run at least partly on the robot: 1, 3 or 7?</p>
+    <p class="claim">SharkCam joins stages, boxes with a fixed input and a fixed output, and four inputs feed ten of them. A mismatch at a join, such as a wrong tag number, can fail the system even when the models on both sides are fine, because the next stage depends on what the previous one gives. A stage runs on the robot, where the camera loop has a deadline, on a shore computer, which works after the dive or when a message arrives, or partly on both.</p>
+    <div class="card" id="sys">
+      <ol class="try"><li>Choose Photo and press Step seven times: badges number the boxes that the photo of Tag 4127 meets, and the line under the diagram says what happens in the newest.</li><li>Click a box, such as Tag reader, to open its panel with its input, output, model, one measured number and where it breaks.</li><li>Choose Colour by where it runs, then count the stage boxes that say robot or both.</li></ol>
     <div class="bar" id="sys-bar"></div>
     <svg id="sys-svg" role="img" aria-label="Diagram of SharkCam. Inputs on the left (dive footage, photo, tag, message) feed readers, then models and records, then a decision, with a fairness and privacy check under the decision."></svg>
     <p class="status" id="sys-status" aria-live="polite"></p>
     <div class="detail" id="sys-detail" aria-live="polite"></div>
   </div>
-  <p class="cap"><b>Only the camera loop and a small photo model must finish inside a quarter of a second. The other stages work on a shore computer, when a message arrives or after the dive.</b> Click a box for what it takes in, what it gives out, its model, one measured number with the chapter it comes from, and its usual failure. Choose a path and press Step to see the order in which Tag 4127 meets the boxes.</p>
-  <p>The numbers in the panel come from the chapter named beside them, so you can check them there. A number that no chapter states is marked as counted or computed. Take the catch record. A6 measured 85.4% on 164 held-out sharks for the question "spadenose or not". The lazy answer gets 56.1%. The same box adds a warning from A4. A tree with no depth limit scored 94.7% when frames of the same sharks were in both parts, and 83.6% on new sharks.</p>
-  <p>Now choose a path and press Step. The boxes light up in the order the input reaches them, and the number on a box says when. A photo of Tag 4127 meets seven boxes. Its tag number meets five. The tag path and the message path join at the catch record, because both end as one row of the table. Switch the colour to "where it runs" to see the split between robot and shore.</p>
+    <p class="cap"><b>The camera loop, the murky-water step and the photo model are the three of the ten stages that run at least partly on the robot.</b></p>
+  </div>
 
-  <h3 class="sub-h3">Which stages fit the loop?</h3>
-  <p>The guess has arithmetic behind it. Choose the model that runs in the robot's loop and read the pointing error. The loop adds the time of four stages. A shark that swims across the view makes the camera lag behind by the angle the shark sweeps while the command is on its way. F2 builds this figure in detail; here it answers one question.</p>
-  <div class="card" id="bd">
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Take the camera loop with MobileNetV2, a small photo model.</b> The latency <i>L</i> is the sum of four stage times: 36.8 ms for the camera, 26.4 ms for the model on a Raspberry Pi 4, 1 ms for the decision and 60 ms for the motor, so <i>L</i> = 124 ms. A command is at worst <i>L</i> + <i>T</i> old, where <i>T</i> is the time between commands, and <i>T</i> = <i>L</i> when the robot finishes one frame before taking the next. A shark assumed to swim across the view at 1 m/s, 3 m away, sweeps &omega; = 1/3 radian, or 19.1 degrees, per second. The camera points &theta;<sub>err</sub> &asymp; &omega;(<i>L</i> + <i>T</i>) = 19.1 &times; 0.248 = 4.7 degrees behind it, inside the assumed 5-degree limit. The 387 ms for CLIP's image encoder and the camera, decision and motor times are estimates.</p>
+    <div class="eqn" role="img" aria-label="Pointing error theta err is about the sweep rate omega times the worst command age L plus T. For MobileNetV2: 4.7 degrees is about 19.1 degrees per second times 0.248 seconds."><span class="t c-teal"><b>\(\theta_{\text{err}}\)</b><i>pointing error: 4.7 degrees</i></span><span class="op">&asymp;</span><span class="t c-sand"><b>\(\omega\)</b><i>sweep rate: 19.1 degrees per second</i></span><span class="op">&times;</span><span class="t c-navy"><b>\(L + T\)</b><i>worst command age: 0.248 s</i></span></div>
+    <div class="card" id="bd">
+      <ol class="try"><li>With One frame at a time chosen, pick MobileNetV2, ResNet-18 and CLIP image encoder in turn: the pointing error is 4.7, 9.8 and 18.5 degrees, against 5 allowed. Choose Pipelined, where the camera does not wait for the model, and they fall to 3.0, 7.9 and 16.6.</li></ol>
     <div class="bar" id="bd-bar"></div>
     <div class="eqn" role="img" aria-label="Worked example of the loop time for the chosen model" id="bd-eq"></div>
     <div class="counts four" id="bd-counts"></div>
     <p class="status" id="bd-status" aria-live="polite"></p>
   </div>
-  <p class="cap"><b>On a Pi 4, the image encoder of CLIP would take about 387 ms for one picture and point the camera 18.5 degrees behind the shark, where 5 are allowed. MobileNetV2 takes 26 ms and gives 4.7.</b> The CLIP time is an estimate, and so are the camera, decision and motor times and the shark's speed. F2 states which values are assumed.</p>
-  <p class="math">\[ L = t_{\text{cam}} + t_{\text{model}} + t_{\text{dec}} + t_{\text{motor}} \qquad \theta_{\text{err}} \approx \omega\,(L + T) \qquad \omega = \frac{v}{d} \]</p>
-  <ul class="math-notes">
-    <li><b>\(L\)</b> is the latency, the sum of the four stage times in milliseconds. <b>\(T\)</b> is the time between two commands, which is \(L\) when the robot finishes one frame before it takes the next.</li>
-    <li><b>\(\omega\)</b> is the angle the shark sweeps per second, from its speed \(v\) and distance \(d\). <b>\(\theta_{\text{err}}\)</b> is how far behind the shark the camera points. The values are those of <a href="../f2-robots/#loop">F2</a>: a shark at 1 m/s and 3 m sweeps 19.1 degrees per second, and 5 degrees is allowed.</li>
-  </ul>
-  <p>The CLIP number comes from two earlier results. E1 lists 4.4 billion operations for a ViT-B/32, in the same unit that F2 uses for multiply-adds. F2 derives 11.4 billion per second for a Pi 4 with 8-bit weights. The image encoder of CLIP has the same width, depth and patch size as that ViT, so its cost should be close. Dividing gives 387 ms, and the whole loop takes 485 ms. This is an estimate, not a measurement on a Pi. A vision-language model contains an image encoder of this kind and a language model on top, so it costs more again. A message arrives when it arrives, so its reader does not belong in the loop. A sensible split keeps only the small model on the robot and sends one frame in a while to the shore computer.</p>
-  <div class="break">
-    <p><b>Common belief.</b> If the models in a system are good, the system is good.</p>
-    <p><b>Why it fails.</b> Errors multiply along a chain, and the joins have their own errors. The tag reader of C2 is right on 98.89% of single digits, so a four-digit tag is right 95.6% of the time if errors are independent. A wrong tag number writes a good prediction into the wrong row of the table.</p>
-    <p><b>Better account.</b> Test the joins as well as the models: the tag number, the units, the thresholds and the order of the columns.</p>
+    <div class="break">
+      <p><b>Common belief.</b> If the models in a system are good, the system is good.</p>
+      <p><b>Why it fails.</b> The tag reader is right on 98.89% of its test digits. If the four digits of a tag fail independently, the chances of being right multiply, so a tag is right 0.9889<sup>4</sup> = 95.6% of the time. A wrong tag number attaches a good prediction to another animal's record.</p>
+      <p><b>Better account.</b> Test the joins as well as the models: tag number, units, thresholds and column order.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>Which of the three models keeps the pointing error under 5 degrees with one frame at a time, and why?</summary><p>Only MobileNetV2, with 4.7 degrees (ResNet-18 gives 9.8 and CLIP 18.5). A slower model raises <i>L</i>, and with one frame at a time <i>T</i> = <i>L</i>, so the error &omega;(<i>L</i> + <i>T</i>) grows with the model time.</p></details>
+      <details><summary>A digit is read right 98.89% of the time, with independent errors. How many of 1,000 four-digit tags are wrong?</summary><p>A tag is right 0.9889<sup>4</sup> = 0.956 of the time, about 95.6%, so about 44 of 1,000 are read wrongly.</p></details>
+    </div>
   </div>
-  <div class="debug">
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">terms, reading the panel, the CLIP estimate, symbols</span> <span class="deeper-time">about 4 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
+    <div><dt>stage</dt><dd>one box of the system, with a fixed input and a fixed output</dd></div>
+    <div><dt>interface</dt><dd>what a stage takes in and what it gives out; the next stage depends on both</dd></div>
+    <div><dt>failure mode</dt><dd>the usual way a stage goes wrong, and the test that would show it</dd></div>
+    <div><dt>runs on</dt><dd>the robot, inside the loop with a deadline, or a shore computer that works after the dive</dd></div>
+  </dl>
+      <h4>Reading the panel</h4>
+      <p>SharkCam takes in a photo, a handwritten tag and a short message about a shark, and it has to end with a record, a species call, an answer to a question and a decision. The numbers in the panel come from the chapter named beside them, so you can check them there. A number that no chapter states is marked as counted or computed. Take the catch record. A6 measured 85.4% on 164 held-out sharks for the question "spadenose or not". The lazy answer gets 56.1%. The same box adds a warning from A4. A tree with no depth limit scored 94.7% when frames of the same sharks were in both parts, and 83.6% on new sharks.</p>
+      <p>Now choose a path and press Step. The boxes light up in the order the input reaches them, and the number on a box says when. A photo of Tag 4127 meets seven boxes. Its tag number meets five. The tag path and the message path join at the catch record, because both end as one row of the table.</p>
+      <h4>The estimate for CLIP</h4>
+      <p>The CLIP number comes from two earlier results. The vision transformers chapter lists 4.4 GFLOPs for a ViT-B/32 (torchvision's count). This page reads that as 4.4 billion multiply-adds, the unit that the robot chapter uses for MobileNetV2 and ResNet-18, and a count from the architecture agrees: 12 blocks, 50 tokens of width 768, the patch matrix and the head come to 4.41 billion multiply-adds. The robot chapter derives 11.4 billion per second for a Pi 4 with 8-bit weights. The image encoder of the ViT-B/32 version of CLIP has the same width, depth and patch size as that ViT, so its cost should be close. Dividing gives 387 ms, and the whole loop takes 485 ms. This is an estimate, not a measurement on a Pi, and it assumes that the Pi runs this transformer as fast, in multiply-adds per second, as it ran MobileNetV2. A vision-language model typically adds a language model to an image encoder of this kind, so it costs more again. A message arrives when it arrives, so its reader does not belong in the loop. One possible split, which this page does not test, keeps only the small model on the robot and sends an occasional frame to the shore computer.</p>
+      <h4>Symbols</h4>
+      <p class="math">\[ L = t_{\text{cam}} + t_{\text{model}} + t_{\text{dec}} + t_{\text{motor}} \qquad \theta_{\text{err}} \approx \omega\,(L + T) \qquad \omega = \frac{v}{d} \]</p>
+      <ul class="math-notes">
+    <li><b>\(L\)</b> is the latency, the sum of the four stage times in milliseconds. <b>\(T\)</b> is the time between two commands, which is \(L\) when the robot finishes one frame before it takes the next.</li>
+    <li><b>\(\omega\)</b> is the angle the shark sweeps per second, from its speed \(v\) and distance \(d\): \(v/d\) in radians per second, and one radian is 57.3 degrees. <b>\(\theta_{\text{err}}\)</b> is how far behind the shark the camera points. The values are those of <a href="../f2-robots/#loop">F2</a>: a shark at 1 m/s and 3 m sweeps 19.1 degrees per second, and 5 degrees is allowed.</li>
+  </ul>
+      <h4>Debug tip</h4>
+      <div class="debug">
     <p><b>Debug tip.</b> When the final answer is wrong, replay the case through the stages in order and print what the stage received. The first stage whose input is already wrong is where to look. B8 calls this testing one component at a time (<a href="../b8-debugging/#component">B8</a>).</p>
   </div>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>Which of the three candidates can run in the robot's loop, and what decides it?</summary><p>A small photo model such as MobileNetV2. The decision is arithmetic. The camera, model, decision and motor times add up to the latency. The latency times the angle the shark sweeps per second must stay under the allowed angle. CLIP's image encoder and a vision-language model take far longer.</p></details>
-    <details><summary>The Hindi version of the Tag 4127 report costs 227 GPT-2 tokens and the English one 40. Which stage pays, and why?</summary><p>The message reader pays, because the tokenizer cuts Devanagari text into many small pieces (D1). The cost is in tokens, and the context window and the time both depend on tokens.</p></details>
-    <details><summary>A digit is read right 98.89% of the time, with independent errors. How often is a whole four-digit tag right?</summary><p>\(0.9889^4 = 0.956\), about 95.6%. Out of 1,000 tags, about 44 are read wrongly.</p></details>
-  </div>
+      <h4>More questions</h4>
+      <div class="recall">
+        <details><summary>The Hindi version of the Tag 4127 report costs 227 GPT-2 tokens and the English one 40. Which stage pays, and why?</summary><p>The message reader pays, because the tokenizer cuts Devanagari text into many small pieces (D1). The cost is in tokens, and the context window and the time both depend on tokens. The ratio here is 227/40 = 5.7. D1 reports 5.0 because it divides by the 45 tokens of the English translation of the Hindi report, while the English report of this chapter is a separate message.</p></details>
+      </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 2. trace ============================ -->
 <section id="trace" aria-labelledby="trace-h">
   <h2 id="trace-h">Trace one shark</h2>
-  <p class="ask"><b>Guess first.</b> A photo, a handwritten tag and a message about Tag 4127 reach SharkCam. How many separate trained models does this page run or quote before SharkCam acts: 3, 8 or 20?</p>
-  <dl class="terms">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> For Tag 4127, a made-up record, the length-and-girth classifier says spadenose at 76%, CLIP, reading the photo, says grey bamboo shark at 94%, and the message names the grey bamboo shark. SharkCam multiplies the three chances species by species, rescales them to add to 1, and accepts the winner only if it reaches 0.90 and two or more sources name it. Will it accept?</p>
+    <p class="claim">A stage gives an answer and a confidence, the chance it assigns to its own answer. That is not the chance that the answer is right: the classifier here is confident and wrong. The multiplication treats the sources as independent, an assumption of this page, so a species that two or more sources support gets a high product.</p>
+    <div class="card" id="tr">
+      <ol class="try"><li>With the controls as they load, read steps 3 and 4: the classifier's bars show spadenose 76% and grey bamboo shark 22%, and CLIP's bars show grey bamboo shark 94%.</li><li>In step 6 the table shows the three sources and their product, and the verdict says Accept, with the grey bamboo shark at 99.6%.</li><li>Drag Water depth for the placeholder photo to 16 m: CLIP's chance for the grey bamboo shark falls to 29%, the product to 86.9%, and the verdict becomes Ask a person.</li></ol>
+    <div class="tr-in" id="tr-controls"></div>
+    <div class="steps" id="tr-steps" aria-live="polite"></div>
+    <div id="tr-record"></div>
+  </div>
+    <p class="cap"><b>Alone, the classifier says spadenose, but the three-source product gives the grey bamboo shark 99.6% (accepted), and 86.9% at 16 m (a person is asked).</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Multiply the three chances for the grey bamboo shark.</b> The classifier gives 0.2200, CLIP gives 0.9438 and the message gives 0.8000, the trust that the slider sets for the named species. The product is 0.2200 &times; 0.9438 &times; 0.8000 = 0.1661. For spadenose it is 0.7613 &times; 0.0164 &times; 0.0500 = 0.0006, because the message divides the remaining 0.2 equally among the four other species. Rescaling divides by the sum of the five products, 0.1668, and gives 99.6% for the grey bamboo shark.</p>
+    <p>In symbols, \(p(s) \propto p_{\text{tab}}(s)\,p_{\text{clip}}(s)\,p_{\text{msg}}(s)\) for a species \(s\), rescaled so that the five values add to 1. Here \(p_{\text{tab}}\) is the classifier's chance (tab for the table of catch records), \(p_{\text{clip}}\) is CLIP's chance, from comparing the photo with nine captions, and \(p_{\text{msg}}\) is the message's chance. The boxes below repeat it for the winner.</p>
+    <div class="eqn" role="img" aria-label="Worked example: the fused chance of the grey bamboo shark is the product of three chances, rescaled" id="tr-eqn"></div>
+    <div class="break">
+      <p><b>Common belief.</b> When three sources agree, the answer is right.</p>
+      <p><b>Why it fails.</b> The product assumes that the sources fail for different reasons, but a photo and a message from the same person, or two models with the same shortcut, can fail together. Then agreement counts once, so 99.6% would be too high.</p>
+      <p><b>Better account.</b> Ask what a source could not know, use the product to rank the species, set the accept rule on <a href="../a4-grading-models/#splits">held-out cases</a>, and send disagreements to a person.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>The classifier gives spadenose 76% for a shark that the record calls a grey bamboo shark. Does a high confidence show that a stage is right?</summary><p>No. Confidence is the chance a stage assigns to its own answer. Here the classifier is confident and wrong, and the product with CLIP and the message favours the grey bamboo shark.</p></details>
+      <details><summary>Name &ldquo;spadenose shark&rdquo; in the message at trust 0.8, leave the other controls as they load, and the product gives about 51% grey bamboo shark and 49% spadenose. Does the rule accept, and why?</summary><p>No. The winner's chance is far below 0.90, and only one source, CLIP, names the winner. The message has pulled the product toward spadenose and away from CLIP's call, which is why one source should not decide.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">models, step notes, symbols, digit chain, debug tip</span> <span class="deeper-time">about 5 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
     <div><dt>trace</dt><dd>the answers of the stages, in order, for one input</dd></div>
     <div><dt>stored</dt><dd>an output saved in the data folder of an earlier chapter, named under the step</dd></div>
     <div><dt>computed here</dt><dd>calculated on this page from stored weights or numbers</dd></div>
     <div><dt>scripted</dt><dd>written by hand for this page, to show what a stage would say</dd></div>
     <div><dt>confidence</dt><dd>the chance a stage gives its own answer, which is not the chance that the answer is right</dd></div>
   </dl>
-  <p class="claim">A stage gives an answer and a confidence. A confident stage can be wrong, and sources that fail for different reasons are worth more together than one alone.</p>
-  <div class="card" id="tr">
-    <div class="tr-in" id="tr-controls"></div>
-    <div class="steps" id="tr-steps" aria-live="polite"></div>
-    <div id="tr-record"></div>
-  </div>
-  <p class="cap"><b>With the controls as they load, the sources disagree at first: the length-and-girth classifier says spadenose (76%), while CLIP and the message say grey bamboo shark. The product of the three gives 99.6% for the bamboo shark, and the rule accepts it.</b> The controls load with the placeholder photo at 0 m, a message that names the grey bamboo shark with trust 0.8, and an accept threshold of 0.90. Change the photo, the depth, the message or the thresholds and watch which steps change. The record is made up, the photo is a placeholder from an aquarium, and the handwritten digits are MNIST digits.</p>
-  <p>The trace uses eight models. They are the digit reader (C2), the language model behind the message reader (D7), the length-and-girth classifier (A3) and XGBoost (A6). The others are a maturity model for bamboo sharks (A3 again), ViT-B/16 (E1), CLIP (E2) and the vision-language model (E4). Two of them, the message reader and the vision-language model, are scripted substitutes, and the step cards say so. The badge on a step tells you where its numbers come from.</p>
-  <p>Look at step 3 first. The classifier built on length and girth is wrong about Tag 4127: it gives spadenose 76%. It got 3 of the 72 bamboo sharks of the table right (A3). Bamboo sharks are 12% of the records, and in those two measurements they look like small spadenose sharks. XGBoost, which also sees depth, says "not spadenose" at 97.7%. Most of that comes from the depth of 0.4 m (A6). None of the 268 spadenose sharks in the table was found shallower than 5.6 m, so depth works as a shortcut. It works for this record and would probably fail for a spadenose shark found in a pool.</p>
-  <p>Now look at step 6. The three sources are combined by multiplying their chances for a species and rescaling so that they add to 1. The worked boxes show the winner and the runner-up. With the other controls as they load, drag the depth slider to 16 m and watch CLIP lose confidence while the other sources do not change. The fused chance falls to 87%, and the rule sends the case to a person. Choose a photo that does not match the record, for example a hammerhead, and see what the sources do. That is the case the rule exists for. The product also lets a source veto a species. For a hammerhead photo the tabular model gives the hammerhead 0.05%, which cancels CLIP's call, and the product favours spadenose. The check that two sources must agree catches it. It does not catch all cases. Try the 1839 drawing of the Ganges shark, with the other controls as they load. The tabular model and CLIP both say spadenose, two sources agree, and the record is accepted at 92%. Both are wrong, and the rule cannot tell. A rule like this needs a test on held-out cases that include rare species and drawings.</p>
-  <div class="eqn" role="img" aria-label="Worked example: the fused chance of the grey bamboo shark is the product of three chances, rescaled" id="tr-eqn"></div>
-  <p class="math">\[ p(s) \;\propto\; p_{\text{tab}}(s)\;p_{\text{clip}}(s)\;p_{\text{msg}}(s) \qquad\text{rescaled so that } \sum_{s} p(s) = 1 \]</p>
-  <ul class="math-notes">
+      <h4>The controls and the data</h4>
+      <p>The controls load with the placeholder photo at 0 m, a message that names the grey bamboo shark with trust 0.8, and an accept threshold of 0.90. The accept rule has a third condition: CLIP must put at least half of its chance on the five sharks. Change the photo, the depth, the message or the thresholds and watch which steps change. The record is made up, the photo is a placeholder from an aquarium, and the handwritten digits are MNIST digits. The badge on a step tells you where its numbers come from.</p>
+      <h4>The eight models</h4>
+      <p>The trace uses eight models. They are the digit reader (C2), the language model behind the message reader (D7), the length-and-girth classifier (A3) and XGBoost (A6). The others are a maturity model for bamboo sharks (A3 again), ViT-B/16 (E1), CLIP (E2) and the vision-language model (E4). Two of them, the message reader and the vision-language model, are scripted substitutes, and the step cards say so.</p>
+      <h4>Step 3: the classifier and the depth shortcut</h4>
+      <p>Look at step 3 first. The classifier built on length and girth is wrong about Tag 4127: it gives spadenose 76%. It got only 3 of the 72 bamboo sharks of the table right, even on the records it learned from (A3). Bamboo sharks are 12% of the records, and a likely reason is that in those two measurements they look like small spadenose sharks. XGBoost, which also sees depth, says &ldquo;not spadenose&rdquo; at 97.7%. Its SHAP value for the depth of 0.4 m is &minus;3.51 in score units, against a total score of &minus;3.74 (A6). None of the 268 spadenose sharks in the table was found shallower than 5.6 m, so in this table a depth of 0.4 m rules out spadenose, and the model uses that shortcut. It gives the right answer for this record and could mislead for a spadenose shark found in a pool.</p>
+      <h4>Step 6: what the product can and cannot do</h4>
+      <p>Now look at step 6. The three sources are combined by multiplying their chances for a species and rescaling so that they add to 1. Sources that fail for different reasons are worth more together than one alone. The worked boxes show the winner and the runner-up. With the other controls as they load, the depth slider changes only CLIP's chances, so the other sources do not change. Choose a photo that does not match the record, for example a hammerhead, and see what the sources do. That is the case the rule exists for. The product also lets a source veto a species. For a hammerhead photo the classifier gives the hammerhead 0.05%, which cancels CLIP's call, and the product favours spadenose at 94.2%. Only the classifier names spadenose, so the check that two sources must agree sends the case to a person. It does not catch all cases. Try the 1839 drawing of the Ganges shark, with the other controls as they load. The classifier and CLIP both say spadenose, two sources agree, and the record is accepted at 92%. The drawing shows a Ganges shark and the record is a grey bamboo shark, so the accepted species is wrong, and the rule cannot tell. A rule like this needs a test on held-out cases that include rare species and drawings.</p>
+      <h4>Symbols</h4>
+      <p class="math">\[ p(s) \;\propto\; p_{\text{tab}}(s)\;p_{\text{clip}}(s)\;p_{\text{msg}}(s) \qquad\text{rescaled so that } \sum_{s} p(s) = 1 \]</p>
+      <ul class="math-notes">
     <li><b>\(s\)</b> is a species, one of five. <b>\(p_{\text{tab}}(s)\)</b> is the chance from the length-and-girth classifier (A3), and <b>\(p_{\text{clip}}(s)\)</b> the chance from CLIP's softmax over nine captions (E2).</li>
     <li><b>\(p_{\text{msg}}(s)\)</b> comes from the species the message names. That species gets the trust set by the slider, and the other four share the rest.</li>
-    <li>The product is the rule for independent sources. It is a simplification here: the message and the photo come from the same person, and the tabular model reads the same animal. The fused chance is therefore an upper bound on how much to trust the call.</li>
+    <li>The product is the rule for independent sources. It is a simplification here: the message and the photo come from the same person, and the tabular model reads the same animal. The fused chance is therefore likely to be higher than the call deserves.</li>
   </ul>
-  <div class="eqn" role="img" aria-label="Worked example: four digits each right with the same chance" id="tr-chain"></div>
-  <p class="math">\[ P(\text{whole tag right}) = \prod_{i=1}^{n} p_i = 0.9889^{\,n} \]</p>
-  <ul class="math-notes">
+      <h4>The chain of digits</h4>
+      <div class="eqn" role="img" aria-label="Worked example: four digits each right with the same chance" id="tr-chain"></div>
+      <p class="math">\[ P(\text{whole tag right}) = \prod_{i=1}^{n} p_i = 0.9889^{\,n} \]</p>
+      <ul class="math-notes">
     <li><b>\(n\)</b> is the number of digits in the tag and <b>\(p_i\)</b> the chance that digit \(i\) is read right. The last step assumes that the digits are right with the same chance and that errors are independent. The chance of 0.9889 is the accuracy of the digit reader on the 10,000 test digits of <a href="../c2-cnns/#read">C2</a>. On the four digits shown, the reader is far more confident (above 99.9%) than that average. Confidence on clear digits is not accuracy on all digits.</li>
   </ul>
-  <div class="break">
-    <p><b>Common belief.</b> When three sources agree, the answer is right.</p>
-    <p><b>Why it fails.</b> The product assumes that the sources fail for different reasons. A photo and a message from the same person, or two models that learned the same shortcut, fail together. Then agreement counts once, and 99.6% is far too high.</p>
-    <p><b>Better account.</b> Ask what a source could not know. Use the product to rank the species, set the accept rule on held-out cases (<a href="../a4-grading-models/#splits">A4</a>), and send disagreements to a person.</p>
-  </div>
-  <div class="debug">
+      <h4>Debug tip</h4>
+      <div class="debug">
     <p><b>Debug tip.</b> Read the three columns of the table in step 6 before the fused column. If one source gives the winner under 5%, the product has hidden a disagreement, and a person should see it. The rule on this page checks that at least two sources name the winner.</p>
   </div>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>Leave the other controls as they load and set the message to name "spadenose shark" with trust 0.8. What happens to the decision for Tag 4127, and why?</summary><p>The tabular model and the message now name spadenose, and CLIP names bamboo. The product is nearly split, about 51% bamboo and 49% spadenose. Only one source names the winner and the chance is far below 90%, so the case goes to a person. The message has pulled the product away from a photo that was right, which is why a rule should not trust one source.</p></details>
-    <details><summary>Which stage in the trace gives no confidence at all, and what do you use in its place?</summary><p>The vision-language model. A sentence has no single probability of being right. The page checks its claims against the species table instead: the species name must match the fused call, and the conservation status must match the table (D7).</p></details>
-  </div>
+      <h4>More questions</h4>
+      <div class="recall">
+        <details><summary>Which stage in the trace gives no confidence at all, and what do you use in its place?</summary><p>The vision-language model. The model gives chances for the next token, but no single chance that the whole sentence is true. The page checks its claims against the species table instead: the species name must match the fused call, and the conservation status must match the table (D7).</p></details>
+      </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 3. where it breaks ============================ -->
 <section id="breaks" aria-labelledby="breaks-h">
   <h2 id="breaks-h">Where it breaks</h2>
-  <p class="ask"><b>Guess first.</b> Which of these three failures can a normal test set not show you at all: leakage, murky water or forgetting? Think about what has to be in the test set before you can see the failure.</p>
-  <dl class="terms">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> Which of these three failures can a test set hide: leakage, murky water or forgetting? Think about which cases a test set must contain before it can show the failure.</p>
+    <p class="claim">A test set shows only the failures that its cases can trigger, so a failure outside its cases stays hidden. The eight cards below give a symptom, what you see, such as a number that is too good or too bad. You choose the tool, a check from one chapter of this book, and the card then reveals the cause, the mechanism behind the symptom.</p>
+    <div class="card" id="fl">
+      <ol class="try"><li>On the Leakage card, a tree with no depth limit scores 94.7% when frames of the same sharks are in both parts and 83.6% on new sharks.</li><li>On the Murky water card, choose a tool, then read the answer: a digit reader trained on clean digits falls from 98.6% at 0 m to 68.6% at 2 m and 10.6% at 10 m.</li><li>On the Forgetting card, clear-water accuracy falls from 88% to 73% after fine-tuning on murky water, while murky-water accuracy reaches 86%.</li></ol>
+    <div class="tally" id="fl-score" aria-live="polite"></div>
+    <div class="fails" id="fl-grid"></div>
+  </div>
+    <p class="cap"><b>All three can hide: leakage if the test set shares sharks with training, murky water if all test photos are clear, forgetting if the old task is not retested.</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Join two stages in a made-up test (program in the fold).</b> Stage 1 is a logistic regression, fitted to 600 made-up sharks, that gives the chance of &ldquo;hammerhead&rdquo; from the length, and stage 2 flags a shark when that chance reaches 0.4. Sensitivity is the share of hammerheads flagged, and precision is the share of flagged sharks that are hammerheads. At the dock the threshold finds 52 of 70 hammerheads (sensitivity 74%), and 52 of the 57 flagged are hammerheads (precision 91%). At the dive site, where murky water makes the length reading noisier, it finds 47 of 71 (66%), and 47 of the 69 flagged are hammerheads (68%).</p>
+    <p>Sensitivity drops 8 points and precision 23 points. With about 70 hammerheads per site, a gap of 8 points can arise by chance (the fold shows a rerun), so the precision gap is clearer. One accuracy number for both sites shows neither gap. These numbers come from the records that fitted the model, so they do not show how it does on new sharks.</p>
+    <div class="break">
+      <p><b>Common belief.</b> If the stages do well in their own tests, the system does well.</p>
+      <p><b>Why it fails.</b> A stage can look fine on pooled data, while one threshold on its chance gives different results for the groups.</p>
+      <p><b>Better account.</b> Write the check that would reveal a failure before you need it, and run it split by site, water, language and age.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>Is the gap between the sites larger in sensitivity or in precision, and by how many points?</summary><p>Precision, by 23 points (91% to 68%), against 8 points for sensitivity (74% to 66%).</p></details>
+      <details><summary>Why does one accuracy number for both sites hide the gap?</summary><p>It averages over the dock and the dive site. The sites differ in sensitivity (74% against 66%) and in precision (91% against 68%), and those differences appear when the results are split by site.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">the eight cards, a Python program, debug tip</span> <span class="deeper-time">about 4 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
     <div><dt>symptom</dt><dd>what you see: a number that is too good, too bad or different from what you expected</dd></div>
     <div><dt>cause</dt><dd>the mechanism behind the symptom</dd></div>
     <div><dt>tool</dt><dd>a check, from a chapter of this book, that would have shown the cause</dd></div>
   </dl>
-  <p class="claim">A test set shows only the failures it contains. The tool that makes a failure visible comes from a chapter you have read.</p>
-  <div class="card" id="fl">
-    <div class="tally" id="fl-score" aria-live="polite"></div>
-    <div class="fails" id="fl-grid"></div>
-  </div>
-  <p class="cap"><b>All three failures in the guess depend on the test set. Leakage hides in a test set that shares sharks with the training set. Murky water appears only if the test photos include murky water. Forgetting appears only if you test the old task again.</b> A card gives a symptom with its numbers. Choose the tool you would reach for, then read the cause, the debug tip and the chapter.</p>
-  <p>The eight cards are the failures this book showed in miniature. Leakage and overfitting (A4, B8) inflate the number you report. Murky water (C3) and forgetting (B7) change the data or the model after you have measured. Spurious cues (B9) and hallucination (D7, E4) make an answer look better supported than it is. Subgroup gaps (F1) hide behind an average. Quantisation flips (F2) hide behind an accuracy that barely moves. Hallucination in a vision-language model follows the same logic as D7's GPT-2 examples, and the E3 and E4 chapters (<a href="../e3-cross-attention/#occ">cross-attention</a> and <a href="../e4-vlms/#fail">vision-language models</a>) show what the image adds.</p>
-  <p>The program below joins two stages and finds one failure of the list in a few lines. The first stage is a logistic score fitted by gradient descent (A3). The second stage is a threshold followed by a check by site (A4, F1). Murky water is modelled as a noisier reading of the shark's length at the dive site. All data are made up.</p>
-  <pre class="code" data-run><code>import numpy as np
+      <h4>The eight cards</h4>
+      <p>The eight cards are the failures this book showed in miniature. Leakage and overfitting (A4, B8) inflate the number you report. Murky water (C3) and forgetting (B7) change the data or the model after you have measured. Spurious cues (B9) and hallucination (D7, E4) make an answer look better supported than it is. Subgroup gaps (F1) hide behind an average. Quantisation flips (F2) hide behind an accuracy that barely moves. Hallucination in a vision-language model follows the same logic as D7's GPT-2 examples, and the E3 and E4 chapters (<a href="../e3-cross-attention/#occ">cross-attention</a> and <a href="../e4-vlms/#fail">vision-language models</a>) show what the image adds.</p>
+      <h4>A program with two stages</h4>
+      <p>The program below joins two stages and finds one failure of the list in a few lines. The first stage is a logistic score fitted by gradient descent (A3). The second stage is a threshold followed by a check by site (A4, F1). Murky water is modelled as a noisier reading of the shark's length at the dive site. All data are made up.</p>
+      <pre class="code" data-run><code>import numpy as np
 
 rng = np.random.default_rng(4127)
 n = 600
@@ -197,87 +273,170 @@ for s, name in [(0, "dock"), (1, "dive")]:
     print(f"stage 2, {name}: found {tp} of {pos} ({sens[-1]:.0%}), {fp} false alarms, precision {prec[-1]:.0%}")
 gap = max(abs(sens[0] - sens[1]), abs(prec[0] - prec[1]))
 print(f"largest gap between sites: {gap * 100:.0f} points", "-> check before release" if gap > 0.10 else "-> ok")</code></pre>
-  <pre class="out">stage 1: w = 2.38, b = -1.95
+      <pre class="out">stage 1: w = 2.38, b = -1.95
 stage 2, dock: found 52 of 70 (74%), 5 false alarms, precision 91%
 stage 2, dive: found 47 of 71 (66%), 22 false alarms, precision 68%
 largest gap between sites: 23 points -> check before release</pre>
-  <p>Look at the two numbers. Sensitivity drops 8 points, from 74% to 66%. Precision drops 23 points, from 91% to 68%. The overall accuracy would hide both. The blur makes the lengths of the two groups overlap, so a threshold tuned on pooled data lets more small sharks through at the dive site. A check by site shows it in one line. F1 adds a harder case, where the groups also differ in how common the target is, and shows why no single threshold can then equalise all the scores. The fix is a decision for people: a threshold per site, a better reading of length in murky water (C3), or a human check at the dive site (F1).</p>
-  <div class="break">
-    <p><b>Common belief.</b> If all the stages pass their own tests, the system passes.</p>
-    <p><b>Why it fails.</b> The stage tests above were run on pooled data. The join between a score and a threshold depends on who is in the data, and a gap by group appears only when you split by group.</p>
-    <p><b>Better account.</b> Write the check that would reveal a failure before you need it, and run it on all the splits that matter: site, water, language, age.</p>
-  </div>
-  <div class="debug">
+      <h4>Reading the output</h4>
+      <p>Look at the two numbers. Sensitivity drops 8 points, from 74% to 66%. Precision drops 23 points, from 91% to 68%. The overall accuracy would hide both. The blur makes the lengths of the two groups overlap, so one threshold on a score fitted to all 600 records lets more small sharks through at the dive site: 22 false alarms against 5. A check by site shows it in one line. F1 adds a harder case, where the groups also differ in how common the target is, and shows why no single threshold can then equalise all the scores. The fix is a decision for people: a threshold per site, a better reading of length in murky water (C3), or a human check at the dive site (F1).</p>
+      <p>The sensitivity gap needs care. With the same noise of 3.0 at both sites, the same program still gives 57 of 70 hammerheads found at the dock (81%) and 51 of 71 at the dive site (72%), a gap of 10 points, although the sites are alike. Only about 70 hammerheads are tested per site, so a gap of this size can come from chance, which is why F1 asks for intervals. The precision gap of 23 points is larger than that.</p>
+      <h4>Debug tip</h4>
+      <div class="debug">
     <p><b>Debug tip.</b> Re-run the program with the noise at the dive site set to 6.0 instead of 18.0. The largest gap falls from 23 points to 10, and the program prints ok. A failure you can switch on and off in a toy is a failure you can test for in the full system.</p>
   </div>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>Which two cards have a symptom that an overall accuracy number would hide?</summary><p>Subgroup gaps (the average hides the groups) and quantisation flips (accuracy barely moves while answers change). Forgetting also hides if you only test the new task.</p></details>
-  </div>
+      <h4>More questions</h4>
+      <div class="recall">
+        <details><summary>Which two cards have a symptom that an overall accuracy number would hide?</summary><p>Subgroup gaps (the average hides the groups) and quantisation flips (accuracy barely moves while answers change). Forgetting also hides if you only test the new task.</p></details>
+      </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 4. six equations ============================ -->
 <section id="equations" aria-labelledby="equations-h">
   <h2 id="equations-h">The book in six equations</h2>
-  <p class="ask"><b>Guess first.</b> Which of these six equations could you write from memory? Rank them before you start: the linear model, the log loss, the gradient descent update, the chain rule, attention and CLIP's loss.</p>
-  <dl class="terms">
-    <div><dt>retrieval</dt><dd>pulling an idea out of memory without the page in front of you, which strengthens it more than rereading</dd></div>
-    <div><dt>reveal</dt><dd>the button that shows the equation after you have tried to write it</dd></div>
-    <div><dt>owner chapter</dt><dd>the chapter that defines the equation and its symbols</dd></div>
-  </dl>
-  <p class="claim">A few equations cover most of the book. Try to write one before you reveal it, then say how close you were.</p>
-  <div class="card" id="eq">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> Which of these six equations could you write from memory: the linear model with squared error, the sigmoid with log loss, the gradient descent update, the chain rule, attention and CLIP's loss? Rank them by how sure you are.</p>
+    <p class="claim">Six equations recur through the book. Retrieval, pulling an idea out of memory without the page in front of you, tends to help memory more than rereading, so the cards ask for your attempt first. In the cards below you write your attempt, press Reveal to see the equation with its symbol notes and a live worked box, and rate how close you were.</p>
+    <div class="card" id="eq">
+      <ol class="try"><li>Take the Gradient descent update card: write your attempt in the box, then press Reveal to see the equation, its symbol notes and a live worked box.</li><li>In the live box the learning rate starts at 0.5 and <i>w</i> goes from &minus;4 to &minus;3.659. Drag the slider to 2 and <i>w</i> becomes &minus;2.636.</li><li>Choose Had it, Some of it or Missed it. The summary line at the top counts your ratings and links the owner chapter, the chapter that defines the equation, of a card you rated Some of it or Missed it.</li></ol>
     <div class="tally" id="eq-summary" aria-live="polite"></div>
     <div class="bar" id="eq-bar"></div>
     <div class="eqs" id="eq-grid"></div>
   </div>
-  <p class="cap"><b>Writing an equation from memory before you see it works better than reading it again. The cards ask for the guess first and reveal the answer with live numbers from the chapters.</b> The self-rating is yours alone, and the page stores and sends no text. Missed equations are listed with a link back to the owner chapter.</p>
-  <p>Look at what the six share. A number comes in, a rule turns it into a score, and a measure says how wrong the score is. The linear model gives a weight, the sigmoid a chance, attention a mixture of values and CLIP a similarity. The losses say how far the output is from the label. They are squared error, log loss and the contrastive loss. The update rule and the chain rule say how to change the dials. If you can say where a symbol came from, you can rebuild the rest of the book around them.</p>
-  <div class="debug">
+    <p class="cap"><b>At learning rate 0.5 the update moves the weight <i>w</i> from &minus;4 to &minus;3.659, and ratings of Some of it or Missed it add owner chapters to the Revisit list.</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>The six equations play three roles.</b> The linear model, the sigmoid, attention and the cosines of CLIP turn numbers into an output: a weight, a chance, a mixture of values or a similarity. Squared error, log loss and CLIP's contrastive loss measure how wrong an output is. The gradient descent update and the chain rule say how to change the weights.</p>
+    <p><b>Take the update <i>w</i> &larr; <i>w</i> &minus; &eta; &part;<i>L</i>/&part;<i>w</i>.</b> Here <i>w</i> is a weight, <i>L</i> is the loss, &part;<i>L</i>/&part;<i>w</i> is the slope of the loss along <i>w</i>, and &eta; is the learning rate, the size of the step. For a neuron trained on 268 spadenose sharks, the starting <i>w</i> is &minus;4, the slope is &minus;0.682 and &eta; = 0.5, so the new <i>w</i> is &minus;4 &minus; 0.5 &times; (&minus;0.682) = &minus;3.659. The slope is negative, so the loss falls as <i>w</i> increases and the update raises <i>w</i>.</p>
+    <div class="eqn" role="img" aria-label="w after the update equals w before minus eta times the slope: minus 3.659 equals minus 4 minus 0.5 times minus 0.682."><span class="t c-teal"><b>\(w\)</b><i>after the update: &minus;3.659</i></span><span class="op">=</span><span class="t c-navy"><b>\(w\)</b><i>before: &minus;4</i></span><span class="op">&minus;</span><span class="t c-sand"><b>\(\eta\)</b><i>learning rate: 0.5</i></span><span class="op">&times;</span><span class="t c-coral"><b>\(\partial L/\partial w\)</b><i>slope: &minus;0.682</i></span></div>
+    <div class="break">
+      <p><b>Common belief.</b> If I recognise an equation when I see it, I could write it.</p>
+      <p><b>Why it fails.</b> Recognising is usually easier than recalling, because the page supplies the cue.</p>
+      <p><b>Better account.</b> Rate your attempt after the reveal, and go back to the owner chapter for the cards you rated Some of it or Missed it.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>With <i>w</i> = &minus;4, the slope &minus;0.682 and &eta; = 1, what is the new <i>w</i>, and does <i>w</i> move up or down?</summary><p><i>w</i> = &minus;4 &minus; 1 &times; (&minus;0.682) = &minus;3.318. The slope is negative, so <i>w</i> moves up.</p></details>
+      <details><summary>You rate a card Some of it. What does the summary line do with that card?</summary><p>It counts the card under Some of it and adds a link to the card's owner chapter to the Revisit list.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">owner chapters, debug tip, one more question</span> <span class="deeper-time">about 1 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
+    <div><dt>retrieval</dt><dd>pulling an idea out of memory without the page in front of you, which strengthens it more than rereading</dd></div>
+    <div><dt>reveal</dt><dd>the button that shows the equation after you have tried to write it</dd></div>
+    <div><dt>owner chapter</dt><dd>the chapter that defines the equation and its symbols</dd></div>
+  </dl>
+      <h4>Owner chapters</h4>
+      <p>The owner chapters of the six cards are the linear regression chapter (<a href="../a2-linear-regression/#line">A2</a>), the logistic regression chapter (<a href="../a3-logistic-regression/#logloss">A3</a>), the chapters on gradient descent (<a href="../a2-linear-regression/#descent">A2</a> and B3), backpropagation (<a href="../b4-backpropagation/#backward">B4</a>), self-attention (<a href="../d4-self-attention/#score">D4</a>) and CLIP (<a href="../e2-clip/#matrix">E2</a>). The self-rating is yours alone, and the page stores and sends no text.</p>
+      <h4>Debug tip</h4>
+      <div class="debug">
     <p><b>Debug tip.</b> If a card is hard, do not reread the whole chapter. Rewrite the equation with the live number in the worked box, then change the number and predict the output before you look. The cards let you do that with a slider.</p>
   </div>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>Which equation has a square root in it, and what does the square root do?</summary><p>Attention. Dividing the scores by \(\sqrt{d_k}\) keeps the dot products from growing with the key size, so that the softmax does not saturate (D4).</p></details>
-  </div>
+      <h4>More questions</h4>
+      <div class="recall">
+        <details><summary>Which equation has a square root in it, and what does the square root do?</summary><p>Attention. Dividing the scores by \(\sqrt{d_k}\) keeps the dot products from growing with the key size, so that the softmax is less likely to saturate (D4).</p></details>
+      </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 5. projects ============================ -->
 <section id="projects" aria-labelledby="projects-h">
   <h2 id="projects-h">My projects</h2>
-  <p class="ask"><b>Guess first.</b> I am porting a test-time training method to a vision-language model, so that the model can adapt to an input while it is being used. Before you open the map, list the chapters of this book you think support that project.</p>
-  <dl class="terms">
-    <div><dt>bridge</dt><dd>a short link between a chapter of this book and a project it explains</dd></div>
-    <div><dt>project page</dt><dd>my own write-up of a project, linked where it exists</dd></div>
-  </dl>
-  <p class="claim">My projects rest on a few chapters of this book. The map shows which ones, in both directions.</p>
-  <div class="card" id="mp">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> I am porting a test-time training method to a vision-language model, so that the model can adapt to an input while it is being used. Before you open the map, list the chapters of this book that you think support the project.</p>
+    <p class="claim">A project rests on the chapters that teach its ideas. The map shows this in both directions: pick a project to light its chapters, or pick a chapter to see which projects use it. It lists five projects: diabetes screening, optimizer state and Fisher information, In-Place TTT with the vision-language port, the Socratic Tutor and a small robot.</p>
+    <div class="card" id="mp">
+      <ol class="try"><li>Choose the chip In-Place TTT and the VLM port. Five tiles light up: C3 for domain shift, D4 for attention, D5 for the MLP block, D6 for long context and E4 for vision-language models.</li><li>Click the tile B5, the chapter on optimisers. The panel lists the projects that use it, here Optimizer state and Fisher, with the reason.</li><li>Choose the chip Diabetes screening and count the lit tiles: nine.</li></ol>
     <div class="bar" id="mp-bar"></div>
     <div class="bookmap" id="mp-tiles" role="group" aria-label="Chapters of the book as tiles, in parts"></div>
     <div class="proj-info" id="mp-info" aria-live="polite"></div>
   </div>
-  <p class="cap"><b>Pick a project to light its chapters, or pick a chapter to see which projects use it. The diabetes project uses the most chapters (A2 to A6, B1 to B3 and F1), while the Socratic Tutor rests on D7 and the robot on F2.</b> The facts about the projects come from my project pages. The chapters named for a project are the ones that teach its ideas, and the project pages go further.</p>
-  <p>The map follows the table of contents of this book. For the diabetes screening app, A2 to A6 teach the models and how to grade them, B1 to B3 the small neural network, and F1 the check across groups. For the optimizer-state work, B5 teaches Adam's two stored quantities and B7 the Fisher information that the paper uses. For In-Place TTT and the port to a vision-language model, C3 introduces test-time training for the shark. D4 and D5 teach the attention and the MLP block, and D6 covers test-time training and long context. E4 covers the model class the method is ported to. The Socratic Tutor is the tool-and-skill idea of D7. The robot is F2.</p>
-  <div class="bridge">
+    <p class="cap"><b>My test-time training project lists five chapters and the diabetes project nine, the most; the Socratic Tutor lists D7 on prompts, tools and skills, the robot F2 on the loop.</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Take my optimizer-state project.</b> AdamW keeps a first moment <i>m</i> and a second moment <i>v</i> per weight. Public checkpoints share a model's weights but usually not its optimizer state, so my work asks whether the state can be rebuilt from public data. The paper rebuilds <i>v</i> and uses it as a proxy for the Fisher information, a measure of how much the model's predictions depend on a weight, because <i>v</i> tracks squared gradients. The map lists two chapters for it. Chapter B5 teaches Adam's <i>m</i> and <i>v</i> and what is lost when the optimizer state is missing, and chapter B7 teaches the Fisher information and elastic weight consolidation, a penalty that keeps important weights close to their old values.</p>
+    <p>For my In-Place TTT port, chapter C3 introduces test-time training for the shark, chapter D4 teaches attention, and chapter D5 teaches the MLP block of a transformer, part of which the method updates. Chapter D6 covers test-time training and long context, and chapter E4 covers the model class the method is ported to.</p>
+    <div class="break">
+      <p><b>Common belief.</b> Reading the chapters that a project lists is enough to follow the project.</p>
+      <p><b>Why it fails.</b> The facts about the projects come from my project pages, which go further than the chapters because they describe my own work.</p>
+      <p><b>Better account.</b> Read the chapters for the ideas, then the project page for what I did, because the page describes my work.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>Which two chapters does the optimizer-state project list, and what does the project take from them?</summary><p>B5 and B7. B5 gives Adam's first and second moments and what is lost when the optimizer state is missing. B7 gives the Fisher information and elastic weight consolidation, which the paper links to the second moment.</p></details>
+      <details><summary>Which chapter would you open first to see how the Socratic Tutor is built?</summary><p>D7: prompts, tools and skills. The tutor is a plugin made of two skills, <code>socratic-tutor</code> and <code>quiz-me</code>.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">chapters behind the projects, bridge to the book</span> <span class="deeper-time">about 1 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
+    <div><dt>bridge</dt><dd>a short link between a chapter of this book and a project it explains</dd></div>
+    <div><dt>project page</dt><dd>my own write-up of a project, linked where it exists</dd></div>
+  </dl>
+      <h4>The chapters behind the projects</h4>
+      <p>The map follows the table of contents of this book. For the diabetes screening app, A2 to A6 teach the models and how to grade them, B1 to B3 the small neural network, and F1 the check across groups. For the optimizer-state work, B5 teaches Adam's two stored quantities and B7 the Fisher information that the paper uses. For In-Place TTT and the port to a vision-language model, C3 introduces test-time training for the shark. D4 and D5 teach the attention and the MLP block, and D6 covers test-time training and long context. E4 covers the model class the method is ported to. The Socratic Tutor is the tool-and-skill idea of D7. The robot is F2.</p>
+      <h4>Bridge to the whole book</h4>
+      <div class="bridge">
     <p><b>Bridge to the whole book.</b> My motivation for the TTT work is the same question as SharkCam's: recognising a shark when the water, light and animals change between dives. The tag, the message, the photo, the record and the robot of this chapter are the pieces such a system needs.</p>
   </div>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>Which chapters does the optimizer-state project use, and what does it add?</summary><p>B5 and B7. B5 gives Adam's first and second moments and what is lost when the optimiser state is missing. B7 gives the Fisher information and elastic weight consolidation, which the paper links to the second moment.</p></details>
-    <details><summary>Which chapter would you open first to see how the Socratic Tutor is built?</summary><p>D7: prompts, tools and skills. The tutor is a plugin made of two skills, <code>socratic-tutor</code> and <code>quiz-me</code>.</p></details>
-  </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 6. what next ============================ -->
 <section id="next" aria-labelledby="next-h">
   <h2 id="next-h">What to learn next</h2>
-  <p class="ask"><b>Guess first.</b> The book left out eight topics. Pick the one you think SharkCam would need first, then check your pick against the quiz at the end of this section.</p>
-  <dl class="terms">
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> The book left out eight topics: diffusion and image generation, generative adversarial networks, reinforcement learning, support vector machines, k-nearest neighbours, principal component analysis, distributed training and mixture of experts. Which would you read first if SharkCam had to find the nearest known photo of a shark for any new photo?</p>
+    <p class="claim">The book teaches one path from a line to a vision-language model, and the eight topics lie beside it. The fold below lists a free source for all eight topics and the places where the book comes close.</p>
+    <div class="card">
+      <ol class="try"><li>Choose one option for a question in the card. The card marks your choice and gives a reason.</li><li>Question 1 is the guess: choose a topic and compare it with your pick.</li></ol>
+      <div id="nx-quiz"></div>
+    </div>
+    <p class="cap"><b>Three needs fit three left-out topics: nearest-photo search fits k-nearest neighbours, murky photos made without a physics model fit image generation, and camera moves learned from rewards fit reinforcement learning.</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Take the guess.</b> SharkCam should find the nearest known photo of a shark for a new photo. A nearest-neighbour search compares a new vector with stored vectors. The embeddings chapter did this with word vectors and the CLIP chapter with caption vectors, so k-nearest neighbours is the closest topic. Section 1.6 of the scikit-learn user guide covers it, with code.</p>
+    <div class="break">
+      <p><b>Common belief.</b> Any free source on a topic is a good place to start.</p>
+      <p><b>Why it fails.</b> Sources differ in level, which means that a good start for one reader is too hard for another. The diffusion post and the GAN paper assume that you know neural networks, while the scikit-learn pages come with code. The Spinning Up page is written for newcomers to reinforcement learning. A source can also be right and old: the 2014 GAN paper is a first step, and later work changed how such networks are trained.</p>
+      <p><b>Better account.</b> Choose by the question you want answered, because the order of the topics matters less than the next question. To run SharkCam on many GPUs, read about distributed training. Check the level and the date of a source before you rely on its numbers.</p>
+    </div>
+    <div class="recall">
+      <p class="recall-h">Quick quiz</p>
+      <details><summary>A reader wants SharkCam to run on many GPUs. Which of the eight topics should they read first?</summary><p>Distributed training. The order of the topics matters less than the next question you want to answer.</p></details>
+      <details><summary>Why check the date of a source such as the 2014 GAN paper before relying on its numbers?</summary><p>Later work changed how such networks are trained, so the paper is a first step and not the current method.</p></details>
+    </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">table of eight topics with sources, debug tip</span> <span class="deeper-time">about 2 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+      <dl class="terms">
     <div><dt>left out</dt><dd>a topic the book did not teach, listed in the table of contents as "still left out"</dd></div>
     <div><dt>source</dt><dd>a free page or paper, opened to check that it says what this table says</dd></div>
   </dl>
-  <p class="claim">The book teaches one path from a line to a vision-language model. Beside that path lie eight topics, and all of them have a good free place to start.</p>
-  <div class="tbl-wrap">
+      <h4>Eight topics with free sources</h4>
+      <div class="tbl-wrap">
   <table class="tbl words" aria-label="Topics the book left out, where the book touches them and one free source">
     <thead><tr><th>Topic</th><th>Where the book comes close</th><th>A free place to start</th></tr></thead>
     <tbody>
@@ -292,12 +451,13 @@ largest gap between sites: 23 points -> check before release</pre>
     </tbody>
   </table>
   </div>
-  <p class="cap"><b>The topics start where the book stops: a boundary, a neighbour search, a reward, a second network or a bigger machine.</b> The sources are free to read. They differ in level. The diffusion post and the GAN paper assume the maths of Parts A and B. The scikit-learn pages are short and run code. The Spinning Up page is the gentlest entry to reinforcement learning.</p>
-  <p>There are two cautions. First, order matters less than the next question you want to answer. If you want SharkCam to find the nearest known photo of a shark, read about neighbour search. If you want it to run on many GPUs, read about distributed training. Second, a source can be right and old: the 2014 GAN paper is the first step, and later work changed how such networks are trained. Check the date of any source before you rely on its numbers.</p>
-  <div class="card"><div id="nx-quiz"></div></div>
-  <div class="debug">
+      <p><b>The topics start where the book stops: a boundary, a neighbour search, a reward, a second network or a bigger machine.</b> The sources are free to read. They differ in level. The diffusion post and the GAN paper assume that you know neural networks. The scikit-learn pages come with code. The Spinning Up page is written for newcomers to reinforcement learning.</p>
+      <h4>Debug tip</h4>
+      <div class="debug">
     <p><b>Debug tip.</b> When you pick up a new topic, rebuild its smallest example in NumPy before you read a large library. The book's code blocks are meant as the model for this: one idea, a few lines, a printed output you can check.</p>
   </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ exercises ============================ -->
