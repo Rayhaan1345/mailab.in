@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Images as numbers and convolution | How AI Learns</title>
-<meta name="description" content="Pixels, colour channels, a filter that slides over a handwritten tag number, stride and padding with the output-size formula, and max pooling, with figures you can change.">
+<meta name="description" content="Pixels, colour channels, a filter that slides over a handwritten digit, stride and padding with the output-size formula, and max pooling, with figures you can change.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,12 +26,12 @@
 <header class="hero">
   <p class="kicker">Part C &middot; Chapter 1</p>
   <h1>Images as numbers and convolution</h1>
-  <p class="subtitle">Pixels, colour channels and a small filter that slides over a picture and writes a map of where a pattern is</p>
+  <p class="subtitle">Pixels, colour channels and a small filter that slides over a picture and fills a feature map that marks where a pattern appears</p>
 </header>
 
 <div class="tldr">
-  <p>A picture is a grid of numbers. This chapter reads a handwritten tag number and a shark photo as arrays. Then it slides a filter of nine weights over the digit, one dot product at a time, and fills a feature map. You will change the filter, the stride and the padding, watch the output size follow a formula, and shrink the map with max pooling. <a href="../c2-cnns/#stack">C2</a> stacks these pieces into a network that reads the digit.</p>
-  <p>The digits are handwritten MNIST digits (LeCun et al., 1998). They play the part of the tag numbers that SharkCam researchers write in logbooks. The photos are openly licensed and credited under the figures, and the depth effect on them comes from a simple model, not from a measurement of Mumbai water.</p>
+  <p>A picture is a grid of numbers. In this chapter a filter slides over a digit to fill a feature map, stride and padding set the map's size, and max pooling shrinks it.</p>
+  <p>The digits come from MNIST and play the part of logbook tag numbers. The shark photos are credited under the figure; their depth effect comes from a simple model, not from a measurement of Mumbai water.</p>
 </div>
 <p class="youneed"><b>You will need:</b> <a href="../t1-python/#arrays">NumPy arrays</a> (0.1), the <a href="../t5-vectors-matrices/#dot">dot product</a> (0.5) and the idea of a <a href="../b1-one-neuron/#neuron">neuron as a weighted sum</a> (B1).</p>
 
@@ -50,15 +50,12 @@
 <!-- ============================ 1. pixels ============================ -->
 <section id="pixels" aria-labelledby="pixels-h">
   <h2 id="pixels-h">A picture is a grid of numbers</h2>
-  <p class="ask"><b>Guess first.</b> Researchers write tag numbers by hand in a logbook. A scanner stores one digit as a grid with 28 rows and 28 columns. How many numbers is that for one digit? And what number would you expect for a square the pen never touched?</p>
-  <dl class="terms">
-    <div><dt>pixel</dt><dd>one square of the grid, holding one number</dd></div>
-    <div><dt>grey value</dt><dd>the number in a square: 0 is no ink, 255 is full ink</dd></div>
-    <div><dt>array</dt><dd>a grid of numbers with a size such as (28, 28) (<a href="../t1-python/#arrays">0.1</a>)</dd></div>
-    <div><dt>flatten</dt><dd>unroll the grid row by row into one vector of 784 numbers (<a href="../t5-vectors-matrices/#vectors">0.5</a>)</dd></div>
-  </dl>
-  <p class="claim">A grey picture is a grid of numbers from 0 to 255, so reading a handwritten digit means doing arithmetic on 784 numbers.</p>
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> Researchers write tag numbers by hand in a logbook, and the figure uses handwritten MNIST digits to play the part of logbook digits. MNIST stores one digit as a grid with 28 rows and 28 columns. How many numbers is that for one digit, and what number would you expect for a square the pen never touched?</p>
+    <p class="claim">A pixel is one square of the grid. In this grey picture it has one number, its grey value: 0 is no ink and 255 is full ink. A digit with 28 rows and 28 columns is therefore 28 &times; 28 = 784 numbers, and reading a handwritten digit means doing arithmetic on those 784 numbers.</p>
   <div class="card" id="px">
+      <ol class="try"><li>Move the pointer over the digit, or tap it: the box on the right writes out the framed 5 by 5 block as numbers.</li><li>Read the boxes under the picture: 664 of the 784 numbers of this digit are 0, which is 85% empty paper.</li><li>Tick <b>Shuffle the squares</b>: the 784 numbers move to new places by one fixed random rule, the count of zeros stays 664 because shuffling only moves numbers, and you can no longer read the digit.</li></ol>
     <div class="bar" id="px-bar"></div>
     <div class="px-grid">
       <div><canvas class="fig" id="px-cvs" tabindex="0" role="img" aria-label="A handwritten digit drawn as a 28 by 28 grid of squares. Dark squares have high values. Move the pointer over a square to read its number."></canvas></div>
@@ -69,17 +66,45 @@
     </div>
     <div class="eqn" id="px-eqn"></div>
   </div>
-  <p class="cap"><b>A digit is 784 numbers, and most of them are 0, the empty paper. The pen path is a thin ridge of values near 255.</b> The framed 5 by 5 block on the left is written out as numbers on the right.</p>
-  <p>Hover over, or tap, any square and read its number. Squares are counted by row from the top, then by column from the left, so the top-left square is row 0, column 0. A file stores a value in one byte, which allows 256 values, 0 to 255. Machine learning code usually divides by 255 so that values lie between 0 and 1. This chapter keeps 0 to 255 because those numbers are easier to read. The digits come from MNIST, a public set of 70,000 handwritten digits. Tag 4127 is four digits: 4, 1, 2 and 7. Switch to <b>Add ink</b> and draw on the grid. The count of zeros changes as you go.</p>
-  <p>Now tick <b>Shuffle the squares</b>. All squares move to new places, by one fixed random rule, and you can no longer read the digit. A plain network from <a href="../b1-one-neuron/#layer">B1</a> and <a href="../b2-non-linearity/#play">B2</a> is not bothered. It reads a digit as a list of 784 inputs and gives all of them separate weights. It has no idea which squares are neighbours. A network with 784 inputs, 128 ReLU units and 10 outputs was trained for 5 passes over the 60,000 training digits, once on normal digits and once on shuffled ones. On the 10,000 test digits it scored 96.9% and 97.0%. That is one run per case, and the 0.1 point gap is within the noise of a single run.</p>
-  <div class="break">
-    <p><b>Common belief.</b> A network that reads pictures must know which squares are neighbours.</p>
-    <p><b>Why it fails.</b> A plain network learns shuffled digits as well as normal ones. It gives a square its own weights, so the order of the squares never enters its arithmetic.</p>
-    <p><b>Better account.</b> The layout is information that a plain network throws away. A convolution builds the layout in: the same few weights look at small patches all over the picture. The rest of this chapter shows how.</p>
+    <p class="cap"><b>A digit is 784 numbers, and 664 of them (85%) are 0, the empty paper; the pen path is a thin ridge of values up to 255.</b></p>
   </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>Take the digit 4 of Tag 4127, the first digit in the figure.</b> It has 28 &times; 28 = 784 numbers. Of these, 664 are 0, which is 664 / 784 = 0.85 of the picture, and the other 784 &minus; 664 = 120 are greater than 0.</p>
+    <div class="eqn" role="img" aria-label="28 times 28 is 784 numbers; 664 divided by 784 is 85 percent, the share of the picture that is 0"><span class="t c-navy"><b>28 &times; 28</b><i>rows times columns</i></span><span class="op">=</span><span class="t c-coral"><b>784</b><i>numbers in the digit</i></span><span class="op">|</span><span class="t c-teal"><b>664 &divide; 784</b><i>the share that is 0</i></span><span class="op">=</span><span class="t c-teal"><b>85%</b><i>empty paper</i></span></div>
+    <p>A plain network, one built from the neurons of Part B, reads the digit as a list of 784 numbers. A neuron in its first layer multiplies them by 784 weights of its own and adds the products. Reordering the pixels and the weights in the same way leaves this sum unchanged.</p>
+    <div class="break">
+      <p><b>Common belief.</b> A network that reads pictures must know which pixels are neighbours.</p>
+      <p><b>Why it fails.</b> A small plain network (128 hidden ReLU units) was trained once on the 60,000 normal training digits and once on digits shuffled by one fixed rule. On the 10,000 test digits, shuffled in the same way, the second network classified 97.0% correctly, against 96.9% for the first. The 0.1 point gap is within the noise of a single run, so shuffling did not visibly hurt.</p>
+      <p><b>Better account.</b> A plain network does not build in the layout of the pixels. A convolution does: it applies the same few weights to small patches all over the picture, as the rest of this chapter shows.</p>
+    </div>
+    <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>The digit 7 of Tag 4127 has 668 zeros among its 784 numbers. What share is that, and how many numbers are not 0?</summary><p>The share is 668 / 784 = 0.85, which is 85%, and 784 &minus; 668 = 116 numbers are not 0. Most of the picture is empty paper, and the other numbers lie along the pen path.</p></details>
+    <details><summary>Why can a plain network learn from shuffled digits when you cannot read them?</summary><p>Its first layer multiplies the pixels by weights of their own and adds the products. Reordering the pixels and the weights in the same way leaves the sum unchanged, so the layout of the pixels is not part of the arithmetic.</p></details>
+  </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">terms, reading the figure, shuffle test, Python</span> <span class="deeper-time">about 2 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+  <dl class="terms">
+    <div><dt>pixel</dt><dd>one square of the grid, holding one number</dd></div>
+    <div><dt>grey value</dt><dd>the number in a square: 0 is no ink, 255 is full ink</dd></div>
+    <div><dt>array</dt><dd>a grid of numbers with a size such as (28, 28) (<a href="../t1-python/#arrays">0.1</a>)</dd></div>
+    <div><dt>flatten</dt><dd>unroll the grid row by row into one vector of 784 numbers (<a href="../t5-vectors-matrices/#vectors">0.5</a>)</dd></div>
+  </dl>
+      <h4>Reading the figure</h4>
+  <p>Hover over, or tap, any square and read its number. Squares are counted by row from the top, then by column from the left, so the top-left square is row 0, column 0. A file stores a value in one byte, which allows 256 values, 0 to 255. Machine learning code usually divides by 255 so that values lie between 0 and 1. This chapter keeps 0 to 255 because those numbers are easier to read. The digits come from MNIST, a public set of 70,000 handwritten digits. Tag 4127 is four digits: 4, 1, 2 and 7. Switch to <b>Add ink</b> and draw on the grid. The count of zeros changes as you go.</p>
+      <h4>The shuffle test</h4>
+  <p>Now tick <b>Shuffle the squares</b>. All squares move to new places, by one fixed random rule, and you can no longer read the digit. A plain network from <a href="../b1-one-neuron/#layer">B1</a> and <a href="../b2-non-linearity/#play">B2</a> is not bothered. It reads a digit as a list of 784 inputs and gives all of them separate weights. It does not use which squares are neighbours. A network with 784 inputs, 128 ReLU units and 10 outputs was trained for 5 passes over the 60,000 training digits, once on normal digits and once on shuffled ones. On the 10,000 test digits it classified 96.9% and 97.0% of them correctly. That is one run per case, and the 0.1 point gap is within the noise of a single run.</p>
+      <h4>Common mistakes</h4>
   <div class="debug">
     <p><b>Debug tip.</b> Arrays are indexed <code>image[row, column]</code>, which is <code>[y, x]</code>. If a digit looks mirrored along its diagonal, you swapped the two. Also check the scale: a model trained on values from 0 to 1 that receives values from 0 to 255 sees inputs 255 times too big. Print <code>image.max()</code> before you feed an image to a model.</p>
   </div>
+      <h4>In Python</h4>
   <pre class="code"><code>import numpy as np, torchvision
 mnist = torchvision.datasets.MNIST("mnist", train=False)
 img, label = mnist[0]                    # a PIL picture and its label
@@ -90,24 +115,19 @@ print(a[14, 8:20])                       # row 14, columns 8 to 19</code></pre>
   <pre class="out">(28, 28) uint8 0 255
 label 7 | zeros: 668 of 784
 [  0   0   0   0   0   0   0   0  59 249 254  62]</pre>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>A digit has 668 zeros out of 784 values. What share is that, and what does it say about the picture?</summary><p>The share is 668 / 784, which is 85%. Most of the picture is empty paper, and the information is in a thin band of non-zero values along the pen path.</p></details>
-    <details><summary>Why can a plain network learn from shuffled digits when you cannot read them?</summary><p>Its first layer multiplies the squares by their own weights and adds the results. That sum does not change if all squares and weights are renamed in the same order, so the network never uses the neighbourhood.</p></details>
-  </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 2. channels ============================ -->
 <section id="channels" aria-labelledby="channels-h">
   <h2 id="channels-h">Colour is three grids</h2>
-  <p class="ask"><b>Guess first.</b> A photo of a hammerhead shark is 640 pixels wide and 362 high. How many numbers does it need? And when the same scene is photographed 10 m under the surface, which colour do you expect to lose first: red, green or blue?</p>
-  <dl class="terms">
-    <div><dt>channel</dt><dd>one grid of numbers for one primary colour; a grey picture has one channel, a colour picture three</dd></div>
-    <div><dt>RGB</dt><dd>red, green and blue, as three grids with values 0 to 255</dd></div>
-    <div><dt>bias</dt><dd>one more number added to the result of a filter</dd></div>
-  </dl>
-  <p class="claim">A colour photo is three stacked grids, and water removes red light much faster than blue.</p>
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> A photo of a hammerhead shark is 640 pixels wide and 362 high. How many numbers does it need? And when the same scene is photographed 10 m under the surface, which colour do you expect to lose first: red, green or blue?</p>
+    <p class="claim">A channel is a grid of numbers for one colour of light, and a colour photo has three: red, green and blue (RGB). A pixel is therefore three numbers, and a photo of 640 &times; 362 pixels has 640 &times; 362 &times; 3 = 695,040 numbers. Water absorbs red light faster than green and blue light, so red is the colour lost first.</p>
   <div class="card" id="ch">
+      <ol class="try"><li>Move the pointer over any of the four pictures: the box under them reads that pixel as three numbers, red, green and blue.</li><li>Drag <b>Depth</b> to 10 m. This applies the depth model of the <a href="../c3-domain-shift/#water">domain-shift chapter</a> to the same photo: the red grid turns almost black, and the boxes show the mean red falling and the mean blue rising.</li><li>Set <b>Filter size</b> to 3 by 3 and <b>Number of filters</b> to 16: the last box counts 448 numbers to learn.</li></ol>
     <div class="bar" id="ch-bar"></div>
     <div class="controls" id="ch-controls"></div>
     <div class="ch-grid">
@@ -121,14 +141,39 @@ label 7 | zeros: 668 of 784
     <div class="eqn eqs" id="ch-eqn"></div>
     <p class="credit" id="ch-credit"></p>
   </div>
-  <p class="cap"><b>At 10 m the red grid of the hammerhead photo is almost empty. Its mean falls from about 51 to about 7, while the mean blue rises from about 153 to about 170.</b> The photo never changes; the depth slider applies the model of <a href="../c3-domain-shift/#water">C3</a>. Move over any grid to read one pixel as three numbers.</p>
-  <p>The hammerhead photo has 640 &times; 362 &times; 3 = 695,040 numbers. In NumPy the array has size (362, 640, 3), with the channel last. PyTorch wants the channel first: (3, 362, 640). A grey digit is the same thing with one channel. Untick a channel to see what the photo looks like without it. At depth 10 m the green grid also looks brighter, which is the haze of the water and the camera's automatic exposure, not extra green light from the shark.</p>
-  <div class="break">
-    <p><b>Common belief.</b> Deeper water makes a photo darker and no other change.</p>
-    <p><b>Why it fails.</b> The three grids change at different rates. Red falls to a few percent of its surface value within 10 m, blue stays, and haze lifts the dark parts of all three. The mean values in the boxes show it.</p>
-    <p><b>Better account.</b> Water changes the balance between the channels first, then the brightness. A model trained on surface photos meets inputs with a different range in the three channels. <a href="../c3-domain-shift/#water">C3</a> follows what that does to a classifier.</p>
+    <p class="cap"><b>At 10 m the mean red of the hammerhead photo falls from about 51 to about 7, while the mean blue rises from about 153 to about 170.</b></p>
   </div>
-  <p>A filter that reads a colour photo has a weight for all channels in its window. A 3 by 3 filter on an RGB photo has 3 &times; 3 &times; 3 = 27 weights, plus one bias, a number added to the result. The count of numbers in a convolution layer follows one formula.</p>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>A filter is a small grid of weights that slides over a picture; on a colour photo it needs a weight for all three channels of the patch under it.</b> For a 3 by 3 filter that is 3 &times; 3 &times; 3 = 27 weights. It also has one bias, a number added to its result, so one filter has 28 numbers to learn. A layer of 16 such filters has 28 &times; 16 = 448 numbers.</p>
+    <div class="eqn" role="img" aria-label="3 times 3 times 3 weights plus 1 bias is 28 numbers in one filter; times 16 filters is 448 numbers to learn"><span class="t c-navy"><b>3 &times; 3 &times; 3</b><i>weights of one filter</i></span><span class="op">+</span><span class="t c-sand"><b>1</b><i>bias</i></span><span class="op">=</span><span class="t c-teal"><b>28</b><i>numbers in one filter</i></span><span class="op">&times;</span><span class="t c-navy"><b>16</b><i>filters</i></span><span class="op">=</span><span class="t c-coral"><b>448</b><i>numbers to learn</i></span></div>
+    <p>A layer has \((k \cdot k \cdot C_{\text{in}} + 1)\, C_{\text{out}}\) parameters, the numbers it learns. Here \(k\) is the side of the filter and \(C_{\text{in}}\) is the number of channels the layer reads (3 for an RGB photo). \(C_{\text{out}}\) is the number of filters, and \(+1\) is the bias of one filter.</p>
+    <div class="break">
+      <p><b>Common belief.</b> Deeper water makes a photo darker and no other change.</p>
+      <p><b>Why it fails.</b> In the depth model of the figure the three grids change differently. At 10 m the mean red is about 13% of its surface value, while the mean green rises from about 78 to about 111 and the mean blue from about 153 to about 170. The model adds haze, which is scattered blue-green light, and a simulated automatic exposure that brightens a dark picture.</p>
+      <p><b>Better account.</b> Water changes the balance between the channels as well as the brightness, so a model trained on surface photos receives inputs with different ranges.</p>
+    </div>
+    <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>How many numbers has one 5 by 5 filter that reads an RGB photo, with its bias?</summary><p>The count is 5 &times; 5 &times; 3 = 75 weights, plus 1 bias, so 76 numbers.</p></details>
+    <details><summary>The photo doubles in width and height. Does a filter get more numbers?</summary><p>No. The count \((k \cdot k \cdot C_{\text{in}} + 1)\, C_{\text{out}}\) has no width or height in it. The same 76 numbers of a 5 by 5 filter slide over a small or a large photo.</p></details>
+  </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">array sizes, formula notes, ResNet-18, Python</span> <span class="deeper-time">about 2 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+  <dl class="terms">
+    <div><dt>channel</dt><dd>one grid of numbers for one primary colour; a grey picture has one channel, a colour picture three</dd></div>
+    <div><dt>RGB</dt><dd>red, green and blue, as three grids with values 0 to 255</dd></div>
+    <div><dt>bias</dt><dd>one more number added to the result of a filter</dd></div>
+  </dl>
+      <h4>Array sizes and the figure</h4>
+  <p>The hammerhead photo has 640 &times; 362 &times; 3 = 695,040 numbers. In NumPy the array has size (362, 640, 3), with the channel last. PyTorch wants the channel first: (3, 362, 640). A grey digit is the same thing with one channel. Untick a channel to see what the photo looks like without it. At depth 10 m the green grid also looks brighter. In the depth model this comes from the haze and the simulated automatic exposure, not from extra green light from the shark.</p>
+      <p>The figure draws the photo at half its width, 320 by 181 pixels, so the row and column in its pixel readout count in that smaller copy. The <a href="../c3-domain-shift/#water">domain-shift chapter</a> follows what a different range in the three channels does to a classifier.</p>
+      <h4>Symbols and the ResNet-18 example</h4>
   <p class="math">\[ \text{parameters} = \left(k \cdot k \cdot C_{\text{in}} + 1\right)\, C_{\text{out}} \]</p>
   <ul class="math-notes">
     <li><b>\(k\)</b> is the side of the filter in squares, so a window has \(k \cdot k\) squares.</li>
@@ -137,9 +182,11 @@ label 7 | zeros: 668 of 784
     <li><b>The \(+1\)</b> is the bias of one filter.</li>
   </ul>
   <p>The boxes above the credit line work it out for the sliders. With the default choices, 3 by 3 and 16 filters, the layer has (27 + 1) &times; 16 = 448 numbers, whatever the size of the photo. The first layer of ResNet-18 (<a href="../c3-domain-shift/#adapt">used in C3</a>) reads RGB with 7 by 7 filters and writes 64 maps. It has 7 &times; 7 &times; 3 &times; 64 = 9,408 weights. It has no biases because a batch-norm layer (<a href="../b6-deep-networks/#norm">B6</a>) follows.</p>
+      <h4>Common mistakes</h4>
   <div class="debug">
     <p><b>Debug tip.</b> If a blue shark looks orange, the channels are in the wrong order. OpenCV reads pictures as blue, green, red, while PIL and PyTorch use red, green, blue. Swap with <code>image[:, :, ::-1]</code> and check one pixel you know.</p>
   </div>
+      <h4>In Python</h4>
   <pre class="code"><code>import numpy as np
 from PIL import Image
 photo = np.array(Image.open("hammerhead-1.jpg"))
@@ -150,25 +197,19 @@ print(red.shape, red.min(), red.max())</code></pre>
   <pre class="out">(362, 640, 3) 695040
 mean R, G, B: [ 50.5  78.  152.6]
 (362, 640) 0 255</pre>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>How many weights has one 5 by 5 filter that reads an RGB photo, with its bias?</summary><p>The count is 5 &times; 5 &times; 3 = 75 weights, plus 1 bias, so 76 numbers.</p></details>
-    <details><summary>The photo doubles in width and height. Does the filter get more numbers?</summary><p>No. The count depends on the filter size and the channels, not on the picture size. The same 28 numbers slide over a small or a large photo.</p></details>
-  </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 3. filter ============================ -->
 <section id="filter" aria-labelledby="filter-h">
   <h2 id="filter-h">A filter slides over the picture</h2>
-  <p class="ask"><b>Guess first.</b> A filter is a 3 by 3 grid of weights. At one position it multiplies the nine squares under it by the nine weights and adds up the products. The left-right edge filter has the weights &minus;1, 0, 1 in the top row, &minus;2, 0, 2 in the middle and &minus;1, 0, 1 at the bottom. What does it output over a patch where all nine squares have the same value? And at the left edge of a pen stroke, where the picture goes from paper to ink?</p>
-  <dl class="terms">
-    <div><dt>filter (kernel)</dt><dd>a small grid of weights, 3 by 3 here</dd></div>
-    <div><dt>window</dt><dd>the patch of squares under the filter at one position</dd></div>
-    <div><dt>feature map</dt><dd>the grid of filter outputs, one per position</dd></div>
-    <div><dt>dot product</dt><dd>multiply matching numbers and add them up (<a href="../t5-vectors-matrices/#dot">0.5</a>)</dd></div>
-  </dl>
-  <p class="claim">A filter takes a weighted sum of a small window, repeats it at all positions, and the grid of results shows where the pattern in its weights appears.</p>
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> The left-right edge filter is a 3 by 3 grid of weights. From top to bottom its rows are &minus;1, 0, 1 and &minus;2, 0, 2 and &minus;1, 0, 1. What does it output over a patch where all nine pixels have the same value? And at the left edge of a pen stroke, where the picture goes from paper to ink?</p>
+    <p class="claim">A filter (or kernel) is a small grid of weights. At one position its window, the patch of pixels under it, gives one output: the <a href="../t5-vectors-matrices/#dot">dot product</a> of the window with the weights, the sum of the nine products of matching numbers. The filter repeats this at all positions, so its outputs form a grid, the feature map, which is large and positive where the window looks like the pattern in the weights.</p>
   <div class="card" id="sl">
+      <ol class="try"><li>Press <b>Play</b>, or click the digit to place the window: the feature map fills in as the window slides. The boxes show the nine pixels under the window, the weights, the products and their sum.</li><li>With <b>Edge left-right</b>, teal (positive) marks windows with paper on the left and ink on the right, because the right column has the positive weights; coral (negative) marks the reverse; flat paper gives 0.</li><li>Click <b>Edge top-bottom</b>, then <b>Blur</b>, and compare the maps.</li></ol>
     <div class="bar" id="sl-bar"></div>
     <div class="bar" id="sl-bar2"></div>
     <div class="slide-top">
@@ -179,9 +220,39 @@ mean R, G, B: [ 50.5  78.  152.6]
     <p class="status" id="sl-note" aria-live="polite"></p>
     <p class="status" id="sl-status" aria-live="polite"></p>
   </div>
-  <p class="cap"><b>The left-right edge filter writes teal where ink begins to the right of the window and coral where it ends, and 0 over flat paper and flat ink.</b> Press Play, or click the digit to place the window yourself. The boxes show the nine pixels under the window, the nine weights, the nine products and their sum.</p>
-  <p>Pick the presets in turn. <b>Edge left-right</b> subtracts the left column from the right column and counts the middle row twice. Its weights add up to 0, so a flat patch gives 0. <b>Edge top-bottom</b> does the same with rows. <b>Blur</b> gives all nine squares the weight 1/9, so the output is their average. <b>Sharpen</b> gives the middle weight 5 and its four neighbours &minus;1, which keeps the middle value and adds the difference from its neighbours. <b>Identity</b> copies the middle square. Then type your own nine numbers. Tick <b>then ReLU</b> to keep only the positive outputs, which is what a network does after a filter (<a href="../b1-one-neuron/#activations">B1</a>).</p>
-  <p>The feature map is 26 by 26, smaller than the 28 by 28 input, because a window must fit inside the picture. The next section gives the rule. An output is one dot product of the window with the weights. By the dot product of <a href="../t5-vectors-matrices/#cosine">0.5</a>, the result is large when the window points the same way as the weights. So the map is bright where the picture looks like the pattern in the weights.</p>
+    <p class="cap"><b>The left-right edge filter gives 0 on a flat patch and a large value at an edge: on this digit the outputs reach +1010 and &minus;1010.</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>The figure starts with the window whose output has the largest absolute value, at row 14, column 18.</b> The window has ink on its left and paper on its right, and its rows are 252, 167, 0 and 253, 107, 0 and 252, 106, 0.</p>
+    <div class="eqn" role="img" aria-label="Edge filter on the starting window: top row minus 252, middle row minus 506, bottom row minus 252, total minus 1010"><span class="t c-navy"><b>&minus;252</b><i>top row: &minus;1&middot;252 + 0&middot;167 + 1&middot;0</i></span><span class="op">+</span><span class="t c-navy"><b>&minus;506</b><i>middle row: &minus;2&middot;253 + 0&middot;107 + 2&middot;0</i></span><span class="op">+</span><span class="t c-navy"><b>&minus;252</b><i>bottom row: &minus;1&middot;252 + 0&middot;106 + 1&middot;0</i></span><span class="op">=</span><span class="t c-coral"><b>&minus;1010</b><i>output, negative: ink on the left</i></span></div>
+    <p>The feature map has the value \(O[i,j] = \sum_{u=0}^{k-1}\sum_{v=0}^{k-1} K[u,v]\, I[i+u,\, j+v] + b\) at row \(i\), column \(j\). Here \(K[u,v]\) is the weight at row \(u\), column \(v\) of a filter of side \(k\), \(I\) is the picture, and \(b\) is the bias (0 in the figure). A dot product is large when two lists rise and fall together, so the output is large where the window varies like the weights. The edge filter's weights add up to 0, so a flat window of value \(c\) gives \(c \times 0 = 0\).</p>
+    <div class="break">
+      <p><b>Analogy.</b> A filter is a stencil that you slide over a page, asking at any spot how well the page matches it.</p>
+      <p><b>Where it breaks.</b> A stencil answers yes or no, while a filter gives a graded number that can be negative. In a convolutional network the weights are usually not designed: they start random and gradient descent adjusts them.</p>
+    </div>
+    <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A sharpen filter has weights 0, &minus;1, 0 / &minus;1, 5, &minus;1 / 0, &minus;1, 0. What does it output on a flat window of value 100?</summary><p>The output is 5 &times; 100 &minus; 4 &times; 100 = 100. The weights add up to 1, so a flat window gives its own value back and only differences from the neighbours are boosted.</p></details>
+    <details><summary>If all weights of the edge filter changed sign, what would it output on the worked window?</summary><p>It would output +1010. The output is a sum of products, so changing the sign of all weights changes the sign of the sum, and &minus;(&minus;1010) = 1010.</p></details>
+  </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">presets, symbols, second example, Python, one more question</span> <span class="deeper-time">about 5 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+  <dl class="terms">
+    <div><dt>filter (kernel)</dt><dd>a small grid of weights, 3 by 3 here</dd></div>
+    <div><dt>window</dt><dd>the patch of squares under the filter at one position</dd></div>
+    <div><dt>feature map</dt><dd>the grid of filter outputs, one per position</dd></div>
+    <div><dt>dot product</dt><dd>multiply matching numbers and add them up (<a href="../t5-vectors-matrices/#dot">0.5</a>)</dd></div>
+  </dl>
+      <h4>The presets</h4>
+  <p>Pick the presets in turn. <b>Edge left-right</b> subtracts the left column from the right column and counts the middle row twice. Its weights add up to 0, so a flat patch gives 0. <b>Edge top-bottom</b> does the same with rows. <b>Blur</b> gives all nine squares the weight 1/9, so the output is their average. <b>Sharpen</b> gives the middle weight 5 and its four neighbours &minus;1, which keeps the middle value and adds the difference from its neighbours. <b>Identity</b> copies the middle square. Then type your own nine numbers. Tick <b>then ReLU</b> to keep only the positive outputs, which is what many networks do after a filter (<a href="../b1-one-neuron/#activations">B1</a>).</p>
+  <p>The feature map is 26 by 26, smaller than the 28 by 28 input, because a window must fit inside the picture. The next section gives the rule. An output is one dot product of the window with the weights. By the dot product of <a href="../t5-vectors-matrices/#cosine">0.5</a>, the result is large when the window points the same way as the weights and has large values. So the map has large values where the picture looks like the pattern in the weights.</p>
+      <h4>Symbols</h4>
   <p class="math">\[ O[i,j] \;=\; \sum_{u=0}^{k-1}\sum_{v=0}^{k-1} K[u,v]\; I[i+u,\; j+v] \;+\; b \]</p>
   <ul class="math-notes">
     <li><b>\(I[r,c]\)</b> is the input value at row \(r\), column \(c\), and <b>\(O[i,j]\)</b> is the feature-map value at row \(i\), column \(j\).</li>
@@ -189,18 +260,20 @@ mean R, G, B: [ 50.5  78.  152.6]
     <li><b>\(b\)</b> is a bias added to all outputs of the filter. The figure uses \(b = 0\).</li>
     <li>The two sums run over the \(k \cdot k\) squares of the window: nine products, then one total.</li>
   </ul>
-  <p>Take a window that is dark on the left and bright on the right: all rows are 0, 0, 255. This is a worked example for the edge filter and for the blur.</p>
+      <h4>A second worked example</h4>
+  <p>Take a window that is dark on the left and bright on the right: all rows are 0, 0, 255. This is a second worked example, for the edge filter and for the blur.</p>
   <div class="eqn" role="img" aria-label="Edge filter on a window with rows 0, 0, 255: top row 255, middle row 510, bottom row 255, total 1020"><span class="t c-navy"><b>255</b><i>top row: &minus;1&middot;0 + 0&middot;0 + 1&middot;255</i></span><span class="op">+</span><span class="t c-navy"><b>510</b><i>middle row: &minus;2&middot;0 + 0&middot;0 + 2&middot;255</i></span><span class="op">+</span><span class="t c-navy"><b>255</b><i>bottom row: &minus;1&middot;0 + 0&middot;0 + 1&middot;255</i></span><span class="op">=</span><span class="t c-coral"><b>1020</b><i>edge filter output</i></span></div>
   <div class="eqn" role="img" aria-label="Blur on the same window: three values of 255 added and divided by nine give 85"><span class="t c-teal"><b>3 &times; 255</b><i>the nine squares add up to this</i></span><span class="op">&divide;</span><span class="t c-teal"><b>9</b><i>squares in the window</i></span><span class="op">=</span><span class="t c-teal"><b>85</b><i>blur output</i></span></div>
-  <p>A flat window with all nine values equal to 128 gives 0 under the edge filter, because the weights add up to 0 and 128 &times; 0 = 0. Under the blur it gives 128. That answers the guess-first question: 0 on a flat patch, a large number at an edge. The largest possible output of this edge filter is 1020, which is 4 &times; 255. The colour scale of the map is set by the biggest value on the page, so it changes with the filter.</p>
-  <div class="break">
-    <p><b>Analogy.</b> A filter is a stencil that you slide over a page. At any spot you ask how well the page matches the stencil.</p>
-    <p><b>Where it breaks.</b> A stencil is cut by hand and answers yes or no. A filter has any weights, answers with a graded number that can be negative, and in a CNN its nine weights are not designed by anyone. They start random and are learned by gradient descent like all weights. A weight used at all positions collects the slopes from all of them (<a href="../b4-backpropagation/#paths">B4, a value used twice</a>). The filters here are hand-made so that you can see what a pattern of weights does.</p>
-  </div>
-  <p><b>When it works and when it breaks.</b> One set of nine weights is reused at all positions, so a pattern is found wherever it appears and the filter needs only nine numbers. It does respond to one pattern in one size and orientation. The left-right filter says little about a horizontal stroke (switch to top-bottom and compare). A network therefore uses many filters at once. Libraries call this operation convolution, but strictly it is cross-correlation: the kernel is not flipped. A true convolution flips the kernel first. For the left-right edge filter the flip changes the sign of the output. For a learned filter it makes no difference, because training finds whichever version is needed.</p>
+  <p>A flat window with all nine values equal to 128 gives 0 under the edge filter, because the weights add up to 0 and 128 &times; 0 = 0. Under the blur it gives 128. That answers the guess-first question: 0 on a flat patch, a large number at an edge. The largest possible output of this edge filter is 1020, which is 4 &times; 255. The colour scale of the map is set by the largest absolute value in the map, so it changes with the filter and the digit. The status line under the maps gives it as the value of full colour.</p>
+      <h4>Where it works and where it breaks</h4>
+      <p>The filters in the figure are made by hand, so that you can see what a pattern of weights does.</p>
+  <p><b>When it works and when it breaks.</b> One set of nine weights is reused at all positions, so a pattern is found wherever it appears and the filter needs only nine numbers. It does respond to one pattern in one size and orientation. The left-right filter says little about a horizontal stroke (switch to top-bottom and compare). A network therefore uses many filters at once. Libraries call this operation convolution, but strictly it is cross-correlation: the kernel is not flipped. A true convolution flips the kernel first. For the left-right edge filter the flip changes the sign of the output. For a learned filter it makes no difference to what the network can represent, because training can find whichever version is needed.</p>
+      <p>A weight used at all positions collects the slopes from all of them (<a href="../b4-backpropagation/#paths">B4, a value used twice</a>).</p>
+      <h4>Common mistakes</h4>
   <div class="debug">
-    <p><b>Debug tip.</b> Test a convolution on a tiny picture whose answer you can work out by hand, then compare with a library. A picture with a dark left half and a bright right half should give a column of large values where the halves meet, and 0 elsewhere.</p>
+    <p><b>Debug tip.</b> Test a convolution on a tiny picture whose answer you can work out by hand, then compare with a library. A picture with a dark left half and a bright right half should give a band of large values where the halves meet (two columns for a 3 by 3 filter), and 0 elsewhere.</p>
   </div>
+      <h4>In Python</h4>
   <pre class="code" data-run><code>import numpy as np
 
 def conv2d(image, kernel, stride=1, pad=0):
@@ -222,29 +295,28 @@ print(mine)</code></pre>
  [   0. 1020. 1020.    0.]
  [   0. 1020. 1020.    0.]
  [   0. 1020. 1020.    0.]]</pre>
-  <p>The two columns of 1020 are the two windows that straddle the boundary between the dark and bright halves. A check against PyTorch's own convolution (not runnable in the browser) confirms the function:</p>
+  <p>The two columns of 1020 come from the windows that straddle the boundary between the dark and bright halves. A check against PyTorch's own convolution (not runnable in the browser) confirms the function:</p>
   <pre class="code"><code>import torch, torch.nn.functional as F
 ref = F.conv2d(torch.tensor(image)[None, None], torch.tensor(edge, dtype=torch.float64)[None, None])[0, 0].numpy()
 print("same as PyTorch:", np.allclose(mine, ref))</code></pre>
   <pre class="out">same as PyTorch: True</pre>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>A sharpen filter has weights 0, &minus;1, 0 / &minus;1, 5, &minus;1 / 0, &minus;1, 0. What does it output on a flat window of value 100?</summary><p>The output is 5 &times; 100 &minus; 4 &times; 100 = 100. The weights add up to 1, so a flat window passes unchanged and only differences from the neighbours are boosted.</p></details>
-    <details><summary>Why does the edge filter need weights that add up to 0 to give 0 on flat patches?</summary><p>On a flat patch all nine values equal one number c, so the output is c times the sum of the weights. That is 0 only if the weights sum to 0.</p></details>
-  </div>
+      <h4>More questions</h4>
+      <div class="recall">
+        <details><summary>Why does the edge filter need weights that add up to 0 to give 0 on flat patches?</summary><p>On a flat patch all nine values equal one number c, so the output is c times the sum of the weights. That is 0 only if the weights sum to 0.</p></details>
+      </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 4. size ============================ -->
 <section id="size" aria-labelledby="size-h">
   <h2 id="size-h">Stride and padding</h2>
-  <p class="ask"><b>Guess first.</b> A 28 by 28 digit goes through a 3 by 3 filter, one square at a time. How big is the feature map? And what could you add around the picture so that the map stays 28 by 28?</p>
-  <dl class="terms">
-    <div><dt>stride \(s\)</dt><dd>how many squares the window moves between positions; 1 moves one square at a time</dd></div>
-    <div><dt>padding \(p\)</dt><dd>rings of zeros added around the picture before sliding</dd></div>
-    <div><dt>output size \(m\)</dt><dd>the number of window positions along one side of the picture; here \(m\) is not the number of examples</dd></div>
-  </dl>
-  <p class="claim">The side of the feature map is \(\lfloor (n + 2p - k)/s \rfloor + 1\), so padding makes the map bigger and stride makes it smaller.</p>
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> A 28 by 28 digit goes through a 3 by 3 filter, moving one pixel at a time. How big is the feature map? And what could you add around the picture so that the map stays 28 by 28?</p>
+    <p class="claim">The window can move by \(s\) pixels between positions, where \(s\) is the stride, and \(p\) rings of zeros, the padding, can be added around the picture. For an input of side \(n\) and a filter of side \(k\), the feature map has side \(m = \lfloor (n + 2p - k)/s \rfloor + 1\). The brackets \(\lfloor\ \rfloor\) round down to a whole number. Padding makes the map bigger because it adds \(2p\) to the width, and stride makes it smaller because the window skips positions.</p>
   <div class="card" id="sz">
+      <ol class="try"><li>The left grid is the input (n = 7) and the right grid is the output. Click an output square to see its window; small dots mark the window's top-left corners.</li><li>Drag <b>Padding p</b> to 1: dashed squares of zeros appear around the input, and the output grows to 7 by 7 because the window now fits at 7 positions along a side.</li><li>Set <b>Padding p</b> back to 0 and drag <b>Stride s</b> to 2: the window jumps two pixels at a time, so the output shrinks to 3 by 3.</li></ol>
     <div class="controls" id="sz-controls"></div>
     <div class="bar" id="sz-bar"></div>
     <div class="sz-grid">
@@ -254,8 +326,36 @@ print("same as PyTorch:", np.allclose(mine, ref))</code></pre>
     <div class="eqn eqs" id="sz-eqn"></div>
     <p class="status" id="sz-status" aria-live="polite"></p>
   </div>
-  <p class="cap"><b>With n = 7, k = 3, s = 1 and p = 0 the map is 5 by 5. One ring of zeros (p = 1) keeps it 7 by 7, and stride 2 cuts it to 3 by 3.</b> The small dots mark where the window's top-left corner is placed. Click an output square to see its window. Dashed squares are padding.</p>
-  <p>Play with the four sliders and watch the equation boxes. Padding adds rows and columns on both sides, so it adds \(2p\) to the width of the picture. A window must fit inside the padded picture, so its top-left corner can be at positions 0, \(s\), \(2s\), and so on, up to \(n + 2p - k\). The number of corners is the number of steps of size \(s\) that fit, plus the starting position.</p>
+    <p class="cap"><b>With s = 1 and p = 0 the map is 5 by 5; p = 1 makes it 7 by 7, and s = 2 (with p = 0) makes it 3 by 3.</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>For the 28 by 28 digit with k = 3 and s = 1, the formula gives 26 when p = 0 and 28 when p = 1.</b> The arithmetic is (28 + 0 &minus; 3)/1 + 1 = 26 and (28 + 2 &minus; 3)/1 + 1 = 28. With p = 1 and s = 2 the quotient is 27/2 = 13.5, the floor drops the half step, so the side is 13 + 1 = 14.</p>
+    <div class="eqn" role="img" aria-label="Worked sizes: 28 with k 3 gives 26; with padding 1 gives 28; with padding 1 and stride 2 gives 14"><span class="t c-navy"><b>26</b><i>p = 0</i></span><span class="op">|</span><span class="t c-navy"><b>28</b><i>p = 1</i></span><span class="op">|</span><span class="t c-navy"><b>14</b><i>p = 1, s = 2 (27 &divide; 2 floors to 13)</i></span></div>
+    <p>Padding makes the width \(n + 2p\). The window's top-left corner can be at 0, \(s\), \(2s\) and so on, up to \(n + 2p - k\), the last position where the window fits. The number of steps of size \(s\) that fit is \(\lfloor (n + 2p - k)/s \rfloor\), and the starting position adds 1.</p>
+    <div class="break">
+      <p><b>Common belief.</b> A stride of 2 only makes the map smaller. It still reads all pixels of the picture.</p>
+      <p><b>Why it fails.</b> Set n = 8, k = 3, s = 2, p = 0 and tick <b>Count how often a square is read</b>. The last row and column are crossed out: 15 pixels are never read, because the quotient 5/2 = 2.5 is rounded down.</p>
+      <p><b>Better account.</b> If \(s\) is at most \(k\) and divides \(n + 2p - k\), all pixels are read; otherwise some pixels can stay unread.</p>
+    </div>
+    <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>What padding keeps a 5 by 5 filter at stride 1 from changing the size?</summary><p>The output side equals \(n\) when \((n + 2p - 5)/1 + 1 = n\), so \(2p - 4 = 0\) and \(p = 2\). In general \(p = (k-1)/2\) for odd \(k\).</p></details>
+    <details><summary>A 3 by 3 filter with stride 2 and no padding reads a 10 by 10 picture. How big is the output, and which pixels are never read?</summary><p>\(\lfloor (10 - 3)/2 \rfloor + 1 = \lfloor 3.5 \rfloor + 1 = 4\). The windows start at columns 0, 2, 4 and 6, and the last one ends at column 8, so column 9 is never read, and likewise row 9.</p></details>
+  </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">symbols, ResNet-18, pixel counts, Python, one more question</span> <span class="deeper-time">about 3 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+  <dl class="terms">
+    <div><dt>stride \(s\)</dt><dd>how many squares the window moves between positions; 1 moves one square at a time</dd></div>
+    <div><dt>padding \(p\)</dt><dd>rings of zeros added around the picture before sliding</dd></div>
+    <div><dt>output size \(m\)</dt><dd>the number of window positions along one side of the picture; here \(m\) is not the number of examples</dd></div>
+  </dl>
+      <h4>Symbols</h4>
   <p class="math">\[ m \;=\; \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1 \]</p>
   <ul class="math-notes">
     <li><b>\(n\)</b> is the side of the input, in squares. <b>\(p\)</b> is the number of rings of zeros added on all four sides.</li>
@@ -263,17 +363,18 @@ print("same as PyTorch:", np.allclose(mine, ref))</code></pre>
     <li><b>\(m\)</b> is the side of the output, not the number of examples. The brackets \(\lfloor\ \rfloor\) round down to a whole number.</li>
     <li>With a stride the sum reads from \(I[s\,i + u - p,\ s\,j + v - p]\), so a step of \(i\) moves the window by \(s\) squares and the \(-p\) puts the padding rings at negative positions.</li>
   </ul>
-  <p>Worked examples, all with numbers from this primer. A 28 by 28 digit, \(k = 3\), \(s = 1\), \(p = 0\): \((28 - 3)/1 + 1 = 26\). With \(p = 1\): \((28 + 2 - 3)/1 + 1 = 28\), the same size as the input, usually called &ldquo;same&rdquo; padding (\(p = (k-1)/2\) when \(k\) is odd). With \(p = 1\) and \(s = 2\): \(\lfloor 27/2 \rfloor + 1 = 13 + 1 = 14\), where the floor drops the half step. The first layer of ResNet-18 reads a 224 by 224 photo with \(k = 7\), \(s = 2\), \(p = 3\): \(\lfloor 223/2 \rfloor + 1 = 111 + 1 = 112\).</p>
-  <div class="eqn" role="img" aria-label="Worked sizes: 28 with k 3 gives 26; with padding 1 gives 28; with padding 1 and stride 2 gives 14; ResNet-18 first layer 224 gives 112"><span class="t c-navy"><b>26</b><i>n = 28, k = 3, s = 1, p = 0</i></span><span class="op">|</span><span class="t c-navy"><b>28</b><i>same, p = 1</i></span><span class="op">|</span><span class="t c-navy"><b>14</b><i>p = 1, s = 2 (27 &divide; 2 floors to 13)</i></span><span class="op">|</span><span class="t c-coral"><b>112</b><i>ResNet-18, n = 224, k = 7, s = 2, p = 3</i></span></div>
-  <p>Tick <b>Count how often a square is read</b>. With \(p = 0\) the corner squares are read once and the centre squares nine times. A pen stroke at the border therefore has less influence than one in the middle. With a ring of padding the corner count rises to 4. And zero padding is a guess: it adds an artificial edge between the picture and the zeros, so edge filters fire along the border.</p>
-  <div class="break">
-    <p><b>Common belief.</b> A stride of 2 only makes the map smaller. It still reads all squares of the picture.</p>
-    <p><b>Why it fails.</b> Set \(n = 8\), \(k = 3\), \(s = 2\), \(p = 0\) and tick <b>Count how often a square is read</b>. The last row and column are crossed out: 15 squares are never read, because the floor drops the half step. When the stride is larger than the filter, whole columns are skipped.</p>
-    <p><b>Better account.</b> The stride has to fit the picture. Choose sizes so that \(s\) divides \(n + 2p - k\), add padding, or accept that a strip at the border is dropped, as in the 11 to 5 pooling example.</p>
-  </div>
+      <h4>Same padding and a larger example</h4>
+      <p>A map of the input's size is usually called &ldquo;same&rdquo; padding. For odd \(k\) and \(s = 1\) it needs \(p = (k-1)/2\).</p>
+      <p>The first layer of ResNet-18 reads a 224 by 224 photo with \(k = 7\), \(s = 2\), \(p = 3\): \(\lfloor 223/2 \rfloor + 1 = 111 + 1 = 112\).</p>
+      <div class="eqn" role="img" aria-label="ResNet-18 first layer: 224 with k 7, stride 2 and padding 3 gives 112"><span class="t c-coral"><b>112</b><i>ResNet-18, n = 224, k = 7, s = 2, p = 3</i></span></div>
+      <h4>How often a square is read</h4>
+      <p>Play with the four sliders and watch the equation boxes. When the stride is larger than the filter, whole columns between windows are skipped. Adding padding changes \(n + 2p - k\) and so changes the leftover strip at the far edge. The zeros of the padding are the first squares in that strip, so a leftover of at most \(p\) squares drops only padding.</p>
+  <p>Tick <b>Count how often a square is read</b>. With the starting sliders (\(n = 7\), \(k = 3\), \(s = 1\)) and \(p = 0\), the corner squares are read once and the centre squares nine times. A pen stroke at the border can therefore have less influence than one in the middle. With a ring of padding the corner count rises to 4. Zero padding is a choice: where the picture is not 0 at its border, the zeros add an artificial edge, and edge filters respond along the border.</p>
+      <h4>Common mistakes</h4>
   <div class="debug">
-    <p><b>Debug tip.</b> The most common error in a first CNN is a size mismatch after <code>Flatten</code>: the dense layer expects a different number of inputs than the last feature map provides. Work the sizes out with the formula, or print <code>x.size()</code> after the layers, before you write the dense layer.</p>
+    <p><b>Debug tip.</b> A common error in a first CNN is a size mismatch after <code>Flatten</code>: the dense layer expects a different number of inputs than the last feature map provides. Work the sizes out with the formula, or print <code>x.size()</code> after the layers, before you write the dense layer.</p>
   </div>
+      <h4>In Python</h4>
   <pre class="code" data-run><code>def out_size(n, k, s=1, p=0):
     return (n + 2 * p - k) // s + 1    # // rounds down
 
@@ -288,25 +389,23 @@ print(nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)(x).shape)
 print(sum(p.numel() for p in nn.Conv2d(3, 16, 3).parameters()))</code></pre>
   <pre class="out">torch.Size([1, 64, 112, 112])
 448</pre>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>What padding keeps a 5 by 5 filter at stride 1 from changing the size?</summary><p>\(p = (k-1)/2 = 2\). Check: \((n + 4 - 5)/1 + 1 = n\).</p></details>
-    <details><summary>A 2 by 2 pool with stride 2 reads an 11 by 11 map. How big is the output, and what happens to the last row and column?</summary><p>\(\lfloor (11 - 2)/2 \rfloor + 1 = 5\). The last row and the last column of the map are never read.</p></details>
-  </div>
+      <h4>More questions</h4>
+      <div class="recall">
+        <details><summary>A 2 by 2 pool with stride 2 reads an 11 by 11 map. How big is the output, and what happens to the last row and column?</summary><p>\(\lfloor (11 - 2)/2 \rfloor + 1 = 5\). The last row and the last column of the map are never read.</p></details>
+      </div>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ 5. pooling ============================ -->
 <section id="pool" aria-labelledby="pool-h">
   <h2 id="pool-h">Max pooling</h2>
-  <p class="ask"><b>Guess first.</b> You move the digit one square to the right and recompute the feature map. By about what share does the map change? Then you cut the map into 2 by 2 blocks and keep only the largest value in a block. Does that smaller map change by more, the same, or less?</p>
-  <dl class="terms">
-    <div><dt>pooling</dt><dd>replace a block of the map by one number</dd></div>
-    <div><dt>max pooling</dt><dd>keep the largest value in the block</dd></div>
-    <div><dt>average pooling</dt><dd>keep the mean of the block</dd></div>
-    <div><dt>pool size \(q\)</dt><dd>the side of the block; stride is the step between blocks</dd></div>
-  </dl>
-  <p class="claim">Max pooling keeps the strongest response in a block and forgets where it was inside the block. This shrinks the map and makes it a little less sensitive to small shifts.</p>
+
+  <div class="layer layer-idea">
+    <p class="ask"><b>Guess first.</b> You move the digit one pixel to the right and recompute the feature map: by about what share does the map change? Then you cut the map into 2 by 2 blocks and keep only the largest value in a block. Does the smaller map change by more, by the same share, or by less?</p>
+    <p class="claim">Pooling replaces a block of the feature map by one number. Max pooling keeps the largest value in a block of side \(q\) and does not record where in the block it was. Max pooling shrinks the map because a block of \(q \times q\) values becomes one value, and in the figure it makes the map less sensitive to small shifts of the digit.</p>
   <div class="card" id="pl">
+      <ol class="try"><li>With the starting choices, drag <b>Move the digit to the right, in squares</b> to 1. The readout shows the change of the map: the <a href="../t5-vectors-matrices/#vectors">length</a> of the difference between the maps of the moved and original digit, as a share of the length of the original map. It is 95% before pooling and 68% after.</li><li>Hover over the pooled map: the coral square on the left map marks the block, and the line below shows its four values and their maximum.</li><li>Drag the slider to 3: the pooled map still changes by 132%, against 141% unpooled.</li></ol>
     <div class="bar" id="pl-bar"></div>
     <div class="controls" id="pl-controls"></div>
     <div class="split2">
@@ -316,23 +415,54 @@ print(sum(p.numel() for p in nn.Conv2d(3, 16, 3).parameters()))</code></pre>
     <div class="eqn eqs" id="pl-eqn"></div>
     <div class="readout" id="pl-read"></div>
   </div>
-  <p class="cap"><b>Pooling halves the width and height of the map and softens, but does not remove, the effect of moving the digit.</b> The two percentages compare the map of the moved digit with the map of the digit in its first place, square by square.</p>
-  <p>Move the slider to 1 and compare the two percentages. Take 30 MNIST digits and the left-right edge filter. Moving the digit one square changes the feature map by 88% of its own size on average, and the 2 by 2 max-pooled map by 65%. Pooling helps because the strongest value of a block often stays inside the same block when the pattern moves one square. Output sizes follow the formula of the last section, with \(k\) replaced by the pool size \(q\) and \(p = 0\). A 26 by 26 map with \(q = 2\) and \(s = 2\) gives \(\lfloor 24/2 \rfloor + 1 = 13\).</p>
+    <p class="cap"><b>Max pooling halves the width and height of the map and lowers the change from a one-pixel shift of this digit from 95% to 68%, but does not remove it.</b></p>
+  </div>
+
+  <div class="layer layer-how">
+    <h3 class="layer-h">How it works</h3>
+    <p><b>With the slider at 0, hover over the pooled map at output row 9, column 7.</b> Its block has the values 543, 1009, 510 and 1010, so the maximum is 1010. The block to its right has the maximum 500. When the digit moves one pixel to the right, the strong values 1009 and 1010 enter the right block, so the two maxima become 543 and 1010.</p>
+    <div class="eqn" role="img" aria-label="Before the move max of 543, 1009, 510, 1010 is 1010; after moving the digit one pixel right max of 0, 543, 0, 510 is 543"><span class="op">max(</span><span class="t c-navy"><b>543, 1009, 510, 1010</b><i>the block</i></span><span class="op">) =</span><span class="t c-coral"><b>1010</b><i>pooled value</i></span><span class="op">|</span><span class="op">after the move: max(</span><span class="t c-navy"><b>0, 543, 0, 510</b><i>the same block</i></span><span class="op">) =</span><span class="t c-coral"><b>543</b><i>pooled value</i></span></div>
+    <p>The pooled value at row \(i\), column \(j\) is \(P[i,j] = \max_{0 \le u,\,v &lt; q} F[s\,i + u,\; s\,j + v]\). Here \(F\) is the feature map before pooling, \(P\) the pooled map, \(q\) the side of the block and \(s\) the stride between blocks. The output side follows the formula of the last section with \(k\) replaced by \(q\) and \(p = 0\), so a 26 by 26 map with \(q = s = 2\) becomes \(\lfloor 24/2 \rfloor + 1 = 13\) by 13.</p>
+    <div class="break">
+      <p><b>Common belief.</b> Pooling makes a network recognise a digit wherever it is in the picture.</p>
+      <p><b>Why it fails.</b> At a shift of 3 pixels, more than the two-pixel width of a block, the pooled map of this digit still changes by 132%, against 141% before pooling.</p>
+      <p><b>Better account.</b> Pooling tolerates small shifts that keep the strongest value inside its block.</p>
+    </div>
+    <div class="recall">
+    <p class="recall-h">Quick quiz</p>
+    <details><summary>A 13 by 13 map goes through 2 by 2 max pooling with stride 2. What size is the result?</summary><p>\(\lfloor (13 - 2)/2 \rfloor + 1 = 6\). The last row and column are not read.</p></details>
+    <details><summary>Why does a move of 3 pixels still change the pooled map?</summary><p>A block is 2 pixels wide, so a move of 3 pixels puts all strong values in different blocks than before. The block maxima then change, and for this digit the pooled map changes by 132%, against 141% before pooling.</p></details>
+  </div>
+  </div>
+
+  <details class="deeper">
+    <summary><b>Go deeper</b> <span class="deeper-what">30-digit averages, symbols, costs, Python</span> <span class="deeper-time">about 3 min</span></summary>
+    <div class="deeper-body">
+      <h4>Terms</h4>
+  <dl class="terms">
+    <div><dt>pooling</dt><dd>replace a block of the map by one number</dd></div>
+    <div><dt>max pooling</dt><dd>keep the largest value in the block</dd></div>
+    <div><dt>average pooling</dt><dd>keep the mean of the block</dd></div>
+    <div><dt>pool size \(q\)</dt><dd>the side of the block; stride is the step between blocks</dd></div>
+  </dl>
+      <h4>Averages over 30 digits</h4>
+  <p>The figure shows one digit. Averaged over the 30 MNIST digits of the figure's data, with the left-right edge filter, moving the digit one pixel to the right changes the feature map by 88% of its own size, and the 2 by 2 max-pooled map by 65%. A likely reason is that the strongest value of a block often stays inside the same block when the pattern moves one pixel. At a move of 3 pixels the averages are 139% before pooling and 128% after. Here the change is the square root of the sum of the squared differences between the two maps, divided by the square root of the sum of the squared values of the original map.</p>
+      <h4>Symbols</h4>
   <p class="math">\[ P[i,j] \;=\; \max_{0 \le u,\,v < q}\; F[\,s\,i + u,\; s\,j + v\,] \]</p>
   <ul class="math-notes">
     <li><b>\(F\)</b> is the feature map before pooling and <b>\(P\)</b> the pooled map; <b>\(q\)</b> is the block side and <b>\(s\)</b> the stride.</li>
     <li>Here \(F\) is a feature map. The Fisher information of <a href="../b7-continual-learning/#fisher">B7</a> has the same letter and a different meaning.</li>
     <li>For average pooling replace the maximum by the mean of the \(q \cdot q\) values. Pooling has no weights to learn.</li>
   </ul>
-  <div class="break">
-    <p><b>Common belief.</b> Pooling makes a network recognise a digit wherever it is in the picture.</p>
-    <p><b>Why it fails.</b> Set the slider to 3. The pooled map now changes by about 128% (averaged over the same 30 digits), against 139% for the unpooled map. A block is only two squares wide, so pooling tolerates shifts of about that size.</p>
-    <p><b>Better account.</b> Pooling gives tolerance to small shifts inside a block. Larger tolerance comes from stacking several conv and pool layers and from training on shifted examples. The chart in <a href="../c2-cnns/#limits">C2</a> measures this for a trained network.</p>
-  </div>
+      <h4>What pooling costs</h4>
+      <p>Larger tolerance to shifts can come from stacking several conv and pool layers and from training on shifted examples.</p>
   <p><b>What pooling costs.</b> It throws away the position inside a block. That is fine when you want to know that a stroke exists. It hurts when the position is the answer, for example the distance between a shark's eye and its tail fin. Many modern networks use a stride-2 convolution instead of a pooling layer, so the network learns what to keep. ResNet-18 has one max pool near the start and averages over the whole map at the end.</p>
+      <p>The <a href="../c2-cnns/#stack">next chapter</a> stacks the filters, strides, padding and pooling of this chapter into a network that reads the digit, and measures that network on shifted digits (<a href="../c2-cnns/#limits">where it fails</a>).</p>
+      <h4>Common mistakes</h4>
   <div class="debug">
     <p><b>Debug tip.</b> If you pool an odd-sized map, the last row and column are dropped, as in the 11 to 5 example. When that matters, pad the map first or change the sizes. Also remember that max pooling passes the slope back only to the square that held the maximum (<a href="../b4-backpropagation/#backward">B4</a>).</p>
   </div>
+      <h4>In Python</h4>
   <p>A tiny map shows both sides of the tolerance. The 9 and the 8 are strong responses of a filter.</p>
   <pre class="code" data-run><code>import numpy as np
 
@@ -349,12 +479,9 @@ for shift in (0, -1, 1):          # no move, one square left, one right
   <pre class="out">shift  0: [[9, 0], [0, 8]] same as before: True
 shift -1: [[9, 0], [0, 8]] same as before: True
 shift  1: [[0, 9], [8, 0]] same as before: False</pre>
-  <p>Moving the map one square left keeps both maxima inside their blocks, so the pooled map is the same. Moving it one square right pushes both across a block boundary, and the pooled map changes.</p>
-  <div class="recall">
-    <p class="recall-h">Quick quiz</p>
-    <details><summary>A 13 by 13 map goes through 2 by 2 max pooling with stride 2. What size is the result?</summary><p>\(\lfloor (13 - 2)/2 \rfloor + 1 = 6\). The last row and column are not read.</p></details>
-    <details><summary>Why does pooling give no help when the digit moves 8 squares?</summary><p>The pattern falls in different blocks, and a block only hides moves smaller than its own size. At 8 squares no block contains the same part of the stroke as before.</p></details>
-  </div>
+  <p>Moving the map one square left keeps both maxima inside their blocks, so the pooled map is the same. Moving it one square right pushes both into another block (<code>np.roll</code> wraps the 8 around to the left edge), and the pooled map changes.</p>
+    </div>
+  </details>
 </section>
 
 <!-- ============================ exercises ============================ -->

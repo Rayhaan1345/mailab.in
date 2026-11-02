@@ -659,7 +659,7 @@ var TreeLab = (function () {
     var tree = core.newTree(y, d.train, d.ranges), nums = numberLeaves(tree), sel = 0, hov = -1;
     var cand = { f: opts.startFeature || 0, t: 0 }, busy = null, scan = null;
     el.classList.add("tl");
-    el.innerHTML = "";
+    var tryList = el.querySelector(":scope > ol.try"); el.innerHTML = ""; if (tryList) el.appendChild(tryList);
 
     // controls
     var row1 = H("div", { class: "tl-row" }, el);
@@ -914,7 +914,7 @@ var TreeLab = (function () {
     var tree = core.newTree(y, d.train, d.ranges);
     core.grow(tree, cols, 0, { maxDepth: spec.depth, minLeaf: spec.minLeaf || 1 });
     var nums = numberLeaves(tree), pt = null, picks = opts.picks || [];
-    el.classList.add("tl"); el.innerHTML = "";
+    el.classList.add("tl"); var tryList = el.querySelector(":scope > ol.try"); el.innerHTML = ""; if (tryList) el.appendChild(tryList);
     var row = H("div", { class: "tl-row" }, el), chipObj = null;
     if (picks.length) {
       H("span", { class: "label" }, row, "Put the ring on");
@@ -972,7 +972,7 @@ var TreeLab = (function () {
   api.mountDepth = function (el, opts) {
     injectCss();
     var d = prep(opts), cols = d.cols, y = d.y, maxD = opts.maxDepth || 12, nSplits = opts.splits == null ? 20 : opts.splits;
-    el.classList.add("tl"); el.innerHTML = "";
+    el.classList.add("tl"); var tryList = el.querySelector(":scope > ol.try"); el.innerHTML = ""; if (tryList) el.appendChild(tryList);
     var ctrl = H("div", { class: "controls" }, el);
     var curDepth = opts.depth == null ? 2 : opts.depth, minLeaf = 1, tree = null, cache = {}, others = null, rr = Kit.rng(opts.seed || 4127);
     var sd = Kit.slider(ctrl, { label: "Depth limit", min: 0, max: maxD, step: 1, value: curDepth, digits: 0 }, function (v) { curDepth = v; draw(); });
@@ -1128,7 +1128,7 @@ var TreeLab = (function () {
     var ord = opts.values.map(function (v, i) { return i; }).sort(function (a, b) { return opts.values[a] - opts.values[b]; });
     var V = ord.map(function (i) { return opts.values[i]; }), Y = ord.map(function (i) { return opts.labels[i] ? 1 : 0; }), N = V.length;
     var k = opts.start == null ? Math.floor(N / 2) : opts.start;
-    el.classList.add("tl"); el.innerHTML = "";
+    el.classList.add("tl"); var tryList = el.querySelector(":scope > ol.try"); el.innerHTML = ""; if (tryList) el.appendChild(tryList);
     var ctrl = H("div", { class: "controls" }, el);
     var sl = Kit.slider(ctrl, { label: "Examples on the yes side", min: 0, max: N, step: 1, value: k, digits: 0, show: function (v) { return v + " of " + N; } }, function (v) { k = v; draw(); });
     var grid = H("div", { class: "tl-grid" }, el), left = H("div", { class: "tl-strip" }, grid), right = H("div", {}, grid);
@@ -1219,7 +1219,7 @@ var TreeLab = (function () {
     var maxD = opts.maxDepth || 8, depth = opts.depth == null ? 2 : opts.depth, minLeaf = 1, showHeld = false, showLine = false, showLaw = false, probe = opts.probe || 45;
     var xLo = opts.xMin == null ? Math.floor(Math.min.apply(null, X) / 5) * 5 : opts.xMin, xHi = opts.xMax || Math.ceil(Math.max.apply(null, X) / 5) * 5, yU = opts.yUnit || "", xU = opts.xUnit || "";
     var noun = opts.noun || "case", nouns = opts.nouns || noun + "s";
-    el.classList.add("tl"); el.innerHTML = "";
+    el.classList.add("tl"); var tryList = el.querySelector(":scope > ol.try"); el.innerHTML = ""; if (tryList) el.appendChild(tryList);
     var ctrl = H("div", { class: "controls" }, el);
     var sd = Kit.slider(ctrl, { label: "Depth limit", min: 0, max: maxD, step: 1, value: depth, digits: 0 }, function (v) { depth = v; draw(); });
     var sm = Kit.slider(ctrl, { label: "Smallest step allowed", min: 1, max: 30, step: 1, value: 1, digits: 0, show: function (v) { return v + " " + (v === 1 ? noun : nouns); } }, function (v) { minLeaf = v; rebuild(); draw(); });
