@@ -1,0 +1,682 @@
+{
+ "model": "Qwen/Qwen3-VL-2B-Instruct",
+ "decoding": "greedy unless stated; float32; CPU; default chat template",
+ "count": [
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "1",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 1,
+   "layout": 0
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "1",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 1,
+   "layout": 1
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "1",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 1,
+   "layout": 2
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "2",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 2,
+   "layout": 0
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "2",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 2,
+   "layout": 1
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "2",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 2,
+   "layout": 2
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "3",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 3,
+   "layout": 0
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "3",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 3,
+   "layout": 1
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "3",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 3,
+   "layout": 2
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "4",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 4,
+   "layout": 0
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "4",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 4,
+   "layout": 1
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "4",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 4,
+   "layout": 2
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "6",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 6,
+   "layout": 0
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "6",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 6,
+   "layout": 1
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "6",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 6,
+   "layout": 2
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "8",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 8,
+   "layout": 0
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "8",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 8,
+   "layout": 1
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "8",
+   "n_img": 260,
+   "n_ans": 2,
+   "done": true,
+   "N": 8,
+   "layout": 2
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "14",
+   "n_img": 260,
+   "n_ans": 3,
+   "done": true,
+   "N": 12,
+   "layout": 0
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "12",
+   "n_img": 260,
+   "n_ans": 3,
+   "done": true,
+   "N": 12,
+   "layout": 1
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "12",
+   "n_img": 260,
+   "n_ans": 3,
+   "done": true,
+   "N": 12,
+   "layout": 2
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "15",
+   "n_img": 260,
+   "n_ans": 3,
+   "done": true,
+   "N": 16,
+   "layout": 0
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "15",
+   "n_img": 260,
+   "n_ans": 3,
+   "done": true,
+   "N": 16,
+   "layout": 1
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "15",
+   "n_img": 260,
+   "n_ans": 3,
+   "done": true,
+   "N": 16,
+   "layout": 2
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "16",
+   "n_img": 260,
+   "n_ans": 3,
+   "done": true,
+   "N": 24,
+   "layout": 0
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "24",
+   "n_img": 260,
+   "n_ans": 3,
+   "done": true,
+   "N": 24,
+   "layout": 1
+  },
+  {
+   "q": "How many sharks are in this image? Answer with one number.",
+   "a": "30",
+   "n_img": 260,
+   "n_ans": 3,
+   "done": true,
+   "N": 24,
+   "layout": 2
+  }
+ ],
+ "small": [
+  {
+   "q": "What number is on the tag? Answer with the number only.",
+   "a": "10",
+   "n_img": 220,
+   "n_ans": 3,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "short",
+   "scale": 1,
+   "em": 3,
+   "cap_height": 2.0,
+   "truth": "4127"
+  },
+  {
+   "q": "What number is on the tag? Answer with the number only.",
+   "a": "1014127",
+   "n_img": 220,
+   "n_ans": 8,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "short",
+   "scale": 1,
+   "em": 4,
+   "cap_height": 3.0,
+   "truth": "4127"
+  },
+  {
+   "q": "What number is on the tag? Answer with the number only.",
+   "a": "4127",
+   "n_img": 220,
+   "n_ans": 5,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "short",
+   "scale": 1,
+   "em": 5,
+   "cap_height": 4.0,
+   "truth": "4127"
+  },
+  {
+   "q": "What number is on the tag? Answer with the number only.",
+   "a": "4327",
+   "n_img": 220,
+   "n_ans": 5,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "short",
+   "scale": 1,
+   "em": 6,
+   "cap_height": 4.0,
+   "truth": "4127"
+  },
+  {
+   "q": "What number is on the tag? Answer with the number only.",
+   "a": "4127",
+   "n_img": 220,
+   "n_ans": 5,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "short",
+   "scale": 1,
+   "em": 7,
+   "cap_height": 5.0,
+   "truth": "4127"
+  },
+  {
+   "q": "What is the weight written on the tag? Answer with the number only.",
+   "a": "283",
+   "n_img": 220,
+   "n_ans": 4,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "long",
+   "scale": 1,
+   "em": 6,
+   "cap_height": 4.0,
+   "truth": "0.281"
+  },
+  {
+   "q": "What is the weight written on the tag? Answer with the number only.",
+   "a": "0.281",
+   "n_img": 220,
+   "n_ans": 6,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "long",
+   "scale": 1,
+   "em": 8,
+   "cap_height": 6.0,
+   "truth": "0.281"
+  },
+  {
+   "q": "What is the weight written on the tag? Answer with the number only.",
+   "a": "0.281",
+   "n_img": 220,
+   "n_ans": 6,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "long",
+   "scale": 1,
+   "em": 11,
+   "cap_height": 8.0,
+   "truth": "0.281"
+  },
+  {
+   "q": "What is the weight written on the tag? Answer with the number only.",
+   "a": "0.281",
+   "n_img": 220,
+   "n_ans": 6,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "long",
+   "scale": 1,
+   "em": 14,
+   "cap_height": 10.0,
+   "truth": "0.281"
+  },
+  {
+   "q": "What is the weight written on the tag? Answer with the number only.",
+   "a": "0.281",
+   "n_img": 220,
+   "n_ans": 6,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "long",
+   "scale": 1,
+   "em": 18,
+   "cap_height": 13.0,
+   "truth": "0.281"
+  },
+  {
+   "q": "What number is on the tag? Answer with the number only.",
+   "a": "4327",
+   "n_img": 920,
+   "n_ans": 5,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "short",
+   "scale": 2,
+   "em": 3,
+   "cap_height": 2.0,
+   "truth": "4127"
+  },
+  {
+   "q": "What number is on the tag? Answer with the number only.",
+   "a": "4127",
+   "n_img": 920,
+   "n_ans": 5,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "short",
+   "scale": 2,
+   "em": 4,
+   "cap_height": 3.0,
+   "truth": "4127"
+  },
+  {
+   "q": "What number is on the tag? Answer with the number only.",
+   "a": "4127",
+   "n_img": 920,
+   "n_ans": 5,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "short",
+   "scale": 2,
+   "em": 5,
+   "cap_height": 3.5,
+   "truth": "4127"
+  },
+  {
+   "q": "What number is on the tag? Answer with the number only.",
+   "a": "4127",
+   "n_img": 920,
+   "n_ans": 5,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "short",
+   "scale": 2,
+   "em": 6,
+   "cap_height": 4.5,
+   "truth": "4127"
+  },
+  {
+   "q": "What number is on the tag? Answer with the number only.",
+   "a": "4127",
+   "n_img": 920,
+   "n_ans": 5,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "short",
+   "scale": 2,
+   "em": 7,
+   "cap_height": 5.0,
+   "truth": "4127"
+  },
+  {
+   "q": "What is the weight written on the tag? Answer with the number only.",
+   "a": "0.281",
+   "n_img": 920,
+   "n_ans": 6,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "long",
+   "scale": 2,
+   "em": 6,
+   "cap_height": 4.5,
+   "truth": "0.281"
+  },
+  {
+   "q": "What is the weight written on the tag? Answer with the number only.",
+   "a": "0.281",
+   "n_img": 920,
+   "n_ans": 6,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "long",
+   "scale": 2,
+   "em": 8,
+   "cap_height": 6.0,
+   "truth": "0.281"
+  },
+  {
+   "q": "What is the weight written on the tag? Answer with the number only.",
+   "a": "0.281",
+   "n_img": 920,
+   "n_ans": 6,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "long",
+   "scale": 2,
+   "em": 11,
+   "cap_height": 8.0,
+   "truth": "0.281"
+  },
+  {
+   "q": "What is the weight written on the tag? Answer with the number only.",
+   "a": "0.281",
+   "n_img": 920,
+   "n_ans": 6,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "long",
+   "scale": 2,
+   "em": 14,
+   "cap_height": 10.0,
+   "truth": "0.281"
+  },
+  {
+   "q": "What is the weight written on the tag? Answer with the number only.",
+   "a": "0.281",
+   "n_img": 920,
+   "n_ans": 6,
+   "done": true,
+   "photo": "hammerhead-1",
+   "kind": "long",
+   "scale": 2,
+   "em": 18,
+   "cap_height": 13.0,
+   "truth": "0.281"
+  }
+ ],
+ "describe": [
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "A preserved specimen of a *Squalus* shark, likely a *Squalus acanthias* (commonly known as the blacktip shark), is displayed on a white surface with a ruler below it. The shark is shown in a side profile, with its streamlined body and dark dorsal fin clearly visible.",
+   "n_img": 260,
+   "n_ans": 65,
+   "done": true,
+   "photo": "spadenose-1"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "A close-up photograph captures a small, pale-colored shark with a prominent, elongated snout and a large, round eye, nestled within a woven bamboo basket. The shark's body is partially obscured by the basket's texture, and its skin appears smooth and slightly moist, with a hint of a dark, mottled pattern on its back.",
+   "n_img": 300,
+   "n_ans": 71,
+   "done": true,
+   "photo": "spadenose-2"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "This photo shows two grey sharks resting on a wet, rocky surface, likely a tide pool or rocky shore. The shark in the foreground is angled towards the viewer, revealing its sharp, pointed snout and small, dark eyes, while the second shark is partially visible above it.",
+   "n_img": 300,
+   "n_ans": 57,
+   "done": true,
+   "photo": "milk-1"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "A display of fresh seafood, including several small, gray sharks and several pinkish fish, is arranged on a bed of white ice in a market setting. The sharks, likely reef or nurse sharks, are laid out on the ice, while the fish are in a metal container behind them.",
+   "n_img": 300,
+   "n_ans": 59,
+   "done": true,
+   "photo": "milk-2"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "A small, brownish shark with a distinctive pattern of light stripes along its body is resting on a white sandy bottom in an aquarium. The shark's head is slightly tilted, and a black cord hangs from the top of the tank, possibly for a power source or a feeding device.",
+   "n_img": 300,
+   "n_ans": 58,
+   "done": true,
+   "photo": "bamboo-1"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "A dark, greyish shark with a broad, flat body and a prominent, rounded dorsal fin is swimming through a rocky, algae-covered aquarium. The shark is positioned near a rock formation, with green algae growing on the rocks and the water appearing murky.",
+   "n_img": 300,
+   "n_ans": 52,
+   "done": true,
+   "photo": "bamboo-2"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "A hammerhead shark is captured swimming gracefully through deep blue water, its distinctive flattened head and wide, asymmetrical eyes clearly visible. The shark's powerful body and unique, hammer-shaped head are highlighted against the dark, deep-sea backdrop.",
+   "n_img": 220,
+   "n_ans": 49,
+   "done": true,
+   "photo": "hammerhead-1"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "A hammerhead shark, identifiable by its distinctive flattened head and wide, triangular eyes, swims gracefully through deep blue water. Its sleek, gray body and powerful fins are captured in a moment of serene movement, showcasing the unique beauty of this marine predator.",
+   "n_img": 220,
+   "n_ans": 51,
+   "done": true,
+   "photo": "hammerhead-2"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "This is a scientific illustration of a *Carcharhinus (Pseudodon) gansettius*, a species of shark. The image displays the shark's full body, its distinctive row of sharp, triangular teeth, its skeleton, and a detailed drawing of its head.",
+   "n_img": 220,
+   "n_ans": 58,
+   "done": true,
+   "photo": "ganges-1"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "This is a black and white line drawing of a shark, likely a species of sandbar shark, shown in profile. The illustration uses fine lines and cross-hatching to create a sense of depth and texture, with the shark's body and fins clearly defined against a plain background.",
+   "n_img": 300,
+   "n_ans": 57,
+   "done": true,
+   "photo": "ganges-2"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "A large, spotted eagle ray with a long, slender tail glides gracefully through the clear blue water of the ocean. The ray, with its distinctive white spots on a greenish-blue body, is surrounded by small fish and the rocky reef below, creating a serene underwater scene.",
+   "n_img": 220,
+   "n_ans": 57,
+   "done": true,
+   "photo": "ray-1"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "A dolphin leaps gracefully out of the deep blue water, its body arcing through the air with a splash of white foam trailing behind. The sunlight glints off the water's surface, highlighting the dolphin's sleek gray skin and the dynamic motion of its jump.",
+   "n_img": 300,
+   "n_ans": 53,
+   "done": true,
+   "photo": "dolphin-1"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "Two vibrant orange and white clownfish are nestled within the soft, pale tentacles of a sea anemone, their bodies partially hidden as they swim through the coral reef. The scene captures a moment of peaceful coexistence between the fish and their marine habitat, with the anemone's delicate, flowing tentacles creating a natural, textured backdrop.",
+   "n_img": 300,
+   "n_ans": 71,
+   "done": true,
+   "photo": "reeffish-1"
+  },
+  {
+   "q": "Describe this photo in two sentences.",
+   "a": "A large green sea turtle is resting on a dark, wet sand beach, its shell showing signs of wear and age. In the background, a few people can be seen on the shore, with a line of trees and hills under a bright sky.",
+   "n_img": 300,
+   "n_ans": 51,
+   "done": true,
+   "photo": "turtle-1"
+  }
+ ],
+ "sample": {
+  "q": "Which shark is this? Answer with the common name only.",
+  "runs": {
+   "hammerhead-1": {
+    "greedy": "hammerhead",
+    "sampled": [
+     "hammerhead",
+     "hammerhead",
+     "hammerhead",
+     "hammerhead",
+     "hammerhead",
+     "hammerhead",
+     "hammerhead",
+     "hammerhead"
+    ]
+   },
+   "bamboo-1": {
+    "greedy": "banded shark",
+    "sampled": [
+     "banded shark",
+     "banded shark",
+     "banded shark",
+     "banded shark",
+     "dusky shark",
+     "dogfish",
+     "banded shark",
+     "banded shark"
+    ]
+   },
+   "spadenose-1": {
+    "greedy": "banded shark",
+    "sampled": [
+     "bush shark",
+     "dogfish",
+     "bottle shark",
+     "blacktip shark",
+     "dusky shark",
+     "dogfish",
+     "banded shark",
+     "bottle jaw"
+    ]
+   },
+   "milk-1": {
+    "greedy": "bottlenose",
+    "sampled": [
+     "broadnose shark",
+     "sandbar",
+     "sandbar",
+     "mackerel shark",
+     "barracouta",
+     "dogfish",
+     "bottlenose",
+     "bottlenose"
+    ]
+   }
+  }
+ }
+}

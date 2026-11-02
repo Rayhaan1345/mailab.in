@@ -1,0 +1,26 @@
+/* Styles for this chapter only. Shared styles are in primer/lib/css. */
+
+.tl-row { display: grid; grid-template-columns: 7.2em repeat(4, minmax(0, 1fr)); gap: 4px; align-items: stretch; margin: 0 0 4px; }
+.tl-row.on .tl-lab { color: var(--ink); font-weight: 600; }
+.tl-lab { align-self: center; font-size: 14px; color: var(--muted); }
+.tl-wh { padding: 4px 6px; border: 1px solid var(--rule); border-radius: 6px; text-align: center; font-size: 13.5px; line-height: 1.25; color: var(--ink-2); background: var(--bg); }
+.tl-wh b { display: block; color: var(--ink); font-weight: 600; }
+.tl-wh i { font-style: normal; color: var(--muted); font-size: 12.5px; }
+.tl-wh.now { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal) inset; }
+.tl-c { padding: 8px 4px; border: 1px solid var(--rule); border-radius: 6px; text-align: center; font-size: 15.5px; color: var(--ink); font-feature-settings: "tnum" 1, "lnum" 1; }
+.tl-c.unseen { border-style: dashed; color: var(--muted); font-size: 14px; }
+.tl-bar { display: grid; grid-template-columns: minmax(8em, 15em) minmax(0, 1fr) 3.4em; gap: 8px; align-items: center; font-size: 14.5px; color: var(--ink-2); margin: 3px 0; }
+.tl-bar.me { color: var(--ink); font-weight: 600; }
+.tl-track { height: 12px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+.tl-track span { display: block; height: 100%; background: var(--teal); }
+.tl-bar b { text-align: right; font-feature-settings: "tnum" 1, "lnum" 1; }
+#tl-bars { margin: 14px 0 4px; }
+.sub { margin: -4px 0 6px; font-size: 14px; color: var(--muted); }
+@media (max-width: 760px) {
+  .tl-row { grid-template-columns: 4.6em repeat(4, minmax(0, 1fr)); }
+  .tl-lab { font-size: 12.5px; }
+  .tl-wh { font-size: 12px; padding: 3px 2px; }
+  .tl-wh i { display: none; }
+  .tl-c { padding: 8px 1px; font-size: 14px; }
+  .tl-bar { grid-template-columns: 7.6em minmax(0, 1fr) 3em; font-size: 13.5px; }
+}
